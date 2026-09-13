@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "22"
+    "node": ">=22"
   },
   "packageManager": "pnpm@9.15.4",
   "scripts": {
@@ -12,5 +12,13 @@
     "test": "vitest run",
     "gen:master": "node tools/genmaster/index.js",
     "id": "node tools/docindex/index.js"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.10.0",
+    "eslint-plugin-import": "^2.32.0",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.70.0",
+    "vitest": "^5.0.0"
   }
 }
