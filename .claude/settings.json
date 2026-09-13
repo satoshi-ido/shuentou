@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm test)",
+      "Bash(pnpm gen:master)",
+      "Bash(pnpm id *)",
+      "Bash(git add *)",
+      "Bash(git commit -m *)",
+      "Bash(git push origin HEAD)"
+    ],
+    "deny": [
+      "Bash(git push origin main)",
+      "Bash(git push origin master)",
+      "Bash(git merge *)",
+      "Bash(git rebase *)",
+      "ReadFile(docs/終焉燈.md)",
+      "Bash(*docs/終焉燈.md*)"
+    ]
+  }
+}
