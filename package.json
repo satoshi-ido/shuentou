@@ -1,0 +1,16 @@
+{
+  "name": "shuentou",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "packageManager": "pnpm@9.15.4",
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "gen:master": "node tools/genmaster/index.js",
+    "id": "node tools/docindex/index.js"
+  }
+}

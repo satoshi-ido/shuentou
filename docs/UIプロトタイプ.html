@@ -1,0 +1,4998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<!--
+  終焉燈 ─ UIプロトタイプ
+  目的：[M-UI-HUD]・[M-UI-WATCH]・[M-UI-TIMELINE]・[M-UI-PAUSE-REASON]・[M-UI-OBJECTIVE]・
+        [M-UI-SORT]・[M-UI-SCROLL]・[M-INHERIT-MERGE] の表示仕様、巻き戻し
+        （[M-REWIND-UNDO]・[M-REWIND-ROLLBACK]）、および
+        タイトル・脚本再生（[S-SCRIPT-SCHEMA]）・アクト表題（[S-ACT-TITLECARD]）・従者補充
+        （[M-PROG-REFILL]）・エンディング／エピローグ（[S-END-C1]〜[S-END-A]・[S-EPILOGUE]）・周回移行
+        （[M-META-NEWGAMEPLUS]）・辞典（[M-DATA-HELPMASTER]）・中断（[M-META-SAVEDATA]）・表示音響設定
+        （[M-UI-CONFIG]）を、設計文書の実数値で成立するかを
+        確認するための静的検証台。
+
+  JS構成： 1.DOM参照と参照ヘルパー / 2.機構層（決定論エンジン・統合解決パイプライン） /
+          3.表示層 / 4.モーダル制御層 / 5.巻き戻し・履歴制御層 / 6.インターミッション層 /
+          7.物語・メタ画面 / 8.初期化・エントリーポイント
+  ファイル構成： ui.css（スタイル） / masters.js（マスタデータ） /
+          instantiate.js（実体化・文言解決） / presets.js（検証用プリセット）
+          読み込み順に意味がある。presets.js は前2者を評価時点で必要とする。
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>終焉燈 ─ UIプロトタイプ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+<div class="wrap" id="mainWrap">
+
+<!-- プロトタイプ検証用コントロール -->
+<aside class="debug-toolbar" aria-label="プロトタイプ検証用ツールバー">
+  <div class="row-center">
+    <span class="debug-label">※検証プリセット：</span>
+    <select id="presetSelect" class="preset-select" aria-label="検証プリセット選択">
+      <option value="scene_3_04">【Scene 3-04】剣聖ロウド戦（標準：硬直バフ・3名編成）</option>
+      <option value="scene_1_01">【Scene 1-01】灰の村（序盤：クリーチャー不在・低リソース・自滅禁止）</option>
+      <option value="scene_5_07">【Scene 5-07】灰蝕の階（終盤：多重デバフ・スリップ・封印・コピー・被弾危機）</option>
+      <option value="intermission_final">【Scene 5-10後】最終継承（残滓0.15・全従者特性ブースト・資質統合）</option>
+    </select>
+  </div>
+  <div class="toolbar">
+    <button class="tbtn on" id="tab-battle">バトル画面</button>
+    <button class="tbtn" id="tab-im">インターミッション</button>
+    <button class="tbtn" id="tab-title">タイトル</button>
+    <button class="tbtn" id="tab-script">脚本・演出</button>
+    <button class="tbtn" id="tab-refill">従者補充</button>
+    <button class="tbtn" id="tab-help">辞典</button>
+    <button class="tbtn" id="tab-rollback">再走先選択</button>
+    <button class="tbtn" id="tab-config">設定</button>
+  </div>
+
+  <!-- 脚本・演出タブの操作系と検証出力 -->
+  <div class="debug-ctx" id="debugCtxScript">
+    <span class="debug-label">※発火点：</span>
+    <select id="scriptSelect" class="preset-select" aria-label="再生する発火点の選択"></select>
+    <button class="tbtn" id="scriptPlayBtn">再生</button>
+    <span class="spacer"></span>
+    <span class="debug-label">※検証出力：</span>
+    <span class="flag" id="scriptTriggerFlag">trigger ─</span>
+    <span class="flag" id="scriptAnchorFlag">anchor ─</span>
+    <span class="flag" id="scriptBgmFlag">♪ 停止</span>
+    <span class="script-log" id="scriptLog">directives ─</span>
+  </div>
+
+  <!-- 辞典タブの操作系。初出提示は本来シーン進行が発火させる -->
+  <div class="debug-ctx" id="debugCtxHelp">
+    <span class="debug-label">※初出提示の再現：</span>
+    <select id="helpUnlockSelect" class="preset-select" aria-label="初出提示の再現対象"></select>
+    <button class="tbtn" id="helpUnlockBtn">提示する</button>
+    <span class="spacer"></span>
+    <span class="debug-label">※検証出力：</span>
+    <span class="flag" id="helpKeyFlag">help_id ─</span>
+  </div>
+</aside>
+
+<main class="frame">
+
+<!-- SCREEN 1: バトル画面 -->
+<section class="screen pane" id="screen-refill" aria-labelledby="refillTitle">
+  <div class="timeline">
+    <div class="lanes">
+      <div class="lane-labels" id="laneLabels"><div class="hd">ユニット</div></div>
+      <div class="grid" id="tlgrid">
+        <div class="ruler" id="ruler"></div>
+        <div class="lane" data-lane="0"></div>
+        <div class="lane" data-lane="1"></div>
+        <div class="lane" data-lane="2"></div>
+        <div class="lane" data-lane="3"></div>
+        <div class="nowline"></div>
+        <svg class="causality-canvas" id="causalityCanvas" aria-hidden="true"></svg>
+      </div>
+    </div>
+  </div>
+
+  <div class="battle-board-wrap">
+    <div class="field-bg">
+      <div class="ash"></div><div class="horizon"></div><div class="border-mark"></div>
+    </div>
+    <!-- 盤面幅を100%活用する全幅4カラム配置 -->
+    <div class="board" id="board">
+    </div>
+  </div>
+
+  <div class="footer-strip">
+    <div class="inspstrip">
+      <div class="ibody">
+        <div class="ibox" id="box-self"></div>
+      </div>
+    </div>
+
+    <div class="timebar">
+      <div class="timebar-row-top">
+        <div class="transport">
+          <button id="undoBtn" class="rbtn btn-undo" title="直前の指示を取り消す（Z）" aria-label="アンドゥ">⟲ 取消 <span class="kbd">Z</span></button>
+          <button id="spdPAUSE" class="on" title="停止（既定値の表示のみ）" disabled>❙❙</button>
+          <button id="spdX2" title="倍速">▷▷</button><button id="spdX3" title="高速">▷▷▷</button>
+        </div>
+        <div class="rewind-core" title="終焉燈による因果再走の累積回数（メタステート）">
+          <svg class="lamp-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2C11.5 2 11 2.4 11 3V5C7.7 5.5 5 8.4 5 12C5 14.5 6.4 16.7 8.5 17.8L8 21C8 21.6 8.4 22 9 22H15C15.6 22 16 21.6 16 21L15.5 17.8C17.6 16.7 19 14.5 19 12C19 8.4 16.3 5.5 13 5V3C13 2.4 12.5 2 12 2ZM10 19H14L14.3 20H9.7L10 19ZM12 7C14.8 7 17 9.2 17 12C17 13.9 15.9 15.5 14.3 16.3L13.8 17H10.2L9.7 16.3C8.1 15.5 7 13.9 7 12C7 9.2 9.2 7 12 7Z"/>
+          </svg>
+          <b class="rewind-count" id="rewindN">--</b>
+        </div>
+      </div>
+
+      <!-- 支援技術対応：aria-live="polite" を付与した時間停止通知バー -->
+      <div class="why" id="whyBar" role="status" aria-live="polite"><span class="dot"></span><span class="t" id="whyText">敵軍〈庭の型〉発生中（残 4）</span></div>
+
+      <div class="timebar-row-bottom">
+        <!-- 中断（[M-META-SAVEDATA]）・辞典の随時参照（[M-DATA-HELPMASTER]）・設定（[M-UI-CONFIG]） -->
+        <button class="rbtn util" id="pauseQuitBtn" title="戦闘を中断してタイトルへ戻る">⏸ 中断</button>
+        <button class="rbtn util" id="helpOpenBtn" title="辞典を開く（H）">辞典 <span class="kbd">H</span></button>
+        <button class="rbtn util" id="configOpenBtn" title="表示・音響設定を開く">設定</button>
+        <button class="rbtn" id="rollbackBattleBtn">再走（戦闘初期状態） <span class="kbd">R</span></button>
+        <button class="rbtn" id="rollbackImBtn">再走（編成・継承）</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 2: インターミッション -->
+<section class="screen im" id="screen-im" aria-label="インターミッション画面">
+  <div class="imhead">
+    <div class="row-baseline">
+      <h2 id="imTitle">継承・編成</h2>
+      <span class="sub" id="imSubTitle">シーン3-04 突破 ─ 剣聖ロウドの資質を、同行従者を介してセインのものにする。</span>
+    </div>
+    <button class="rbtn" id="helpOpenImBtn" title="辞典を開く（H）">辞典 <span class="kbd">H</span></button>
+    <button class="rbtn" id="configOpenImBtn" title="表示・音響設定を開く">設定</button>
+    <button class="rbtn btn-undo" id="imUndoBtn" title="直前の継承・供犠を取り消す（Z）" aria-label="アンドゥ">⟲ 取消 <span class="kbd">Z</span></button>
+    <button class="tbtn on" id="imProceedBtn" title="継承・編成を確定して次のシーンへ進む" class="no-shrink;">確定して進む</button>
+  </div>
+
+  <!-- 目的表示（[M-UI-OBJECTIVE]）。提示はインターミッションに限り、
+       次に遷移するシーン（直前にクリアしたシーンの order + 1）で区間を判定する -->
+  <div class="objbar" id="objectiveBarIm" role="status"></div>
+
+  <div class="imfield">
+    <div class="imstage">
+      <div class="party" id="imParty"></div>
+      <div class="imdiv"></div>
+      <div class="fallenwrap" id="imFallen"></div>
+    </div>
+  </div>
+
+  <div class="imgrid">
+    <div class="imcol">
+      <h3 id="imPoolHead">剣聖ロウドの資質</h3>
+      <div class="pool" id="poolList"></div>
+    </div>
+
+    <div class="imcol">
+      <h3>受け継いだ後のセイン</h3>
+      <div id="imAfter"></div>
+      <button class="rbtn btn-block mt-12" id="imBtn">受け継ぐ</button>
+
+      <div class="sac" id="sacPanel">
+        <h3>⚠ 供犠（くぎ）</h3>
+        <p>従者1名を消滅させ、セインのHPを最大HPまで全回復します。</p>
+        <div class="imrow"><span class="k">現在HP回復</span><span class="v ch" id="sacHpText">214 → 496</span></div>
+        <div class="imrow"><span class="k">同行従者数</span><span class="v ch" id="sacPartyText">3 → 2</span></div>
+        <button class="sacbtn mt-8" id="sacBtn">選択中の従者を捧げる</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SCREEN 3: タイトル画面 -->
+<section class="screen title-screen" id="screen-title" aria-label="タイトル画面">
+  <div class="title-ash" aria-hidden="true"></div>
+  <svg class="title-lamp" id="titleLamp" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M12 2C11.5 2 11 2.4 11 3V5C7.7 5.5 5 8.4 5 12C5 14.5 6.4 16.7 8.5 17.8L8 21C8 21.6 8.4 22 9 22H15C15.6 22 16 21.6 16 21L15.5 17.8C17.6 16.7 19 14.5 19 12C19 8.4 16.3 5.5 13 5V3C13 2.4 12.5 2 12 2ZM10 19H14L14.3 20H9.7L10 19ZM12 7C14.8 7 17 9.2 17 12C17 13.9 15.9 15.5 14.3 16.3L13.8 17H10.2L9.7 16.3C8.1 15.5 7 13.9 7 12C7 9.2 9.2 7 12 7Z"/>
+  </svg>
+  <h1 class="title-main">終焉燈</h1>
+  <div class="title-sub">二度は灯らぬ</div>
+
+  <div class="title-menu">
+    <button class="title-btn" id="titleContinue">
+      続きから
+      <span class="cap" id="titleContinueCap">シーン 3-04</span>
+    </button>
+    <!-- 周回移行を行わない分岐の決済後は、ロールバックの入口のみを提示する（[M-END-BRANCH]） -->
+    <button class="title-btn" id="titleRollback" hidden>
+      再走
+      <span class="cap">過去の編成・継承へ戻る</span>
+    </button>
+    <button class="title-btn" id="titleNewGame">
+      はじめから
+    </button>
+    <button class="title-btn" id="titleConfig">
+      設定
+    </button>
+    <button class="title-btn" id="titleHelp">
+      辞典
+    </button>
+  </div>
+
+  <div class="title-foot" id="titleFoot">
+    <span id="titleMetaInfo"></span>
+  </div>
+</section>
+
+<!-- SCREEN 4: 脚本再生（ノベル）画面／アクト表題／エンディング・エピローグ・周回移行 -->
+<section class="screen pane" id="screen-script" aria-label="脚本再生画面">
+  <div class="script-wrap">
+    <div class="script-stage" id="scriptStage">
+      <div class="script-horizon" aria-hidden="true"></div>
+      <div class="script-glow" aria-hidden="true"></div>
+
+      <div class="actcard" id="actCard" aria-hidden="true">
+        <div class="rule t"></div>
+        <div class="txt" id="actCardText">アクト1：灰の村</div>
+        <div class="rule b"></div>
+      </div>
+
+      <div class="portrait-roll" id="portraitRoll" aria-hidden="true"></div>
+      <div class="script-veil" id="scriptVeil" aria-hidden="true"></div>
+    </div>
+
+    <div class="script-box" id="scriptBox" role="region" aria-live="polite">
+      <div class="script-speaker" id="scriptSpeaker"></div>
+      <div class="script-text" id="scriptText">発火点を選び、［再生］を押してください。</div>
+      <div class="script-next" id="scriptNext">▼</div>
+    </div>
+
+    <div class="script-foot">
+      <button class="rbtn" id="scriptNextBtn">送り <span class="kbd">Space</span></button>
+      <button class="rbtn" id="scriptSkipBtn">読み飛ばす</button>
+      <span class="spacer"></span>
+      <!-- エンディング演出中のロールバック（[M-REWIND-ROLLBACK]「提示箇所」）。
+           演出完了後も残し、NEWGAME_INTRO の再生開始またはタイトル復帰で閉じる。 -->
+      <button class="rbtn" id="scriptRollbackBattleBtn" hidden>再走（5-11 戦闘初期状態）</button>
+      <button class="rbtn" id="scriptRollbackImBtn" hidden>再走（編成・継承）</button>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 5: 従者補充画面（アクト移行）／[M-PROG-REFILL] -->
+<section class="screen pane" id="screen-refill" aria-label="従者補充画面">
+  <div class="pane-head">
+    <h2 id="refillTitle">従者の補充</h2>
+    <span class="sub" id="refillSub">アクト3 突破 ─ 新たにアクト4へ同行する従者を選ぶ。</span>
+    <span class="spacer"></span>
+    <button class="rbtn" id="helpOpenRefillBtn" title="辞典を開く（H）">辞典 <span class="kbd">H</span></button>
+    <button class="rbtn" id="configOpenRefillBtn" title="表示・音響設定を開く">設定</button>
+    <button class="tbtn on" id="refillProceedBtn">補充を確定して進む</button>
+  </div>
+
+  <!-- 壇：継続・遺芯枠・セイン ／ 補充候補（[M-PROG-REFILL]） -->
+  <div class="refill-field" aria-hidden="true">
+    <div class="refill-stage">
+      <div class="rstage-col" id="refillStageParty"></div>
+      <div class="imdiv"></div>
+      <div class="rstage-col" id="refillStagePool"></div>
+    </div>
+  </div>
+
+  <div class="refill-body">
+    <div class="refill-side">
+      <h3 class="refill-h3">移行の決済</h3>
+      <div class="refill-row"><span class="k">移行</span><span class="v ch" id="refillActText">アクト3 → アクト4</span></div>
+      <div class="refill-row"><span class="k">従者定員</span><span class="v ch" id="refillCapText">3 → 4</span></div>
+      <div class="refill-row"><span class="k">継続する生存従者</span><span class="v" id="refillSurvText">0 名</span></div>
+      <div class="refill-row"><span class="k">補充可能数</span><span class="v ch" id="refillSlotText">0 / 0</span></div>
+      <div class="refill-row"><span class="k">全回復ボーナス</span><span class="v ch" id="refillHealText">214 → 496</span></div>
+      <div class="refill-row"><span class="k">遺芯に迎えた従者</span><span class="v" id="refillEnshrineText">3 → 3</span></div>
+
+      <h3 class="refill-h3 mt-12">継続する生存従者</h3>
+      <div id="refillSurvivors"></div>
+    </div>
+
+    <div class="refill-main">
+      <h3 class="refill-h3">補充候補プール</h3>
+      <div class="cand-grid" id="refillCands"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 6: 辞典（解説）画面／[M-DATA-HELPMASTER] -->
+<section class="screen pane" id="screen-help" aria-label="辞典画面">
+  <div class="pane-head">
+    <h2>辞典</h2>
+    <span class="sub">ゲーム機構の解説を随時参照する。</span>
+    <span class="spacer"></span>
+    <button class="tbtn" id="helpBackBtn">戻る</button>
+  </div>
+
+  <div class="help-body">
+    <div class="help-side" id="helpList"></div>
+    <div class="help-main">
+      <h3 class="help-title" id="helpTitle">─</h3>
+      <div class="help-meta" id="helpMeta"></div>
+      <div class="help-text" id="helpText">左の一覧から項目を選んでください。</div>
+    </div>
+  </div>
+</section>
+
+<!-- SCREEN 7: 再走先選択画面／[M-REWIND-ROLLBACK]・[M-DATA-IMSNAPSHOT] -->
+<section class="screen pane" id="screen-rollback" aria-label="再走先選択画面">
+  <div class="pane-head">
+    <h2>再走先の選択</h2>
+    <span class="sub">過去の任意のインターミッションへ復帰する。</span>
+    <span class="spacer"></span>
+    <button class="tbtn" id="rollbackCancelBtn">戻る</button>
+  </div>
+
+  <div class="help-body">
+    <div class="help-side" id="snapList"></div>
+    <div class="help-main" id="snapDetail"></div>
+  </div>
+</section>
+
+<!-- SCREEN 8: 表示・音響設定画面／[M-UI-CONFIG] -->
+<section class="screen pane" id="screen-config" aria-label="設定画面">
+  <div class="pane-head">
+    <h2>設定</h2>
+    <span class="sub">表示と音響の設定。</span>
+    <span class="spacer"></span>
+    <button class="tbtn" id="configBackBtn">戻る</button>
+  </div>
+
+  <div class="cfg-body">
+    <div class="cfg-row">
+      <span class="k">BGM音量</span>
+      <span class="v"><input type="range" id="cfgBgm" min="0" max="100" step="5" aria-label="BGM音量"><b id="cfgBgmVal">80</b></span>
+    </div>
+    <div class="cfg-row">
+      <span class="k">SE音量</span>
+      <span class="v"><input type="range" id="cfgSe" min="0" max="100" step="5" aria-label="SE音量"><b id="cfgSeVal">80</b></span>
+    </div>
+    <div class="cfg-row">
+      <span class="k">バトル再生速度の既定</span>
+      <span class="v"><select class="preset-select" id="cfgSpeed" aria-label="バトル再生速度の既定">
+        <option value="PAUSE">停止</option>
+        <option value="X1">等速</option>
+        <option value="X2">倍速</option>
+        <option value="X3">高速</option>
+      </select></span>
+    </div>
+    <div class="cfg-row">
+      <span class="k">テキスト送り速度</span>
+      <span class="v"><select class="preset-select" id="cfgTextSpeed" aria-label="テキスト送り速度">
+        <option value="SLOW">遅い</option>
+        <option value="NORMAL">標準</option>
+        <option value="FAST">速い</option>
+        <option value="INSTANT">瞬時</option>
+      </select></span>
+    </div>
+    <div class="cfg-row">
+      <span class="k">演出の簡略化</span>
+      <span class="v"><input type="checkbox" id="cfgSimplify" aria-label="演出の簡略化"></span>
+    </div>
+
+    <h3 class="refill-h3 mt-12">監視トグルの既定</h3>
+    <div class="cfg-row">
+      <span class="k">条件</span>
+      <span class="v cfg-watch" id="cfgWatch"></span>
+    </div>
+
+    <div class="cfg-note">バトル再生速度の既定と監視トグルの既定は、次のバトル開始時（ステップ0の生成完了時）から反映される。他の項目は即時に反映される。</div>
+  </div>
+</section>
+
+</main>
+
+</div> <!-- /wrap -->
+
+<!-- 周回移行の暗転（[S-SCRIPT-DIRECTIVE] BLACKOUT_TO_1_01） -->
+<div class="blackout" id="blackout" aria-hidden="true">
+  <div class="snuff">——燈火を、吹き消す</div>
+</div>
+
+<!-- モーダル -->
+<div class="modal-backdrop" id="gameModal" aria-hidden="true">
+  <div class="modal-window" role="dialog" aria-modal="true"
+     aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <h3 class="modal-title" id="modalTitle">【確認】</h3>
+    <p class="modal-desc" id="modalDesc"></p>
+    <div class="modal-actions">
+      <button class="tbtn" id="modalCancel">留まる</button>
+      <button class="tbtn on" id="modalConfirm">決行する</button>
+    </div>
+  </div>
+</div>
+
+<!-- マスタ定義。本体より前に読む（クラシックスクリプト。file:// で動作させるため module にしない） -->
+<script src="masters.js"></script>
+<script src="instantiate.js"></script>
+<script src="presets.js"></script>
+<script>
+/* ═════════════════════════════════════════════════════════
+   1. DOM参照と参照ヘルパー
+      実体化・文言解決は instantiate.js、プリセットは presets.js が保持する
+   ═════════════════════════════════════════════════════════ */
+
+
+/* ── 静的ノードのDOM参照キャッシュ ──
+ * 参照する全IDは body に直接定義された要素であり、更新は innerHTML の
+ * 差し替えのみでノード自体は再生成されない。ゆえに参照を保持して安全である。
+ * 動的生成ノードには使用しない（.lane / .bcol の走査は querySelectorAll のまま）。
+ */
+const __domCache = {};
+const $id = (id) => __domCache[id] || (__domCache[id] = document.getElementById(id));
+
+
+/* ── 脚本マスタの参照ヘルパー（[S-SCRIPT-SCHEMA]）──
+ * 脚本は masters.js の SCRIPT_MASTER 1本に集約する。表示経路ごとに別テーブルを持たない。 */
+
+/** script_id から脚本マスタのレコードを引く */
+function scriptById(id) {
+  return SCRIPT_MASTER.find(r => r.script_id === id) || null;
+}
+
+/** 脚本レコードの lines を1本のテキストへ畳む。モーダル上での提示に用いる */
+function scriptLinesAsText(rec) {
+  if (!rec) return "";
+  return rec.lines.map(l => (l.speaker ? l.speaker + "　" : "") + l.text).join("\n");
+}
+
+/** 残響モーダルの見出し。従者マスタから組み立てる（[S-ECHO-DESIGN]） */
+function echoHeading(numId) {
+  const m = ATTENDANT_MASTER[numId];
+  return m ? "【遺芯の残響】" + m.n + "〈" + m.t + "〉" : "【遺芯の残響】";
+}
+
+
+
+let MOCK_CONFIG = { ...PRESETS[DEFAULT_PRESET_KEY].config };
+
+/* NOW は [M-DATA-BATTLESTATE] の `step`（現在ステップ数）にあたる。検証台は BattleState を
+   オブジェクトではなくモジュール変数として持つため、項目名をそのまま用いていない。
+   プリセット読込時に確定し、局面内では変化しないためスナップショット対象からも外している。
+   SPAN はタイムラインの表示窓であり、BattleState の項目ではない。 */
+let NOW = MOCK_CONFIG.NOW;
+let SPAN = MOCK_CONFIG.SPAN_DEFAULT;
+let total_rewind_count = PRESETS[DEFAULT_PRESET_KEY].totalRewind;
+
+/* 巻き戻し保留ステート（[M-META-PENDING]）
+   total_rewind_count と同様、アンドゥ・ロールバックによって巻き戻らない。
+   したがって HistoryStack のスナップショット対象には含めない。 */
+let rewind_pending = false;
+let rewind_pending_type = "NONE"; // NONE | UNDO | ROLLBACK_BATTLE | ROLLBACK_INTERMISSION
+
+/* 直近のオートセーブが記録した進行相（[M-DATA-RUNSTATE]［進行フェーズ］）。
+   バトル中の保存は行わないため、中断後の再開は phase == BATTLE のセーブからとなり、
+   その読み出し時点で ROLLBACK_BATTLE の保留が立つ（[M-META-SAVEDATA]）。 */
+let SavedPhase = "BATTLE"; // PRE_BATTLE | BATTLE | INTERMISSION | ENDING
+
+/* 表示・音響設定（[M-UI-CONFIG]）。端末ローカル設定であり、セーブデータに含めない。
+   したがって巻き戻し・周回移行・save_version のいずれにも関与しない。 */
+const CONFIG = {
+  bgm: 80,
+  se: 80,
+  speed: "X1",            // PAUSE | X1 | X2 | X3（反映契機：バトル開始時）
+  textSpeed: "NORMAL",    // SLOW | NORMAL | FAST | INSTANT（即時）
+  simplify: false,        // 演出の簡略化（即時）
+  watchDefault: { "可": false, "止": false, "中前": false, "中後": false, "避": false }
+};
+const TEXT_RATE = { SLOW: 1.6, NORMAL: 1.0, FAST: 0.5, INSTANT: 0 };
+
+const units = [];
+const attendants = [];
+const pool = [];
+const USES_STD = 3.00;
+
+let imAtt = 0, imPick = 0;
+let cur = { u: 1, a: 0 };
+let currentPresetKey = DEFAULT_PRESET_KEY;
+
+let INITIAL_UNITS_STATE = [];
+let INITIAL_ATTENDANTS_STATE = [];
+let IM_ENTRY_UNITS_STATE = [];
+let INITIAL_IID_SEQ = 0;
+let IM_ENTRY_IID_SEQ = 0;
+const HistoryStack = [];
+
+/* インターミッションスナップショット列（[M-DATA-IMSNAPSHOT]）。
+   バトルクリア共通決済の完了直後に1件記録し、order の昇順で保持する。
+   保持数の上限は設けない（1周回あたり最大30件）。 */
+let im_snapshots = [];
+
+/* ═════════════════════════════════════════════════════════
+   2. 決定論エンジン・統合解決パイプライン
+   ═════════════════════════════════════════════════════════ */
+function safeRound(val) {
+  if (val === null || val === undefined || isNaN(val)) return 0;
+  return Math.round(+(Number(val).toFixed(6)));
+}
+
+
+/** 未採番のアクションへ採番する（既存の iid は決して上書きしない） */
+function ensureInstanceIds(unitList) {
+  (unitList || units).forEach(u => {
+    if (!u || u.isEmpty || !u.acts) return;
+    u.acts.forEach(a => { if (!a.iid) a.iid = issueInstanceId(); });
+  });
+}
+
+function getEffectiveParam(baseVal, buffRate, debuffRate, isDecreaseType) {
+  if (baseVal === 0) return 0;
+  const b = buffRate || 0.0;
+  const d = debuffRate || 0.0;
+  const raw = isDecreaseType ? baseVal * (1.0 - b + d) : baseVal * (1.0 + b - d);
+  return Math.max(0, safeRound(raw));
+}
+
+/** √L を小数第2位まで切り捨てた確定値（[M-CALC-LEVEL]） */
+function sqrtL(L) { return Math.floor(Math.sqrt(L * 10000)) / 100; }
+
+function getEffectiveDmg(a, u, L) {
+  const bm = u.buffMap || {}, dm = u.debuffMap || {};
+
+  const effHpCoeff = (a.dmg_hp || 0) * (1.0 + (bm.dmg_hp || 0.0) - (dm.dmg_hp || 0.0));
+  const dmgHp = effHpCoeff > 0 ? Math.max(0, safeRound(effHpCoeff * L)) : 0;
+
+  const effVpCoeff = (a.dmg_vp || 0) * (1.0 + (bm.dmg_vp || 0.0) - (dm.dmg_vp || 0.0));
+  const dmgVp = effVpCoeff > 0 ? Math.max(0, safeRound(effVpCoeff)) : 0;
+
+  const effPpCoeff = (a.dmg_pp || 0) * (1.0 + (bm.dmg_pp || 0.0) - (dm.dmg_pp || 0.0));
+  const dmgPp = effPpCoeff > 0 ? Math.max(0, safeRound(effPpCoeff * sqrtL(L))) : 0;
+
+  const effApCoeff = (a.dmg_ap || 0) * (1.0 + (bm.dmg_ap || 0.0) - (dm.dmg_ap || 0.0));
+  const dmgAp = effApCoeff > 0 ? Math.max(0, safeRound(effApCoeff)) : 0;
+
+  return { dmgHp, dmgVp, dmgPp, dmgAp };
+}
+
+function getEffectiveAct(u, a) {
+  const bm = u.buffMap || {}, dm = u.debuffMap || {};
+  const st0 = a.st ? a.st[0] : 0;
+  const st1 = a.st ? a.st[1] : 0;
+  const st2 = a.st ? a.st[2] : 0;
+
+  const th = getEffectiveParam(st0, bm.step_thought, dm.step_thought, true);
+  const st = st1 === 0 ? 0 : Math.max(1, getEffectiveParam(st1, bm.step_startup, dm.step_startup, true));
+  const rc = getEffectiveParam(st2, bm.step_recovery, dm.step_recovery, true);
+  const need = th;
+
+  const atk = a.atk !== undefined && a.atk !== null ? getEffectiveParam(a.atk, bm.atk, dm.atk, false) : null;
+  const deploy = a.deploy !== undefined && a.deploy !== null ? getEffectiveParam(a.deploy, bm.deploy_ap, dm.deploy_ap, false) : null;
+  const dmgObj = getEffectiveDmg(a, u, MOCK_CONFIG.SCENE_LEVEL);
+
+  const effGainVp = a.gain_vp !== undefined && a.gain_vp !== null ? getEffectiveParam(a.gain_vp, bm.gain_vp, dm.gain_vp, false) : null;
+  const effChargePp = a.charge_pp !== undefined && a.charge_pp !== null ? +(a.charge_pp * (1.0 + (bm.charge_pp || 0.0) - (dm.charge_pp || 0.0))).toFixed(2) : null;
+
+  // 射程（増加型／基礎値0は0固定：[M-CALC-ROUNDING]）
+  const effRange = (a.range !== undefined && a.range !== null)
+    ? getEffectiveParam(a.range, bm.range, dm.range, false) : null;
+
+  // 消費コスト（減少型／下限0：[M-CALC-EFFECTIVE]#1）
+  const effCost = (a.cost || []).map(([k, v]) =>
+    [k, getEffectiveParam(v, bm["cost_" + k], dm["cost_" + k], true)]);
+
+  // AP減衰率（減少型／0.00〜1.00クランプ：[M-CALC-ROUNDING]）
+  const effDecayAp = a.decay_ap
+    ? Math.min(1.00, Math.max(0.00,
+        +((a.decay_ap * (1.0 - (bm.decay_ap || 0.0) + (dm.decay_ap || 0.0))).toFixed(2))))
+    : 0.00;
+
+  return {
+    ...a,
+    effSt:[th, st, rc], effNeed:need, effAtk:atk, effDeploy:deploy,
+    effDmg: dmgObj.dmgHp, effDmgFull: dmgObj, effGainVp, effChargePp,
+    effRange, effCost, effDecayAp
+  };
+}
+
+/* ── アクション区分の判定（[M-CORE-GLOSSARY-ACTION]） ──
+ * 引数は [必要思考, 必要発生, 必要硬直] のステップ配列。
+ * 基礎値（a.st）と実効値（ea.effSt）の双方をそのまま渡せる。
+ *   即時型   ：必要発生 0（瞬動および即発の総称）
+ *   瞬動     ：必要発生 0 かつ 必要硬直 0
+ *   即発     ：必要発生 0 かつ 必要硬直 1 以上
+ */
+const isInstantAction   = (st) => st[1] === 0;
+const isFlashAction     = (st) => st[1] === 0 && st[2] === 0;
+const isBurstAction     = (st) => st[1] === 0 && st[2] > 0;
+
+function updateTimelineSpan(targetUnits) {
+  let totalSteps = 0;
+  let count = 0;
+
+  targetUnits.forEach(u => {
+    if (u.isEmpty) return;
+    u.acts.forEach(a => {
+      if (a.st && (a.st[1] > 0 || a.st[2] > 0)) {
+        const ea = getEffectiveAct(u, a);
+        const duration = ea.effSt[1] + ea.effSt[2];
+        if (duration > 0 && duration < 300) {
+          totalSteps += duration;
+          count++;
+        }
+      }
+    });
+  });
+
+  if (count === 0) {
+    SPAN = MOCK_CONFIG.SPAN_DEFAULT || 22;
+    return;
+  }
+
+  const avgDuration = totalSteps / count;
+  // 可変スクロール幅の決定（[M-UI-SCROLL]）。表示中アクションの平均長から算出する
+  SPAN = Math.max(20, Math.min(60, Math.round(avgDuration * 1.4)));
+}
+
+const nameOf = i => units[i]?.name || "─";
+const POS = {0:"後", 1:"前", 2:"前", 3:"後"};
+
+/**
+ * ユニットの実効防御力を算出する
+ * @param {Object} u 対象ユニット
+ * @param {number} [apOverride] 適用APの上書き値
+ * @param {number} [deOverride] 防御効率の上書き値
+ * @param {number} [decayRate=0] AP減衰率（即時判定用）
+ */
+function defenseOf(u, apOverride, deOverride, decayRate = 0) {
+  if (!u || u.isEmpty) return 0;
+  const ap = apOverride !== undefined ? apOverride : u.ap;
+  if (decayRate > 0) {
+    return Math.floor(ap * (1.0 - decayRate));
+  }
+  const de = deOverride !== undefined ? deOverride : (u.acting ? u.acting.de : 1.00);
+  return safeRound(ap * de);
+}
+
+const getCurrentDefMap = () => Object.fromEntries(units.map(t => [t.i, defenseOf(t)]));
+
+function rebuildChips(u) {
+  if (!u || u.isEmpty) return;
+  const chips = [];
+  if (u.slip > 0) chips.push(["slip", "灰蝕 " + u.slip.toFixed(2) + "/回"]);
+
+  const appendChips = (map, type, isBuff) => {
+    Object.keys(map || {}).forEach(k => {
+      const v = map[k];
+      if (!v) return;
+      const conf = PARAM_MASTER[k];
+      const isDecrease = conf?.decrease;
+      const sign = (isBuff ? isDecrease : !isDecrease) ? "\u2212" : "+";
+      const label = conf?.label || k;
+      chips.push([type, label + " " + sign + Math.round(v * 100) + "%"]);
+    });
+  };
+
+  appendChips(u.buffMap, "up", true);
+  appendChips(u.debuffMap, "down", false);
+  u.chips = chips;
+}
+
+/** 被バフ・被デバフ補正後の実効消費コスト（[M-CALC-EFFECTIVE]#1・減少型／下限0） */
+function effCostOf(u, a, k, cachedEa = null) {
+  const ea = cachedEa || getEffectiveAct(u, a);
+  const found = (ea.effCost || []).find(c => c[0] === k);
+  return found ? found[1] : 0;
+}
+
+function afford(u, a){
+  if (!u || u.isEmpty) return false;
+  if (a.sealVal !== undefined && a.sealVal >= 1.00) return false;
+
+  const hpCost = effCostOf(u, a, "hp");
+  const isInstant = a.st ? isInstantAction(a.st) : false;
+  const isCreature = u.role.includes("クリーチャー");
+
+  const hpAfford = (isCreature && isInstant)
+    ? (u.hp >= hpCost)
+    : (u.hp > hpCost);
+
+  return hpAfford && u.vp >= effCostOf(u,a,"vp") && u.pp >= effCostOf(u,a,"pp") && u.ap >= effCostOf(u,a,"ap");
+}
+
+/** 指定ユニットの同陣営における相方マスのインデックスを返す */
+function getPartnerIndex(unitIdx) {
+  return unitIdx === 0 ? 1 :
+         unitIdx === 1 ? 0 :
+         unitIdx === 2 ? 3 : 2;
+}
+
+/** 選択できない理由を文言IDと文脈束で返す（[M-UI-HUD]［判定語彙］）。
+ *  文字列を直書きせず、文言マスタ（[M-DATA-STRINGMASTER]）を正とする。 */
+function getSwapLockReason(u, a) {
+  if (!a.sys || !a.sys.includes("swap")) return null;
+  if (a.sys.includes("summon")) return null;
+
+  const partnerIdx = getPartnerIndex(u.i);
+  const partner = units[partnerIdx];
+
+  if (!partner || partner.isEmpty) {
+    return { id: "STR_LOCK_NO_PARTNER", values: {} };
+  }
+  if (partner.acting) {
+    return {
+      id: partner.acting.phase === "発生" ? "STR_LOCK_PARTNER_STARTUP" : "STR_LOCK_PARTNER_RECOVERY",
+      values: { UnitName: partner.name }
+    };
+  }
+  return null;
+}
+
+/** 完結した文としての理由文 */
+const swapLockText = (r) => str(r.id, r.values).text;
+/** 括弧内などに埋め込む短形（末尾の句点を落とす） */
+const swapLockShort = (r) => swapLockText(r).replace(/。$/, "");
+
+function ready(u, a){
+  if (!u || u.isEmpty) return false;
+  const swapLock = getSwapLockReason(u, a);
+  if (swapLock) return false;
+  const ea = getEffectiveAct(u, a);
+  return !a.lock && !a.running && !u.acting && u.thought >= ea.effNeed && afford(u, a);
+}
+
+function hypoDef(u, a, currentDefMap = null) {
+  const m = currentDefMap ? { ...currentDefMap } : getCurrentDefMap();
+  if (u && !u.isEmpty && u.side === "mine" && !a.running && !u.acting){
+    const ea = getEffectiveAct(u, a);
+    const apCost = effCostOf(u, a, "ap", ea);
+    let currentAp = Math.max(0, u.ap - apCost);
+
+    if (ea.effDeploy && isInstantAction(ea.effSt)) {
+      currentAp = ea.effDeploy;
+    }
+
+    const isFlash = isFlashAction(ea.effSt);
+    if (isFlash) {
+      m[u.i] = defenseOf(u, currentAp, undefined, ea.effDecayAp);
+    } else {
+      m[u.i] = defenseOf(u, currentAp, a.de !== undefined ? a.de : 1.00);
+    }
+  }
+  return m;
+}
+
+function targetsOf(fromOrUnit, a, defMap){
+  if (!a.range) return [];
+  const u = typeof fromOrUnit === "number" ? units[fromOrUnit] : fromOrUnit;
+  if (!u || u.isEmpty) return [];
+
+  const from = (a.sys && a.sys.includes("swap") && !a.sys.includes("summon"))
+    ? getPartnerIndex(u.i)
+    : u.i;
+
+  const out = [];
+  const ea = getEffectiveAct(u, a);
+  units.forEach(t => {
+    if (t.isEmpty || t.side === u.side) return;
+    const d = Math.abs(from - t.i);
+    if (d > ea.effRange) return;
+    const def = defMap ? defMap[t.i] : defenseOf(t);
+    const hit = ea.effAtk >= def;
+    out.push({ i:t.i, d, def, hit, dmg: hit ? ea.effDmg : 0, effAtk: ea.effAtk, effDmgFull: ea.effDmgFull });
+  });
+  return out;
+}
+
+function threats(defMap, skipList){
+  const out = [];
+  const skips = Array.isArray(skipList) ? skipList : (skipList !== undefined ? [skipList] : []);
+  units.forEach(u => {
+    if (u.isEmpty || !u.acting || u.acting.phase !== "発生" || u.acting.atk === null) return;
+    if (skips.includes(u.i)) return;
+    const a = u.acts.find(x => x.running);
+    if (a) {
+      targetsOf(u.i, a, defMap).forEach(t => out.push({ from:u.i, act:a, ...t }));
+    }
+  });
+  return out;
+}
+
+/** スタン中断時の適用硬直ステップ数を算出する（[M-PIPE-P2-APPLY]#4-1） */
+function calcInterruptRecovery(ea, elapsed) {
+  const baseRc = ea ? ea.effSt[2] : 20;
+  const baseSt = ea ? ea.effSt[1] : 0;
+  return baseRc + Math.max(0, baseSt - elapsed);
+}
+
+function interruptOf(u, a, defMap){
+  if (!u || u.isEmpty || u.side !== "mine") return null;
+  const ea = getEffectiveAct(u, a);
+  if (isInstantAction(ea.effSt)) return null;
+
+  let fire;
+  let curElapsed = 0;
+  if (u.acting) {
+    if (u.acting.phase !== "発生") return null;
+    fire = (u.acting.fire !== undefined && u.acting.fire !== null)
+      ? u.acting.fire
+      : NOW + Math.max(0, (u.acting.max || 0) - (u.acting.cur || 0));
+    curElapsed = u.acting.cur || 0;
+  } else {
+    if (a.running) return null;
+    fire = NOW + ea.effSt[1];
+    curElapsed = 0;
+  }
+
+  const inc = threats(defMap).filter(x => x.i === u.i && x.hit && x.act.fire < fire)
+                             .sort((p, q) => p.act.fire - q.act.fire);
+  if (!inc.length) return null;
+  const t = inc[0];
+  const elapsed = (t.act.fire - NOW) + curElapsed;
+  const recovery = calcInterruptRecovery(ea, elapsed);
+  return { at: t.act.fire, by: t.act.n, dmg: t.dmg, elapsed, recovery };
+}
+
+function selfInterruptedIds(defMap){
+  const out = [];
+  units.forEach(t => {
+    if (t.isEmpty || t.side !== "mine" || !t.acting || t.acting.phase !== "発生") return;
+    const ra = t.acts.find(x => x.running) || (t.lastAct ? t.acts.find(x => x.n === t.lastAct.n) : null);
+    if (!ra) return;
+    if (interruptOf(t, ra, defMap)) out.push(t.i);
+  });
+  return out;
+}
+
+function runningFireStep(u, ea){
+  if (!u || !u.acting) return null;
+  if (u.acting.phase === "発生") {
+    return (u.acting.fire !== undefined && u.acting.fire !== null)
+      ? u.acting.fire
+      : NOW + Math.max(0, (u.acting.max || 0) - (u.acting.cur || 0));
+  }
+  if (ea && isInstantAction(ea.effSt)) return NOW - (u.acting.cur || 0);
+  return null;
+}
+
+function checkFoeBreak(u, a, defMap, intr, fireStepOverride){
+  const hasStun = a.sys && a.sys.includes("martial") && (a.stun !== false);
+  if (!u || u.isEmpty || u.side !== "mine" || intr || !a.range || !hasStun) return null;
+
+  const ea = getEffectiveAct(u, a);
+  const isMyActionInstant = isInstantAction(ea.effSt);
+  const myFire = (fireStepOverride !== undefined && fireStepOverride !== null)
+    ? fireStepOverride
+    : NOW + ea.effSt[1];
+
+  const brokenTargets = [];
+  units.forEach(t => {
+    if (!t.isEmpty && t.side === "foe" && t.acting && t.acting.phase === "発生" && t.acting.fire) {
+      const d = Math.abs(u.i - t.i);
+      if (d <= ea.effRange) {
+        const def = defMap ? defMap[t.i] : defenseOf(t);
+        const hit = ea.effAtk >= def;
+        if (hit && (isMyActionInstant || myFire < t.acting.fire)) {
+          brokenTargets.push({
+            targetUnit: t,
+            foeFire: t.acting.fire,
+            breakStep: isMyActionInstant ? NOW : myFire,
+            dmg: ea.effDmg
+          });
+        }
+      }
+    }
+  });
+  return brokenTargets.length > 0 ? brokenTargets : null;
+}
+
+/* ═══ 2-9. 統合解決パイプライン（[M-RESOLVE-ORDER]）═══ */
+
+/* ── 統合解決パイプライン（[M-RESOLVE-ORDER]）──
+ * Step 1〜5 を定義順に解決する。各段は解決後の実行者インデックスを返す。
+ * Step 2 で実行者の位置が動くため、Step 4 は戻り値の最新位置を基準に射程を判定する
+ * （[M-RESOLVE-MARTIAL] の射程判定注記）。 */
+
+/** Step 1【空間展開】召喚コンポーネント（[M-RESOLVE-SUMMON]） */
+function resolveSummon(actorIdx, u, a) {
+  // 【Step 1: 召喚コンポーネント】
+  if (a.sys && a.sys.includes("summon")) {
+    const partnerIdx = getPartnerIndex(u.i);
+    const summonId = a.summon_id || (a.classId === "ACT_CALL_ASHWING" ? "CREATURE_ASHWING" : null);
+
+    // 旧クリーチャーの物理撤去（[M-RESOLVE-SUMMON]）。インスタンス破棄に伴い
+    // 直前アクション記憶と監視ロックも同時に失われる（[M-DATA-LASTACTION]#3）。
+    const oldCreature = units[partnerIdx];
+    if (oldCreature && !oldCreature.isEmpty) releaseWatchEntries(oldCreature);
+
+    // 統合ファクトリ関数による実体化
+    units[partnerIdx] = buildCreatureUnit(u.side, partnerIdx, summonId, { assignIid: true });
+  }
+  return actorIdx;
+}
+
+/** Step 2【自己位置遷移】隊列交代コンポーネント（[M-RESOLVE-SWAP]） */
+function resolveSwap(actorIdx, a) {
+  let currentActorIndex = actorIdx;
+  // 【Step 2: 隊列交代コンポーネント】
+  if (a.sys && a.sys.includes("swap")) {
+    const partnerIdx = getPartnerIndex(u.i);
+    const partner = units[partnerIdx];
+
+    if (partner && (!partner.isEmpty || a.sys.includes("summon"))) {
+      const p1 = Math.min(currentActorIndex, partnerIdx);
+      const p2 = Math.max(currentActorIndex, partnerIdx);
+      const temp = units[p1];
+      units[p1] = units[p2];
+      units[p2] = temp;
+      units[p1].i = p1;
+      units[p2].i = p2;
+
+      const postPartner = (currentActorIndex === p1) ? units[p1] : units[p2];
+      if (postPartner && !postPartner.acting && !postPartner.isEmpty) {
+        postPartner.thought = 0;
+      }
+
+      currentActorIndex = (currentActorIndex === p1) ? p2 : p1;
+      cur.u = currentActorIndex;
+      cur.a = 0;
+    }
+  }
+  return currentActorIndex;
+}
+
+/** Step 3【自己出力・浄化】浄化＆心気コンポーネント（[M-RESOLVE-MIND]） */
+function resolveMindPurify(actorIdx, a, ea) {
+  const currentActorIndex = actorIdx;
+  // 【Step 3: 浄化 ＆ 心気コンポーネント】
+  if (a.purify && a.purify > 0) {
+    const actor = units[currentActorIndex];
+    // [M-CALC-EFFECTIVE]#3：浄化率は被バフ/被デバフ補正の対象外。静的基礎値をそのまま適用
+    const r = Math.min(1.00, Math.max(0.00, a.purify));
+    const dec = v => Math.max(0.00, Math.floor(v * (1.0 - r) * 100) / 100);
+
+    if (actor.slip > 0) actor.slip = dec(actor.slip);
+    // 被デバフ量（全17種）
+    if (actor.debuffMap) {
+      Object.keys(actor.debuffMap).forEach(k => {
+        actor.debuffMap[k] = dec(actor.debuffMap[k]);
+        if (actor.debuffMap[k] === 0) delete actor.debuffMap[k];
+      });
+    }
+    // 封印蓄積値（アクションインスタンス単位）
+    (actor.acts || []).forEach(x => {
+      if (x.sealVal > 0) x.sealVal = dec(x.sealVal);
+    });
+    rebuildChips(actor);
+  }
+  if (ea.effGainVp) {
+    units[currentActorIndex].vp += ea.effGainVp;
+    const targetPp = safeRound(units[currentActorIndex].vp * (ea.effChargePp || 0));
+    if (targetPp > units[currentActorIndex].pp) units[currentActorIndex].pp = targetPp;
+  }
+  return currentActorIndex;
+}
+
+/** 勝敗の提示（[M-PIPE-P5-DISCARD]）。撃破の検出と同一の契機で提示する */
+function presentBattleResult(targetUnit) {
+  if (targetUnit.side === "foe") {
+    // 勝利の提示（STR_RESULT_WIN）
+    openModalById("STR_RESULT_WIN", { EnemyName: targetUnit.name }, {
+      singleButton: true,
+      onConfirm: () => {
+        tab("im");
+      }
+    });
+  } else {
+    // 敗北の提示（STR_RESULT_LOSE）
+    openModalById("STR_RESULT_LOSE", {}, {
+      danger: true,
+      onConfirm: () => {
+        $id("undoBtn").click();
+      }
+    });
+  }
+}
+
+/** Step 4【敵対干渉】武技コンポーネント（[M-RESOLVE-MARTIAL]） */
+function resolveMartial(actorIdx, a) {
+  const currentActorIndex = actorIdx;
+  // 【Step 4: 武技コンポーネント】
+  if (a.range) {
+    const defMap = hypoDef(units[currentActorIndex], a);
+    const targets = targetsOf(units[currentActorIndex], a, defMap);
+
+    targets.forEach(tgt => {
+      if (!tgt.hit) return;
+      const targetUnit = units[tgt.i];
+      if (!targetUnit || targetUnit.isEmpty) return;
+
+      targetUnit.hp = Math.max(0, targetUnit.hp - tgt.dmg);
+
+      if (targetUnit.hp === 0) {
+        if (targetUnit.role.includes("クリーチャー")) {
+          discardCreature(tgt.i);
+        } else if (targetUnit.role.includes("マスター")) {
+          presentBattleResult(targetUnit);
+        }
+      } else {
+        const hasStun = a.sys && a.sys.includes("martial") && (a.stun !== false);
+        if (hasStun) {
+          if (targetUnit.acting && targetUnit.acting.phase === "発生") {
+            const runningAct = targetUnit.acts.find(x => x.running) ||
+                               (targetUnit.lastAct ? targetUnit.acts.find(x => x.n === targetUnit.lastAct.n) : null);
+            const efa = runningAct ? getEffectiveAct(targetUnit, runningAct) : null;
+            const elapsed = targetUnit.acting.cur || 0;
+            const rec = calcInterruptRecovery(efa, elapsed);
+
+            targetUnit.acting = {
+              name: targetUnit.acting.name + "（中断）",
+              phase: "硬直",
+              cur: 0,
+              max: rec,
+              de: runningAct ? (runningAct.de ?? 2.00) : 2.00,
+              atk: null
+            };
+          } else if (!targetUnit.acting) {
+            targetUnit.thought = 0;
+          }
+        }
+      }
+    });
+  }
+  return currentActorIndex;
+}
+
+/** Step 5【自己防壁展開】体勢コンポーネント（[M-RESOLVE-STANCE]） */
+function resolveStance(actorIdx, ea) {
+  const currentActorIndex = actorIdx;
+  // 【Step 5: 体勢コンポーネント】
+  if (ea.effDeploy) {
+    units[currentActorIndex].ap = ea.effDeploy;
+  }
+  return currentActorIndex;
+}
+
+/** 即時型アクションの統合解決（[M-RESOLVE-ORDER]／[M-PIPE-INSTANT]#2） */
+function resolveComponents(actorIdx, u, a, ea) {
+  let i = actorIdx;
+  i = resolveSummon(i, u, a);
+  i = resolveSwap(i, a);
+  i = resolveMindPurify(i, a, ea);
+  i = resolveMartial(i, a);
+  i = resolveStance(i, ea);
+  return i;
+}
+
+function executeAction(ui, ai) {
+  const u = units[ui], a = u?.acts ? u.acts[ai] : null;
+  if (!u || !a || !ready(u, a) || u.side !== "mine") return;
+
+  pushHistorySnapshot();
+
+  const ea = getEffectiveAct(u, a);
+  const isInstant = isInstantAction(ea.effSt);
+
+  // 1. コスト消費と回数減算（[M-PIPE-INSTANT]）
+  u.hp -= effCostOf(u, a, "hp");
+  u.vp -= effCostOf(u, a, "vp");
+  u.pp -= effCostOf(u, a, "pp");
+  u.ap -= effCostOf(u, a, "ap");
+  if (typeof a.uses === "number") a.uses = Math.max(0, a.uses - 1);
+
+  // 2. 即時型アクション（発生 0）の統合解決パイプライン（[M-RESOLVE-ORDER]）
+  let currentActorIndex = u.i;
+  if (isInstant) {
+    currentActorIndex = resolveComponents(currentActorIndex, u, a, ea);
+  }
+
+  // 3. 実行中フラグおよびステート遷移
+  const actor = units[currentActorIndex];
+  actor.acts.forEach(x => x.running = false);
+  a.running = true;
+  actor.lastAct = { n: a.n, classId: a.classId, sys: [...a.sys] };
+
+  if (isFlashAction(ea.effSt)) {
+    if (actor.slip && actor.slip > 0) {
+      const slipDmg = Math.max(0, safeRound(actor.slip * MOCK_CONFIG.SCENE_LEVEL));
+      actor.hp = Math.max(0, actor.hp - slipDmg);
+
+      const actorCell = document.getElementById("c" + actor.i);
+      const actorStamp = document.getElementById("st" + actor.i);
+      if (actorCell && actorStamp) {
+        actorCell.classList.add("stamped");
+        actorStamp.className = "stamp foe";
+        actorStamp.innerHTML = `<div class="s">灰蝕スリップ</div><div class="n">${slipDmg}</div><div class="sub">瞬動即時決済</div>`;
+        setTimeout(() => {
+          actorCell.classList.remove("stamped");
+          actorStamp.className = "stamp";
+        }, 700);
+      }
+
+      if (actor.hp === 0) {
+        if (actor.role.includes("クリーチャー")) {
+          discardCreature(currentActorIndex);
+
+          if (cur.u === currentActorIndex) {
+            cur.u = 1;
+            cur.a = 0;
+          }
+        } else if (actor.role.includes("マスター")) {
+          // スリップ決済による自滅（[M-PIPE-SUICIDE]／STR_RESULT_LOSE_SUICIDE）
+          openModalById("STR_RESULT_LOSE_SUICIDE", {}, {
+            danger: true,
+            onConfirm: () => {
+              $id("undoBtn").click();
+            }
+          });
+        }
+      }
+    }
+
+    // AP減衰率の実効値は getEffectiveAct が確定する（[M-CALC-ROUNDING] 減衰率パラメータ）。
+    // 同じ式をここで再計算すると小数第3位の丸めが抜けるため、ea を参照する。
+    if (a.decay_ap !== undefined && a.decay_ap > 0) {
+      const effDecayRate = ea.effDecayAp;
+      actor.ap = Math.max(0, Math.floor(actor.ap * (1.0 - effDecayRate)));
+    }
+    updatePauseReason("ENEMY_IMMEDIATE", { ActionName: a.n });
+    a.running = false;
+    actor.acting = null;
+    actor.thought = 0;
+  } else if (isInstant) {
+    actor.acting = { name: a.n, phase: "硬直", cur: 0, max: ea.effSt[2], de: a.de ?? 2.00, atk: null };
+  } else {
+    actor.acting = { name: a.n, phase: "発生", cur: 0, max: ea.effSt[1], de: a.de ?? 2.00, atk: ea.effAtk, fire: NOW + ea.effSt[1] };
+  }
+
+  buildBoard();
+  initTimeline();
+  show(cur.u, cur.a);
+
+  requestAnimationFrame(() => {
+    const activeList = document.getElementById("blist-" + cur.u);
+    const focusCard = activeList?.querySelector(".action-card.sel") || activeList?.querySelector(".action-card");
+    if (focusCard) {
+      focusCard.focus();
+    }
+  });
+}
+
+/* ═════════════════════════════════════════════════════════
+   3. 表示層
+   ═════════════════════════════════════════════════════════ */
+/* ═══ 3-1. DOM参照キャッシュと監視トグルの鍵  [M-UI-WATCH] ═══ */
+
+const sysOrder = ["summon","swap","mind","martial","stance"];
+const sysLabel = { mind:"心", martial:"武", stance:"構", summon:"召", swap:"換" };
+const costLabel = { hp:"HP", vp:"VP", pp:"PP", ap:"AP" };
+const watching = {};
+
+/* 前ステップにおける各監視条件の充足状態（[M-DATA-BATTLESTATE] の `watch_prev_met`・[M-UI-WATCH]）。
+   watching が ON かつ「未充足(False) → 充足(True)」へ遷移した瞬間にのみ時間停止する。 */
+const watch_prev_met = {};
+
+/** 監視トグルのキー基底。インスタンスIDを正とし、未採番時のみ暫定キーへ退避する */
+function watchKeyOf(u, a, ai) {
+  return a.iid || ("TMP_" + u.i + "_" + ai);
+}
+
+/**
+ * ユニット破棄時に、その所持アクションへ紐づく監視エントリを解放する。
+ * メカニクス[M-DATA-LASTACTION]#3：召喚により撤去された旧クリーチャーのインスタンスは
+ * 直前アクション記憶ごと即座に破棄される。監視ロックも同時に失われる。
+ */
+function releaseWatchEntries(u) {
+  if (!u || !u.acts) return;
+  u.acts.forEach(a => {
+    if (!a.iid) return;
+    const pfx = a.iid + "_";
+    Object.keys(watching).forEach(k => { if (k.startsWith(pfx)) delete watching[k]; });
+    Object.keys(watch_prev_met).forEach(k => { if (k.startsWith(pfx)) delete watch_prev_met[k]; });
+  });
+}
+
+
+/* ═══ 3-2. 停止事由バーとドックスロット  [M-UI-PAUSE-REASON]・[M-UI-HUD] ═══ */
+
+/**
+ * 自動時間停止の事由提示（[M-UI-PAUSE-REASON]）
+ * 事由コードは列挙型であり、[M-PIPE-PAUSE-TRIGGER] のトリガー番号とは1対1ではない。
+ * @param {string|null} code 事由コード。null のときバーを描画しない（バトル外）
+ * @param {Object} payload 供給する文脈束の値
+ */
+function updatePauseReason(code, payload = {}) {
+  const bar = $id("whyBar");
+  if (!code) { if (bar) bar.style.display = "none"; return; }
+  if (bar) bar.style.display = "";
+
+  // 事由コード → string_id（[M-UI-PAUSE-REASON]）
+  const REASON_STRING_ID = {
+    STEP0_READY:     "STR_PAUSE_STEP0_READY",
+    ENEMY_START:     "STR_PAUSE_ENEMY_START",
+    ENEMY_IMMEDIATE: "STR_PAUSE_ENEMY_IMMEDIATE",
+    WATCH_MET:       "STR_PAUSE_WATCH_MET",
+    MANUAL_PAUSE:    "STR_PAUSE_MANUAL"
+  };
+  const id = REASON_STRING_ID[code];
+  $id("whyText").textContent = id ? str(id, payload).text : "進行停止中";
+}
+
+function buildPlateHTML(u) {
+  if (u.isEmpty) {
+    return '<div class="plate" id="plate' + u.i + '">' +
+      '<div class="pname"><b>（不在）</b><span class="role-tag">空きマス</span></div>' +
+    '</div>';
+  }
+
+  const isFoe = (u.side === "foe");
+  const chips = u.chips.map(x => '<span class="chip ' + x[0] + '">' + x[1] + '</span>').join("");
+  const roleTag = '<span class="role-tag' + (isFoe ? " foe" : "") + '">' + u.role + '</span>';
+
+  return '<div class="plate" id="plate' + u.i + '">' +
+    '<div class="pname">' +
+      '<b>' + u.name + '</b>' +
+      roleTag +
+      '<span class="hp" id="hp' + u.i + '">HP ' + u.hp + '</span>' +
+    '</div>' +
+    '<div class="pinfo">' +
+      '<div class="chips">' + chips + '</div>' +
+      '<div class="res">' +
+        '<span class="vp">VP <b id="vp' + u.i + '">' + u.vp + '</b></span>' +
+        '<span class="pp">PP <b id="pp' + u.i + '">' + u.pp + '</b></span>' +
+        '<span class="ap">AP <b id="ap' + u.i + '">' + u.ap + '</b></span>' +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function renderDockSlot(u, previewOpt = null) {
+  const dock = document.getElementById("dock" + u.i);
+  if (!dock) return;
+
+  if (u.isEmpty) {
+    dock.innerHTML = '<div class="think-slot"><span class="state-lbl">ユニット不在</span></div>';
+    return;
+  }
+
+  if (previewOpt) {
+    // 召喚プレビュー
+    if (previewOpt.type === "summon") {
+      dock.innerHTML = `
+        <div class="acting-card-dock preview phase-startup">
+          <div class="dock-inline-main">
+            <span class="phase-tag" style="border-color:var(--ember);color:var(--ember);">実体化</span>
+            <span class="dock-nm" style="color:var(--ember);">${u.name}</span>
+          </div>
+          <div class="dock-inline-right"><span>思考 <b>0</b> 着地</span><span class="text-ap-bold">防 0</span></div>
+        </div>`;
+      return;
+    }
+    // 交代プレビュー
+    if (previewOpt.type === "swap") {
+      const targetColName = (u.i === 0) ? "前列へ" : "後列へ";
+      dock.innerHTML = `
+        <div class="acting-card-dock preview phase-startup">
+          <div class="dock-inline-main">
+            <span class="phase-tag" style="border-color:var(--pp);color:var(--pp);">交代</span>
+            <span class="dock-nm" style="color:var(--pp);">${targetColName}スワップ</span>
+          </div>
+          <div class="dock-inline-right"><span>思考 <b>0</b> リセット</span></div>
+        </div>`;
+      return;
+    }
+    // 通常のアクション実行プレビュー
+    if (previewOpt.act) {
+      const { act, intr, defMap, ea } = previewOpt;
+      const isStartup = !isInstantAction(ea.effSt);
+      const phaseClass = isStartup ? "phase-startup" : "phase-recovery";
+      const phaseLabel = isStartup ? "発生 ⚡可" : (isFlashAction(ea.effSt) ? "即決" : "硬直 🔒");
+      const phaseTagText = intr ? (isStartup ? "発生 ⚠中断" : "⚠中断") : phaseLabel;
+      const restStep = isStartup ? ea.effSt[1] : ea.effSt[2];
+      const atkHTML = act.range ? '<span class="text-danger-bold">攻 ' + ea.effAtk + '</span>' : '';
+
+      dock.innerHTML = `
+        <div class="acting-card-dock preview ${phaseClass}${intr ? ' cut' : ''}">
+          <div class="gauge-bar-bg"><i style="width:0%;"></i></div>
+          <div class="dock-inline-main">
+            <span class="phase-tag">${phaseTagText}</span>
+            <span class="dock-nm" style="color:' + (intr ? 'var(--interrupt)' : 'var(--ember)') + '">
+          </div>
+          <div class="dock-inline-right">
+            ${intr ? '<span>🛑 ' + intr.at + '</span>' : '<span>残 <b>' + restStep + '</b></span>'}
+            ${atkHTML}
+            <span class="text-ap-bold">防 ${defMap ? defMap[u.i] : defenseOf(u)}</span>
+          </div>
+        </div>`;
+      return;
+    }
+  }
+
+  // 実行中ステートおよび思考中ステートの描画
+  if (u.acting) {
+    const isStartup = (u.acting.phase === "発生");
+    const phaseClass = isStartup ? "phase-startup" : "phase-recovery";
+    const restSteps = Math.max(0, u.acting.max - u.acting.cur);
+    dock.innerHTML = `
+      <div class="acting-card-dock ${phaseClass}">
+        <div class="gauge-bar-bg"><i style="width:${u.acting.max ? (u.acting.cur / u.acting.max * 100) : 0}%;"></i></div>
+        <div class="dock-inline-main">
+          <span class="phase-tag">${isStartup ? "発生 ⚡" : "硬直 🔒"}</span>
+          <span class="dock-nm">${u.acting.name}</span>
+        </div>
+        <div class="dock-inline-right">
+          <span>残 <b>${restSteps}</b></span>
+          ${u.acting.atk != null ? '<span class="text-danger-bold">攻 ' + u.acting.atk + '</span>' : ''}
+          <span class="text-ap-bold">防 ${defenseOf(u)}</span>
+        </div>
+      </div>`;
+    return;
+  }
+
+  dock.innerHTML = `
+    <div class="think-slot">
+      <span class="state-lbl">思考中（蓄積 <b>${u.thought}</b>）</span>
+      <span class="def-val">防 ${defenseOf(u)}</span>
+    </div>`;
+}
+
+/* ═══ 3-3. タイムライン描画  [M-UI-TIMELINE] ═══ */
+
+function buildLaneLabels(){
+  const box = $id("laneLabels");
+  box.innerHTML = '<div class="hd">ユニット</div>';
+  units.forEach(u => {
+    const d = document.createElement("div");
+    if (u.isEmpty) {
+      d.className = "lane-label-empty";
+      d.innerHTML = '<span style="background:var(--iron)"></span>（空き枠）';
+    } else {
+      d.innerHTML = '<span style="background:' + (u.side === "mine" ? "var(--ember)" : "var(--miasma)") + '"></span>' + u.name;
+    }
+    box.appendChild(d);
+  });
+}
+
+const pct = n => (n / SPAN) * 100;
+
+function buildRuler(){
+  const r = $id("ruler");
+  r.innerHTML = "";
+  r.setAttribute("aria-hidden", "true");
+  r.style.gridTemplateColumns = "repeat(" + SPAN + ", 1fr)";
+
+  const stepInterval = SPAN > 40 ? 5 : (SPAN > 22 ? 2 : 1);
+
+  for (let i = 0; i < SPAN; i++){
+    const stepNum = NOW + i;
+    const s = document.createElement("span");
+
+    if (i === 0 || i === SPAN - 1 || stepNum % stepInterval === 0) {
+      s.textContent = stepNum;
+    } else {
+      s.textContent = "·";
+      s.style.opacity = "0.3";
+    }
+
+    if (i === 0) s.className = "now";
+    r.appendChild(s);
+  }
+}
+
+function appendClippedSeg(lane, sg, extraClass) {
+  const start = Math.max(NOW, sg.s);
+  const end = Math.min(NOW + SPAN, sg.s + sg.d);
+  if (end <= start) return;
+
+  const isOverflow = (sg.s + sg.d) > (NOW + SPAN);
+  const leftPct = pct(start - NOW);
+  const widthPct = pct(end - start);
+
+  const el = document.createElement("div");
+  el.className = "seg " + sg.t + (extraClass ? " " + extraClass : "") + (isOverflow ? " overflow-right" : "");
+  el.style.left = leftPct + "%";
+  el.style.width = widthPct + "%";
+  el.textContent = sg.l;
+
+  const typeName = sg.t === "startup" ? "発生中" : (sg.t === "recovery" ? "硬直中" : "思考蓄積中");
+  el.title = `【${typeName}】${sg.l}（ステップ ${sg.s} 〜 ${sg.s + sg.d}）`;
+
+  lane.appendChild(el);
+}
+
+/** 中断発生時のタイムラインセグメント列を生成する */
+function createInterruptSegments({ now, breakStep, maxStep, elapsed, curStartup, recovery, cutType, isFoe, totalStartup }) {
+  const segs = [];
+  if (breakStep > now) {
+    const startupLabel = isFoe
+      ? `発 ${curStartup}→${elapsed}`
+      : `中断 (残${Math.max(0, (totalStartup || 0) - elapsed)})`;
+    segs.push({
+      s: now,
+      d: breakStep - now,
+      l: startupLabel,
+      t: "startup",
+      extraClass: isFoe ? "" : cutType
+    });
+  }
+
+  const recoveryLabel = isFoe ? `硬直 ${recovery}（スタン）` : `硬直 ${recovery}（被弾）`;
+  segs.push({
+    s: breakStep,
+    d: recovery,
+    l: recoveryLabel,
+    t: "recovery",
+    extraClass: cutType
+  });
+
+  const finishStep = breakStep + recovery;
+  if (finishStep < maxStep) {
+    const restThink = maxStep - finishStep;
+    segs.push({
+      s: finishStep,
+      d: restThink,
+      l: restThink <= 2 ? "思復帰" : `思 0→${restThink}»`,
+      t: "think"
+    });
+  }
+  return segs;
+}
+
+function analyzeCurrentLanes() {
+  const lanes = [];
+  const marks = [];
+  const maxStep = NOW + SPAN;
+  const defMap = getCurrentDefMap();
+
+  const foeBreaksMap = {};
+
+  // 自軍アクションによる敵中断の事前判定
+  units.forEach(u => {
+    if (u.isEmpty || u.side !== "mine" || !u.acting || u.acting.phase !== "発生") return;
+    const act = u.acts.find(x => x.running) || (u.lastAct ? u.acts.find(x => x.n === u.lastAct.n) : null);
+    if (!act) return;
+
+    const myIntr = interruptOf(u, act, defMap);
+    if (myIntr) {
+      marks.push({ s: Math.max(NOW, myIntr.at), l: "✖ 中断：〈" + u.acting.name + "〉", cut: true, lane: u.i });
+      return;
+    }
+
+    const myFireStep = runningFireStep(u, getEffectiveAct(u, act));
+    if (myFireStep === null) return;
+
+    const breaks = checkFoeBreak(u, act, defMap, null, myFireStep);
+    if (breaks) {
+      breaks.forEach(fb => {
+        foeBreaksMap[fb.targetUnit.i] = fb;
+        marks.push({
+          s: Math.max(NOW, fb.breakStep),
+          l: "⚡ 中断：〈" + (fb.targetUnit.acting ? fb.targetUnit.acting.name : "行動") + "〉",
+          cut: true,
+          lane: fb.targetUnit.i
+        });
+      });
+    }
+  });
+
+  // レーンセグメントおよび発動マークの生成
+  units.forEach(u => {
+    const segs = [];
+    if (u.isEmpty) {
+      lanes.push(segs);
+      return;
+    }
+
+    if (foeBreaksMap[u.i]) {
+      const fb = foeBreaksMap[u.i];
+      const fa = u.acts.find(x => x.running);
+      const efa = fa ? getEffectiveAct(u, fa) : null;
+      const elapsed = (fb.breakStep - NOW) + (u.acting ? u.acting.cur : 0);
+      const rec = calcInterruptRecovery(efa, elapsed);
+
+      segs.push(...createInterruptSegments({
+        now: NOW,
+        breakStep: fb.breakStep,
+        maxStep: maxStep,
+        elapsed: elapsed,
+        curStartup: u.acting ? u.acting.cur : 0,
+        recovery: rec,
+        cutType: "diff-cut",
+        isFoe: true
+      }));
+    } else if (u.acting) {
+      const isStartup = u.acting.phase === "発生";
+      const runningAct = u.acts.find(x => x.running) || (u.lastAct ? u.acts.find(x => x.n === u.lastAct.n) : null);
+      const ea = runningAct ? getEffectiveAct(u, runningAct) : null;
+      const myIntr = (u.side === "mine" && isStartup && runningAct) ? interruptOf(u, runningAct, defMap) : null;
+
+      if (myIntr) {
+        segs.push(...createInterruptSegments({
+          now: NOW,
+          breakStep: myIntr.at,
+          maxStep: maxStep,
+          elapsed: myIntr.elapsed,
+          curStartup: u.acting.cur || 0,
+          recovery: myIntr.recovery,
+          cutType: "diff-cut-self",
+          isFoe: false,
+          totalStartup: ea ? ea.effSt[1] : 0
+        }));
+      } else {
+        const restStartup = isStartup ? (u.acting.max - u.acting.cur) : 0;
+        const fireStep = NOW + restStartup;
+
+        if (isStartup && restStartup > 0) {
+          segs.push({ s: NOW, d: restStartup, t: "startup", l: `発 ${u.acting.cur}/${u.acting.max}（残${restStartup}）` });
+          if (u.acting.fire) {
+            marks.push({ lane: u.i, s: u.acting.fire, l: "発動：" + u.acting.name, foe: (u.side === "foe") });
+          }
+        }
+
+        const recoveryTotal = ea ? ea.effSt[2] : (u.acting.phase === "硬直" ? u.acting.max : 0);
+        const curRec = isStartup ? 0 : u.acting.cur;
+        const restRec = recoveryTotal - curRec;
+        const recStart = isStartup ? fireStep : NOW;
+
+        if (restRec > 0) {
+          segs.push({
+            s: recStart,
+            d: restRec,
+            t: "recovery",
+            l: isStartup ? `硬 0/${recoveryTotal}` : `硬 ${curRec}/${recoveryTotal}（残${restRec}）`
+          });
+        }
+
+        const finishStep = recStart + restRec;
+        if (finishStep < maxStep) {
+          const restThink = maxStep - finishStep;
+          segs.push({ s: finishStep, d: restThink, t: "think", l: restThink <= 2 ? "思復帰" : `思 0→${restThink}»` });
+        }
+      }
+    } else {
+      segs.push({ s: NOW, d: SPAN, t: "think", l: `思 ${u.thought}+»` });
+    }
+
+    lanes.push(segs);
+  });
+
+  return { lanes, marks };
+}
+
+function drawLanes(plan) {
+  const tlgrid = $id("tlgrid");
+  tlgrid.classList.toggle("has-plan", !!plan);
+
+  const baseData = analyzeCurrentLanes();
+
+  // レーンごとのグリッド線およびセグメント描画
+  document.querySelectorAll(".lane").forEach((lane, li) => {
+    lane.innerHTML = "";
+    lane.classList.remove("has-diff");
+
+    const cols = document.createElement("div");
+    cols.className = "cols";
+    cols.style.gridTemplateColumns = "repeat(" + SPAN + ", 1fr)";
+    for (let i = 0; i < SPAN; i++) cols.appendChild(document.createElement("i"));
+    lane.appendChild(cols);
+
+    let targetSegs = [];
+    let isDiffLane = false;
+
+    if (plan && plan.lane === li) {
+      targetSegs = plan.segs.map(sg => ({ ...sg, extraClass: sg.extraClass || "diff-new" }));
+      isDiffLane = true;
+    } else if (plan && plan.foeLanes && plan.foeLanes[li]) {
+      targetSegs = plan.foeLanes[li];
+      isDiffLane = true;
+    } else if (plan && plan.allyLanes && plan.allyLanes[li]) {
+      targetSegs = plan.allyLanes[li];
+      isDiffLane = true;
+    } else {
+      targetSegs = baseData.lanes[li] || [];
+    }
+
+    if (isDiffLane) lane.classList.add("has-diff");
+    targetSegs.forEach(sg => appendClippedSeg(lane, sg, sg.extraClass || ""));
+  });
+
+  // マーク要素生成の共通関数
+  const renderMark = (targetLaneIdx, m, isCut) => {
+    if (m.s < NOW || m.s > NOW + SPAN) return;
+    const lane = document.querySelector('.lane[data-lane="' + targetLaneIdx + '"]');
+    if (!lane) return;
+
+    const el = document.createElement("div");
+    const leftRatio = (m.s - NOW) / SPAN;
+    const cutClass = (isCut || m.cut) ? " cut" : "";
+    const foeClass = m.foe ? " foe" : "";
+    const alignClass = leftRatio > 0.82 ? " align-right" : "";
+
+    el.className = "mark" + foeClass + cutClass + alignClass;
+    el.style.left = pct(m.s - NOW) + "%";
+    el.dataset.l = m.l;
+    lane.appendChild(el);
+  };
+
+  // 基準マークの描画
+  const enemyCutLanes = (plan && plan.foeLanes) ? Object.keys(plan.foeLanes).map(Number) : [];
+  baseData.marks.forEach(m => {
+    if (!enemyCutLanes.includes(m.lane)) {
+      renderMark(m.lane, m, m.cut);
+    }
+  });
+
+  // 予測プランマークの描画
+  if (plan && plan.marks) {
+    plan.marks.forEach(m => {
+      const targetLaneIdx = m.lane !== undefined ? m.lane : plan.lane;
+      renderMark(targetLaneIdx, m, m.cut);
+    });
+  }
+}
+
+/* 因果結線（インタラプト・ライン）描画関数 */
+function drawCausalityLines(actorIdx, fireStep, foeBreaks, intr) {
+  const svg = $id("causalityCanvas");
+  if (!svg) return;
+  svg.innerHTML = "";
+  if (!foeBreaks && !intr) return;
+
+  const svgWidth = svg.clientWidth || 580;
+  const getLaneY = (laneIdx) => 20 + (laneIdx * 32) + 16; // ruler(20px) + lane(32px)*idx + half(16px)
+  const getStepX = (step) => Math.max(0, Math.min(svgWidth, ((step - NOW) / SPAN) * svgWidth));
+
+  // 自軍の手が敵アクションを先手中断する場合（オレンジの因果結線）
+  if (foeBreaks) {
+    const x1 = getStepX(fireStep);
+    const y1 = getLaneY(actorIdx);
+    foeBreaks.forEach(fb => {
+      const x2 = getStepX(fb.breakStep);
+      const y2 = getLaneY(fb.targetUnit.i);
+      const cx = (x1 + x2) / 2;
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`);
+      path.setAttribute("class", "causality-line-break");
+      svg.appendChild(path);
+    });
+  }
+
+  // 敵の手によって自軍アクションが中断される場合（赤の脅威結線）
+  if (intr) {
+    const x1 = getStepX(intr.at);
+    const y1 = getLaneY(actorIdx); // 自軍の中断点
+    // 敵の発生位置を探して結線
+    const enemyThreat = units.find(t => !t.isEmpty && t.side === "foe" && t.acting && t.acting.name === intr.by);
+    const y2 = getLaneY(enemyThreat ? enemyThreat.i : 2);
+    const cx = (x1 + x1) / 2;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", `M ${x1} ${y2} C ${x1} ${(y1 + y2)/2}, ${x1} ${(y1 + y2)/2}, ${x1} ${y1}`);
+    path.setAttribute("class", "causality-line-threat");
+    svg.appendChild(path);
+  }
+}
+
+/* ═══ 3-4. 判定プレビューと監視状態  [M-UI-WATCH] ═══ */
+
+function verdictText(u, a){
+  if (u.isEmpty) return null;
+  if (a.sealVal !== undefined && a.sealVal >= 1.00) return { c:"warn", t:"【封印】選択不可（蓄積 1.00）" };
+
+  const swapLock = getSwapLockReason(u, a);
+  if (swapLock) return { c:"warn", t:"選べない：" + swapLockShort(swapLock) };
+
+  if (a.lock) return { c:"warn", t:"選べない：" + a.lock };
+  if (!a.running && !afford(u, a)) return { c:"warn", t:"コスト不足" };
+  const ea = getEffectiveAct(u, a);
+  const dm = hypoDef(u, a), intr = interruptOf(u, a, dm);
+  if (intr) return { c:"warn", t:"発動前に中断（ステップ" + intr.at + "）" };
+
+  if (a.sys && a.sys.includes("swap") && !a.range && !a.sys.includes("summon")) {
+    const targetColName = (u.i === 1 || u.i === 2) ? "後列へ退避" : "前列へ前進";
+    return { c:"hit", t:`隊列交代（${targetColName}）` };
+  }
+
+  if (ea.effRange){
+    const ts = targetsOf(u, a, dm);
+    if (!ts.length) return { c:"no", t:"射程" + ea.effRange + "では届かない" };
+    return { c: u.side === "foe" ? "foe" : (ts.some(x => x.hit) ? "hit" : "no"),
+      t: ts.map(x => nameOf(x.i) + (x.hit ? " 命中 " + x.dmg : " 回避")).join(" ／ ") };
+  }
+  if (ea.effDeploy) return { c:"hit", t:"展開AP " + ea.effDeploy + " → 防 " + safeRound(ea.effDeploy * (a.de || 2.00)) };
+  if (ea.effGainVp) {
+    const postVp = u.vp + ea.effGainVp;
+    const targetPp = safeRound(postVp * (ea.effChargePp || 0));
+    const isPpIncreased = targetPp > u.pp;
+    return { c:"", t: isPpIncreased ? `VP +${ea.effGainVp} ／ PP ${targetPp} まで充填` : `VP +${ea.effGainVp} ／ PP ${u.pp} (維持)` };
+  }
+  if (a.gain) return { c:"", t:a.gain };
+  return null;
+}
+
+function evadeState(u, a, defMap, intr) {
+  if (!u || u.isEmpty) return null;
+
+  const ea = getEffectiveAct(u, a);
+  const actDe = a.de !== undefined ? a.de : 1.00;
+  const hasSwap = a.sys && a.sys.includes("swap");
+  const hasStance = ea.effDeploy && ea.effDeploy > 0;
+  const hasStunMartial = a.sys && a.sys.includes("martial") && ea.effRange > 0 && a.stun !== false;
+  const hasDefBoost = actDe > 1.00;
+
+  if (!hasSwap && !hasStance && !hasStunMartial && !hasDefBoost) {
+    return null;
+  }
+
+  const bd = getCurrentDefMap();
+  const inc = threats(bd).filter(x => x.i === u.i && x.hit);
+
+  if (!inc.length) return false;
+  if (a.running || u.acting || a.lock || !ready(u, a)) return false;
+
+  const t = inc[0];
+
+  const breaks = checkFoeBreak(u, a, defMap, intr);
+  if (breaks && breaks.some(b => b.targetUnit.i === t.from)) return true;
+  if (hasSwap) return true;
+
+  const apCost = effCostOf(u, a, "ap");
+  let currentAp = Math.max(0, u.ap - apCost);
+  if (ea.effDeploy && isInstantAction(ea.effSt)) {
+    currentAp = ea.effDeploy;
+  }
+
+  const isFlash = isFlashAction(ea.effSt);
+  let simulatedDef = 0;
+
+  if (isFlash) {
+    const decay = ea.effDecayAp;
+    simulatedDef = Math.floor(currentAp * (1.0 - decay));
+  } else {
+    const totalDuration = ea.effSt[1] + ea.effSt[2];
+    const finishStep = NOW + totalDuration;
+
+    if (t.act.fire < finishStep || totalDuration === 0) {
+      simulatedDef = safeRound(currentAp * actDe);
+    } else {
+      const decay = ea.effDecayAp;
+      simulatedDef = Math.floor(currentAp * (1.0 - decay));
+    }
+  }
+
+  if (simulatedDef > t.act.atk) {
+    return true;
+  }
+
+  return false;
+}
+
+function monState(u, a) {
+  if (!u || u.isEmpty) return [];
+
+  const dm = hypoDef(u, a);
+  const intr = interruptOf(u, a, dm);
+  const ea = getEffectiveAct(u, a);
+
+  const bd = getCurrentDefMap();
+  const hasIncomingThreat = threats(bd).some(x => x.i === u.i && x.hit);
+
+  const isPlayable = ready(u, a);
+  const isUninterrupted = isInstantAction(ea.effSt) || !intr;
+
+  const isInstant = isInstantAction(ea.effSt);
+  let stopState = false;
+  if (isInstant) {
+    stopState = isPlayable;
+  } else {
+    stopState = hasIncomingThreat ? (isPlayable && isUninterrupted) : false;
+  }
+
+  const isMartial = a.sys && a.sys.includes("martial") && ea.effRange > 0;
+  const aim = [2, 3].map(ti => {
+    if (!isMartial || units[ti]?.isEmpty) return null;
+    if (Math.abs(u.i - ti) > ea.effRange) return null;
+    return isPlayable && isUninterrupted && (ea.effAtk >= dm[ti]);
+  });
+
+  return [
+    {
+      k: "可",
+      v: isPlayable,
+      t: "【実行可能】思考蓄積完了・消費コスト充足・未封印"
+    },
+    {
+      k: "止",
+      v: stopState,
+      t: isInstant
+        ? "【スタン】即時発動のため中断リスクなし（実行可能と連動）"
+        : "【スタン】通常発動時のスタン中断リスク解消（安全発動）"
+    },
+    {
+      k: "中前",
+      v: aim[0],
+      aim: true,
+      t: "【命中・前列】敵前列に対する中断なし命中成立",
+      na: !isMartial ? "武技以外（対象外）" : (units[2]?.isEmpty ? "敵前列不在" : "射程外")
+    },
+    {
+      k: "中後",
+      v: aim[1],
+      aim: true,
+      t: "【命中・後列】敵後列に対する中断なし命中成立",
+      na: !isMartial ? "武技以外（対象外）" : (units[3]?.isEmpty ? "敵後列不在" : "射程外")
+    },
+    {
+      k: "避",
+      v: evadeState(u, a, dm, intr),
+      t: "【回避】敵攻撃の被弾回避・先手中断・防壁成立",
+      na: "回避・防御・妨害性能なし（対象外）"
+    }
+  ];
+}
+
+/**
+ * 監視条件の立ち上がりエッジ検出（[M-PIPE-PAUSE-TRIGGER] トリガー3 ／ [M-UI-WATCH]）
+ * ステップ境界（[M-PIPE-STEPEND]）通過ごとに1回呼び出し、内部の充足状態を更新する。
+ * @returns {null|{actName:string, watchKey:string}} 停止すべきエッジが立った場合のみ非null
+ */
+function detectWatchRisingEdge() {
+  let fired = null;
+  for (const u of units) {
+    if (!u || u.isEmpty || u.side !== "mine" || !u.acts) continue;
+    u.acts.forEach((a, ai) => {
+      const actKey = watchKeyOf(u, a, ai);
+      monState(u, a).forEach(m => {
+        const key = `${actKey}_${m.k}`;
+        const met = (m.v === true);              // NA(null) は充足扱いにしない
+        if (!fired && watching[key] === true && met && watch_prev_met[key] !== true) {
+          fired = { actName: a.n, watchKey: m.k };
+        }
+        watch_prev_met[key] = met;
+      });
+    });
+  }
+  return fired;
+}
+
+/** 監視基準の初期化（発火させずに現在の充足状態を比較基準として記録する） */
+function seedWatchBaseline() {
+  for (const k in watch_prev_met) delete watch_prev_met[k];
+  detectWatchRisingEdge();   // 戻り値は破棄。以後の比較基準を作るためだけに実行する
+}
+
+/* ═══ 3-5. アクション一覧の並びと追従  [M-UI-SORT]・[M-UI-SCROLL] ═══ */
+
+// 発動可能性ランク（小さいほど上位表示）
+// 0: 実行可能（思考蓄積完了・コスト充足・未封印）
+// 1: コスト充足だが思考蓄積待ち（蓄積が進めば発動可能）
+// 2: コスト不足（リソースを稼がない限り発動不可）
+// 3: 封印・ロック・使用中など構造的に発動不可
+function actAvailabilityRank(u, a) {
+  if (ready(u, a)) return 0;
+  const isSealed = (a.sealVal !== undefined && a.sealVal >= 1.00);
+  if (isSealed || a.lock || a.running || u.acting || getSwapLockReason(u, a)) return 3;
+  return afford(u, a) ? 1 : 2;
+}
+
+function getSortedActEntries(u) {
+  if (!u || u.isEmpty) return [];
+  return u.acts.map((a, origIdx) => {
+    const ea = getEffectiveAct(u, a);
+    const isPlayable = ready(u, a);
+    const rank = actAvailabilityRank(u, a);
+    return { a, origIdx, ea, isPlayable, rank };
+  }).sort((p, q) => {
+    if (p.rank !== q.rank) {
+      return p.rank - q.rank;
+    }
+    if (p.ea.effNeed !== q.ea.effNeed) {
+      return p.ea.effNeed - q.ea.effNeed;
+    }
+    return p.origIdx - q.origIdx;
+  });
+}
+
+function adjustActionListScroll(listEl, targetCardEl) {
+  if (!listEl || !targetCardEl) return;
+  const containerHeight = listEl.clientHeight;
+  const cardTop = targetCardEl.offsetTop - listEl.offsetTop;
+  const cardHeight = targetCardEl.offsetHeight;
+    listEl.scrollTo({
+    top: cardTop - (containerHeight / 2) + (cardHeight / 2),
+    behavior: "smooth"
+  });
+}
+
+function discardCreature(targetIdx) {
+  const targetUnit = units[targetIdx];
+  if (!targetUnit || !targetUnit.role.includes("クリーチャー")) return;
+
+  targetUnit.isEmpty = true;
+  targetUnit.acts = [];
+  targetUnit.acting = null;
+
+  if (targetIdx === 2 && units[3] && !units[3].isEmpty) {
+    units[2] = units[3];
+    units[2].i = 2;
+    units[3] = createUnit("foe", 3);
+  }
+}
+
+
+function handleCardActivation(ui, ai) {
+  const u = units[ui];
+  const a = u?.acts ? u.acts[ai] : null;
+  if (!u || !a) return;
+
+  if (ui === cur.u && ai === cur.a && u.side === "mine" && ready(u, a)) {
+    executeAction(ui, ai);
+  } else {
+    show(ui, ai);
+  }
+}
+
+/* ═══ 3-6. 盤面の構築と描画  [M-FIELD-GRID]・[M-UI-HUD] ═══ */
+
+function figHTML(){ return '<div class="figure"><div class="head"></div><div class="body"></div></div>'; }
+
+function buildBoard(){
+  const board = $id("board");
+  board.innerHTML = "";
+
+  units.forEach((u, ui) => {
+    const isFoe = (u.side === "foe");
+    const col = document.createElement("div");
+    col.className = "bcol " + u.side + (u.role.includes("マスター") ? " master" : "") + (u.isEmpty ? " empty" : "");
+    col.id = "bcol-" + u.i;
+
+    const cellHTML =
+      '<div class="cell ' + u.side + (u.role.includes("マスター") ? " master" : "") + '" id="c' + u.i + '">' +
+        '<div class="stamp" id="st' + u.i + '"></div>' +
+        figHTML() +
+        '<div class="shield-hex" id="sh' + u.i + '"></div>' +
+        '<div class="ground"></div>' +
+        buildPlateHTML(u) +
+      '</div>';
+
+    col.innerHTML = cellHTML + '<div class="dock-slot" id="dock' + u.i + '"></div>';
+
+    const list = document.createElement("div");
+    list.className = "blist";
+    list.id = "blist-" + ui;
+
+    if (u.isEmpty) {
+      col.setAttribute("aria-hidden", "true");
+      list.innerHTML = '<div style="padding:12px;font-size:11px;color:var(--muted);text-align:center;" tabindex="-1">（アクションなし）</div>';
+      col.appendChild(list);
+      board.appendChild(col);
+      renderDockSlot(u);
+      return;
+    }
+
+    const sortedEntries = getSortedActEntries(u);
+    let focusTargetCard = null;
+
+    sortedEntries.forEach((entry) => {
+      const { a, origIdx: ai, ea, isPlayable } = entry;
+      const isSealed = (a.sealVal !== undefined && a.sealVal >= 1.00);
+      const isAffordable = afford(u, a);
+      const dim = a.running ? false : (u.acting ? true : (!isPlayable || isSealed));
+      const isCurrentSelected = (ui === cur.u && ai === cur.a);
+
+      let progressHTML = "";
+      if (!u.acting && !a.running && !a.lock && !isSealed && isAffordable) {
+        if (ea.effNeed === 0 || u.thought >= ea.effNeed) {
+          progressHTML = '<div class="thought-progress-bg full" style="width:100%;"></div>';
+        } else {
+          const thoughtPct = Math.min(100, Math.round((u.thought / ea.effNeed) * 100));
+          progressHTML = '<div class="thought-progress-bg" style="width:' + thoughtPct + '%;"></div>';
+        }
+      }
+
+      const el = document.createElement("div");
+      el.className = "action-card" + (a.running ? " in-use" : "") + (dim ? " dim" : "") + (isSealed ? " sealed" : "") + (isCurrentSelected ? " sel" : "");
+      el.setAttribute("role", "group");
+      el.setAttribute("aria-roledescription", "アクションカード");
+      el.setAttribute("aria-selected", isCurrentSelected ? "true" : "false");
+      el.setAttribute("aria-label", isFoe ? `${u.name}の行動：${a.n}` : `${u.name}のアクション：${a.n}`);
+      el.dataset.origIdx = ai;
+      el.tabIndex = isCurrentSelected ? 0 : -1;
+
+      if (a.running || isSealed) el.setAttribute("aria-disabled", "true");
+
+      const sys = sysOrder.map(k => '<b class="' + k + (a.sys.includes(k) ? " on" : "") + '">' + sysLabel[k] + '</b>').join("");
+      const tags = (a.now ? '<span class="tagline now">実行中</span>' : "") +
+                   (a.mem ? '<span class="tagline mem">記憶</span>' : "") +
+                   (a.copy ? '<span class="tagline copy">写し</span>' : "") +
+                   (isSealed ? '<span class="tagline seal">封印</span>' : "");
+
+      const cost = (a.cost || []).map(c => {
+        const short = u[c[0]] < c[1];
+        return '<span class="cst ' + c[0] + (short ? " short" : "") + '">' + costLabel[c[0]] + ' ' + c[1] + '</span>';
+      }).join("");
+
+      const [th, st, rc] = ea.effSt;
+      const isThoughtReady = u.thought >= ea.effNeed;
+      const thoughtLabel = ea.effNeed > 0
+        ? '<span class="' + (isThoughtReady ? "ok" : "short") + '">思<b>' + ea.effNeed + '</b>' +
+          (!isThoughtReady ? '<small style="font-size:9.5px;margin-left:1px">(-' + (ea.effNeed - u.thought) + ')</small>' : '') + '</span>'
+        : '<span class="ok">思<b>0</b></span>';
+
+      const stepFlowHTML =
+        '<span class="st-flow">' +
+          thoughtLabel +
+          '<i class="arrow">▸</i>' +
+          '<span class="' + (st === 0 ? "ok" : "") + '">発<b>' + st + '</b></span>' +
+          '<i class="arrow">▸</i>' +
+          '<span class="' + (rc === 0 ? "ok" : "") + '">硬<b>' + rc + '</b></span>' +
+        '</span>';
+
+      const v = verdictText(u, a);
+
+      const actKey = watchKeyOf(u, a, ai);
+      const watch = u.side === "mine"
+        ? '<div class="watch" role="group" aria-label="監視トリガー設定">' + monState(u, a).map((m) => {
+            const key = `${actKey}_${m.k}`;
+            const na = m.v === null;
+            return '<button class="watch-toggle' + (m.aim ? " aim" : "") + (m.v === true ? " met" : "") +
+                   (watching[key] ? " watching" : "") + (na ? " na" : "") +
+                   '" data-k="' + key + '" role="switch" aria-checked="' + (watching[key] ? "true" : "false") +
+                   '" title="' + m.t + (na ? "：" + (m.na || "対象外") : (m.v ? "：成立" : "：不成立")) + '">' + m.k + '</button>';
+          }).join("") + '</div>'
+        : "";
+
+      const usesLabel = typeof a.uses === "number" ? `${a.uses} / ${a.maxUses || a.uses}` : a.uses;
+
+      el.innerHTML =
+        progressHTML +
+        '<div class="action-header">' +
+          '<span class="sys">' + sys + '</span>' +
+          '<span class="nm">' + a.n + '</span>' + tags +
+          '<span class="uses' + (a.inf ? " inf" : "") + '">残 <b>' + usesLabel + '</b></span>' +
+        '</div>' +
+        '<div class="action-metrics">' +
+          stepFlowHTML +
+          cost +
+          (a.range ? '<span>射' + ea.effRange + ' 攻' + ea.effAtk + '</span>' : '') +
+        '</div>' +
+        '<div class="action-verdict">' +
+          (v ? '<span class="verdict-label ' + v.c + '">' + v.t + '</span>' : '<span class="verdict-label"></span>') +
+          watch +
+        '</div>';
+
+      el.addEventListener("mouseenter", () => show(ui, ai));
+      el.addEventListener("focus", () => show(ui, ai));
+      el.addEventListener("click", e => {
+        if (e.target.classList.contains("watch-toggle")) return;
+        handleCardActivation(ui, ai);
+      });
+      el.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleCardActivation(ui, ai);
+        }
+      });
+
+      list.appendChild(el);
+      if (isPlayable && !focusTargetCard) focusTargetCard = el;
+    });
+
+    col.appendChild(list);
+    board.appendChild(col);
+
+    renderDockSlot(u);
+
+    if (focusTargetCard) {
+      adjustActionListScroll(list, focusTargetCard);
+    }
+  });
+}
+
+/** 選択中のレーンと盤面カラムのハイライトを同期する */
+function syncSelectionHighlight(ui, ai) {
+  document.querySelectorAll(".lane").forEach((lane, li) => {
+    lane.classList.remove("lane-highlight", "lane-highlight-foe");
+    if (li === ui) {
+      lane.classList.add(units[ui].side === "mine" ? "lane-highlight" : "lane-highlight-foe");
+    }
+  });
+
+  document.querySelectorAll(".bcol").forEach((c, ci) => {
+    c.classList.toggle("bcol-highlight", ci === ui);
+    c.querySelectorAll(".action-card").forEach((m) => {
+      const cardOrigIdx = parseInt(m.dataset.origIdx, 10);
+      const isSel = (ci === ui && cardOrigIdx === ai);
+      m.classList.toggle("sel", isSel);
+      m.setAttribute("aria-selected", isSel ? "true" : "false");
+      m.tabIndex = isSel ? 0 : -1;
+    });
+  });
+}
+
+/* ═══ 3-7. インスペクタ（判定プレビュー） ═══ */
+
+/** show() 各段が共有する実効値・判定結果を1度だけ算出する。選択が無効なら null */
+function buildShowContext(ui, ai) {
+  const u = units[ui], a = u?.acts ? u.acts[ai] : null;
+  if (!u || !a || u.isEmpty) return null;
+
+  // 1. パラメータ確定と判定処理の事前キャッシュ
+  const ea = getEffectiveAct(u, a);
+  const isFoe = (u.side === "foe");
+  const isSealed = (a.sealVal !== undefined && a.sealVal >= 1.00);
+  const isRunning = !!a.running;
+  const isPlayable = u.side === "mine" && !isRunning && !u.acting && ready(u, a) && !isSealed;
+  const isActiveOrPreview = isPlayable || isRunning;
+
+  const hpCost = effCostOf(u, a, "hp", ea);
+  const vpCost = effCostOf(u, a, "vp", ea);
+  const ppCost = effCostOf(u, a, "pp", ea);
+  const apCost = effCostOf(u, a, "ap", ea);
+
+  const hp = isPlayable ? u.hp - hpCost : u.hp;
+  const vp = isPlayable ? u.vp - vpCost : u.vp;
+  const pp = isPlayable ? u.pp - ppCost : u.pp;
+  const ap = isPlayable ? u.ap - apCost : u.ap;
+
+  const baseDef = getCurrentDefMap();
+  const defMap = hypoDef(u, a, baseDef);
+  const intr = (isPlayable || (isRunning && u.side === "mine" && u.acting?.phase === "発生"))
+    ? interruptOf(u, a, defMap)
+    : null;
+
+  const foeBreaks = isActiveOrPreview ? checkFoeBreak(u, a, defMap, intr) : null;
+  const breakTargetIds = foeBreaks ? foeBreaks.map(b => b.targetUnit.i) : [];
+
+  const allTargets = targetsOf(u, a, defMap);
+  const myTargets = (isActiveOrPreview && u.side === "mine" && !intr) ? allTargets : [];
+
+  const before = threats(baseDef, selfInterruptedIds(baseDef));
+  const after = threats(defMap, breakTargetIds.concat(selfInterruptedIds(defMap)));
+
+  const isInstant = isInstantAction(ea.effSt);
+  const isFlash = isFlashAction(ea.effSt);
+  const slipDmg = (u.slip && u.slip > 0) ? Math.max(0, safeRound(u.slip * MOCK_CONFIG.SCENE_LEVEL)) : 0;
+
+  return {
+    ui, ai, u, a, ea,
+    isFoe, isSealed, isRunning, isPlayable, isActiveOrPreview,
+    hp, vp, pp, ap,
+    defMap, intr, foeBreaks, breakTargetIds,
+    allTargets, myTargets, before, after,
+    isInstant, isFlash, slipDmg
+  };
+}
+
+/** 選択中アクションを適用した場合の各ユニットのリソース予測を構築する */
+function buildStatusPreview(ctx) {
+  const { u, a, ea, isPlayable, hp, vp, pp, ap,
+          myTargets, isInstant, isFlash, slipDmg } = ctx;
+  // 2. プレビュー用ステータス予測の構築
+  const previewStats = {};
+  units.forEach(t => {
+    if (!t.isEmpty) {
+      previewStats[t.i] = { hp: t.hp, vp: t.vp, pp: t.pp, ap: t.ap, destroyed: false };
+    }
+  });
+
+  if (isPlayable) {
+    previewStats[u.i].hp = hp;
+    previewStats[u.i].vp = vp;
+    previewStats[u.i].pp = pp;
+    previewStats[u.i].ap = ap;
+
+    if (isFlash && slipDmg > 0) {
+      previewStats[u.i].hp = Math.max(0, hp - slipDmg);
+      if (previewStats[u.i].hp === 0) previewStats[u.i].destroyed = true;
+    }
+
+    if (isInstant) {
+      if (a.sys && a.sys.includes("summon")) {
+        const partnerIdx = getPartnerIndex(u.i);
+        // 検証台では召喚先の雛形をプリセットから借りる。当該スロットが空の構成では
+        // 既定プリセットのクリーチャーを代役に立てる。
+        const slot = PRESETS[currentPresetKey]?.units[partnerIdx];
+        const template = (slot && !slot.isEmpty) ? slot : PRESETS.scene_3_04.units[0];
+        {
+          previewStats[partnerIdx] = {
+            hp: template.maxHp,
+            vp: 0,
+            pp: 0,
+            ap: 0,
+            destroyed: false,
+            isSummonReplaced: true
+          };
+        }
+      }
+
+      myTargets.forEach(tgt => {
+        if (tgt.hit && previewStats[tgt.i]) {
+          const nextHp = Math.max(0, units[tgt.i].hp - tgt.dmg);
+          previewStats[tgt.i].hp = nextHp;
+          if (nextHp === 0) previewStats[tgt.i].destroyed = true;
+        }
+      });
+
+      if (a.effectTarget === "all") {
+        const partnerIdx = getPartnerIndex(u.i);
+        if (!units[partnerIdx].isEmpty) {
+          if (ea.effGainVp) {
+            const postVp = units[partnerIdx].vp + ea.effGainVp;
+            const targetPp = safeRound(postVp * (ea.effChargePp || 0));
+            previewStats[partnerIdx].vp = postVp;
+            if (targetPp > units[partnerIdx].pp) previewStats[partnerIdx].pp = targetPp;
+          }
+          if (ea.effDeploy) {
+            previewStats[partnerIdx].ap = ea.effDeploy;
+          }
+        }
+      }
+    }
+  }
+
+  return previewStats;
+}
+
+/** 盤面プレート・ドックスロット・差分表示を描画する */
+function renderBoardUnits(ctx) {
+  const { u, a, ea, isRunning, isPlayable, isActiveOrPreview,
+          hp, vp, pp, ap, defMap, intr, foeBreaks, breakTargetIds,
+          myTargets, before, after, isInstant, previewStats } = ctx;
+  // 3. 盤面各ユニットの描画・差分反映
+  units.forEach(t => {
+    if (t.isEmpty) return;
+    const isSelf = (t.i === u.i);
+    const st = previewStats[t.i];
+
+    const hpEl = document.getElementById("hp" + t.i);
+    if (hpEl) {
+      if (isPlayable && isInstant && st.hp !== t.hp) {
+        const valClass = (isSelf || st.isSummonReplaced) ? "text-ember-bold" : "text-danger-bold";
+        hpEl.innerHTML = st.destroyed
+          ? `HP ${t.hp} → <b class="text-danger-bold">0 ✖破棄</b>`
+          : `HP ${t.hp} → <b class="${valClass}">${st.hp}</b>`;
+      } else if (isPlayable && isSelf && hp !== t.hp) {
+        hpEl.innerHTML = `HP <b class="text-ember-bold">${hp}</b>`;
+      } else {
+        hpEl.textContent = "HP " + t.hp;
+      }
+    }
+
+    const resources = [
+      { key: "vp", el: document.getElementById("vp" + t.i), color: "var(--vp)" },
+      { key: "pp", el: document.getElementById("pp" + t.i), color: "var(--pp)" },
+      { key: "ap", el: document.getElementById("ap" + t.i), color: "var(--ap)", cls: "text-ap-bold" }
+    ];
+
+    resources.forEach(({ key, el, color, cls }) => {
+      if (!el) return;
+      const currentVal = t[key];
+      const nextVal = st[key];
+      if (isPlayable && isInstant && nextVal !== currentVal) {
+        el.innerHTML = `${currentVal} → <b style="color:${color}">${nextVal}</b>`;
+      } else if (isPlayable && isSelf && nextVal !== currentVal) {
+        el.innerHTML = cls ? `<b class="${cls}">${nextVal}</b>` : `<b style="color:${color}">${nextVal}</b>`;
+      } else {
+        el.textContent = currentVal;
+      }
+    });
+
+    if (isPlayable && isSelf) {
+      renderDockSlot(t, { act: a, intr, defMap, ea });
+    } else if (isPlayable && st.isSummonReplaced) {
+      renderDockSlot(t, { type: "summon" });
+    } else if (isPlayable && a.sys && a.sys.includes("swap") && t.side === "mine") {
+      renderDockSlot(t, { type: "swap" });
+    } else {
+      renderDockSlot(t);
+    }
+
+    const cell = document.getElementById("c" + t.i);
+    const stamp = document.getElementById("st" + t.i);
+    if (cell && stamp) {
+      cell.classList.remove("inrange", "stamped");
+      stamp.className = "stamp";
+      stamp.innerHTML = "";
+
+      const mine = myTargets.find(x => x.i === t.i);
+      const inc = after.find(x => x.i === t.i);
+      const broken = foeBreaks ? foeBreaks.find(b => b.targetUnit.i === t.i) : null;
+
+      if (mine) {
+        cell.classList.add("inrange", "stamped");
+        stamp.className = "stamp" + (mine.hit ? "" : " no");
+
+        const targetFireStep = isRunning
+          ? (u.acting?.fire ?? NOW)
+          : (NOW + ea.effSt[1]);
+
+        const hitHeader = broken
+          ? "中断命中"
+          : (isRunning ? "命中（発生中）" : "命中");
+
+        const subInfo = broken
+          ? `ステップ ${broken.breakStep}：敵〈${broken.targetUnit.acting?.name || "行動"}〉を中断`
+          : `ステップ ${targetFireStep} 発動（HP ${t.hp} → ${Math.max(0, t.hp - mine.dmg)}）`;
+
+        stamp.innerHTML = mine.hit
+          ? `<div class="s">${hitHeader}</div><div class="n">${mine.dmg}</div><div class="sub">${subInfo}</div>`
+          : `<div class="s">回避</div><div class="n">防衛</div><div class="sub">攻 ${ea.effAtk} &lt; 防 ${mine.def}</div>`;
+      } else if (inc) {
+        cell.classList.add("stamped");
+        const hpNow = (isPlayable && t.i === u.i) ? hp : t.hp;
+        stamp.className = "stamp foe" + (inc.hit ? "" : " no");
+        stamp.innerHTML = inc.hit
+          ? '<div class="s">被弾</div><div class="n">' + inc.dmg + '</div><div class="sub">' + inc.act.n + ' ／ HP ' + hpNow + ' → ' + Math.max(0, hpNow - inc.dmg) +
+            (intr && t.i === u.i ? ' ／ 〈' + a.n + '〉中断' : '') + '</div>'
+          : '<div class="s">回避</div><div class="n">無傷</div><div class="sub">' + inc.act.n + ' 攻 ' + inc.act.atk + ' &lt; 防 ' + inc.def + '</div>';
+      } else {
+        const gone = before.find(x => x.i === t.i);
+        if (isActiveOrPreview && gone && breakTargetIds.includes(gone.from)) {
+          cell.classList.add("stamped");
+          stamp.className = "stamp foe gone";
+          stamp.innerHTML = '<div class="s">阻止</div><div class="sub">先手中断により被弾なし</div>';
+        }
+      }
+    }
+
+    const sh = document.getElementById("sh" + t.i);
+    if (sh) {
+      const isTargetActor = isPlayable && t.i === u.i;
+      const curAp = isTargetActor ? ap : t.ap;
+      const curDe = t.acting?.de ?? (isTargetActor ? (a.de ?? 1.00) : 1.00);
+      sh.className = "shield-hex";
+
+      if (curAp > 0) {
+        sh.classList.add("visible");
+        if (curDe >= 2.00) sh.classList.add("high-de");
+      }
+
+      const mineTgt = myTargets.find(x => x.i === t.i);
+      if (mineTgt && curAp > 0) {
+        sh.classList.add(mineTgt.hit ? "cracked" : "deflected");
+      }
+    }
+  });
+}
+
+/** 予兆線のセグメントとマークを構築し、タイムラインと因果結線を描画する */
+function renderTimelinePlan(ctx) {
+  const { ui, u, a, ea, isRunning, isPlayable, isActiveOrPreview,
+          intr, foeBreaks } = ctx;
+  // 4. タイムライン予測（plan）の構築と描画
+  let plan = null;
+  if (isPlayable) {
+    const segs = [], mk = [];
+    const [th, st, rc] = ea.effSt;
+
+    if (intr) {
+      segs.push(...createInterruptSegments({
+        now: NOW,
+        breakStep: intr.at,
+        maxStep: NOW + SPAN,
+        elapsed: intr.elapsed,
+        curStartup: 0,
+        recovery: intr.recovery,
+        cutType: "diff-cut-self",
+        isFoe: false,
+        totalStartup: ea.effSt[1]
+      }));
+      mk.push({ s: intr.at, l: "✖ 中断：〈" + a.n + "〉", cut: true, lane: ui });
+    } else {
+      if (st > 0) {
+        segs.push({ s: NOW, d: st, l: "発 " + st, t: "startup" });
+        mk.push({ s: NOW + st, l: "発動：" + a.n, lane: ui });
+      } else {
+        mk.push({ s: NOW, l: "即決：" + a.n, lane: ui });
+      }
+      if (rc > 0) {
+        segs.push({ s: NOW + st, d: rc, l: "硬 " + rc, t: "recovery" });
+      }
+      const finishStep = NOW + st + rc;
+      if (finishStep < NOW + SPAN) {
+        const restSteps = (NOW + SPAN) - finishStep;
+        const thinkLabel = restSteps <= 2 ? "思復帰" : "思 0→" + restSteps + "»";
+        segs.push({ s: finishStep, d: restSteps, l: thinkLabel, t: "think" });
+      }
+    }
+
+    plan = { lane: ui, segs, marks: mk, foeBreaks: foeBreaks };
+
+    /* 相方レーンを「今ステップから思考やり直し」で描き直す。
+       召喚は新クリーチャーが経過思考0で実体化するため（[M-RESOLVE-SUMMON]）、
+       交代は相方の経過思考が0にリセットされるため（[M-RESOLVE-SWAP]#4）。 */
+    const drawPartnerRestart = (label) => {
+      const partnerIdx = getPartnerIndex(u.i);
+      plan.allyLanes = plan.allyLanes || {};
+      plan.allyLanes[partnerIdx] = [{
+        s: NOW, d: SPAN, t: "think", l: label, extraClass: "diff-new"
+      }];
+    };
+
+    // 召喚は空きマスへ実体化する操作なので、相方不在でもレーンを描く（[M-RESOLVE-SUMMON]）
+    if (a.sys && a.sys.includes("summon")) drawPartnerRestart("思 0→»");
+
+    // 交代は相方が盤面に生存していることが条件（[M-RESOLVE-SWAP]#2 通常ケース）
+    if (a.sys && a.sys.includes("swap") && !units[getPartnerIndex(u.i)].isEmpty) {
+      drawPartnerRestart("思 0→» (リセット)");
+    }
+
+    if (foeBreaks) {
+      plan.foeLanes = {};
+      foeBreaks.forEach(fb => {
+        const ft = fb.targetUnit;
+        const fa = ft.acts.find(x => x.running);
+        if (fa) {
+          const efa = getEffectiveAct(ft, fa);
+          const elapsed = (fb.breakStep - NOW) + (ft.acting ? ft.acting.cur : 0);
+          const rec = calcInterruptRecovery(efa, elapsed);
+
+          plan.foeLanes[ft.i] = createInterruptSegments({
+            now: NOW,
+            breakStep: fb.breakStep,
+            maxStep: NOW + SPAN,
+            elapsed: elapsed,
+            curStartup: ft.acting ? ft.acting.cur : 0,
+            recovery: rec,
+            cutType: "diff-cut",
+            isFoe: true
+          });
+          plan.marks.push({
+            s: fb.breakStep,
+            l: "⚡ 中断：〈" + (ft.acting ? ft.acting.name : fa.n) + "〉",
+            cut: true,
+            lane: ft.i
+          });
+        }
+      });
+    }
+  }
+  drawLanes(plan);
+
+  const currentFireStep = isRunning ? (u.acting?.fire ?? a.fire ?? NOW) : (NOW + ea.effSt[1]);
+  drawCausalityLines(ui, currentFireStep, (isActiveOrPreview && u.side === "mine") ? foeBreaks : null, intr);
+}
+
+/** 実効コストに対する保有量の不足（[M-PIPE-INSTANT]#1 の支払可否） */
+function isCostShort(u, a) {
+  return (a.cost || []).some(c => u[c[0]] < c[1]);
+}
+
+/** 敵手札調査のプレビュー群（[M-UI-HUD]［敵手札調査］） */
+function buildFoeGroups(ctx, fireStep) {
+  const { u, a, ea, isRunning, allTargets } = ctx;
+  const out = [];
+  const gCost = { cap: "コスト・属性", cls: "pay", rows: [] };
+  const cs = a.cost || [];
+  gCost.rows.push({
+    k: "消費コスト",
+    v: !cs.length ? "なし" : cs.map(c => costLabel[c[0]] + " " + c[1]).join(" ")
+  });
+  gCost.rows.push({
+    k: "系統",
+    v: a.sys.map(k => sysLabel[k]).join("・") + " (" + a.k + ")"
+  });
+  out.push(gCost);
+
+  const gFoeRun = { cap: "進行（敵軍）", cls: "run", rows: [] };
+  const inRecovery = isRunning && u.acting?.phase === "硬直";
+
+  let fireText = "思考中";
+  if (isRunning) {
+    fireText = inRecovery ? "発動済み（硬直中）" : "ステップ " + (u.acting?.fire ?? a.fire ?? (NOW + ea.effSt[1]));
+  } else {
+    fireText = isInstantAction(ea.effSt) ? "即時" : "発生 " + ea.effSt[1];
+  }
+  gFoeRun.rows.push({ k: "発動", v: fireText });
+
+  let recText = "";
+  if (inRecovery) {
+    const restRec = u.acting.max - u.acting.cur;
+    recText = u.acting.cur + " ／ " + u.acting.max + "（残 " + restRec + "）";
+  } else {
+    recText = String(ea.effSt[2]);
+  }
+  gFoeRun.rows.push({ k: "硬直", v: recText });
+
+  out.push(gFoeRun);
+
+  if (a.range) {
+    allTargets.forEach(t => {
+      out.push({
+        cap: nameOf(t.i) + "（" + POS[t.i] + "列 D=" + t.d + "）",
+        cls: "tgt",
+        rows: [
+          { k: "自軍防御力", v: String(t.def) },
+          { k: "被弾判定", v: `${ea.effAtk} ≧ ${t.def} → ${t.hit ? "命中見込み " + t.dmg : "防衛見込み"}`, c: t.hit ? "stop" : "no" }
+        ]
+      });
+    });
+  }
+  return out;
+}
+
+/** 自軍：払うコストと防御力（[M-UI-HUD]［払う］） */
+function buildCostGroup(ctx) {
+  const { u, a, isRunning, ap, defMap } = ctx;
+  const out = [];
+  const hypo = !isRunning && !u.acting;
+  const gPay = { cap: "払う", cls: "pay", rows: [] };
+  const cs = a.cost || [];
+  const short = isCostShort(u, a);
+  gPay.rows.push({
+    k: "コスト",
+    v: !cs.length ? "なし"
+      : cs.map(c => u[c[0]] < c[1] ? costLabel[c[0]] + " " + u[c[0]] + "／必要 " + c[1]
+                 : hypo ? costLabel[c[0]] + " " + u[c[0]] + "→" + (u[c[0]] - c[1])
+                 : costLabel[c[0]] + " " + c[1]).join(" "),
+    c: short ? "no" : (hypo && cs.length ? "change" : "")
+  });
+  const currentDe = u.acting?.de ?? 1.00;
+  const hypoDe = a.de ?? 1.00;
+  gPay.rows.push({
+    k: "防御力",
+    v: hypo ? `${u.ap} → ${defMap[u.i]}（AP ${ap} × ${hypoDe.toFixed(2)}）`
+            : `${defenseOf(u)}（AP ${u.ap} × ${currentDe.toFixed(2)}）`,
+    c: hypo ? "change" : ""
+  });
+  out.push(gPay);
+  return out;
+}
+
+/** 自軍：瞬動アクションの即時スリップ決済（[M-PIPE-P4-SLIP]） */
+function buildSlipGroup(ctx) {
+  const { u, isPlayable, hp, isFlash, slipDmg } = ctx;
+  const out = [];
+  if (isPlayable && isFlash && slipDmg > 0) {
+    out.push({
+      cap: "⚡ 即時スリップ決済",
+      cls: "tgt",
+      rows: [
+        { k: "被スリップ量", v: `灰蝕 ${u.slip.toFixed(2)}/回` },
+        { k: "即時HP決済", v: `−${slipDmg}（残 HP ${Math.max(0, hp - slipDmg)}）`, c: "stop" }
+      ]
+    });
+  }
+  return out;
+}
+
+/** 自軍：発動と硬直の進行（[M-UI-HUD]［進行］） */
+function buildRunGroup(ctx, fireStep, short) {
+  const { u, a, ea, isSealed, isRunning, intr, isFlash } = ctx;
+  const out = [];
+  const gRun = { cap: "進行", cls: "run", rows: [] };
+  const inRecovery = isRunning && u.acting?.phase === "硬直";
+  const swapLock = getSwapLockReason(u, a);
+
+  let fireV, fireC = "";
+  if (intr) {
+    fireV = "⚠ 中断（ステップ " + intr.at + "）"; fireC = "stop";
+  } else if (isRunning) {
+    fireV = inRecovery ? "済み（硬直中）" : (fireStep ? `ステップ ${fireStep}` : "即時");
+  } else if (isSealed) {
+    fireV = "不可（封印蓄積 1.00）"; fireC = "stop";
+  } else if (swapLock) {
+    fireV = "不可（" + swapLockShort(swapLock) + "）"; fireC = "no";
+  } else if (a.lock) {
+    fireV = "不可（" + a.lock + "）"; fireC = "no";
+  } else if (short) {
+    fireV = "不可（コスト不足）"; fireC = "no";
+  } else if (u.acting) {
+    fireV = "不可（〈" + u.acting.name + "〉実行中）"; fireC = "no";
+  } else if (u.thought < ea.effNeed) {
+    fireV = "思考 " + u.thought + " ／ " + ea.effNeed + "（残 " + (ea.effNeed - u.thought) + "）"; fireC = "no";
+  } else {
+    fireV = isFlash ? "即時"
+          : isBurstAction(ea.effSt) ? "即発"
+          : "ステップ " + (NOW + ea.effSt[1]);
+  }
+  gRun.rows.push({ k: "発動", v: fireV, c: fireC });
+
+  let recV, recC = "";
+  if (intr) {
+    recV = ea.effSt[2] + " +（" + ea.effSt[1] + " − " + intr.elapsed + "）= " + intr.recovery;
+    recC = "stop";
+  } else if (inRecovery) {
+    const restRec = u.acting.max - u.acting.cur;
+    recV = u.acting.cur + " ／ " + u.acting.max + "（満了 " + (NOW + restRec) + "）";
+  } else if (isFlash) {
+    recV = "0";
+  } else {
+    recV = String(ea.effSt[2]);
+  }
+  gRun.rows.push({ k: "硬直", v: recV, c: recC });
+
+  out.push(gRun);
+  return out;
+}
+
+/** 武技コンポーネントのプレビュー（[M-RESOLVE-MARTIAL]）。射程内に対象がない場合も本関数が示す */
+function previewMartial(ctx) {
+  const { a, ea, intr, foeBreaks, allTargets, isInstant } = ctx;
+  const out = [];
+  allTargets.forEach(t => {
+    const defLabel = isInstant ? "最新実効防御" : "凍結防御(開始時)";
+    const broken = foeBreaks ? foeBreaks.find(b => b.targetUnit.i === t.i) : null;
+    let verdictStr = "";
+    if (intr) {
+      verdictStr = "中断のため未発生";
+    } else if (t.hit) {
+      if (broken) {
+        const typeLabel = isInstant ? "即時中断" : `先手中断（自発動${broken.breakStep} < 敵発動${broken.foeFire}）`;
+        verdictStr = `${t.effAtk} ≧ ${t.def} → 命中 ${t.dmg}（${typeLabel}）`;
+      } else {
+        verdictStr = `${t.effAtk} ≧ ${t.def} → 命中 ${t.dmg}`;
+      }
+    } else {
+      verdictStr = `${t.effAtk} < ${t.def} → 回避`;
+    }
+
+    out.push({
+      cap: nameOf(t.i) + "（" + POS[t.i] + "列 D=" + t.d + "）",
+      cls: "tgt",
+      rows: [
+        { k: defLabel, v: String(t.def) },
+        { k: "判定", v: verdictStr, c: intr ? "stop" : (t.hit ? "hit" : "no") }
+      ]
+    });
+  });
+  if (a.range && !allTargets.length) {
+    out.push({ cap: "射程 " + ea.effRange, cls: "tgt", rows: [{ k: "判定", v: "射程内に敵不在", c: "no" }] });
+  }
+  return out;
+}
+
+/** 隊列交代コンポーネントのプレビュー（[M-RESOLVE-SWAP]） */
+function previewSwap(ctx) {
+  const { u, a } = ctx;
+  const out = [];
+  if (a.sys && a.sys.includes("swap")) {
+    const partnerIdx = getPartnerIndex(u.i);
+    const partnerNm = nameOf(partnerIdx);
+    out.push({
+      cap: "隊列交代",
+      cls: (u.side === "mine") ? "tgt mine-side" : "tgt",
+      rows: [
+        { k: "配置変更", v: `${u.name}(${POS[u.i]}) ↔ ${partnerNm}(${POS[partnerIdx]})`, c: "hit" },
+        { k: "相方思考", v: "思考ステップ 0 にリセット", c: "change" }
+      ]
+    });
+  }
+  return out;
+}
+
+/** 体勢コンポーネントのプレビュー（[M-RESOLVE-STANCE]） */
+function previewStance(ctx) {
+  const { u, a, ea, intr } = ctx;
+  const out = [];
+  if (ea.effDeploy) {
+    const postDeployDef = defenseOf(u, ea.effDeploy, a.de ?? 2.00);
+    out.push({ cap: "体勢", cls: "tgt mine-side", rows: [
+      { k: "展開AP", v: intr ? "─" : String(ea.effDeploy), c: intr ? "stop" : "" },
+      { k: "展開後防壁", v: intr ? "─" : String(postDeployDef), c: intr ? "stop" : "hit" }] });
+  }
+  return out;
+}
+
+/** 心気コンポーネントのプレビュー（[M-RESOLVE-MIND]） */
+function previewMind(ctx) {
+  const { u, a, ea, intr } = ctx;
+  const out = [];
+  if (ea.effGainVp) {
+    const postVp = u.vp + ea.effGainVp;
+    const targetPp = safeRound(postVp * (ea.effChargePp || 0));
+    const isPpIncreased = targetPp > u.pp;
+    out.push({ cap: "心気循環", cls: "tgt mine-side", rows: [
+      { k: "VP加算", v: intr ? "─" : `+${ea.effGainVp} (現在 ${u.vp} → ${postVp})`, c: intr ? "stop" : "change" },
+      { k: "PP充填結果", v: intr ? "─" : (isPpIncreased ? `${u.pp} → ${targetPp} (充填)` : `${u.pp} (現在値維持)`), c: intr ? "stop" : (isPpIncreased ? "hit" : "") }
+    ]});
+  } else if (a.gain) {
+    out.push({ cap: "効果", cls: "tgt mine-side", rows: [{ k: "内容", v: intr ? "─" : a.gain, c: intr ? "stop" : "" }] });
+  }
+  return out;
+}
+
+/** インスペクター見出しの状態タグ（[M-UI-HUD]［状態タグ］） */
+function buildInspectorTag(ctx) {
+  const { u, isFoe, isSealed, isRunning, isPlayable, hp, intr, foeBreaks, isFlash, slipDmg } = ctx;
+  let tagText = "";
+  let tagClass = "";
+  if (isFoe) {
+    tagText = "敵手札・行動予測";
+    tagClass = "tag-preview-foe";
+  } else if (intr) {
+    tagText = isRunning ? "⚠ 中断確定" : "⚠ 中断リスク";
+    tagClass = "tag-preview-cut";
+  } else if (isRunning) {
+    tagText = (u.acting?.phase === "発生") ? "⚡ 発生中（発動確定進行）" : "🔒 硬直中";
+    tagClass = "tag-preview-run";
+  } else if (isSealed) {
+    tagText = "封印中";
+    tagClass = "tag-preview-cut";
+  } else if (isPlayable) {
+    const willDieBySlip = isFlash && slipDmg >= hp;
+
+    if (willDieBySlip) {
+      tagText = "⚠ 瞬動スリップ自滅（HP " + hp + " ≦ 灰蝕 " + slipDmg + "）";
+      tagClass = "tag-preview-cut";
+    } else if (isFlash && slipDmg > 0) {
+      tagText = "⚡ 瞬動即時決済（灰蝕 " + slipDmg + " 被弾）";
+      tagClass = "tag-preview-cut";
+    } else if (foeBreaks) {
+      tagText = "⚡ 敵アクション先手中断可能";
+      tagClass = "tag-preview-playable";
+    } else if (isFlash) {
+      tagText = "⚡ 瞬動（即時発動・思考0着地）";
+      tagClass = "tag-preview-playable";
+    } else {
+      tagText = "指示可能（クリック/Enterで確定）";
+      tagClass = "tag-preview-playable";
+    }
+  } else {
+    tagText = "選択不可";
+    tagClass = "tag-preview-disabled";
+  }
+  return { tagText, tagClass };
+}
+
+/** 組み上げたプレビュー群をインスペクターへ描画する */
+function paintInspector(ctx, groups, tag) {
+  const { u, a, isFoe } = ctx;
+  const { tagText, tagClass } = tag;
+  const rowHTML = r => '<div class="row ' + (r.c || "") + '"><span class="k">' + r.k + '</span><span class="v">' + r.v + '</span></div>';
+
+  const categoryLabel = a.k ? '<small class="action-cat-label">(' + a.k + ')</small>' : '';
+
+  $id("box-self").innerHTML =
+    '<div class="ttl"><b>' + (isFoe ? '【敵手札調査】' : '') + u.name + '：' + a.n + '</b>' + categoryLabel + '<span class="tag ' + tagClass + '">' + tagText + '</span></div>' +
+    '<div class="prev">' + groups.map(g => '<div class="pg ' + (g.cls || "tgt") + '"><div class="cap">' + g.cap + '</div>' +
+      g.rows.map(rowHTML).join("") + '</div>').join("") + '</div>';
+}
+
+/** 判定プレビュー（インスペクター）の構築（[M-UI-HUD]［判定プレビュー］）
+ *  提示順は読み取り順であり、統合解決の順序（[M-RESOLVE-ORDER]）とは一致しない。
+ *  召喚コンポーネントは提示する値を持たないため、対応するプレビューを設けない。 */
+function renderInspector(ctx) {
+  const { u, a, ea, isFoe, isRunning, isPlayable } = ctx;
+  const fireStep = isRunning
+    ? (u.acting?.fire ?? a.fire ?? (NOW + ea.effSt[1]))
+    : (isPlayable ? NOW + ea.effSt[1] : null);
+
+  const groups = [];
+  if (isFoe) {
+    groups.push(...buildFoeGroups(ctx, fireStep));
+  } else {
+    const short = isCostShort(u, a);
+    groups.push(...buildCostGroup(ctx));
+    groups.push(...buildSlipGroup(ctx));
+    groups.push(...buildRunGroup(ctx, fireStep, short));
+    groups.push(...previewMartial(ctx));
+    groups.push(...previewSwap(ctx));
+    groups.push(...previewStance(ctx));
+    groups.push(...previewMind(ctx));
+  }
+
+  paintInspector(ctx, groups, buildInspectorTag(ctx));
+}
+
+
+function show(ui, ai) {
+  const safeUi = Math.max(0, Math.min(ui, units.length - 1));
+  const safeAi = Math.max(0, Math.min(ai, (units[safeUi]?.acts?.length || 1) - 1));
+  cur = { u: safeUi, a: safeAi };
+
+  syncSelectionHighlight(safeUi, safeAi);
+
+  const ctx = buildShowContext(safeUi, safeAi);
+  if (!ctx) return;
+
+  ctx.previewStats = buildStatusPreview(ctx);
+  renderBoardUnits(ctx);
+  renderTimelinePlan(ctx);
+  renderInspector(ctx);
+}
+
+/* ═══ 3-8. プリセット読込と画面切替 ═══ */
+
+function loadPreset(key) {
+  const resolvedKey = PRESETS[key] ? key : DEFAULT_PRESET_KEY;
+  const p = PRESETS[resolvedKey];
+  currentPresetKey = resolvedKey;
+  MOCK_CONFIG = { ...p.config };
+  NOW = p.config.NOW;
+  SPAN = p.config.SPAN_DEFAULT;
+  total_rewind_count = p.totalRewind;
+  rewind_pending = false;
+  rewind_pending_type = "NONE";
+  SavedPhase = p.config.SAVE_PHASE || "BATTLE";
+
+  // 監視トグルの完全初期化（前ステップ充足状態も併せてクリア）
+  for (const k in watching) delete watching[k];
+  for (const k in watch_prev_met) delete watch_prev_met[k];
+
+  units.length = 0;
+  p.units.forEach(u => units.push(clone(u)));
+
+  // アクションインスタンスIDの採番はユニット読込直後に行う。
+  // 以降の各スナップショットは採番済みの配列を複製するため、IDが後から食い違うことはない。
+  resetInstanceIdSeq(0);
+  ensureInstanceIds();
+
+  // チップは buffMap / debuffMap / slip から導出する（表示と内部状態の二重管理を避ける）
+  units.forEach(rebuildChips);
+
+  applyVerificationFixtures(resolvedKey);
+
+  attendants.length = 0;
+  p.attendants.forEach(a => attendants.push(clone(a)));
+
+  pool.length = 0;
+  p.pool.forEach(item => pool.push(clone(item)));
+
+  INITIAL_UNITS_STATE = clone(units);
+  INITIAL_ATTENDANTS_STATE = clone(attendants);
+  IM_ENTRY_UNITS_STATE = clone(units);
+  INITIAL_IID_SEQ = IM_ENTRY_IID_SEQ = currentInstanceIdSeq();
+  HistoryStack.length = 0;
+  updateUndoButtonsState();
+
+  // スナップショット列と呼称の発効状態を進行位置から引き直す
+  im_snapshots = buildSnapshotSeries(currentOrder(), attendants);
+  obsolete_name_revealed = currentOrder() > orderOf(3, "06");   // 3-06クリア以降
+  syncNaming();
+
+  imAtt = 0;
+  imPick = 0;
+  cur = { u: 1, a: 0 };
+
+  updatePauseReason(p.whyCode ?? null, p.whyPayload || {});
+  initTimeline();
+  buildLaneLabels();
+  buildBoard();
+  show(cur.u, cur.a);
+  imRender();
+  renderObjective();
+  renderRollbackList();
+  seedWatchBaseline();
+}
+
+$id("presetSelect").addEventListener("change", (e) => {
+  loadPreset(e.target.value);
+  syncNarrativeToPreset();
+});
+
+/* 画面キーとセクション・タブの対応表 */
+const SCREEN_TABS = {
+  battle: { section: "screen-battle", tab: "tab-battle" },
+  im:     { section: "screen-im",     tab: "tab-im" },
+  title:  { section: "screen-title",  tab: "tab-title" },
+  script: { section: "screen-script", tab: "tab-script" },
+  refill: { section: "screen-refill", tab: "tab-refill" },
+  help:   { section: "screen-help",   tab: "tab-help" },
+  rollback: { section: "screen-rollback", tab: "tab-rollback" },
+  config: { section: "screen-config", tab: "tab-config" }
+};
+
+/* 戻る操作のあて先を保つ（辞典・再走先選択は入った画面へ戻る） */
+let curScreen = "battle";
+let prevScreen = "battle";
+
+Object.keys(SCREEN_TABS).forEach(k => {
+  $id(SCREEN_TABS[k].tab).addEventListener("click", () => tab(k));
+});
+
+function tab(k){
+  if (!SCREEN_TABS[k]) k = "battle";
+  if (k !== curScreen) prevScreen = curScreen;
+  curScreen = k;
+
+  if (k === "im") {
+    imRender();
+  } else if (k === "battle") {
+    initTimeline();
+    buildBoard();
+    show(cur.u, cur.a);
+  } else if (k === "title") {
+    renderTitleScreen();
+  } else if (k === "refill") {
+    renderRefill();
+  } else if (k === "help") {
+    renderHelpList();
+  } else if (k === "rollback") {
+    renderRollbackList();
+  } else if (k === "config") {
+    renderConfigScreen();
+  }
+
+  // エンディング演出の入口は脚本再生画面を離れた時点で閉じる（[M-REWIND-ROLLBACK]）
+  if (k !== "script") setEndingRollbackVisible(false);
+
+  renderObjective();
+
+  Object.keys(SCREEN_TABS).forEach(key => {
+    $id(SCREEN_TABS[key].section).classList.toggle("active", key === k);
+    $id(SCREEN_TABS[key].tab).classList.toggle("on", key === k);
+  });
+
+  // 検証台の操作系は、対応する画面を選んでいる間だけ出す
+  $id("debugCtxScript").classList.toggle("active", k === "script");
+  $id("debugCtxHelp").classList.toggle("active", k === "help");
+}
+
+/* ═════════════════════════════════════════════════════════
+   4. モーダル制御層
+   ═════════════════════════════════════════════════════════ */
+
+/**
+ * 汎用モーダルダイアログの展開およびフォーカス制御
+ * @param {Object} options - 設定オブジェクト
+ * @param {string} options.title - モーダル見出し
+ * @param {string} options.desc - 本文テキスト
+ * @param {string[]} [options.extraLines] - 本文の下へ反復生成する行（[M-DATA-STRINGS]［複数対象の提示］）
+ * @param {boolean} [options.danger=false] - 危険操作スタイルフラグ
+ * @param {Function} [options.onConfirm] - 決定時コールバック
+ * @param {boolean} [options.singleButton=false] - 単一ボタン（通知）モード
+ * @param {string} [options.confirmText="決定"] - 決定ボタン表示名
+ */
+function openModal({ title, desc, extraLines, danger = false, onConfirm, singleButton = false, confirmText = "決定" }) {
+  const modal = $id("gameModal");
+  const mainWrap = $id("mainWrap");
+
+  const titleEl = $id("modalTitle");
+  titleEl.textContent = title;
+  titleEl.className = danger ? "modal-title danger" : "modal-title";
+
+  // 見出し＋行の反復はUI側の描画であり、[M-DATA-INTERP] の語彙を拡張しない
+  $id("modalDesc").textContent =
+    (extraLines && extraLines.length) ? desc + "\n" + extraLines.join("\n") : desc;
+
+  const confirmBtn = $id("modalConfirm");
+  const cancelBtn = $id("modalCancel");
+
+  confirmBtn.className = danger ? "tbtn modal-danger" : "tbtn on";
+  confirmBtn.textContent = confirmText;
+  cancelBtn.style.display = singleButton ? "none" : "block";
+
+  const closeModal = () => {
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    if (mainWrap) mainWrap.removeAttribute("inert"); // 背景の非活性を解除
+  };
+
+  confirmBtn.onclick = () => {
+    closeModal();
+    if (onConfirm) onConfirm();
+  };
+
+  cancelBtn.onclick = () => {
+    closeModal();
+  };
+
+  if (mainWrap) mainWrap.setAttribute("inert", ""); // 背景を完全非活性化
+  modal.classList.add("open");
+  modal.setAttribute("aria-hidden", "false");
+
+  setTimeout(() => {
+    if (danger && cancelBtn.style.display !== "none") {
+      cancelBtn.focus();
+    } else {
+      confirmBtn.focus();
+    }
+  }, 40);
+}
+
+/**
+ * 文言ID指定でモーダルを開く（[M-DATA-STRINGMASTER]）
+ * 見出し・本文・決定ボタン名はいずれも STRINGS が保持し、呼び出し側は文脈束のみを供給する。
+ * @param {string} id STRINGS のキー
+ * @param {Object} [values] 供給する文脈束の値（[M-DATA-INTERP]）
+ * @param {Object} [opts] danger / singleButton / onConfirm / extraLines
+ */
+function openModalById(id, values = {}, opts = {}) {
+  const s = str(id, values);
+  return openModal({
+    title: s.head,
+    desc: s.text,
+    extraLines: opts.extraLines,
+    confirmText: s.btn || "決定",
+    danger: opts.danger || false,
+    singleButton: opts.singleButton || false,
+    onConfirm: opts.onConfirm
+  });
+}
+
+/** 文言ID指定の通知（単一ボタン） */
+function showAlertById(id, values = {}, opts = {}) {
+  return openModalById(id, values, { ...opts, singleButton: true });
+}
+
+function showAlert(title, desc) {
+  openModal({ title, desc, singleButton: true, confirmText: "了解" });
+}
+
+/**
+ * 巻き戻しの実行（[M-REWIND-UNDO]・[M-REWIND-ROLLBACK]）
+ * total_rewind_count は加算せず、保留として記録するのみ。
+ * 保留は同時に1件（[M-META-PENDING]「保留の単一性」）。保留中の再実行では加算せず種別のみ後発で置換する。
+ */
+function markRewindPending(type) {
+  rewind_pending = true;
+  rewind_pending_type = type;
+  renderRewindCore();
+}
+
+/**
+ * 確定イベント成立時の決済（[M-META-COMMIT]）
+ * 再点火演出・フレーム発光・カウンタ更新を同一フレームで同期させる（[M-REWIND-UNDO] UI要件）。
+ */
+function commitRewindIfPending() {
+  if (!rewind_pending) return;
+  total_rewind_count++;
+  rewind_pending = false;
+  rewind_pending_type = "NONE";
+
+  const frameEl = document.querySelector(".frame");
+  const coreEl  = document.querySelector(".rewind-core");
+  renderRewindCore();                       // カウンタ更新＋消灯解除
+  if (frameEl) {
+    frameEl.classList.remove("rewind-active");
+    void frameEl.offsetWidth;
+    frameEl.classList.add("rewind-active");
+  }
+  if (coreEl) {
+    coreEl.classList.add("pulse");
+    setTimeout(() => coreEl.classList.remove("pulse"), 180);
+  }
+}
+
+/* ── 進行位置と目的表示（[M-DATA-SCENEMASTER]・[M-UI-OBJECTIVE]）──── */
+
+/** order → scene_id。SCENE_BY_ORDER は masters.js が保持する（[M-DATA-SCENEMASTER]） */
+const sceneIdOf    = (order) => SCENE_BY_ORDER[order] || null;
+const actOfOrder   = (order) => SCENE_MASTER[sceneIdOf(order)]?.act ?? 1;
+const orderOf      = (act, scene) => SCENE_MASTER[`SCENE_${act}_${scene}`]?.order ?? 0;
+const currentOrder = () => orderOf(MOCK_CONFIG.CURRENT_ACT, MOCK_CONFIG.CURRENT_SCENE);
+
+/** scene_id から補間キー SceneNumber の表示形を得る（例："SCENE_4_08" → "4-08"。[M-DATA-INTERP]） */
+function sceneNumberOf(sceneId) {
+  const m = String(sceneId).match(/^SCENE_(\d+)_(\d+)$/);
+  return m ? m[1] + "-" + m[2] : String(sceneId);
+}
+
+/** 呼称の遡及置換の発効判定（[S-NAMING-RULE]）。
+ *  1周目は3-06クリア以降、2周目以降は全区間で新称とする。 */
+function syncNaming() {
+  NamingRevealed = obsolete_name_revealed || playthrough_count >= 2;
+}
+
+/** 表示区間の判定（[M-UI-OBJECTIVE]［表示区間］）。order 1 と 31 は非表示 */
+function objectiveIdFor(order) {
+  if (order >= 2 && order <= 20) return "STR_OBJECTIVE_VOID_LORD";
+  if (order >= 21 && order <= 30) return "STR_OBJECTIVE_VEIN";
+  return null;
+}
+
+/** 目的表示の描画。提示はインターミッションに限り、進行位置は次に遷移するシーンの
+ *  order（直前にクリアしたシーンの order + 1）とする。 */
+function renderObjective() {
+  const el = $id("objectiveBarIm");
+  if (!el) return;
+
+  const order = Math.min(31, currentOrder() + 1);
+  const id = objectiveIdFor(order);
+  el.innerHTML = id
+    ? '<span class="t">' + str(id).text + '</span><span class="ord">order ' + order + '</span>'
+    : "";
+  el.classList.toggle("active", !!id);
+}
+
+/** 検証用のスナップショット列の生成（[M-DATA-IMSNAPSHOT]［記録契機］）。
+ *  order 1 から「現在シーン − 1」までを積み、末尾を直近のインターミッションとする。
+ *  レコードは order と state のみを持つ。state のフィールド名と値域は
+ *  [M-DATA-RUNSTATE] に従い、`phase` は INTERMISSION、`battle_state` は Null とする。
+ *  `im_snapshots` と `history_stack` は除外する（[M-DATA-HISTORY]［スナップショット対象］）。
+ *  盤面配列は RunState の項目ではないため、検証台専用の fixture へ分ける（8-1）。
+ *  末尾のみ盤面 fixture を持ち、それより前は一覧描画の検証用の要約記録とする。
+ *  検証台が追跡しない RunState 項目は記録しない。`hero_acts` は fixture の盤面が
+ *  兼ね、`recruited` は追跡対象外である。 */
+function buildSnapshotSeries(order, attendantList) {
+  const rec = [];
+
+  /** 当該 order のインターミッション開始時点の RunState 複製を組む */
+  const stateAt = (o, slots, heroHp, heroMaxHp, enshrined, iidSeq) => ({
+    current_scene_id: sceneIdOf(o),
+    phase:            "INTERMISSION",
+    hero_max_hp:      heroMaxHp,
+    hero_hp:          heroHp,
+    instance_id_seq:  iidSeq,
+    party:            slots,
+    sacrificed:       sacrificed.slice(),
+    enshrined_count:  enshrined,
+    cross_unlocked:   { ...cross_unlocked },
+    mirror_stats:     null,
+    battle_state:     null
+  });
+
+  for (let o = 1; o < Math.min(order, 31); o++) {
+    const act = actOfOrder(o);
+    rec.push({
+      order: o,
+      state: stateAt(
+        o,
+        attendantList.filter(at => at.joinAct <= act).map(partySlotOf),
+        120 + o * 12,
+        160 + o * 14,
+        Math.max(0, act - 1),
+        0
+      ),
+      fixture: { units: null }
+    });
+  }
+
+  const last = rec[rec.length - 1];
+  if (last) {
+    const hero = heroUnit();
+    last.state = stateAt(
+      last.order,
+      attendantList.map(partySlotOf),
+      hero ? hero.hp    : last.state.hero_hp,
+      hero ? hero.maxHp : last.state.hero_max_hp,
+      enshrined_count,
+      IM_ENTRY_IID_SEQ
+    );
+    last.fixture = { units: clone(IM_ENTRY_UNITS_STATE) };
+  }
+  return rec;
+}
+
+/** 燈火表示の同期（保留中は消灯・数値据え置き） */
+function renderRewindCore() {
+  const rewindEl = $id("rewindN");
+  const coreEl   = document.querySelector(".rewind-core");
+  if (rewindEl) rewindEl.textContent = total_rewind_count;
+  if (!coreEl) return;
+  coreEl.classList.toggle("pending", rewind_pending);
+  coreEl.title = rewind_pending
+    ? str("STR_REWIND_PENDING").text + `（保留種別 ${rewind_pending_type}）`
+    : "終焉燈による因果再走の累積回数（メタステート）";
+}
+
+function initTimeline() {
+  updateTimelineSpan(units);
+  buildRuler();
+  drawLanes(null);
+  renderRewindCore();
+}
+
+function resetBattleToInitialState() {
+  resetInstanceIdSeq(INITIAL_IID_SEQ);   // 採番位置も基準点へ戻す（[M-CORE-DETERMINISM]）
+  units.length = 0;
+  INITIAL_UNITS_STATE.forEach(u => units.push(JSON.parse(JSON.stringify(u))));
+
+  // ステップ0の生成にあわせ、監視トグルと再生速度の既定を適用する（[M-UI-CONFIG]）
+  applyWatchDefaults();
+  initTimeline();
+  buildBoard();
+  show(1, 0);
+  const p = PRESETS[currentPresetKey];
+  updatePauseReason(p.whyCode ?? null, p.whyPayload || {});
+
+  // 自動時間停止が成立している局面では停止表示を優先する（[M-PIPE-PAUSE-TRIGGER]）
+  applyDefaultSpeed(p.whyCode ? "PAUSE" : CONFIG.speed);
+  SavedPhase = "BATTLE";
+}
+
+/* ═════════════════════════════════════════════════════════
+   5. 巻き戻し・履歴制御層
+   ═════════════════════════════════════════════════════════ */
+
+$id("undoBtn").addEventListener("click", () => {
+  if (HistoryStack.length === 0) {
+    showAlertById("STR_UNDO_UNAVAILABLE");
+    return;
+  }
+
+  markRewindPending("UNDO");
+  const prev = HistoryStack.pop();
+  const bs = prev.battle_state;
+
+  // BattleState（[M-DATA-BATTLESTATE]）
+  units.length = 0;
+  bs.units.forEach(u => units.push(clone(u)));
+
+  for (const k in watching) delete watching[k];
+  Object.assign(watching, bs.watching);
+  for (const k in watch_prev_met) delete watch_prev_met[k];
+  Object.assign(watch_prev_met, bs.watch_prev_met);   // 立ち上がりエッジの連続性（[M-UI-WATCH]）
+
+  // RunState（[M-DATA-RUNSTATE]）。同行枠から従者を再実体化する
+  attendants.length = 0;
+  prev.party.forEach(sl => {
+    const at = attendantFromSlot(sl);
+    if (at) attendants.push(at);
+  });
+
+  sacrificed.length = 0;
+  prev.sacrificed.forEach(id => sacrificed.push(id));
+  enshrined_count = prev.enshrined_count;
+  for (const k in cross_unlocked) delete cross_unlocked[k];
+  Object.assign(cross_unlocked, prev.cross_unlocked);
+  resetInstanceIdSeq(prev.instance_id_seq);
+
+  // 表示上の選択位置（RunState の項目ではない）
+  cur    = { ...prev.fixture.cursor };
+  imAtt  = prev.fixture.im_attendant;
+  imPick = prev.fixture.im_pick;
+
+  updateUndoButtonsState();
+  initTimeline();
+  buildBoard();
+  show(cur.u, cur.a);
+
+  // タイムラインの巻き戻しスウィープ演出トリガー
+  const tlgrid = $id("tlgrid");
+  if (tlgrid) {
+    tlgrid.classList.remove("rewinding");
+    void tlgrid.offsetWidth; // リフロー発生
+    tlgrid.classList.add("rewinding");
+    setTimeout(() => tlgrid.classList.remove("rewinding"), 220);
+  }
+
+  if ($id("screen-im").classList.contains("active")) {
+    imRender();
+  }
+
+  updatePauseReason("MANUAL_PAUSE");
+
+  requestAnimationFrame(() => {
+    const activeCard = document.querySelector(`#blist-${cur.u} .action-card.sel`) || document.querySelector(`#blist-${cur.u} .action-card`);
+    activeCard?.focus();
+  });
+});
+
+// インターミッション画面ヘッダーのアンドゥボタン連携
+$id("imUndoBtn")?.addEventListener("click", () => {
+  $id("undoBtn").click();
+});
+
+/** バトル開始時ロールバックの要求（[M-REWIND-ROLLBACK]／STR_CONFIRM_ROLLBACK_BATTLE） */
+function requestRollbackBattle() {
+  openModalById("STR_CONFIRM_ROLLBACK_BATTLE", {}, {
+    danger: true,
+    onConfirm: () => {
+      markRewindPending("ROLLBACK_BATTLE");
+      resetBattleToInitialState();
+      tab("battle");
+    }
+  });
+}
+
+/** 過去インターミッションへのロールバックの要求（[M-REWIND-ROLLBACK]） */
+function requestRollbackIm() {
+  // 復帰先の特定と復元は [M-DATA-IMSNAPSHOT] に従うため、専用画面へ送る。
+  if (im_snapshots.length === 0) {
+    showAlert("【再走先なし】", "記録済みのインターミッションがありません。order 1（1-01）は復帰先を持ちません。");
+    return;
+  }
+  tab("rollback");
+}
+
+$id("rollbackBattleBtn").addEventListener("click", requestRollbackBattle);
+$id("rollbackImBtn").addEventListener("click", requestRollbackIm);
+
+/* エンディング演出中のロールバック入口（[M-REWIND-ROLLBACK]「提示箇所」） */
+function setEndingRollbackVisible(on) {
+  const b = $id("scriptRollbackBattleBtn");
+  const i = $id("scriptRollbackImBtn");
+  if (b) b.hidden = !on;
+  if (i) i.hidden = !on;
+}
+$id("scriptRollbackBattleBtn").addEventListener("click", requestRollbackBattle);
+$id("scriptRollbackImBtn").addEventListener("click", requestRollbackIm);
+
+/* 中断（[M-META-SAVEDATA]［バトル中の保存を行わない］）。
+   セーブは書かず、保留も立てない。保留は再開時（phase == BATTLE のロード）に立つ。 */
+$id("pauseQuitBtn").addEventListener("click", () => {
+  openModalById("STR_CONFIRM_QUIT_BATTLE", {}, {
+    danger: true,
+    onConfirm: () => {
+      HistoryStack.length = 0;   // バトル中の履歴は保存されない（[M-DATA-HISTORY]［永続性］）
+      SavedPhase = "BATTLE";
+      tab("title");
+    }
+  });
+});
+
+/* 辞典の随時参照と設定（[M-DATA-HELPMASTER]［随時参照］・[M-UI-CONFIG]［提示箇所］） */
+["helpOpenBtn", "helpOpenImBtn", "helpOpenRefillBtn"].forEach(id => {
+  const el = $id(id);
+  if (el) el.addEventListener("click", () => tab("help"));
+});
+["configOpenBtn", "configOpenImBtn", "configOpenRefillBtn"].forEach(id => {
+  const el = $id(id);
+  if (el) el.addEventListener("click", () => tab("config"));
+});
+$id("configBackBtn").addEventListener("click", () => tab(prevScreen === "config" ? "title" : prevScreen));
+
+/* ── 再走先選択画面（[M-DATA-IMSNAPSHOT]）──────────────── */
+let snapSelected = null;
+
+function renderRollbackList() {
+  const side = $id("snapList");
+  const main = $id("snapDetail");
+  if (!side || !main) return;
+
+  if (im_snapshots.length === 0) {
+    side.innerHTML = '<div class="help-cat">記録なし</div>';
+    main.innerHTML = '<div class="help-text">インターミッションスナップショットがありません。</div>';
+    return;
+  }
+
+  // 選択の既定は最新の記録（order 最大）とする
+  if (!im_snapshots.some(s => s.order === snapSelected)) {
+    snapSelected = im_snapshots[im_snapshots.length - 1].order;
+  }
+
+  side.innerHTML =
+    '<div class="help-cat">記録 ' + im_snapshots.length + ' 件</div>' +
+    im_snapshots.map(s =>
+      '<button class="help-item snap-item' + (s.order === snapSelected ? " on" : "") + '" data-order="' + s.order + '">' +
+      '<span class="ord">' + String(s.order).padStart(2, "0") + '</span>' + sceneNumberOf(s.state.current_scene_id) + ' 突破' +
+      '<span class="meta">従者' + s.state.party.length + '／HP ' + s.state.hero_hp + '</span>' +
+      '</button>'
+    ).join("");
+
+  renderRollbackDetail();
+}
+
+function renderRollbackDetail() {
+  const main = $id("snapDetail");
+  const s = im_snapshots.find(x => x.order === snapSelected);
+  if (!main || !s) return;
+
+  const discarded = im_snapshots.filter(x => x.order > s.order);
+  const act = actOfOrder(s.order);
+  const names = s.state.party.map(sl => {
+    const m = ATTENDANT_MASTER[attendantNumOf(sl.attendant_id)];
+    return m ? m.n : sl.attendant_id;
+  });
+
+  main.innerHTML =
+    '<h3 class="help-title">' + sceneNumberOf(s.state.current_scene_id) + ' 突破時点</h3>' +
+    '<div class="help-meta">order ' + s.order + ' ／ ' + applyNaming("アクト" + act + "：" + ACT_TITLE[act]) + '</div>' +
+    '<div class="snap-row"><span class="k">同行従者</span><span class="v">' + (names.join("・") || "なし") + '</span></div>' +
+    '<div class="snap-row"><span class="k">セインHP</span><span class="v">' + s.state.hero_hp + ' / ' + s.state.hero_max_hp + '</span></div>' +
+    '<div class="snap-row"><span class="k">遺芯所持数</span><span class="v">' + act + '</span></div>' +
+    '<div class="snap-row"><span class="k">遺芯に迎えた従者</span><span class="v">' + s.state.enshrined_count + '</span></div>' +
+    '<div class="snap-discard">' +
+      (discarded.length
+        ? 'この記録へ戻ると、order ' + discarded.map(x => x.order).join("・") +
+          ' の ' + discarded.length + ' 件を破棄します。'
+        : '破棄される記録はありません。') +
+    '</div>' +
+    '<button class="rbtn btn-block mt-12" id="snapGoBtn">この時点へ再走する</button>';
+}
+
+/** 復帰先スナップショットの state を RunState へ復元する（[M-DATA-IMSNAPSHOT]［保持と破棄］） */
+function restoreRunStateFrom(snap) {
+  // 盤面は RunState の項目ではない。fixture を持つ記録のみ盤面ごと戻す（8-1）
+  if (snap.fixture && snap.fixture.units) {
+    INITIAL_UNITS_STATE  = clone(snap.fixture.units);
+    IM_ENTRY_UNITS_STATE = clone(snap.fixture.units);
+  }
+  INITIAL_IID_SEQ = IM_ENTRY_IID_SEQ = snap.state.instance_id_seq;
+
+  // 同行枠から従者を再実体化する（[M-DATA-RUNSTATE]［同行枠］）
+  attendants.length = 0;
+  snap.state.party.forEach(sl => {
+    const at = attendantFromSlot(sl);
+    if (at) attendants.push(at);
+  });
+  INITIAL_ATTENDANTS_STATE = clone(attendants);
+
+  enshrined_count = snap.state.enshrined_count;
+  sacrificed.length = 0;
+  snap.state.sacrificed.forEach(id => sacrificed.push(id));
+  for (const k in cross_unlocked) delete cross_unlocked[k];
+  Object.assign(cross_unlocked, snap.state.cross_unlocked);
+  imAtt = 0;
+  imPick = 0;
+
+  HistoryStack.length = 0;          // ロールバックはアンドゥ履歴の破棄契機（[M-DATA-HISTORY]）
+  updateUndoButtonsState();
+
+  resetBattleToInitialState();
+  const hero = heroUnit();
+  if (hero) hero.hp = Math.min(snap.state.hero_hp, hero.maxHp);
+}
+
+function commitRollbackTo(order) {
+  const target = im_snapshots.find(s => s.order === order);
+  if (!target) return;
+  const discarded = im_snapshots.filter(s => s.order > order);
+
+  // 見出し（STR_CONFIRM_ROLLBACK_IM）＋行（STR_CONFIRM_ROLLBACK_IM_ROW）の反復で
+  // 破棄対象を明示する（[M-DATA-STRINGS]［複数対象の提示］）。
+  openModalById("STR_CONFIRM_ROLLBACK_IM", {}, {
+    danger: true,
+    extraLines: discarded.map(s => str("STR_CONFIRM_ROLLBACK_IM_ROW", { SceneNumber: sceneNumberOf(s.state.current_scene_id) }).text),
+    onConfirm: () => {
+      markRewindPending("ROLLBACK_INTERMISSION");
+      // 復帰先より大きい order の記録をすべて破棄する
+      im_snapshots = im_snapshots.filter(s => s.order <= order);
+      restoreRunStateFrom(target);
+      snapSelected = order;
+      tab("im");
+    }
+  });
+}
+
+$id("snapList").addEventListener("click", (e) => {
+  const btn = e.target.closest(".snap-item");
+  if (!btn) return;
+  snapSelected = Number(btn.dataset.order);
+  renderRollbackList();
+});
+
+$id("snapDetail").addEventListener("click", (e) => {
+  if (e.target.closest("#snapGoBtn")) commitRollbackTo(snapSelected);
+});
+
+$id("rollbackCancelBtn").addEventListener("click", () => tab(prevScreen === "rollback" ? "battle" : prevScreen));
+$id("helpBackBtn").addEventListener("click", () => tab(prevScreen === "help" ? "title" : prevScreen));
+
+function toggleWatchButton(btn) {
+  if (!btn || btn.classList.contains("na")) return;
+  const key = btn.dataset.k;
+  watching[key] = !watching[key];
+  btn.classList.toggle("watching", !!watching[key]);
+  btn.setAttribute("aria-checked", watching[key] ? "true" : "false");
+}
+
+$id("board").addEventListener("click", (e) => {
+  const btn = e.target.closest(".watch-toggle");
+  if (btn) {
+    e.stopPropagation();
+    toggleWatchButton(btn);
+  }
+});
+
+$id("board").addEventListener("keydown", (e) => {
+  const btn = e.target.closest(".watch-toggle");
+  if (btn && (e.key === " " || e.key === "Enter")) {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWatchButton(btn);
+    return;
+  }
+
+  // 左右キーによるユニット（カラム）間移動（端でループし、空きマスをスキップ）
+  if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+    e.preventDefault();
+    const dir = (e.key === "ArrowLeft") ? -1 : 1;
+    let nextCol = cur.u + dir;
+
+    // 境界を越えた場合は反対側の端へループ（循環）
+    if (nextCol < 0) nextCol = units.length - 1;
+    if (nextCol >= units.length) nextCol = 0;
+
+    // 空きマス（isEmpty: true）を安全にスキップ
+    let attempts = 0;
+    while (units[nextCol].isEmpty && attempts < units.length) {
+      nextCol += dir;
+      if (nextCol < 0) nextCol = units.length - 1;
+      if (nextCol >= units.length) nextCol = 0;
+      attempts++;
+    }
+
+    // 変更がある場合のみ遷移
+    if (!units[nextCol].isEmpty && nextCol !== cur.u) {
+      cur.u = nextCol;
+      cur.a = 0;
+      buildBoard();
+      show(cur.u, cur.a);
+      requestAnimationFrame(() => {
+        const targetCard = document.querySelector(`#blist-${cur.u} .action-card.sel`) ||
+                           document.querySelector(`#blist-${cur.u} .action-card`);
+        targetCard?.focus();
+      });
+    }
+    return;
+  }
+
+  // 上下キーによるアクションカード間移動
+  if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+  const currentCard = document.activeElement.closest(".action-card");
+  if (!currentCard) return;
+
+  e.preventDefault();
+  const list = currentCard.parentElement;
+  const cards = Array.from(list.querySelectorAll(".action-card"));
+  const idx = cards.indexOf(currentCard);
+
+  let nextIdx = idx;
+  if (e.key === "ArrowDown") nextIdx = Math.min(cards.length - 1, idx + 1);
+  if (e.key === "ArrowUp") nextIdx = Math.max(0, idx - 1);
+
+  if (nextIdx !== idx) {
+    cards[nextIdx].focus();
+  }
+});
+
+$id("gameModal").addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+
+  const modal = $id("gameModal");
+  const focusableEls = Array.from(modal.querySelectorAll("button:not([style*='display: none'])"));
+  if (focusableEls.length === 0) return;
+
+  const firstEl = focusableEls[0];
+  const lastEl = focusableEls[focusableEls.length - 1];
+
+  if (e.shiftKey) {
+    if (document.activeElement === firstEl) {
+      e.preventDefault();
+      lastEl.focus();
+    }
+  } else {
+    if (document.activeElement === lastEl) {
+      e.preventDefault();
+      firstEl.focus();
+    }
+  }
+});
+
+window.addEventListener("keydown", (e) => {
+  const modal = $id("gameModal");
+  if (modal.classList.contains("open")) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      const cancelBtn = $id("modalCancel");
+      if (cancelBtn && cancelBtn.style.display !== "none") {
+        cancelBtn.click();
+      } else {
+        $id("modalConfirm").click();
+      }
+    }
+    return;
+  }
+
+  if (e.key.toLowerCase() === "z" && !e.ctrlKey && !e.metaKey) {
+    e.preventDefault();
+    $id("undoBtn").click();
+  }
+
+  if (e.key.toLowerCase() === "r" && !e.ctrlKey && !e.metaKey) {
+    const battleScreen = $id("screen-battle");
+    if (battleScreen.classList.contains("active")) {
+      e.preventDefault();
+      $id("rollbackBattleBtn").click();
+    }
+  }
+
+  // 辞典の随時参照（[M-DATA-HELPMASTER]［随時参照］）
+  if (e.key.toLowerCase() === "h" && !e.ctrlKey && !e.metaKey) {
+    if (NARR.playing) return;
+    if (["battle", "im", "refill", "title"].includes(curScreen)) {
+      e.preventDefault();
+      tab("help");
+    }
+  }
+});
+
+function updateUndoButtonsState() {
+  const hasHistory = HistoryStack.length > 0;
+  const undoBtn = $id("undoBtn");
+  const imUndoBtn = $id("imUndoBtn");
+
+  [undoBtn, imUndoBtn].forEach(btn => {
+    if (!btn) return;
+    btn.style.opacity = hasHistory ? "1" : "0.38";
+    btn.style.cursor = hasHistory ? "pointer" : "default";
+    btn.setAttribute("aria-disabled", hasHistory ? "false" : "true");
+  });
+}
+
+/** アンドゥ用スナップショットのプッシュ（[M-DATA-HISTORY]［保存契機］）。
+ *  1件は RunState の複製であり、項目名は [M-DATA-RUNSTATE] に従う。`battle_state` は
+ *  [M-DATA-BATTLESTATE] に従う。主人公3項目は［主人公ステートの正本］により
+ *  `battle_state` のユニット管理リストが正本となるため重複記録しない。
+ *  `im_snapshots` と `history_stack` は対象外である（［スナップショット対象］）。
+ *  UIの選択位置は RunState の項目ではないため、検証台専用の fixture へ分ける（8-1）。
+ *  検証台が追跡しない項目は記録しない。`recruited` と `phase` は追跡対象外、`step` と
+ *  `scene_level` はプリセット固定、`instant_used` と定跡2項目は未実装である。 */
+function pushHistorySnapshot() {
+  // 確定イベント（[M-META-COMMIT]）：新規スナップショットのプッシュをもって保留を決済する
+  commitRewindIfPending();
+
+  HistoryStack.push({
+    current_scene_id: sceneIdOf(currentOrder()),
+    party:            attendants.map(partySlotOf),
+    sacrificed:       sacrificed.slice(),
+    enshrined_count:  enshrined_count,
+    cross_unlocked:   { ...cross_unlocked },
+    mirror_stats:     null,
+    instance_id_seq:  currentInstanceIdSeq(),   // 採番位置（[M-CORE-DETERMINISM]）
+    battle_state: {
+      units:          clone(units),
+      watching:       { ...watching },
+      watch_prev_met: { ...watch_prev_met }
+    },
+    fixture: {
+      cursor:       { ...cur },   // 盤面の選択位置
+      im_attendant: imAtt,       // インターミッションの従者カーソル
+      im_pick:      imPick       // 継承候補のカーソル
+    }
+  });
+  updateUndoButtonsState();
+}
+
+/* ═════════════════════════════════════════════════════════
+   6. インターミッション層
+   ═════════════════════════════════════════════════════════ */
+/**
+ * 継承選択時における従者特性係数の乗算および実効基礎値の算出
+ * @param {Object} a - 継承プールのアクション定義（または最大HP加算）
+ * @param {Object} at - 選択中の同行従者データ（特性係数セット）
+ * @returns {Object} 補正後の各パラメータ実効値およびブースト判定フラグ
+ */
+
+/* ── パラメータ補正用ヘルパー関数 ── */
+function applyRate(baseVal, rate, minVal = 0, maxVal = null) {
+  if (baseVal == null) return null;
+  if (baseVal === 0) return 0; // 基礎値0固定ルール（[M-CALC-ROUNDING]）
+  const raw = baseVal * (rate ?? 1.00);
+  let val = Number.isInteger(baseVal)
+    ? safeRound(raw)
+    : +(raw.toFixed(2));
+  if (minVal != null) val = Math.max(minVal, val);
+  if (maxVal != null) val = Math.min(maxVal, val);
+  return val;
+}
+
+const scaleDict = (dict, rate = 1.0) =>
+  dict ? Object.fromEntries(Object.entries(dict).map(([k, v]) => [k, applyRate(v, rate)])) : undefined;
+
+/* ── 継承時パラメータ算出 ── */
+function imValues(a, at) {
+  const stBase = a.st || [0, 0, 0];
+  const rate = (key) => at.coeffs?.[key] ?? at[key] ?? 1.00;
+
+  const paramConfigs = [
+    { base: stBase[0], rateKey: "thRate", isInt: true, decrease: true, outKey: "th" },
+    { base: stBase[1], rateKey: "stRate", isInt: true, min: 1, decrease: true, outKey: "st" },
+    { base: stBase[2], rateKey: "rcRate", isInt: true, decrease: true, outKey: "rc" },
+    { key: "atk", rateKey: "atkRate", isInt: true },
+    { key: "range", rateKey: "rangeRate", isInt: true },
+    { key: "deploy", rateKey: "deployRate", isInt: true },
+    { key: "gain_vp", rateKey: "gainVpRate", isInt: true },
+    { key: "dmg_hp", rateKey: "dmgRate", isInt: false },
+    { key: "dmg_vp", rateKey: "dmgRate", isInt: false },
+    { key: "dmg_pp", rateKey: "dmgRate", isInt: false },
+    { key: "dmg_ap", rateKey: "dmgRate", isInt: false },
+    { key: "charge_pp", rateKey: "chargePpRate", isInt: false },
+    { key: "purify", rateKey: "purifyRate", isInt: false, min: 0.0, max: 1.0 },
+    { key: "strip_rate", rateKey: "stripRate", isInt: false, min: 0.0, max: 1.0, outKey: "strip" },
+    { key: "decay_ap", rateKey: "decayApRate", isInt: false, min: 0.0, max: 1.0, decrease: true }
+  ];
+
+  const result = {};
+
+  paramConfigs.forEach(cfg => {
+    const outKey = cfg.outKey || cfg.key;
+    const boostKey = outKey + "B";
+    const baseVal = cfg.base !== undefined ? cfg.base : a[cfg.key];
+    const r = rate(cfg.rateKey);
+
+    if (baseVal != null) {
+      result[outKey] = applyRate(baseVal, r, cfg.min ?? 0, cfg.max ?? null);
+      result[boostKey] = cfg.decrease ? (result[outKey] < baseVal) : (result[outKey] > baseVal);
+    } else {
+      result[outKey] = null;
+      result[boostKey] = false;
+    }
+  });
+
+  result.give_buff = scaleDict(a.give_buff, rate("giveBuffRate"));
+  result.give_debuff = scaleDict(a.give_debuff, rate("giveDebuffRate"));
+  result.giveBuffB = rate("giveBuffRate") > 1.00;
+  result.giveDebuffB = rate("giveDebuffRate") > 1.00;
+
+  result.cost = (a.cost || []).map(([k, v]) => [k, applyRate(v, rate("costRate"), 0)]);
+  result.costB = rate("costRate") < 1.00;
+
+  result.uses = a.hpAddBase ? null : safeRound((a.base ?? 0) * rate("usesRate"));
+  result.usesB = result.uses != null && result.uses > safeRound(a.base * USES_STD);
+
+  result.hpAdd = a.hpAddBase ? safeRound(a.hpAddBase * rate("hpAddRate")) : 0;
+  result.hpAddB = result.hpAdd > (a.hpAddBase || 0);
+
+  return result;
+}
+
+/**
+ * 系統フラグの自動確定（[M-DATA-FLAGS]）。
+ * 本プロトタイプは summon_id / is_swap をフィールド化していないため、
+ * 当該2系統のみ既存 sys の値を維持し、他はパラメータ値から導出する。
+ * 演出専用アクションの手動付与は [M-DATA-FLAGS-EXCEPTION] に従う。
+ */
+function deriveSys(a) {
+  // [M-DATA-FLAGS-EXCEPTION]：コンポーネントパラメータを持たない演出専用アクション。
+  // ACT_REMNANT は継承プール上の未覚醒形（表示のみ）、ACT_SACRAMENT は覚醒形。
+  if (a.classId === "ACT_SACRAMENT" ||
+      a.classId === "ACT_REMNANT"   ||
+      a.classId === "ACT_VESSEL_BREATH") {
+    return ["mind"];
+  }
+  const prev = a.sys || [];
+  const s = [];
+  if (prev.includes("summon")) s.push("summon");
+  if (prev.includes("swap"))   s.push("swap");
+  if ((a.gain_vp > 0) || (a.charge_pp > 0) ||
+      (a.give_buff && Object.keys(a.give_buff).length > 0)) s.push("mind");
+  if (a.range > 0)  s.push("martial");
+  if (a.deploy > 0) s.push("stance");
+  return s;
+}
+
+/**
+ * 統合キー（メカニクス[M-INHERIT-MERGE]）
+ * 「同一クラスID かつ 静的パラメータ基礎値が全項目一致」＝ 継承プール上の同一マスタ定義に由来すること。
+ * 従者特性係数の適用【前】の基礎値で判定するため、係数の異なる従者が選んでも同一キーになる。
+ * 敵マスターのARは AR = L * k でシーンごとにスケールするため、シーンをまたいで一致することは
+ * 原則として発生せず、統合は事実上そのインターミッション内に閉じる。
+ */
+function srcKeyOf(a) {
+  const id = a.classId || a.n;
+  // 辞書型パラメータはキー昇順で正規化する（列挙順に依存させない）
+  const dict = d => d ? Object.keys(d).sort().map(k => k + ":" + d[k]).join(",") : null;
+  const base = [
+    a.st || [0, 0, 0],
+    a.atk ?? null, a.range ?? null, a.deploy ?? null,
+    a.dmg_hp ?? null, a.dmg_vp ?? null, a.dmg_pp ?? null, a.dmg_ap ?? null,
+    a.gain_vp ?? null, a.charge_pp ?? null,
+    a.purify ?? null, a.strip_rate ?? null, a.decay_ap ?? null,
+    a.de ?? null, a.stun ?? null, a.base ?? null,
+    dict(a.give_buff), dict(a.give_debuff),
+    (a.cost || []).map(c => c.join(":")).sort()
+  ];
+  return id + "|" + JSON.stringify(base);
+}
+
+/**
+ * 資質統合（メカニクス[M-INHERIT-MERGE]）
+ * 減少型 → 最小値 ／ 増加型 → 最大値 ／ 実効初期使用回数 → 最大値（合算しない）。
+ * min/max はいずれも可換であるため継承順に依存せず、ロールバック再現性を損なわない。
+ * 呼び出し側は既存スロットのオブジェクトを differsIn-place で更新するため、
+ * アクションインスタンスIDは維持される（[M-UI-WATCH] の監視フォーカスのロック保護）。
+ * @returns {string[]} 実際に改善された項目のラベル配列（0件なら改善なし）
+ */
+function mergeIntoSlot(target, v) {
+  const improved = [];
+
+  // 必要ステップ数（減少型）— st配列は [思考, 発生, 硬直]
+  const st = (target.st || [0, 0, 0]).slice();
+  [["思考", 0, v.th], ["発生", 1, v.st], ["硬直", 2, v.rc]].forEach(([lbl, idx, nv]) => {
+    if (nv != null && nv < st[idx]) { st[idx] = nv; improved.push("必要" + lbl + "ステップ数"); }
+  });
+  target.st = st;
+
+  // 消費コスト（減少型）— キーごとに最小値
+  if (v.cost) {
+    const map = (target.cost || []).reduce((m, c) => (m[c[0]] = c[1], m), {});
+    v.cost.forEach(c => {
+      const k = c[0], val = c[1];
+      if (map[k] !== undefined && val < map[k]) { map[k] = val; improved.push(k.toUpperCase() + "消費コスト"); }
+      else if (map[k] === undefined) { map[k] = val; }
+    });
+    target.cost = Object.keys(map).map(k => [k, map[k]]);
+  }
+
+  // AP減衰率（減少型）
+  if (v.decay_ap != null && (target.decay_ap == null || v.decay_ap < target.decay_ap)) {
+    target.decay_ap = v.decay_ap; improved.push("AP減衰率");
+  }
+
+  // 増加型 → 最大値
+  const hi = (key, next, label) => {
+    if (next == null) return;
+    if (target[key] == null || next > target[key]) { target[key] = next; improved.push(label); }
+  };
+  hi("atk", v.atk, "攻撃力");
+  hi("range", v.range, "射程");
+  hi("deploy", v.deploy, "展開AP");
+  hi("dmg_hp", v.dmg_hp, "HPダメージ係数");
+  hi("dmg_vp", v.dmg_vp, "VPダメージ係数");
+  hi("dmg_pp", v.dmg_pp, "PPダメージ係数");
+  hi("dmg_ap", v.dmg_ap, "APダメージ係数");
+  hi("gain_vp", v.gain_vp, "加算VP");
+  hi("charge_pp", v.charge_pp, "PP充填効率");
+  hi("purify", v.purify, "浄化率");
+  hi("strip_rate", v.strip, "剥奪率");
+
+  // 与バフ量・与デバフ量辞書（増加型／辞書内の各Valueごとに最大値）
+  [["give_buff", v.give_buff, "与バフ量"], ["give_debuff", v.give_debuff, "与デバフ量"]]
+    .forEach(entry => {
+      const key = entry[0], dict = entry[1], label = entry[2];
+      if (!dict) return;
+      const cur = Object.assign({}, target[key] || {});
+      let touched = false;
+      Object.keys(dict).forEach(k => {
+        if (cur[k] === undefined || dict[k] > cur[k]) { cur[k] = dict[k]; touched = true; }
+      });
+      if (touched) { target[key] = cur; improved.push(label); }
+    });
+
+  // 実効初期使用回数：最大値（合算しない）
+  // [M-INHERIT-MERGE]：比較対象は実効初期使用回数（maxUses）であり、残り使用回数（uses）ではない。
+  // 最大値を採用し（合算しない）、その増分だけを残り使用回数へ反映する。
+  const curMax = target.maxUses !== undefined ? target.maxUses : target.uses;
+  if (typeof curMax === "number" && typeof v.uses === "number" && v.uses > curMax) {
+    const delta = v.uses - curMax;
+    target.maxUses = v.uses;
+    if (typeof target.uses === "number") target.uses += delta;
+    improved.push("実効初期使用回数");
+  }
+
+  // 系統フラグは統合後のパラメータ値から再判定する（[M-INHERIT-MERGE]・[M-DATA-FLAGS]）
+  target.sys = deriveSys(target);
+  return improved;
+}
+
+function imRender() {
+  const at = attendants[imAtt];
+  const sein = units[1] || { hp: 0, maxHp: 0, acts: [] };
+
+  $id("imTitle").textContent = "継承・編成";
+  $id("imSubTitle").textContent = `シーン${MOCK_CONFIG.CURRENT_ACT}-${MOCK_CONFIG.CURRENT_SCENE} 突破 ─ ${MOCK_CONFIG.CURRENT_BOSS}の資質を、同行従者を介してセインのものにする。`;
+
+  let partyHTML = attendants.map((x, i) => {
+    const isSel = (i === imAtt);
+    return '<div class="pm' + (isSel ? " sel" : "") + '" data-i="' + i + '" role="button" tabindex="0" ' +
+      'aria-selected="' + (isSel ? "true" : "false") + '" aria-label="' + x.n + '（' + x.t + '）">' + figHTML() +
+      '<div class="pmp"><div class="pmn">' + x.n + '</div><div class="pmt">' + x.t + '</div>' +
+      (x.lapsed
+        ? '<div class="pmd" style="color:var(--miasma-dim);">未行使（失効）</div>'
+        : (x.done ? '<div class="pmd">継承完了</div>' : '<div class="pms">継承可能</div>')) +
+      '</div></div>';
+  }).join("");
+
+  const emptySlots = Math.max(0, capacityOfAct(MOCK_CONFIG.CURRENT_ACT) - attendants.length);
+  for (let k = 0; k < emptySlots; k++) {
+    partyHTML += '<div class="pm empty" role="img" aria-label="遺芯第' + (attendants.length + k + 1) + '枠：消滅／未装填"><div class="figure-ghost"></div><div class="pmp"><div class="pmn">遺芯（第' + (attendants.length + k + 1) + '枠）</div><div class="pmd" style="color:var(--miasma-dim);">消滅／未装填</div></div></div>';
+  }
+
+  partyHTML += '<div class="pm master">' + figHTML() +
+   '<div class="pmp"><div class="pmn">セイン</div><div class="pmt">マスター</div>' +
+   '<div class="pms">HP ' + sein.hp + ' ／ ' + sein.maxHp + '</div></div></div>';
+
+  $id("imParty").innerHTML = partyHTML;
+
+  $id("imFallen").innerHTML =
+    figHTML() + '<div class="pmp"><div class="pmn">' + MOCK_CONFIG.CURRENT_BOSS + '</div>' +
+    '<span class="tagline">撃破</span></div>';
+
+  const sacContainer = $id("sacPanel");
+
+  if (at) {
+    $id("imPoolHead").textContent =
+      MOCK_CONFIG.CURRENT_BOSS + "の資質 ─ " + at.n + "（" + at.t + "）を介して受け継ぐ場合";
+
+    $id("poolList").innerHTML = pool.map((a, i) => {
+      const isPick = (i === imPick);
+      const v = imValues(a, at);
+      const sys = a.hpAddBase
+        ? '<span class="tagline" style="color:var(--ember);border-color:var(--ember-dim)">資質加算</span>'
+        : sysOrder.map(k => '<b class="' + k + (a.sys.includes(k) ? " on" : "") + '">' + sysLabel[k] + '</b>').join("");
+
+      const displayCost = v.cost || a.cost || [];
+      const cost = displayCost.map(c => '<span class="' + c[0] + (v.costB ? ' boost' : '') + '">' + costLabel[c[0]] + ' ' + c[1] + '</span>').join("");
+
+      const steps = a.hpAddBase ? "" :
+        '<span class="st-flow">' +
+          '<span class="' + (v.thB ? "boost" : (v.th === 0 ? "ok" : "")) + '">思<b>' + v.th + '</b></span>' +
+          '<i class="arrow">▸</i>' +
+          '<span class="' + (v.stB ? "boost" : (v.st === 0 ? "ok" : "")) + '">発<b>' + v.st + '</b></span>' +
+          '<i class="arrow">▸</i>' +
+          '<span class="' + (v.rcB ? "boost" : (v.rc === 0 ? "ok" : "")) + '">硬<b>' + v.rc + '</b></span>' +
+        '</span>';
+
+      const uses = v.uses === null ? '' :
+        '<span class="uses' + (v.usesB ? " boost" : "") + '">残 <b>' + v.uses + '</b></span>';
+
+      const rangeDisp = v.range || a.range;
+      const atkDisp = v.atk || a.atk;
+      const rangeAtkHTML = rangeDisp ? '<span>' + (v.rangeB ? '<b class="boost">射 ' + rangeDisp + '</b>' : '射 ' + rangeDisp) + ' ／ ' + (v.atkB ? '<b class="boost">攻 ' + atkDisp + '</b>' : '攻 ' + atkDisp) + '</span>' : '';
+
+      // 従者特性係数（最大HP加算倍率）を反映
+      const hpRateVal = (at.hpAddRate ?? 1.00).toFixed(2);
+      const effContent = a.hpAddBase
+        ? '<span class="verdict-label' + (v.hpAddB ? ' boost' : '') + '">' +
+            (v.hpAddB ? '最大HP +' + v.hpAdd + ' <small style="font-size:9.5px">(×' + hpRateVal + ')</small>' : '最大HP +' + v.hpAdd) +
+          '</span>'
+        : '<span class="verdict-label">' + a.eff + '</span>';
+
+      return '<div class="action-card' + (isPick ? " sel" : "") + '" data-i="' + i + '" role="button" tabindex="0" ' +
+        'aria-selected="' + (isPick ? "true" : "false") + '" aria-label="' + a.n + '">' +
+        '<div class="action-header"><span class="sys">' + sys + '</span><span class="nm">' + a.n + '</span>' + uses + '</div>' +
+        '<div class="action-metrics">' + steps + cost + rangeAtkHTML + '</div>' +
+        '<div class="action-verdict">' + effContent + '</div>' +
+      '</div>';
+    }).join("");
+
+    const a = pool[imPick] || pool[0];
+    const v = imValues(a, at);
+
+    // 統合プレビュー（メカニクス[M-INHERIT-MERGE] UI要件）— 確定前に統合後の実効値と改善項目を提示する
+    const existingIndex = sein.acts.findIndex(act => act.srcKey === srcKeyOf(a));
+    const willMerge = !a.hpAddBase && existingIndex !== -1;
+    let mergeImproved = [], mergeWho = "";
+    if (willMerge) {
+      // 破壊的更新を避けるため複製に対して試算する
+      const probe = JSON.parse(JSON.stringify(sein.acts[existingIndex]));
+      mergeImproved = mergeIntoSlot(probe, v);
+      mergeWho = (sein.acts[existingIndex].mergedFrom || []).concat([at.n]).join("・");
+    }
+
+    const maxHpRowContent = a.hpAddBase
+      ? sein.maxHp + ' → ' + (sein.maxHp + v.hpAdd) + ' <b class="' + (v.hpAddB ? 'boost' : 'ch') + '">(+' + v.hpAdd + ')</b>'
+      : String(sein.maxHp);
+
+    const actCountContent = a.hpAddBase
+      ? String(sein.acts.length)
+      : (willMerge ? `${sein.acts.length}` : `${sein.acts.length} → ${sein.acts.length + 1}`);
+
+    $id("imAfter").innerHTML =
+      '<div class="imrow"><span class="k">介する従者</span><span class="v">' + at.n + '</span></div>' +
+      '<div class="imrow"><span class="k">最大HP</span><span class="v' + (a.hpAddBase ? ' ch' : '') + '">' + maxHpRowContent + '</span></div>' +
+      '<div class="imrow"><span class="k">現在HP</span><span class="v">' + sein.hp + '</span></div>' +
+      '<div class="imrow"><span class="k">所持アクション枠</span><span class="v' + (a.hpAddBase || willMerge ? '' : ' ch') + '">' + actCountContent + '</span></div>' +
+      (v.uses !== null ? '<div class="imrow"><span class="k">獲得使用回数</span><span class="v' + (v.usesB ? ' boost' : '') + '">' + v.uses + ' 回' + '</span></div>' : '') +
+      (willMerge
+        ? '<div class="imrow"><span class="k">編み込み</span><span class="v">' + mergeWho + '</span></div>' +
+          '<div class="imrow"><span class="k">統合による改善</span><span class="v' + (mergeImproved.length ? ' boost' : '') + '">' +
+            (mergeImproved.length ? mergeImproved.join(" / ") : '改善なし') +
+          '</span></div>'
+        : '');
+
+    $id("imBtn").textContent =
+      at.done ? "この従者は継承完了済みです" : (a.hpAddBase ? "セインの最大HPに加算する" : (willMerge ? "既存アクションへ資質を編み込む" : "セインのアクションに加える"));
+    $id("imBtn").disabled = at.done;
+    $id("imBtn").style.opacity = at.done ? "0.5" : "1";
+
+    if (sacContainer) {
+      sacContainer.style.display = "block";
+      $id("sacHpText").textContent = sein.hp + " → " + sein.maxHp;
+      $id("sacPartyText").textContent = attendants.length + " → " + (attendants.length - 1);
+      $id("sacBtn").textContent = at.n + " を供犠に捧げる";
+      $id("sacBtn").disabled = false;
+    }
+  } else {
+    $id("imPoolHead").textContent = "同行従者がいません";
+    $id("poolList").innerHTML = "<p style='color:var(--muted)'>継承可能な従者が不在です。</p>";
+    $id("imAfter").innerHTML = "";
+    $id("imBtn").disabled = true;
+    $id("imBtn").style.opacity = "0.5";
+    if (sacContainer) {
+      sacContainer.style.display = "none";
+    }
+  }
+}
+
+function selectImParty(target) {
+  const t = target.closest(".pm:not(.empty)");
+  if (!t || t.dataset.i === undefined) return;
+  imAtt = +t.dataset.i;
+  imRender();
+}
+$id("imParty").addEventListener("click", e => selectImParty(e.target));
+$id("imParty").addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    selectImParty(e.target);
+  }
+});
+
+function selectPoolItem(target) {
+  const t = target.closest(".action-card");
+  if (!t || t.dataset.i === undefined) return;
+  imPick = +t.dataset.i;
+  imRender();
+}
+$id("poolList").addEventListener("click", e => selectPoolItem(e.target));
+$id("poolList").addEventListener("keydown", e => {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    selectPoolItem(e.target);
+  }
+});
+
+$id("imBtn").addEventListener("click", () => {
+  const at = attendants[imAtt];
+  if (!at || at.done) return;
+  const a = pool[imPick];
+  const v = imValues(a, at);
+  const sein = units[1];
+
+  pushHistorySnapshot();
+
+  if (a.hpAddBase) {
+    sein.maxHp += v.hpAdd;
+    INITIAL_UNITS_STATE[1].maxHp = sein.maxHp;
+    // 最大HP加算は統合対象外。主人公の最大HP基礎値へ累積加算する（[M-INHERIT-MERGE]）
+    showAlertById("STR_INHERIT_HP_ADD", {
+      AttendantName: at.n,
+      HpAdd:         v.hpAdd,
+      HeroHpMax:     sein.maxHp
+    });
+  } else {
+    if (v.uses === 0) {
+      // 実効初期使用回数 0：配列に追加されず消滅し、継承権のみ消費する（[M-INHERIT-POOL]）
+      showAlertById("STR_INHERIT_VANISH");
+      at.done = true;
+      at.inheritCountAct = (at.inheritCountAct || 0) + 1;
+      imRender();
+      return;
+    }
+
+    const key = srcKeyOf(a);
+    const existingIndex = sein.acts.findIndex(act => act.srcKey === key);
+
+    if (existingIndex !== -1) {
+      const target = sein.acts[existingIndex];
+      const improved = mergeIntoSlot(target, v);
+      target.mergedFrom = (target.mergedFrom || []).concat([at.n]);
+      if (improved.length === 0) {
+        showAlertById("STR_INHERIT_NO_IMPROVE", { ActionName: a.n, AttendantName: at.n });
+      } else {
+        showAlertById("STR_INHERIT_MERGED", {
+          ActionName:    a.n,
+          AttendantName: at.n,
+          ImprovedList:  improved.join(" / ")
+        });
+      }
+    } else {
+      const isRemnantAwakened = (a.classId === "ACT_REMNANT" && v.uses >= 1);
+
+      if (isRemnantAwakened) {
+        sein.acts.push({
+          ...SACRAMENT_PARAMS,
+          iid: issueInstanceId(),
+          srcKey: null,
+          mergedFrom: [at.n],
+          sys: deriveSys(SACRAMENT_PARAMS)
+        });
+        // 参照レコードを ACT_SACRAMENT へ差し替えて実体化する（[M-END-SACRAMENT-PARAMS]）
+        showAlertById("STR_SACRAMENT_AWAKEN");
+      } else {
+        const fallbackDe = (a.sys.includes("swap") || a.sys.includes("summon")) ? 1.00 :
+                           (a.sys.includes("martial") && (a.k?.includes("重撃") || (a.st && a.st[1] >= 24))) ? 0.00 : 2.00;
+
+        const newAct = {
+          ...a,
+          iid: issueInstanceId(),
+          cost: v.cost.map(c => [...c]),
+          st: [v.th, v.st, v.rc],
+          uses: v.uses,
+          maxUses: v.uses,
+          srcKey: key,
+          mergedFrom: [at.n],
+          range: v.range ?? a.range,
+          atk: v.atk ?? a.atk,
+          dmg_hp: v.dmg_hp ?? (a.dmg_hp || 0.00),
+          dmg_vp: v.dmg_vp ?? (a.dmg_vp || 0.00),
+          dmg_pp: v.dmg_pp ?? (a.dmg_pp || 0.00),
+          dmg_ap: v.dmg_ap ?? (a.dmg_ap || 0.00),
+          deploy: v.deploy ?? a.deploy,
+          gain_vp: v.gain_vp ?? a.gain_vp,
+          charge_pp: v.charge_pp ?? a.charge_pp,
+          purify: v.purify ?? a.purify,
+          strip_rate: v.strip ?? a.strip_rate,
+          decay_ap: v.decay_ap ?? a.decay_ap,
+          de: a.de ?? fallbackDe,
+          stun: a.stun ?? a.sys.includes("martial")
+        };
+        newAct.sys = deriveSys(newAct);
+        sein.acts.push(newAct);
+        showAlertById("STR_INHERIT_NEW_SLOT", { ActionName: a.n });
+      }
+    }
+  }
+
+  INITIAL_UNITS_STATE[1].acts = clone(sein.acts);
+  INITIAL_IID_SEQ = currentInstanceIdSeq();
+  at.done = true;
+  at.inheritCountAct = (at.inheritCountAct || 0) + 1;
+  buildBoard();
+  imRender();
+});
+
+// 遺芯の残響：種別D（[M-META-ECHO]／[S-RETAINER-09] 従者09オルフェ）
+// 確定・取消のいずれでも echo_unlocked["ECHO_09"] は True で保持し、二度目以降は表示しない（残響IDの体系は[S-ECHO-ID]）
+const echo_unlocked = {};
+
+$id("sacBtn").addEventListener("click", () => {
+  const at = attendants[imAtt];
+  if (!at) return;
+
+  const isOrphe = (at.id === 9);
+
+  const openSacrificeDialog = () => {
+    // 供犠の確定処理（[M-PROG-SACRIFICE]）。HP全回復のみを行い、enshrined_count は保持しない
+    openModalById("STR_CONFIRM_SACRIFICE", {
+      AttendantName:   at.n,
+      HeroHp:          units[1].hp,
+      HeroHpMax:       units[1].maxHp,
+      PartyCountAfter: attendants.length - 1
+    }, {
+      danger: true,
+      onConfirm: () => {
+        pushHistorySnapshot();
+        units[1].hp = units[1].maxHp;
+        INITIAL_UNITS_STATE[1].hp = units[1].hp;
+        attendants.splice(imAtt, 1);
+        imAtt = attendants.length > 0 ? Math.min(imAtt, attendants.length - 1) : 0;
+        showAlertById("STR_SACRIFICE_DONE", { AttendantName: at.n });
+        imRender();
+      }
+    });
+  };
+
+  // 種別D：確定ダイアログの「前」に開示を挿入する（[M-META-ECHO] 種別Dの補足）
+  // 本文は文言マスタではなく脚本マスタのレコードである（[S-ECHO-SCHEMA] の script_id）
+  if (isOrphe && !echo_unlocked["ECHO_09"]) {
+    echo_unlocked["ECHO_09"] = true;                       // 取消時も True のまま保持
+    openModal({
+      title: echoHeading(9),
+      desc: scriptLinesAsText(scriptById("SCRIPT_ECHO_09")),
+      singleButton: true,
+      confirmText: "……",
+      onConfirm: openSacrificeDialog
+    });
+    return;
+  }
+  openSacrificeDialog();
+});
+
+/** 未行使の継承枠を持つ従者（供犠済みは attendants から除かれるため自動的に対象外） */
+function pendingInheritors() {
+  return attendants.filter(at => !at.done);
+}
+
+$id("imProceedBtn").addEventListener("click", () => {
+  const pending = pendingInheritors();
+
+  const settle = () => {
+    pushHistorySnapshot();
+
+    // 未行使枠はここで失効する（[M-INHERIT-POOL]）。
+    // 継承実行回数（inheritCountAct）には加算しない ＝ [M-META-ECHO] 種別Bの判定対象として残る。
+    pending.forEach(at => { at.done = true; at.lapsed = true; });
+
+    // 次のインターミッションの巻き戻し基準を更新（U-5 参照）
+    IM_ENTRY_UNITS_STATE = JSON.parse(JSON.stringify(units));
+    IM_ENTRY_IID_SEQ = currentInstanceIdSeq();
+
+    SavedPhase = "INTERMISSION";   // インターミッション決済の確定時に保存される（[M-META-SAVEDATA]）
+    showAlertById("STR_IM_COMMIT_DONE");
+    imRender();
+  };
+
+  if (pending.length === 0) { settle(); return; }
+
+  // どの従者の枠が失効するかを明示した確認を1度だけ行う（[M-INHERIT-POOL] UI要件）。
+  // 見出し（STR_CONFIRM_FORFEIT）＋行（STR_CONFIRM_FORFEIT_ROW）の反復で表現する
+  // （[M-DATA-STRINGS]［複数対象の提示］）。
+  openModalById("STR_CONFIRM_FORFEIT", {}, {
+    danger: true,
+    onConfirm: settle,
+    extraLines: pending.map(a => str("STR_CONFIRM_FORFEIT_ROW", { AttendantName: a.n }).text)
+  });
+});
+
+/* ═════════════════════════════════════════════════════════
+   7. 物語・メタ画面
+      タイトル ／ 脚本再生（[S-SCRIPT-SCHEMA]） ／ アクト表題（[S-ACT-TITLECARD]）
+      ／ 従者補充（[M-PROG-REFILL]） ／ エンディング・エピローグ（[S-CH-ENDING]・[S-EPILOGUE]）
+      ／ 周回移行（[M-META-NEWGAMEPLUS]） ／ 辞典（[M-DATA-HELPMASTER]）
+   ═════════════════════════════════════════════════════════ */
+
+/* ── 検証台専用の文言。ゲーム本体の文言マスタには属さない ── */
+Object.assign(STRINGS, {
+  STR_SCRIPT_EMPTY: {
+    head: "【脚本なし】",
+    text: "この発火点に該当する脚本レコードがありません。",
+    btn: "了解", context: []
+  }
+});
+
+/* ── メタステート（[M-META-COUNTERS]・[M-DATA-RUNSTATE]） ──
+   total_rewind_count・rewind_pending は既存の宣言を用いる。 */
+let playthrough_count = 1;
+let enshrined_count = 3;
+let obsolete_name_revealed = true;
+const sacrificed = [];               // 当該周回で供犠された従者番号（[M-PROG-SACRIFICE]）
+const help_seen = {};                // 既読状態（[M-DATA-HELPMASTER]［既読の管理］）
+const cross_unlocked = {};           // 交差残響（周回スコープ・[M-META-CROSS]）
+
+/* ── 遺芯への結びのアンカー（[M-META-COUNTERS] enshrine_anchor[<attendant_id>]）──
+ * セーブデータ永続。ロールバックで巻き戻らず、同一周回の結び直しでも上書きしない。 */
+const enshrine_anchor = {};
+
+/** 補充確定（[M-PROG-REFILL]）で当該従者を遺芯へ結んだ時点に呼ぶ */
+function anchorEnshrine(attendantId) {
+  const cur = enshrine_anchor[attendantId];
+  if (cur && cur.playthrough === playthrough_count) return;   // 同一周回の結び直しは不変
+  enshrine_anchor[attendantId] = { playthrough: playthrough_count, rewind_count: total_rewind_count };
+}
+
+/** [M-META-COUNTERS]［RewindCountSinceEnshrined の導出］。状態として保持せず毎回導出する */
+function rewindSinceEnshrined(attendantId) {
+  const a = enshrine_anchor[attendantId];
+  return a ? Math.max(0, total_rewind_count - a.rewind_count) : 0;
+}
+
+/** 残響を1件以上解放している従者か（[S-EPILOGUE]【残響解放状態の反映】） */
+function hasEcho(numId) {
+  const key = String(numId).padStart(2, "0");
+  return Object.keys(echo_unlocked).some(k => echo_unlocked[k] && k.startsWith("ECHO_" + key));
+}
+
+/** 同行枠に当該従者が存在するか（脚本条件式の AttendantPresent） */
+function isAttendantPresent(attId) {
+  if (attendants.some(a => a.id === attId)) return true;
+  return (REFILL.survivors || []).some(n => ATTENDANT_MASTER[n]?.id === attId);
+}
+
+/* ═══ 7-1. 解説マスタ（辞典） [M-DATA-HELPMASTER]・[M-DATA-HELPS] ═══ */
+
+/* ═══ 7-2. 脚本マスタ [S-SCRIPT-SCHEMA] ═══
+   1レコード ＝ ひとつの発火点で連続再生される行の束。
+   line.style === "ACT_TITLE" の行はアクト表題カードとして提示する（[S-ACT-TITLECARD]）。 */
+
+/* 発火点カタログ（プロトタイプの検証用選択肢） */
+const SCRIPT_PLAYBACKS = [
+  { key: "intro_1_01",   label: "SCENE_INTRO / 1-01（アクト表題＋開幕＋周回分岐）", trigger: "SCENE_INTRO", anchor: "SCENE_1_01" },
+  { key: "intro_1_02",   label: "SCENE_INTRO / 1-02（既知感演出の分岐）",           trigger: "SCENE_INTRO", anchor: "SCENE_1_02" },
+  { key: "clear_3_04",   label: "SCENE_CLEAR / 3-04（バトルクリア決済後）",         trigger: "SCENE_CLEAR", anchor: "SCENE_3_04" },
+  { key: "im_3_04",      label: "INTERMISSION_ENTER / 3-04（交差残響 02×03）",      trigger: "INTERMISSION_ENTER", anchor: "SCENE_3_04" },
+  { key: "sac_09",       label: "SACRIFICE_CONFIRM / 従者09（種別D残響）",          trigger: "SACRIFICE_CONFIRM", anchor: "ATTENDANT_09" },
+  { key: "act_3",        label: "ACT_TRANSITION / 3（種別B残響＋アクト4表題）",     trigger: "ACT_TRANSITION", anchor: "3" },
+  { key: "act_4",        label: "ACT_TRANSITION / 4（アクト5表題）",                trigger: "ACT_TRANSITION", anchor: "4" },
+  { key: "end_a",        label: "ENDING / a 〈英雄〉＋周回移行演出",                trigger: "ENDING", anchor: "a" },
+  { key: "end_b",        label: "ENDING / b 〈環へ還る〉",                          trigger: "ENDING", anchor: "b" },
+  { key: "end_c1",       label: "ENDING / c-1 〈灯し直し〉",                        trigger: "ENDING", anchor: "c-1" },
+  { key: "end_c2",       label: "ENDING / c-2 〈灯し切り〉",                        trigger: "ENDING", anchor: "c-2" },
+  { key: "end_d",        label: "ENDING / d 〈空を灯す〉",                          trigger: "ENDING", anchor: "d" },
+  { key: "epilogue",     label: "EPILOGUE / c-1（顔グラロール・彩度判定）",         trigger: "EPILOGUE", anchor: "c-1" },
+  { key: "newgame",      label: "NEWGAME_INTRO（周回移行後の1-01開幕）",            trigger: "NEWGAME_INTRO", anchor: null }
+];
+
+/* ═══ 7-3. 表示条件式と文字列補間 ═══ */
+
+/** 条件式の変数解決（[S-SCRIPT-CONDITION]［参照可能な変数］） */
+function scriptVar(name) {
+  const m = name.match(/^(\w+)\[(\w+)\]$/);
+  if (m) {
+    const [, base, key] = m;
+    if (base === "EchoUnlocked") return !!echo_unlocked[key];
+    if (base === "AttendantPresent") return isAttendantPresent(key);
+    if (base === "AttendantSacrificed") return sacrificed.includes(key);
+    if (base === "RewindCountSinceEnshrined") return rewindSinceEnshrined(key);
+    throw new Error("未定義の条件変数: " + name);
+  }
+  switch (name) {
+    case "TotalRewindCount": return total_rewind_count;
+    case "PlaythroughCount": return playthrough_count;
+    case "EnshrinedCount": return enshrined_count;
+    case "ObsoleteNameRevealed": return obsolete_name_revealed;
+    case "SacrificeCount": return sacrificed.length;
+    case "CrossUnlockedAny": return Object.values(cross_unlocked).some(Boolean);
+    default: throw new Error("未定義の条件変数: " + name);
+  }
+}
+
+/**
+ * 表示条件式の評価（[S-SCRIPT-CONDITION]）
+ * 文法は term ( "&&" term )* のみ。論理和・括弧・算術は認めない。
+ */
+function evalScriptCondition(expr) {
+  if (!expr) return true;                       // Null は恒真
+  return expr.split("&&").every(part => {
+    const m = part.trim().match(/^([A-Za-z_]\w*(?:\[\w+\])?)\s*(==|!=|>=|<=|>|<)\s*(-?\d+|True|False)$/);
+    if (!m) throw new Error("条件式の構文エラー: " + part);
+    const [, name, op, lit] = m;
+    const lhs = scriptVar(name);
+    const rhs = lit === "True" ? true : lit === "False" ? false : parseInt(lit, 10);
+    switch (op) {
+      case "==": return lhs === rhs;
+      case "!=": return lhs !== rhs;
+      case ">=": return lhs >= rhs;
+      case "<=": return lhs <= rhs;
+      case ">":  return lhs > rhs;
+      case "<":  return lhs < rhs;
+    }
+  });
+}
+
+/** 脚本本文の補間（[M-DATA-INTERP]） */
+function interpScript(text) {
+  const values = {
+    TotalRewindCount: total_rewind_count,
+    PlaythroughCount: playthrough_count,
+    EnshrinedCount: enshrined_count,
+    UnenshrinedCount: 14 - enshrined_count,
+    SacrificeCount: sacrificed.length
+  };
+  return text.replace(/\{(\w+)\}/g, (_, k) => {
+    if (!(k in values)) throw new Error("未解決の補間キー: {" + k + "}");
+    return values[k];
+  });
+}
+
+/**
+ * 発火点に該当するレコードの解決
+ * 同一 branch_group は条件が成立する1件のみを採用し、order 昇順の安定ソートで並べる。
+ */
+function resolveScriptRecords(trigger, anchor) {
+  const anc = anchor === null || anchor === undefined ? null : String(anchor);
+  const hit = SCRIPT_MASTER.filter(r =>
+    r.trigger === trigger && (r.anchor === null ? anc === null : String(r.anchor) === anc));
+
+  const chosen = [];
+  const groupTaken = new Set();
+  hit.slice().sort((a, b) => a.order - b.order).forEach(r => {
+    if (!evalScriptCondition(r.condition)) return;
+    if (r.branch_group) {
+      if (groupTaken.has(r.branch_group)) return;
+      groupTaken.add(r.branch_group);
+    }
+    chosen.push(r);
+  });
+  return chosen;
+}
+
+/* ═══ 7-4. 脚本再生（ノベル）プレイヤー ═══ */
+const NARR = { playing: false, waiting: false, resolve: null, skip: false, token: 0 };
+
+const sleep = (ms) => new Promise(res => setTimeout(res, ms));
+
+/** 演出の尺。テキスト送り速度と演出の簡略化を乗じる（[M-UI-CONFIG]）。 */
+const nsleep = (ms) => sleep(Math.round(ms * TEXT_RATE[CONFIG.textSpeed] * (CONFIG.simplify ? 0.4 : 1)));
+
+function narrSetVeil(on) {
+  $id("scriptVeil").classList.toggle("on", on);
+  return nsleep(on ? 560 : 560);
+}
+
+function narrLog(msg) {
+  $id("scriptLog").textContent = msg;
+}
+
+function narrShowCard(text) {
+  $id("actCardText").textContent = text;
+  $id("actCard").classList.add("on");
+}
+
+function narrHideCard() {
+  $id("actCard").classList.remove("on");
+}
+
+/** 入力待ち（WAIT_INPUT）。読み飛ばし中は即座に解決する。 */
+function narrWaitInput() {
+  if (NARR.skip) return Promise.resolve();
+  return new Promise(res => {
+    NARR.waiting = true;
+    $id("scriptNext").classList.add("on");
+    NARR.resolve = () => {
+      NARR.waiting = false;
+      NARR.resolve = null;
+      $id("scriptNext").classList.remove("on");
+      res();
+    };
+  });
+}
+
+function narrAdvance() {
+  if (NARR.waiting && NARR.resolve) NARR.resolve();
+}
+
+/** 顔グラフィックロール（PORTRAIT_ROLL・[S-EPILOGUE]） */
+async function narrPortraitRoll() {
+  const host = $id("portraitRoll");
+  host.innerHTML = "";
+  host.classList.add("on");
+  const tiles = [];
+  const litIds = [];   // 彩度反映の検証用。画面には出さず検証出力へ回す
+  for (let n = 2; n <= 15; n++) {
+    const m = ATTENDANT_MASTER[n];
+    const lit = hasEcho(n);
+    const el = document.createElement("div");
+    el.className = "portrait" + (lit ? " lit" : "");
+    el.innerHTML =
+      '<div class="face">' + m.n.charAt(0) + '</div>' +
+      '<div class="nm">' + m.n + '</div>';
+    host.appendChild(el);
+    tiles.push(el);
+    if (lit) litIds.push(String(n).padStart(2, "0"));
+  }
+  for (const el of tiles) {
+    el.classList.add("shown");
+    await nsleep(NARR.skip ? 0 : 260);
+  }
+  narrLog("PORTRAIT_ROLL：14名を昇順で提示 ／ echo_unlocked 彩度あり " +
+    (litIds.length ? litIds.join("・") : "なし"));
+}
+
+/** 周回移行の暗転（BLACKOUT_TO_1_01・[M-META-NEWGAMEPLUS]#2） */
+async function narrBlackoutToStart() {
+  const bo = $id("blackout");
+  bo.classList.add("on");
+  await nsleep(NARR.skip ? 60 : 620);
+
+  // 保留の確定 → 回帰演出の加算を暗転フレームと同期させる
+  commitRewindIfPending();
+  total_rewind_count += 1;
+  playthrough_count += 1;
+  enshrined_count = 0;
+  sacrificed.length = 0;
+  Object.keys(cross_unlocked).forEach(k => delete cross_unlocked[k]);
+
+  // RunState の破棄と再生成（[M-META-NEWGAMEPLUS]#4）に伴い、
+  // スナップショット列を破棄し、呼称は2周目以降の規則で引き直す。
+  im_snapshots = [];
+  obsolete_name_revealed = false;
+  syncNaming();
+  renderObjective();
+  renderRollbackList();
+
+  renderRewindCore();
+  renderTitleScreen();
+  narrLog("BLACKOUT_TO_1_01：total_rewind_count +1（燈 " + total_rewind_count + "） ／ playthrough_count " + playthrough_count + " ／ RunState 再生成");
+
+  await nsleep(NARR.skip ? 60 : 900);
+  bo.classList.remove("on");
+}
+
+async function narrPlayLine(line, rec) {
+  const d = line.directives || [];
+
+  if (d.includes("FADE_OUT")) await narrSetVeil(true);
+  if (d.includes("SILENCE")) {
+    $id("scriptBgmFlag").textContent = "♪ 停止";
+    $id("scriptBgmFlag").classList.remove("on");
+  }
+  if (d.includes("CAMERA_CLOSEUP")) $id("scriptStage").classList.add("closeup");
+
+  // 本文の描画（アクト表題カードは専用提示・[S-ACT-TITLECARD]）
+  const isCard = d.includes("ACT_TITLE_CARD");
+  if (isCard) {
+    narrShowCard(applyNaming(interpScript(line.text)));
+    $id("scriptSpeaker").textContent = "";
+    $id("scriptText").textContent = "（アクト表題の提示）";
+    $id("scriptText").classList.add("narration");
+  } else {
+    narrHideCard();
+    $id("scriptSpeaker").textContent = line.speaker || "";
+    $id("scriptText").textContent = interpScript(line.text);
+    $id("scriptText").classList.toggle("narration", !line.speaker);
+  }
+
+  if (d.includes("FADE_IN")) await narrSetVeil(false);
+  if (d.includes("PORTRAIT_ROLL")) await narrPortraitRoll();
+
+  narrLog(rec.script_id + " ／ directives: " + (d.length ? d.join(" · ") : "─"));
+
+  if (d.includes("WAIT_INPUT")) await narrWaitInput();
+  else await nsleep(NARR.skip ? 0 : 900);
+
+  if (d.includes("BLACKOUT_TO_1_01")) {
+    await narrBlackoutToStart();
+    await playScript("NEWGAME_INTRO", null, { chained: true });
+  }
+}
+
+/**
+ * 発火点の再生（[S-SCRIPT-TRIGGER]）
+ * @param {string} trigger 発火点
+ * @param {string|null} anchor 発火点を特定するキー
+ */
+async function playScript(trigger, anchor, opts = {}) {
+  const recs = resolveScriptRecords(trigger, anchor);
+  if (!recs.length) {
+    showAlertById("STR_SCRIPT_EMPTY");
+    return;
+  }
+
+  const token = ++NARR.token;
+  if (!opts.chained) {
+    tab("script");
+    NARR.skip = false;
+  }
+  NARR.playing = true;
+
+  // エンディング演出中および演出完了時点のロールバックを有効にする（[M-REWIND-ROLLBACK]）。
+  // NEWGAME_INTRO（a分岐の回帰演出）に入った時点で閉じる。
+  setEndingRollbackVisible(trigger === "ENDING" || trigger === "EPILOGUE");
+
+  $id("scriptTriggerFlag").textContent = "trigger " + trigger;
+  $id("scriptAnchorFlag").textContent = "anchor " + (anchor === null ? "Null" : anchor);
+  $id("scriptBgmFlag").textContent = "♪ 再生中 BGM " + CONFIG.bgm;
+  $id("scriptBgmFlag").classList.add("on");
+  $id("scriptStage").classList.remove("closeup");
+  $id("portraitRoll").classList.remove("on");
+  narrHideCard();
+
+  for (const rec of recs) {
+    for (const line of rec.lines) {
+      if (token !== NARR.token) return;      // 別の再生に置き換えられた
+      await narrPlayLine(line, rec);
+    }
+  }
+
+  if (token !== NARR.token) return;
+  NARR.playing = false;
+  NARR.skip = false;
+
+  // 周回移行を行わない分岐（b / c-1 / c-2 / d）は phase == ENDING のセーブが残る（[M-END-BRANCH]）
+  if (trigger === "ENDING" && anchor !== "a") {
+    SavedPhase = "ENDING";
+    renderTitleScreen();
+  }
+  if (!opts.chained) {
+    $id("scriptSpeaker").textContent = "";
+    $id("scriptText").classList.add("narration");
+    $id("scriptText").textContent = "（再生終了）採用レコード：" + recs.map(r => r.script_id).join(" → ");
+  }
+}
+
+$id("scriptPlayBtn").addEventListener("click", () => {
+  const pb = SCRIPT_PLAYBACKS.find(p => p.key === $id("scriptSelect").value);
+  if (pb) playScript(pb.trigger, pb.anchor);
+});
+$id("scriptSkipBtn").addEventListener("click", () => {
+  NARR.skip = true;
+  narrAdvance();
+});
+$id("scriptNextBtn").addEventListener("click", narrAdvance);
+$id("scriptStage").addEventListener("click", narrAdvance);
+$id("scriptBox").addEventListener("click", narrAdvance);
+
+// 脚本再生中は Space / Enter を送りへ割り当て、既存のキー操作より先に消費する
+document.addEventListener("keydown", (e) => {
+  if (!$id("screen-script").classList.contains("active")) return;
+  if ($id("gameModal").classList.contains("open")) return;
+  if (e.key === " " || e.key === "Enter") {
+    e.preventDefault();
+    e.stopPropagation();
+    narrAdvance();
+  }
+  if (e.key.toLowerCase() === "z" || e.key.toLowerCase() === "r") {
+    e.stopPropagation();      // 脚本再生中の誤操作を抑止
+  }
+}, true);
+
+/* ═══ 7-5. タイトル画面 ═══ */
+function renderTitleScreen() {
+  const act = MOCK_CONFIG.CURRENT_ACT;
+  const scene = MOCK_CONFIG.CURRENT_SCENE;
+
+  // 周回移行を行わない分岐の決済後は、進行の再開を提示せずロールバックの入口のみを出す
+  // （[M-END-BRANCH]・[M-DATA-RUNSTATE]［進行フェーズ］の ENDING）
+  const closed = (SavedPhase === "ENDING");
+  $id("titleContinue").disabled = closed;
+  $id("titleRollback").hidden = !closed;
+  $id("titleContinueCap").textContent = closed
+    ? "この道行きは閉じている"
+    : "シーン " + act + "-" + scene;
+
+  // 起動画面はスコアではない。初期値のうちは描画しない。
+  // 1周目に「周回 1」を出すことは周回2の存在の予告にあたり、[S-REVEAL-STAGES] 第1段階の
+  // 潜伏を破る。2周目以降の提示は [S-END-A-NEWGAME] の 1-01 開幕独白が担う。
+  const meta = [];
+  if (total_rewind_count >= 1) meta.push("燈 " + total_rewind_count);
+  if (playthrough_count >= 2) meta.push("周回 " + playthrough_count);
+  $id("titleMetaInfo").textContent = meta.join(" ／ ");
+  $id("titleFoot").classList.toggle("empty", meta.length === 0);
+
+  $id("titleLamp").classList.toggle("dim", total_rewind_count === 0);
+}
+
+$id("titleContinue").addEventListener("click", () => {
+  // phase == ENDING のセーブは進行を再開できない（[M-END-BRANCH]）
+  if (SavedPhase === "ENDING") { showAlertById("STR_TITLE_RUN_CLOSED"); return; }
+
+  if (SavedPhase === "BATTLE") {
+    // バトル中の保存は行われないため、再開はバトル開始時セーブからとなる。
+    // そのロード時点で ROLLBACK_BATTLE の保留を立てる（[M-META-SAVEDATA]）。
+    markRewindPending("ROLLBACK_BATTLE");
+    resetBattleToInitialState();
+    tab("battle");
+  } else {
+    tab("im");
+  }
+});
+$id("titleRollback").addEventListener("click", () => tab("rollback"));
+$id("titleConfig").addEventListener("click", () => tab("config"));
+$id("titleHelp").addEventListener("click", () => tab("help"));
+$id("titleNewGame").addEventListener("click", () => {
+  openModalById("STR_CONFIRM_NEWGAME", {}, {
+    danger: true,
+    onConfirm: () => {
+      // 進行状態のみ初期化する。セーブデータ永続メタステートは引き継がない（新規データのため）。
+      playthrough_count = 1;
+      enshrined_count = 0;
+      sacrificed.length = 0;
+      Object.keys(cross_unlocked).forEach(k => delete cross_unlocked[k]);
+      renderTitleScreen();
+      playScript("SCENE_INTRO", "SCENE_1_01");
+    }
+  });
+});
+
+/* ═══ 7-6. 従者補充画面 [M-PROG-REFILL] ═══ */
+const REFILL = { fromAct: 3, survivors: [], picked: new Set() };
+
+/** 当該アクトの同行従者定員（[M-DATA-SCENEMASTER] attendant_capacity）。
+ *  定員はアクトから一意に決まるため、プリセット側に持たせない。 */
+function capacityOfAct(act) {
+  return SCENE_MASTER[`SCENE_${act}_01`]?.cap ?? 5;
+}
+
+function heroUnit() {
+  return units.find(u => u.side === "mine" && u.role === "マスター") || null;
+}
+
+/** 補充候補プールの導出（[M-DATA-RUNSTATE]［補充候補プールの導出］） */
+function refillPool() {
+  const toAct = REFILL.fromAct + 1;
+  return Object.keys(ATTENDANT_MASTER)
+    .map(Number)
+    .filter(n => ATTENDANT_MASTER[n].joinAct === toAct && !REFILL.survivors.includes(n));
+}
+
+function refillSlots() {
+  const toAct = REFILL.fromAct + 1;
+  return Math.max(0, capacityOfAct(toAct) - REFILL.survivors.length);
+}
+
+/* プール内で全員が同値を共有する係数は候補の判別に寄与しないため出さない。
+   マスタ側で値を変えれば自動的に表示へ戻る（[M-DATA-ATTENDANTS]）。 */
+function poolCommonCoeffKeys(pool) {
+  if (pool.length < 2) return new Set();
+  const head = ATTENDANT_MASTER[pool[0]].coeffs;
+  const keys = new Set(Object.keys(head));
+  pool.slice(1).forEach(n => {
+    const c = ATTENDANT_MASTER[n].coeffs;
+    [...keys].forEach(k => { if (c[k] !== head[k]) keys.delete(k); });
+  });
+  return keys;
+}
+
+/** 補充1名分の選択トグル（壇・カードの双方から呼ぶ） */
+function toggleRefillPick(n) {
+  if (REFILL.picked.has(n)) REFILL.picked.delete(n);
+  else {
+    if (REFILL.picked.size >= refillSlots()) return;
+    REFILL.picked.add(n);
+  }
+  renderRefill();
+}
+
+/** 壇と候補カードの相互ハイライト（.lane-highlight ↔ .bcol-highlight と同一の手法） */
+function highlightRefill(n, on) {
+  const fig = document.querySelector('#refillStagePool .rfig[data-n="' + n + '"]');
+  const card = document.querySelector('#refillCands .cand[data-n="' + n + '"]');
+  if (fig) fig.classList.toggle("hl", on);
+  if (card) card.classList.toggle("hl", on);
+}
+
+/** 壇のサイドビュー描画。状態（継続／空き枠／戦死／結ばれた）のみを担い、係数はカードが持つ。 */
+function renderRefillStage(pool, slots) {
+  const hero = heroUnit();
+
+  const left = REFILL.survivors.map(n => {
+    const m = ATTENDANT_MASTER[n];
+    return '<div class="rfig alive">' + figHTML() +
+      '<div class="rlabel">' + m.n + '</div><div class="rtag">継続</div></div>';
+  });
+  const vacant = Math.max(0, slots - REFILL.picked.size);
+  for (let k = 0; k < vacant; k++) {
+    left.push('<div class="rfig slot"><div class="ghost"></div>' +
+      '<div class="rlabel">遺芯（空）</div><div class="rtag">未装填</div></div>');
+  }
+  left.push('<div class="rfig master">' + figHTML() +
+    '<div class="rlabel">セイン</div>' +
+    '<div class="rtag">HP ' + (hero ? hero.hp + " → " + hero.maxHp : "─") + '</div></div>');
+  $id("refillStageParty").innerHTML = left.join("");
+
+  const host = $id("refillStagePool");
+  host.innerHTML = pool.length
+    ? pool.map(n => {
+        const m = ATTENDANT_MASTER[n];
+        const on = REFILL.picked.has(n);
+        return '<div class="rfig dead' + (on ? " picked" : "") + '" data-n="' + n + '">' + figHTML() +
+          '<div class="rlabel">' + m.n + '</div>' +
+          '<div class="rtag">' + (on ? "結ばれた" : "戦死") + '</div></div>';
+      }).join("")
+    : '<div class="pane-note">候補なし</div>';
+
+  // 壇は親要素の aria-hidden により装飾扱いであり、操作の正はカード側のボタンにある。
+  // ここでの click は同一操作への冗長なポインタ標的として置く（タブ順には入らない）。
+  host.querySelectorAll(".rfig.dead").forEach(el => {
+    const n = Number(el.dataset.n);
+    el.addEventListener("click", () => toggleRefillPick(n));
+    el.addEventListener("mouseenter", () => highlightRefill(n, true));
+    el.addEventListener("mouseleave", () => highlightRefill(n, false));
+  });
+}
+
+function renderRefill() {
+  const toAct = REFILL.fromAct + 1;
+  const slots = refillSlots();
+  const pool = refillPool();
+  const hero = heroUnit();
+
+  $id("refillSub").textContent =
+    "アクト" + REFILL.fromAct + " 突破 ─ 新たにアクト" + toAct + "へ同行する従者を選ぶ。";
+  $id("refillActText").textContent = "アクト" + REFILL.fromAct + " → アクト" + toAct;
+  $id("refillCapText").textContent = capacityOfAct(REFILL.fromAct) + " → " + capacityOfAct(toAct);
+  $id("refillSurvText").textContent = REFILL.survivors.length + " 名";
+  $id("refillSlotText").textContent = REFILL.picked.size + " / " + slots;
+  $id("refillHealText").textContent = hero ? (hero.hp + " → " + hero.maxHp) : "─";
+  $id("refillEnshrineText").textContent = enshrined_count + " → " + (enshrined_count + REFILL.picked.size);
+
+  const sv = $id("refillSurvivors");
+  sv.innerHTML = REFILL.survivors.length
+    ? REFILL.survivors.map(n => {
+        const m = ATTENDANT_MASTER[n];
+        return '<div class="survivor"><span class="nm">' + m.n + '〈' + m.t + '〉</span><span class="tag">継続</span></div>';
+      }).join("")
+    : '<div class="pane-note">継続する生存従者はいない。</div>';   // [M-PROG-NOATTENDANT]
+
+  renderRefillStage(pool, slots);
+
+  const cg = $id("refillCands");
+  if (!pool.length) {
+    cg.innerHTML = '<div class="pane-note">補充候補は存在しない。</div>';
+    return;
+  }
+  const common = poolCommonCoeffKeys(pool);
+  cg.innerHTML = pool.map(n => {
+    const m = ATTENDANT_MASTER[n];
+    const coeff = Object.entries(m.coeffs)
+      .filter(([k]) => !common.has(k))
+      .map(([k, v]) => (ATTENDANT_COEFF_LABEL[k] || k) + " ×" + v.toFixed(2)).join(" / ");
+    const on = REFILL.picked.has(n);
+    return '<button class="cand' + (on ? " picked" : "") + '" data-n="' + n + '">' +
+      '<span class="mk">' + (on ? "選択中" : "") + '</span>' +
+      '<div class="nm">' + m.n + '</div>' +
+      '<div class="ttl">〈' + m.t + '〉</div>' +
+      '<div class="cf">' + coeff + '</div>' +
+      '</button>';
+  }).join("");
+
+  cg.querySelectorAll(".cand").forEach(btn => {
+    const n = Number(btn.dataset.n);
+    btn.addEventListener("click", () => toggleRefillPick(n));
+    btn.addEventListener("mouseenter", () => highlightRefill(n, true));
+    btn.addEventListener("mouseleave", () => highlightRefill(n, false));
+    btn.addEventListener("focus", () => highlightRefill(n, true));
+    btn.addEventListener("blur", () => highlightRefill(n, false));
+  });
+}
+
+$id("refillProceedBtn").addEventListener("click", () => {
+  const slots = refillSlots();
+  if (REFILL.picked.size !== slots) {
+    showAlertById("STR_REFILL_SHORT", { SlotCount: slots, RemainCount: slots - REFILL.picked.size });
+    return;
+  }
+  const picked = [...REFILL.picked];
+  openModalById("STR_CONFIRM_REFILL", {}, {
+    danger: true,
+    extraLines: picked.map(n => str("STR_CONFIRM_REFILL_ROW", { AttendantName: ATTENDANT_MASTER[n].n }).text),
+    onConfirm: () => {
+      const hero = heroUnit();
+      if (hero) hero.hp = hero.maxHp;          // 全回復ボーナス
+      enshrined_count += picked.length;         // 補充確定で加算（[M-PROG-SACRIFICE]）
+      picked.forEach(n => {
+        REFILL.survivors.push(n);
+        const at = createAttendant(n);
+        if (at) {
+          attendants.push(at);
+          anchorEnshrine(at.id);               // 遺芯への結び（[M-META-COUNTERS] enshrine_anchor）
+        }
+      });
+      REFILL.picked.clear();
+      REFILL.fromAct = Math.min(5, REFILL.fromAct + 1);
+      renderRefill();
+      renderTitleScreen();
+      openModalById("STR_REFILL_DONE", {
+        HeroHpMax: hero ? hero.maxHp : "─",
+        EnshrinedCount: enshrined_count
+      }, {
+        singleButton: true,
+        // 移行決済の直前に種別B残響、続けてアクト表題を再生する（[S-SCRIPT-TRIGGER]）
+        onConfirm: () => playScript("ACT_TRANSITION", String(REFILL.fromAct - 1))
+      });
+    }
+  });
+});
+
+/* ═══ 7-7. 辞典（解説）画面 ═══ */
+let helpCurrent = null;
+
+function renderHelpList() {
+  const host = $id("helpList");
+  host.innerHTML = "";
+  HELP_CATEGORY_ORDER.forEach(cat => {
+    const ids = Object.keys(HELP_MASTER)
+      .filter(id => HELP_MASTER[id].category === cat)
+      .sort((a, b) => HELP_MASTER[a].order - HELP_MASTER[b].order);
+    if (!ids.length) return;
+    const head = document.createElement("div");
+    head.className = "help-cat";
+    head.textContent = HELP_CATEGORY_LABEL[cat];
+    host.appendChild(head);
+    ids.forEach(id => {
+      const rec = HELP_MASTER[id];
+      const btn = document.createElement("button");
+      btn.className = "help-item" + (helpCurrent === id ? " on" : "");
+      btn.innerHTML = rec.title + (help_seen[id] ? "" : '<span class="unread">未読</span>');
+      btn.addEventListener("click", () => openHelp(id));
+      host.appendChild(btn);
+    });
+  });
+}
+
+function openHelp(id) {
+  const rec = HELP_MASTER[id];
+  helpCurrent = id;
+  help_seen[id] = true;
+  $id("helpTitle").textContent = rec.title;
+  // 画面へ出すのは初出シーンのみ。help_id・category・order・unlock_key は検証出力へ回す
+  $id("helpMeta").textContent = rec.scene ? "初出 シーン " + rec.scene : "";
+  $id("helpKeyFlag").textContent =
+    "help_id " + id + " ／ category " + rec.category + " ／ order " + rec.order +
+    " ／ unlock_key " + (rec.unlock || "Null");
+  $id("helpText").textContent = rec.body;
+  renderHelpList();
+}
+
+/** 初出時の自動提示（unlock_key 非Null のレコードを1度だけ提示する） */
+function presentHelpFirstSight(id) {
+  const rec = HELP_MASTER[id];
+  renderHelpList();
+  openModalById("STR_HELP_FIRST_SIGHT", { HelpTitle: rec.title, HelpBody: rec.body }, { singleButton: true });
+}
+
+function initHelpScreen() {
+  const sel = $id("helpUnlockSelect");
+  sel.innerHTML = Object.keys(HELP_MASTER)
+    .filter(id => HELP_MASTER[id].unlock)
+    .sort((a, b) => HELP_MASTER[a].scene.localeCompare(HELP_MASTER[b].scene))
+    .map(id => '<option value="' + id + '">シーン ' + HELP_MASTER[id].scene + '：' + HELP_MASTER[id].title + '</option>')
+    .join("");
+  $id("helpUnlockBtn").addEventListener("click", () => presentHelpFirstSight(sel.value));
+  renderHelpList();
+}
+
+/* ═══ 7-8. 表示・音響設定（[M-UI-CONFIG]）═══ */
+
+/** 再生速度の既定の適用（トランスポートの選択表示のみを動かす） */
+function applyDefaultSpeed(speed) {
+  ["PAUSE", "X1", "X2", "X3"].forEach(s => {
+    const el = $id("spd" + s);
+    if (el) el.classList.toggle("on", s === speed);
+  });
+}
+
+/**
+ * 監視トグルの既定の適用（[M-UI-CONFIG]）
+ * ステップ0の生成時に自軍の全アクションへ条件単位で一律に適用する。
+ * 進行中のトグルは動かさない（設定値を遡って反映しない）。
+ */
+function applyWatchDefaults() {
+  units.forEach(u => {
+    if (!u || u.isEmpty || u.side !== "mine" || !u.acts) return;
+    u.acts.forEach((a, ai) => {
+      WATCH_COND_KEYS.forEach(c => {
+        if (CONFIG.watchDefault[c]) watching[watchKeyOf(u, a, ai) + "_" + c] = true;
+      });
+    });
+  });
+}
+
+function renderConfigScreen() {
+  $id("cfgBgm").value = CONFIG.bgm;
+  $id("cfgBgmVal").textContent = CONFIG.bgm;
+  $id("cfgSe").value = CONFIG.se;
+  $id("cfgSeVal").textContent = CONFIG.se;
+  $id("cfgSpeed").value = CONFIG.speed;
+  $id("cfgTextSpeed").value = CONFIG.textSpeed;
+  $id("cfgSimplify").checked = CONFIG.simplify;
+
+  WATCH_COND_KEYS.forEach(c => {
+    const el = $id("cfgWatch_" + c);
+    if (el) el.checked = CONFIG.watchDefault[c];
+  });
+
+  const on = WATCH_COND_KEYS.filter(c => CONFIG.watchDefault[c]);
+}
+
+function initConfigScreen() {
+  $id("cfgWatch").innerHTML = WATCH_COND_KEYS.map(c =>
+    '<label><input type="checkbox" id="cfgWatch_' + c + '">' + WATCH_COND_LABELS[c] + '</label>'
+  ).join("");
+
+  $id("cfgBgm").addEventListener("input", (e) => {
+    CONFIG.bgm = Number(e.target.value);
+    $id("cfgBgmVal").textContent = CONFIG.bgm;
+  });
+  $id("cfgSe").addEventListener("input", (e) => {
+    CONFIG.se = Number(e.target.value);
+    $id("cfgSeVal").textContent = CONFIG.se;
+  });
+  $id("cfgSpeed").addEventListener("change", (e) => { CONFIG.speed = e.target.value; renderConfigScreen(); });
+  $id("cfgTextSpeed").addEventListener("change", (e) => { CONFIG.textSpeed = e.target.value; });
+  $id("cfgSimplify").addEventListener("change", (e) => { CONFIG.simplify = e.target.checked; });
+
+  WATCH_COND_KEYS.forEach(c => {
+    $id("cfgWatch_" + c).addEventListener("change", (e) => {
+      CONFIG.watchDefault[c] = e.target.checked;
+      renderConfigScreen();
+    });
+  });
+
+  renderConfigScreen();
+}
+
+/* ═══ 7-9. 初期化とプリセット同期 ═══ */
+
+/** 検証プリセットの切り替えに追随させる（進行位置・同行従者・補充候補） */
+function syncNarrativeToPreset() {
+  REFILL.fromAct = MOCK_CONFIG.CURRENT_ACT || 3;
+  REFILL.survivors = attendants.map(a => Number(String(a.id).slice(-2))).filter(n => !Number.isNaN(n));
+  REFILL.picked.clear();
+  renderRefill();
+  renderTitleScreen();
+}
+
+function initNarrativeScreens() {
+  $id("scriptSelect").innerHTML =
+    SCRIPT_PLAYBACKS.map(p => '<option value="' + p.key + '">' + p.label + '</option>').join("");
+
+  syncNarrativeToPreset();
+  initHelpScreen();
+  initConfigScreen();
+  openHelp("HELP_INHERIT");
+}
+
+
+/* ═════════════════════════════════════════════════════════
+   8. 初期化・エントリーポイント
+   ═════════════════════════════════════════════════════════ */
+
+/* ═══ 8-1. 検証用フィクスチャ ═══
+ * 設計仕様に対応物を持たない、検証台専用の初期値。
+ * 実装へ移す際は本関数ごと落とす。他の初期化経路へ散らさない。 */
+function applyVerificationFixtures(presetKey) {
+  // 顔グラの彩度判定を確認するための残響解放状態（[S-EPILOGUE]【残響解放状態の反映】）
+  ["ECHO_02", "ECHO_03", "ECHO_04", "ECHO_06", "ECHO_10"].forEach(k => { echo_unlocked[k] = true; });
+  cross_unlocked["CROSS_02_03"] = true;
+
+  // 立ち上がりエッジ検出を確認するための初期監視トグル（[M-UI-WATCH]）
+  if (presetKey === "scene_3_04") {
+    const tgt = units[1]?.acts?.find(a => a.classId === "ACT_FAST_SLASH");
+    if (tgt) {
+      watching[tgt.iid + "_可"]   = true;
+      watching[tgt.iid + "_中前"] = true;
+    }
+  }
+}
+
+/* ═══ 8-2. エントリーポイント ═══ */
+function initApp() {
+  $id("presetSelect").value = DEFAULT_PRESET_KEY;
+  loadPreset(DEFAULT_PRESET_KEY);
+  initNarrativeScreens();
+}
+initApp();
+</script>
+</body>
+</html>
