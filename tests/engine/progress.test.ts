@@ -54,7 +54,7 @@ describe('[M-STATE-RUNSTATE] ニューゲーム', () => {
     expect(run.instance_id_seq).toBe(5);
     expect(run.party).toEqual([{ attendant_id: 'ATTENDANT_01', inherit_state: 'UNUSED' }]);
     expect(run.recruited).toEqual(['ATTENDANT_01']);
-    expect(session.data.save_version).toBe(1);
+    expect(session.data.save_version).toBe(2);
   });
 });
 

@@ -174,8 +174,8 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    data.save_version = 2;
-    expect(loadGame(JSON.stringify(data), ctx)).toEqual({ ok: false, reason: 'VERSION_MISMATCH', save_version: 2 });
+    data.save_version = 1; // BattleState のスキーマ変更前（監視・停止事由・定跡の項目追加前）のセーブ
+    expect(loadGame(JSON.stringify(data), ctx)).toEqual({ ok: false, reason: 'VERSION_MISMATCH', save_version: 1 });
   });
 });
 
