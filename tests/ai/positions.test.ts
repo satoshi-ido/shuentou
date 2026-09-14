@@ -190,6 +190,25 @@ describe('[V-TEST-POSITIONS] T-17 硬直中スタン無効の反映', () => {
   });
 });
 
+describe('[V-TEST-POSITIONS] T-11 封印項', () => {
+  // 主力武技は直前アクション記憶にあり、封印付与の対象となる（[M-RESOLVE-MARTIAL]#4）。
+  // 主人公は浄化手段を持たないため、封印蓄積が1.00に達すると主力武技は火力0となる（[A-EVAL-TTK] 除外条件）。
+  it.each([
+    { name: '主人公が主力武技の硬直中、発生5の封印武技', sealStartup: 5, recovery: { applied: 20, elapsed: 5 } },
+    { name: '主人公が主力武技の硬直中、即時型の封印武技', sealStartup: 0, recovery: { applied: 20, elapsed: 5 } },
+    { name: '主人公が主力武技の硬直明け直前、発生3の封印武技', sealStartup: 3, recovery: { applied: 20, elapsed: 18 } },
+  ])('T-11: $name', ({ sealStartup, recovery }) => {
+    const HERO_MAIN = martialAction('HERO_MAIN', { atk: 20, dmg_hp: 1000, step_thought: 30, step_startup: 10, step_recovery: 20 });
+    const HERO_WAIT = makeAction('HERO_WAIT', { gain_vp: 1, step_thought: 999 });
+    const SEALER = martialAction('FOE_SEALER', { atk: 5, dmg_hp: 100, give_seal: 100, step_startup: sealStartup, step_recovery: 10 });
+    const STRIKE = martialAction('FOE_STRIKE', { atk: 5, dmg_hp: 600, step_startup: 8, step_recovery: 10 });
+    const { state, hero, enemy } = duel([HERO_MAIN, HERO_WAIT], [SEALER, STRIKE, MIND]);
+    setRecovery(hero, 'HERO_MAIN', recovery.applied, recovery.elapsed);
+    expect(hero.acts[0].seal_accum).toBe(0);
+    expect(chosenClassId(state, enemy)).toBe('FOE_SEALER');
+  });
+});
+
 describe('[V-TEST-POSITIONS] T-20 減衰前提の封印価値評価', () => {
   it.each([
     { name: '封印蓄積3.00', seal: 300 },
