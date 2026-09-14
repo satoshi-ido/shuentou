@@ -46,6 +46,7 @@ export function runP2Apply(
       createCreature: deps.createCreature,
       level: state.scene_level,
       defenseOf: (target) => defenseSnapshot[target.unit_id] ?? 0,
+      idCounter: state,
       appliedInterferenceSides: [], // NORMAL モードでは内部即時適用しないため未使用
     });
 

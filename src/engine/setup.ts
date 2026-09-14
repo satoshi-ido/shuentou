@@ -25,5 +25,6 @@ export function createScene(options: CreateSceneOptions): BattleState {
     heroActs,
     enemyRecord: options.enemyRecord,
     enemyActs,
+    instanceIdSeq: counter.instance_id_seq,
   });
 }

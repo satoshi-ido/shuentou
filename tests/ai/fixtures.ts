@@ -96,6 +96,7 @@ export function createDuel(options: DuelOptions): BattleState {
       audit_exempt: true,
     },
     enemyActs,
+    instanceIdSeq: counter.instance_id_seq,
   });
 }
 

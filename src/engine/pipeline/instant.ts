@@ -86,6 +86,7 @@ export function runInstant(state: BattleState, unit: Unit, action: ActionInstanc
     createCreature: deps.createCreature,
     level: state.scene_level,
     defenseOf: (target) => currentDefense(target),
+    idCounter: state,
     appliedInterferenceSides: [],
   });
 

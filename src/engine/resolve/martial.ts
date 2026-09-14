@@ -15,6 +15,7 @@ import {
 } from '../effective.js';
 import type { InterferePos } from '../../data/types.js';
 import { hasFlag } from '../flags.js';
+import { allocateInstanceId, type InstanceIdCounter } from '../instantiate.js';
 import type { ActionInstance, Side, Unit } from '../types.js';
 
 function opposingUnits(units: readonly (Unit | null)[], side: Side): Unit[] {
@@ -72,13 +73,8 @@ function deepEqualParams(a: ActionInstance['base_params'], b: ActionInstance['ba
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-let nextCopyInstanceIdSeq = 0;
-export function resetCopyInstanceIdSeqForTest(startAt = 0): void {
-  nextCopyInstanceIdSeq = startAt;
-}
-
 // [M-RESOLVE-MARTIAL]#5 コピー獲得。命中した対象1体分の直前アクション記憶からコピー枠を獲得する。
-function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit): void {
+function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit, counter: InstanceIdCounter): void {
   if (action.base_params.initial_copy_val === 0) {
     return;
   }
@@ -97,8 +93,7 @@ function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit): voi
         : Math.max(existing.uses_left, memory.uses_left_before);
     return;
   }
-  const instanceId = `IIDC${String(nextCopyInstanceIdSeq).padStart(4, '0')}`;
-  nextCopyInstanceIdSeq += 1;
+  const instanceId = allocateInstanceId(counter); // [I-STATE-ID] コピー枠も IID 形式で BattleState の採番位置から採番する
   actor.acts.push({
     instance_id: instanceId,
     master_ref: memory.class_id,
@@ -117,6 +112,7 @@ export interface MartialContext {
   readonly units: readonly (Unit | null)[];
   readonly level: number;
   readonly defenseOf: (unit: Unit) => number;
+  readonly idCounter: InstanceIdCounter; // BattleState（instance_id_seq の正本）
 }
 
 // [M-RESOLVE-MARTIAL] Step 4 本体。
@@ -165,7 +161,7 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
       target.slip = maxOverwrite(target.slip, action.base_params.give_slip);
     }
     applyStrip(target, action.base_params.strip_rate);
-    acquireCopyFrom(actor, action, target);
+    acquireCopyFrom(actor, action, target, ctx.idCounter);
   }
 
   const interferenceRequest = resolveInterferenceRequest(action, targets, hitUnitIds, actor.side);

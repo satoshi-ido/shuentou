@@ -158,6 +158,7 @@ export function startBattle(session: GameSession, ctx: GameContext, options: Sta
     heroActs: cloneState(run.hero_acts),
     enemyRecord: enemy,
     enemyActs,
+    instanceIdSeq: run.instance_id_seq,
   });
   if (options.watchDefault !== undefined) {
     applyWatchDefault(run.battle_state, options.watchDefault);

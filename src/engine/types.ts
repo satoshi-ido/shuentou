@@ -91,12 +91,14 @@ export interface BookProgress {
 }
 
 // [M-STATE-BATTLESTATE]
-// instance_id_seq は [M-STATE-RUNSTATE] が保持する採番カウンタであり、BattleState に含めない（[I-STATE-ID]）。
+// instance_id_seq は phase == BATTLE の間のアクションインスタンスID採番カウンタの正本であり、バトル開始時に
+// RunState から引き継ぎ、バトルクリア共通決済で書き戻す（[M-STATE-RUNSTATE]［主人公ステートの正本］・[I-STATE-ID]）。
 export interface BattleState {
   step: number;
   scene_level: number;
   units: (Unit | null)[]; // 添字が pos_idx と一致（要素数4）
   unit_id_seq: number;
+  instance_id_seq: number;
   instant_used: Record<string, string[]>; // unit_id -> class_id の昇順配列
   watching: Record<string, WatchFlags>; // アクションインスタンスID -> 監視ON/OFF
   watch_prev_met: Record<string, WatchFlags>; // アクションインスタンスID -> 直前ステップの充足状態

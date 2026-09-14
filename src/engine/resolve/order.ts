@@ -6,6 +6,7 @@
 //            Step 1〜5 解決後に陣営ごと一括で適用する（[M-PIPE-P2-APPLY]#3-4）。呼び出し側が担う。
 
 import { applyInterference } from './interfere.js';
+import type { InstanceIdCounter } from '../instantiate.js';
 import type { InterferenceRequest, MartialContext } from './martial.js';
 import { resolveMartial } from './martial.js';
 import { resolveMind } from './mind.js';
@@ -22,6 +23,7 @@ export interface ResolveDeps {
   readonly createCreature: CreatureFactory;
   readonly level: number;
   readonly defenseOf: (unit: Unit) => number;
+  readonly idCounter: InstanceIdCounter;
   readonly appliedInterferenceSides: Side[]; // 呼び出し側（ステップ単位）で共有・可変
 }
 
@@ -46,7 +48,7 @@ export function resolveAction(
 
   resolveMind(units, actor, action); // Step 3
 
-  const martialCtx: MartialContext = { units, level: deps.level, defenseOf: deps.defenseOf };
+  const martialCtx: MartialContext = { units, level: deps.level, defenseOf: deps.defenseOf, idCounter: deps.idCounter };
   const martialOutcome = resolveMartial(martialCtx, actor, action); // Step 4（位置干渉は発火判定のみ）
 
   let remainingRequest = martialOutcome.interferenceRequest;
