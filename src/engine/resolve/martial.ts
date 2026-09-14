@@ -150,6 +150,11 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
     target.vp = Math.max(target.vp - dmgVp, 0);
     target.pp = Math.max(target.pp - dmgPp, 0);
     target.ap = Math.max(target.ap - dmgAp, 0);
+    // [M-CORE-GLOSSARY-TIME]「消滅猶予状態」：HPが0に達したユニットは通常破棄（[M-PIPE-P5-DISCARD]）まで
+    // マス占有を維持する。即時型アクションでは [M-PIPE-INSTANT]#3 の即時破棄が続けて撤去する。
+    if (target.hp <= 0) {
+      target.state = 'PENDING_DISCARD';
+    }
 
     applySeal(target, action.base_params.give_seal);
     for (const [id, value] of Object.entries(action.base_params.give_debuff)) {

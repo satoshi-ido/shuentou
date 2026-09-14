@@ -91,11 +91,10 @@ function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfil
   }
 }
 
-// [A-EVAL-REFIMPL] evaluate(state, prof, ply)。ply 自体は本関数の内部では用いない
-// （詰みスコアは mateScore が別途扱う）が、シグネチャの整合のため受け取る。
+// [A-EVAL-REFIMPL] evaluate(state, prof, ply)。ply は静止探索中に決着した場合の詰みスコアにのみ用いる。
 // deps（CreatureFactory）は [A-EVAL-REFIMPL]「Layer 1が提供すべき純関数」を実際に
 // 呼び出すための配線であり、M1の他モジュール（[M-PIPE-P8-DECISION] 等）と同様に注入する。
-export function evaluate(state: BattleState, prof: EffectiveProfile, _ply: number, deps: StepDeps): number {
+export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number, deps: StepDeps): number {
   // 特徴量（x_tempo・x_board 等）とTTKの攻撃側・防御側は、決定点そのものの状態（state）を
   // 用いる。静止探索は [A-EVAL-TTK]「着弾予測時点」の防御力・距離を求めるための補助トレースに
   // すぎず、その延長状態自体を「評価対象の局面」にしてはならない（延長でSTARTUP/RECOVERYが
@@ -109,7 +108,12 @@ export function evaluate(state: BattleState, prof: EffectiveProfile, _ply: numbe
     return MATE;
   }
 
-  const { trace } = runQuiescence(cloneState(state), deps);
+  // [A-SEARCH-QUIESCE] 葉は静止局面まで進めてから評価する。延長中に決着した局面は決着項で評価する
+  // （着弾済みの致命打をトレースの欠落として「命中不能」と扱わないため）。
+  const { trace, outcome } = runQuiescence(cloneState(state), deps);
+  if (outcome !== 'NONE') {
+    return mateScore(outcome, ply);
+  }
   const tp = ttk(mineMaster, foeMaster, { trace, level: state.scene_level });
   const te = ttk(foeMaster, mineMaster, { trace, level: state.scene_level });
   const phiCenti = 100 - floorDiv(foeMaster.hp * 100, Math.max(foeMaster.max_hp, 1));
