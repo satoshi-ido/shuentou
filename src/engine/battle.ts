@@ -64,6 +64,9 @@ export function createBattleState(options: CreateBattleOptions): BattleState {
     watching: {},
     watch_prev_met: {},
     pause_reason: null,
+    book_index: 0,
+    book_aborted: false,
+    book_wait_elapsed: null,
   };
   const heroHp = options.heroHp ?? options.heroMaxHp;
   state.units[1] = createUnit(allocateUnitId(state), 'MINE', 'MASTER', 1, options.heroMaxHp, heroHp, options.heroActs);

@@ -6,10 +6,13 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATTENDANTS } from './authoring/attendants.js';
+import { BOOKS } from './authoring/books.js';
 import { SCENES } from './authoring/scenes.js';
 import {
   buildAttendantRecords,
+  buildBookRecord,
   buildSceneRecords,
+  enemyLefTemplate,
   generateEnemyDorn,
   generateEnemyLef,
   generateHeroInitActions,
@@ -71,6 +74,18 @@ function main() {
     serializeRecordMap('ATTENDANT_MASTERS', 'AttendantMasterRecord', buildAttendantRecords(ATTENDANTS)),
   );
   writeGenerated('hero-init.ts', serializeHeroInit(heroInit.order));
+
+  // [A-BOOK-SCHEMA] 定跡マスタ。範囲は B-01（1-01 祠守レフ）に限る。
+  const templates = { ENEMY_LEF: enemyLefTemplate(sceneById('SCENE_1_01').level) };
+  const bookMasters = {};
+  for (const book of BOOKS) {
+    const template = templates[book.enemy_id];
+    if (template === undefined) {
+      throw new Error(`定跡 ${book.book_id} の参照元テンプレートが未定義: ${book.enemy_id}`);
+    }
+    bookMasters[book.book_id] = buildBookRecord(book, template);
+  }
+  writeGenerated('book-masters.ts', serializeRecordMap('BOOK_MASTERS', 'BookMasterRecord', bookMasters));
 }
 
 main();

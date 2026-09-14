@@ -83,7 +83,14 @@ export interface PauseReason {
   readonly remaining_steps: number | null;
 }
 
-// [M-STATE-BATTLESTATE]（定跡の項目は定跡の実装時に追加する）
+// [A-BOOK-SEMANTICS] 定跡の進行状態。lookup の戻り値として更新後の値を返し、呼び出し側が BattleState へ反映する。
+export interface BookProgress {
+  readonly book_index: number;
+  readonly book_aborted: boolean;
+  readonly book_wait_elapsed: number | null;
+}
+
+// [M-STATE-BATTLESTATE]
 // instance_id_seq は [M-STATE-RUNSTATE] が保持する採番カウンタであり、BattleState に含めない（[I-STATE-ID]）。
 export interface BattleState {
   step: number;
@@ -94,4 +101,7 @@ export interface BattleState {
   watching: Record<string, WatchFlags>; // アクションインスタンスID -> 監視ON/OFF
   watch_prev_met: Record<string, WatchFlags>; // アクションインスタンスID -> 直前ステップの充足状態
   pause_reason: PauseReason | null;
+  book_index: number;
+  book_aborted: boolean;
+  book_wait_elapsed: number | null;
 }

@@ -102,6 +102,21 @@ export interface AttendantMasterRecord {
   readonly coeffs: Readonly<Partial<Record<CoeffKey, number>>>;
 }
 
+// [A-BOOK-SCHEMA] 定跡手（steps の要素）。
+export interface BookStepRecord {
+  readonly kind: 'FIXED' | 'DYNAMIC';
+  readonly class_id: string | null; // kind == FIXED のとき非 null
+  readonly resolver: 'MIRROR_FIRST_SYSTEM' | null; // kind == DYNAMIC のとき非 null
+  readonly resolved_by_system: Readonly<Record<string, string | null>> | null;
+  readonly can_wait: boolean;
+}
+
+// [A-BOOK-SCHEMA] 定跡マスタのレコード。
+export interface BookMasterRecord {
+  readonly book_id: string; // `B-NN`
+  readonly steps: readonly BookStepRecord[];
+}
+
 // [M-DATA-ENEMYMASTER]
 export interface EnemyMasterRecord {
   readonly enemy_id: string; // 体系は [M-DATA-ENEMYID]

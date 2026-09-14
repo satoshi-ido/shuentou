@@ -86,6 +86,11 @@ export function runSideDecisionLoop(
       break;
     }
     const decision = decisionFor(state, candidate);
+    if (decision.book !== undefined) {
+      state.book_index = decision.book.book_index;
+      state.book_aborted = decision.book.book_aborted;
+      state.book_wait_elapsed = decision.book.book_wait_elapsed;
+    }
     if (decision.kind === 'PASS') {
       passed.push(candidate.unit_id);
       continue;

@@ -4,11 +4,14 @@
 // [A-EVAL-FORM]）。[A-DIFF-CONFIG] で joint_action=False の範囲（1-01, max_depth 3）を対象とし、
 // 同時手（joint action）は扱わない。
 
+import { BOOK_MASTERS } from '../data/generated/book-masters.js';
+import type { BookMasterRecord } from '../data/types.js';
 import type { Decision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
 import { applyMove } from './apply.js';
+import { lookupBook } from './book.js';
 import { cloneState } from './clone.js';
 import { INF, MATE_TH } from './constants.js';
 import { evaluate, mateScore } from './evaluate.js';
@@ -178,14 +181,39 @@ export interface DecideActionResult {
   readonly nodesConsumed: number;
 }
 
+function bookOf(bookId: string): BookMasterRecord {
+  const book = (BOOK_MASTERS as Readonly<Record<string, BookMasterRecord>>)[bookId];
+  if (book === undefined) {
+    throw new Error(`未知の定跡ID: ${bookId}`);
+  }
+  return book;
+}
+
 // [A-SEARCH-ALGORITHM] decide_action(state, prof)。ノード予算は反復深化の全深さで共有する
 // （[A-CORE-DETERMINISM]#2）。state は変更しない（[A-CORE-DETERMINISM]#6 純関数）。
+// 1. 定跡参照：[A-BOOK-SEMANTICS]［適用範囲］により敵マスターの手のみを拘束する。HIT（定跡手・待機）は
+// 探索せず返し、BOOK_MISS は探索に委ねる。いずれも更新後の定跡進行状態を決定に添える。
 export function decideActionDetailed(
   state: BattleState,
   unit: Unit,
   prof: EffectiveProfile,
   deps: StepDeps,
 ): DecideActionResult {
+  if (prof.bookId !== null && unit.side === 'FOE' && unit.unit_kind === 'MASTER') {
+    const lookup = lookupBook(state, unit, bookOf(prof.bookId));
+    if (lookup.kind === 'MOVE') {
+      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress }, score: 0, nodesConsumed: 0 };
+    }
+    if (lookup.kind === 'PASS_MOVE') {
+      return { decision: { kind: 'PASS', book: lookup.progress }, score: 0, nodesConsumed: 0 };
+    }
+    const searched = searchRoot(state, unit, prof, deps);
+    return { ...searched, decision: { ...searched.decision, book: lookup.progress } };
+  }
+  return searchRoot(state, unit, prof, deps);
+}
+
+function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): DecideActionResult {
   const budget: NodeBudget = { remaining: prof.nodeLimit };
   let bestDecision: Decision = { kind: 'PASS' };
   let bestScore = 0;
