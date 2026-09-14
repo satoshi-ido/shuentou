@@ -24,9 +24,15 @@ export function runP5Discard(state: BattleState): BattleOutcome {
 
   // 3. 勝敗決定時：残存クリーチャーを即座に物理撤去する。
   if (outcome !== 'NONE') {
-    for (let idx = 0; idx < state.units.length; idx += 1) {
+    removeCreatures(state);
+  }
+  return outcome;
+}
+
+export function removeCreatures(state: BattleState): void {
+  for (let idx = 0; idx < state.units.length; idx += 1) {
+    if (state.units[idx]?.unit_kind === 'CREATURE') {
       state.units[idx] = null;
     }
   }
-  return outcome;
 }

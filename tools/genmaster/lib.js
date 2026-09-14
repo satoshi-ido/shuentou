@@ -85,9 +85,9 @@ function defaultParams() {
   };
 }
 
-// [M-BASE-AR-MARTIAL]（基本・重撃）。VP/PP/APダメージ・封印・スリップ・デバフ・コピーは
-// 該当特性を持つ技のみの追加パラメータであり、1-01（[M-TMPL-ENEMY-1-01]）はいずれも
-// 解放されないため規定値のまま据え置く。
+// [M-BASE-AR-MARTIAL]（基本・急襲・重撃）。VP/PP/APダメージ・封印・スリップ・デバフ・コピーは
+// 該当特性を持つ技のみの追加パラメータであり、アクト1（[M-TMPL-ENEMY-1-01]・[M-TMPL-ENEMY-1-02]）は
+// いずれも解放されないため規定値のまま据え置く。
 function martial(kind, arTenths) {
   const base = defaultParams();
   base.cost_pp = coeffTimesAr(33, arTenths, false);
@@ -101,6 +101,14 @@ function martial(kind, arTenths) {
     base.step_recovery = coeffOverSqrt(136, arTenths, false);
     base.range = 1;
     base.atk = coeffTimesSqrt(346, arTenths, false);
+    base.dmg_hp = coeffTimesSqrt(38, arTenths, true);
+  } else if (kind === 'rush') {
+    base.cost_ap = coeffTimesSqrt(115, arTenths, false);
+    base.step_thought = 0;
+    base.step_startup = coeffOverSqrt(34, arTenths, false);
+    base.step_recovery = coeffOverSqrt(238, arTenths, false);
+    base.range = 2;
+    base.atk = coeffTimesSqrt(173, arTenths, false);
     base.dmg_hp = coeffTimesSqrt(38, arTenths, true);
   } else {
     // heavy（重撃）
@@ -206,6 +214,78 @@ export function generateEnemyLefActions(level) {
     rootMartialRecord(),
   ];
   return records;
+}
+
+// [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-02]
+// 1-02 の敵マスター「辺境伯ドルン」が生成する所持アクション一式。追加枠は同変種の基本型の直後に置く。
+export function generateEnemyDornActions(level) {
+  const arBase = level * 10; // AR ≒ L * 1.0
+  const arDouble = level * 20; // AR ≒ L * 2.0
+  const arTriple = level * 30; // AR ≒ L * 3.0
+
+  return [
+    buildRecord(classId('MIND', arBase), '心気（基本）', USES_BASIC, true, mind('basic', arBase)),
+    buildRecord(classId('MUSOU', arBase), '心気（無想）', USES_HEAVY, true, mind('musou', arBase)),
+    buildRecord(classId('SLASH', arBase), '武技（基本）', USES_BASIC, true, martial('basic', arBase)),
+    buildRecord(classId('SLASH', arDouble), '武技（基本）', USES_BASIC, true, martial('basic', arDouble)),
+    buildRecord(classId('SLASH', arTriple), '武技（基本）', USES_BASIC, true, martial('basic', arTriple)),
+    buildRecord(classId('RUSH', arBase), '武技（急襲）', USES_HEAVY, true, martial('rush', arBase)),
+    buildRecord(classId('HEAVY', arBase), '武技（重撃）', USES_HEAVY, true, martial('heavy', arBase)),
+    buildRecord(classId('GUARD', arBase), '体勢（基本）', USES_BASIC, true, stance(arBase)),
+    buildRecord(classId('GUARD', arDouble), '体勢（基本）', USES_BASIC, true, stance(arDouble)),
+    rootMartialRecord(),
+  ];
+}
+
+// [M-DATA-ENEMYMASTER] 1-02 敵マスター「辺境伯ドルン」（[S-ENEMY-1-02]）。
+export function generateEnemyDorn(level, maxHp) {
+  const actions = generateEnemyDornActions(level);
+  return {
+    record: {
+      enemy_id: 'ENEMY_DORN',
+      display_name: 'ドルン',
+      role_name: '辺境伯',
+      max_hp: maxHp,
+      // [A-BOOK-TABLE] B-02・[A-PROFILE-TABLE] PROFILE_ASSAULT
+      acts: actions.map((action) => action.class_id),
+      ai_profile_id: 'PROFILE_ASSAULT',
+      book_id: 'B-02',
+      fixed_cycle: null,
+      audit_exempt: false,
+    },
+    actions,
+  };
+}
+
+// [M-DATA-SCENEMASTER] 人が書く入力（authoring/scenes.js）をレコードへ写す。値の算出を伴わない。
+export function buildSceneRecords(scenes) {
+  const result = {};
+  for (const scene of scenes) {
+    result[scene.scene_id] = { ...scene, unlock: [...scene.unlock], eval_mask: scene.eval_mask === null ? null : [...scene.eval_mask] };
+  }
+  return result;
+}
+
+// 小数表記の文字列（'4.50'）を centi 整数へ変換する。浮動小数を経由しない（[I-NUM-FIXEDPOINT]）。
+export function decimalStringToCenti(text) {
+  const match = /^([0-9]+)\.([0-9]{2})$/.exec(text);
+  if (match === null) {
+    throw new Error(`小数第2位までの表記ではない: ${text}`);
+  }
+  return Number(match[1]) * 100 + Number(match[2]);
+}
+
+// [M-DATA-ATTENDANTMASTER] 係数は centi で出力する。
+export function buildAttendantRecords(attendants) {
+  const result = {};
+  for (const attendant of attendants) {
+    const coeffs = {};
+    for (const key of Object.keys(attendant.coeffs).sort()) {
+      coeffs[key] = decimalStringToCenti(attendant.coeffs[key]);
+    }
+    result[attendant.attendant_id] = { ...attendant, coeffs };
+  }
+  return result;
 }
 
 // [M-DATA-HERO-INIT] 主人公初期所持アクション（AR はシーンレベルに依存しない固定値）。

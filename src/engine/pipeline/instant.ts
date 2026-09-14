@@ -14,7 +14,7 @@ import { INFINITE_USES } from '../params.js';
 import { resolveAction } from '../resolve/order.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import type { ActionInstance, BattleState, LastActionSnapshot, Unit } from '../types.js';
-import type { BattleOutcome } from './p5-discard.js';
+import { removeCreatures, type BattleOutcome } from './p5-discard.js';
 import { runP6Advance } from './p6-advance.js';
 
 export interface InstantDeps {
@@ -41,16 +41,8 @@ function discardDeadAndCheckVictory(state: BattleState): BattleOutcome {
   const mineAlive = hasMaster(state, 'MINE');
   const foeAlive = hasMaster(state, 'FOE');
   if (!mineAlive || !foeAlive) {
-    if (!mineAlive) {
-      for (let idx = 0; idx < state.units.length; idx += 1) {
-        state.units[idx] = null;
-      }
-      return 'LOSS';
-    }
-    for (let idx = 0; idx < state.units.length; idx += 1) {
-      state.units[idx] = null;
-    }
-    return 'WIN';
+    removeCreatures(state);
+    return mineAlive ? 'WIN' : 'LOSS';
   }
   return 'NONE';
 }

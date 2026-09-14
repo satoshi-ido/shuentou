@@ -28,26 +28,30 @@ export interface StepResult {
   readonly outcome: BattleOutcome;
 }
 
-// 《処理1》〜《処理8》。[M-PIPE-STEPEND] の一斉加算は含まない。
-export function runStepBody(state: BattleState, decisionFor: DecisionProvider, deps: StepDeps): BattleOutcome {
-  let outcome: BattleOutcome = 'NONE';
-
-  if (state.step !== 0) {
-    const { firingUnitIds, defenseSnapshot } = runP1Freeze(state);
-    runP2Apply(state, firingUnitIds, defenseSnapshot, deps);
-    const recoveryCompleteIds = runP3Recovery(state);
-    runP4Slip(state, recoveryCompleteIds);
-    outcome = runP5Discard(state);
-    if (outcome === 'NONE') {
-      runP6Advance(state);
-      runP7Landing(state, recoveryCompleteIds);
-    }
+// 《処理1》〜《処理7》。ステップ0は一律スキップする。
+export function runPreDecision(state: BattleState, deps: StepDeps): BattleOutcome {
+  if (state.step === 0) {
+    return 'NONE';
   }
-
+  const { firingUnitIds, defenseSnapshot } = runP1Freeze(state);
+  runP2Apply(state, firingUnitIds, defenseSnapshot, deps);
+  const recoveryCompleteIds = runP3Recovery(state);
+  runP4Slip(state, recoveryCompleteIds);
+  const outcome = runP5Discard(state);
   if (outcome === 'NONE') {
-    outcome = runP8Decision(state, decisionFor, deps);
+    runP6Advance(state);
+    runP7Landing(state, recoveryCompleteIds);
   }
   return outcome;
+}
+
+// 《処理1》〜《処理8》。[M-PIPE-STEPEND] の一斉加算は含まない。
+export function runStepBody(state: BattleState, decisionFor: DecisionProvider, deps: StepDeps): BattleOutcome {
+  const outcome = runPreDecision(state, deps);
+  if (outcome !== 'NONE') {
+    return outcome;
+  }
+  return runP8Decision(state, decisionFor, deps);
 }
 
 export function advanceStep(state: BattleState, decisionFor: DecisionProvider, deps: StepDeps): StepResult {
