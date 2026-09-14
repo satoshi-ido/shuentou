@@ -1,0 +1,36 @@
+/* [I-PLAN-ASSETS]「書体」system-ui を先頭に日本語ゴシック体を並べ、ウェブフォントを読み込まない。 */
+:root {
+  --font-ui: system-ui, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Yu Gothic UI', 'Meiryo', sans-serif;
+  --ground: #14110f;
+  --ink: #f4efe6;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #000;
+  overflow: hidden; /* [M-UI-VIEWPORT] 画面全体のスクロールを生じさせない */
+}
+
+#viewport {
+  position: fixed;
+  inset: 0;
+}
+
+#stage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1280px;
+  height: 720px;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  user-select: none;
+}
+
+/* [M-UI-HUD] の数値表示に限り等幅数字を指定する。 */
+.num {
+  font-variant-numeric: tabular-nums;
+}

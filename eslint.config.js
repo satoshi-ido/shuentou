@@ -96,7 +96,7 @@ const deterministicLayerRestriction = {
 
 export default tseslint.config(
   // docs/ はプロトタイプ実装（00#3.1）を含み、実装に引き継がずいかなる事実の正本でもないため対象外とする。
-  { ignores: ['node_modules/**', 'docs/**'] },
+  { ignores: ['node_modules/**', 'docs/**', 'dist/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
