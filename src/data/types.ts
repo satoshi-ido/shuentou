@@ -52,6 +52,56 @@ export interface ActionMasterRecord {
   readonly params: ActionParams;
 }
 
+// [M-DATA-SCENEMASTER]
+export interface SceneMasterRecord {
+  readonly scene_id: string;
+  readonly display_name: string;
+  readonly act: number;
+  readonly order: number;
+  readonly attendant_capacity: number;
+  readonly unlock: readonly string[]; // 語彙は [M-DATA-UNLOCKKEYS]
+  readonly level: number;
+  readonly enemy_id: string;
+  readonly hp_bonus_base: number | null;
+  readonly max_depth: number | null;
+  readonly node_limit: number | null;
+  readonly joint_action: boolean;
+  readonly deferred_decision: boolean;
+  readonly eval_mask: readonly string[] | null;
+  readonly inertia_steps: number | null;
+  readonly expected_length: number | null;
+}
+
+// [M-DATA-COEFFKEYS]
+export type CoeffKey =
+  | 'thRate'
+  | 'stRate'
+  | 'rcRate'
+  | 'costRate'
+  | 'decayApRate'
+  | 'deployRate'
+  | 'rangeRate'
+  | 'atkRate'
+  | 'dmgRate'
+  | 'gainVpRate'
+  | 'chargePpRate'
+  | 'purifyRate'
+  | 'stripRate'
+  | 'giveBuffRate'
+  | 'giveDebuffRate'
+  | 'usesRate'
+  | 'hpAddRate';
+
+// [M-DATA-ATTENDANTMASTER] coeffs は centi。未記載のキーは ×1.00。
+export interface AttendantMasterRecord {
+  readonly attendant_id: string;
+  readonly display_name: string;
+  readonly epithet: string;
+  readonly join_act: number;
+  readonly is_fixed: boolean;
+  readonly coeffs: Readonly<Partial<Record<CoeffKey, number>>>;
+}
+
 // [M-DATA-ENEMYMASTER]
 export interface EnemyMasterRecord {
   readonly enemy_id: string; // 体系は [M-DATA-ENEMYID]

@@ -2,8 +2,7 @@
 // 各テストが検証したい特徴量・境界値だけを直接指定できるようにする。
 
 import { createBattleState } from '../../src/engine/battle.js';
-import { instantiateAction, resetInstanceIdSeq } from '../../src/engine/instantiate.js';
-import { resetUnitIdSeq } from '../../src/engine/battle.js';
+import { instantiateAction, type InstanceIdCounter } from '../../src/engine/instantiate.js';
 import type { ActionMasterRecord, ActionParams } from '../../src/data/types.js';
 import type { ActionInstance, BattleState } from '../../src/engine/types.js';
 
@@ -56,10 +55,12 @@ export function martialAction(classId: string, params: Partial<ActionParams>): A
   return makeAction(classId, { range: 1, atk: 0, dmg_hp: 100, ...params });
 }
 
-// マスタ配列からインスタンス配列を生成する。呼び出しごとに採番をリセットしないため、
-// 1テスト内で複数回呼ぶ場合は先に resetInstanceIdSeq を呼ぶこと。
-export function instantiateAll(records: readonly ActionMasterRecord[]): ActionInstance[] {
-  return records.map((record) => instantiateAction(record));
+// マスタ配列からインスタンス配列を生成する。counter を省略すると 0 から採番する。
+export function instantiateAll(
+  records: readonly ActionMasterRecord[],
+  counter: InstanceIdCounter = { instance_id_seq: 0 },
+): ActionInstance[] {
+  return records.map((record) => instantiateAction(record, counter));
 }
 
 export interface DuelOptions {
@@ -72,10 +73,9 @@ export interface DuelOptions {
 
 // [M-FIELD-PLACEMENT] 1v1（クリーチャー不在）の最小バトルステートを生成する。
 export function createDuel(options: DuelOptions): BattleState {
-  resetUnitIdSeq(0);
-  resetInstanceIdSeq(0);
-  const heroActs = instantiateAll(options.heroActs);
-  const enemyActs = instantiateAll(options.enemyActs);
+  const counter: InstanceIdCounter = { instance_id_seq: 0 };
+  const heroActs = instantiateAll(options.heroActs, counter);
+  const enemyActs = instantiateAll(options.enemyActs, counter);
   return createBattleState({
     sceneLevel: options.sceneLevel ?? 3,
     heroMaxHp: options.heroMaxHp,

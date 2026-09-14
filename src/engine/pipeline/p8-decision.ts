@@ -44,11 +44,32 @@ function sideUnits(state: BattleState, side: Side): Unit[] {
   return state.units.filter((unit): unit is Unit => unit !== null && unit.side === side);
 }
 
+// [M-PIPE-P8-ORDER]#1・#3 採択された実行可能アクションを実行ルーティングに渡す。
+export function executeAction(state: BattleState, unit: Unit, action: ActionInstance, deps: P8Deps): BattleOutcome {
+  if (isInstant(action)) {
+    return runInstant(state, unit, action, deps);
+  }
+  confirmNormalAction(unit, action);
+  return 'NONE';
+}
+
+export interface DecisionLoopResult {
+  readonly outcome: BattleOutcome;
+  // [M-PIPE-PAUSE-TRIGGER]#2 の判定に用いる。1件以上のアクションを実行したとき true。
+  readonly acted: boolean;
+}
+
 // [M-PIPE-P8-ORDER]#1「評価・行動確定ループ」／#3「プレイヤー指示」を1本の手続きに統一する。
 // 瞬動アクション実行後は同一ユニットが即座に思考中へ戻りうるため（[M-PIPE-INSTANT]#4）、
 // 決定がなくなるまで走査を繰り返す。1ユニットにつき PASS は1ステップ内で1回のみ問い合わせる。
-function runDecisionLoop(state: BattleState, side: Side, decisionFor: DecisionProvider, deps: P8Deps): BattleOutcome {
+export function runSideDecisionLoop(
+  state: BattleState,
+  side: Side,
+  decisionFor: DecisionProvider,
+  deps: P8Deps,
+): DecisionLoopResult {
   const passed: string[] = [];
+  let acted = false;
   const maxIterations = 64;
   for (let i = 0; i < maxIterations; i += 1) {
     const candidate = sideUnits(state, side).find((unit) => unit.state === 'THOUGHT' && !passed.includes(unit.unit_id));
@@ -65,23 +86,19 @@ function runDecisionLoop(state: BattleState, side: Side, decisionFor: DecisionPr
       passed.push(candidate.unit_id);
       continue;
     }
-    if (isInstant(action)) {
-      const outcome = runInstant(state, candidate, action, deps);
-      if (outcome !== 'NONE') {
-        return outcome;
-      }
-      // 瞬動で同一ステップ内に再着地した場合は再評価ループを継続する（passed には積まない）。
-    } else {
-      confirmNormalAction(candidate, action);
+    acted = true;
+    const outcome = executeAction(state, candidate, action, deps);
+    if (outcome !== 'NONE') {
+      return { outcome, acted };
     }
   }
-  return 'NONE';
+  return { outcome: 'NONE', acted };
 }
 
 export function runP8Decision(state: BattleState, decisionFor: DecisionProvider, deps: P8Deps): BattleOutcome {
-  const foeOutcome = runDecisionLoop(state, 'FOE', decisionFor, deps);
-  if (foeOutcome !== 'NONE') {
-    return foeOutcome;
+  const foe = runSideDecisionLoop(state, 'FOE', decisionFor, deps);
+  if (foe.outcome !== 'NONE') {
+    return foe.outcome;
   }
-  return runDecisionLoop(state, 'MINE', decisionFor, deps);
+  return runSideDecisionLoop(state, 'MINE', decisionFor, deps).outcome;
 }

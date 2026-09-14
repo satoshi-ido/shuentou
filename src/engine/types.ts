@@ -29,12 +29,15 @@ export interface LastActionSnapshot {
   readonly is_copy: boolean;
 }
 
-// [M-STATE-ACTION] ActionInstance。base_params は [M-CALC-PIPELINE]#1 で確定した静的パラメータ基礎値。
+// [M-STATE-ACTION] ActionInstance。base_params は [M-CALC-PIPELINE]#1 で確定した静的パラメータ基礎値であり、
+// 統合（[M-INHERIT-MERGE]）でのみ更新される。merge_params は統合キーの基礎値部分（係数適用前）。
 export interface ActionInstance {
   readonly instance_id: string;
   readonly master_ref: string; // class_id
-  readonly sys_flags: SysFlags;
-  readonly base_params: ActionParams;
+  sys_flags: SysFlags;
+  base_params: ActionParams;
+  readonly merge_params: ActionParams;
+  uses_initial: number; // 無限は INFINITE_USES(-1)
   uses_left: number; // 無限は INFINITE_USES(-1)
   seal_accum: number; // centi
   is_copy: boolean;

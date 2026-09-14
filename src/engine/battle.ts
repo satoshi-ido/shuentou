@@ -1,36 +1,32 @@
-// [M-FIELD-PLACEMENT] バトル開始時（ステップ0）の配置。
+// [M-FIELD-PLACEMENT] [I-STATE-ID] バトル開始時（ステップ0）の配置。
 // [M-FIELD-GRID] 横4マス × 1列。idx: 0=自軍後列, 1=自軍前列, 2=敵軍前列, 3=敵軍後列。
 
 import type { EnemyMasterRecord } from '../data/types.js';
 import { createZeroParamMap } from './params.js';
 import type { ActionInstance, BattleState, Side, Unit, UnitKind } from './types.js';
 
-let nextUnitIdSeq = 0;
-
-// [I-STATE-ID] U + 4桁ゼロ詰め連番。
-export function resetUnitIdSeq(startAt = 0): void {
-  nextUnitIdSeq = startAt;
-}
-
-function nextUnitId(): string {
-  const id = `U${String(nextUnitIdSeq).padStart(4, '0')}`;
-  nextUnitIdSeq += 1;
+// [I-STATE-ID] U + 4桁ゼロ詰め連番。採番位置は [M-STATE-BATTLESTATE] の unit_id_seq が保持する。
+export function allocateUnitId(state: Pick<BattleState, 'unit_id_seq'>): string {
+  const id = `U${String(state.unit_id_seq).padStart(4, '0')}`;
+  state.unit_id_seq += 1;
   return id;
 }
 
 function createUnit(
+  unitId: string,
   side: Side,
   unitKind: UnitKind,
   posIdx: number,
   maxHp: number,
+  hp: number,
   acts: ActionInstance[],
 ): Unit {
   return {
-    unit_id: nextUnitId(),
+    unit_id: unitId,
     side,
     unit_kind: unitKind,
     pos_idx: posIdx,
-    hp: maxHp,
+    hp,
     max_hp: maxHp,
     vp: 0,
     pp: 0,
@@ -51,23 +47,26 @@ function createUnit(
 export interface CreateBattleOptions {
   readonly sceneLevel: number;
   readonly heroMaxHp: number;
+  readonly heroHp?: number;
   readonly heroActs: ActionInstance[];
   readonly enemyRecord: EnemyMasterRecord;
   readonly enemyActs: ActionInstance[];
 }
 
-// [M-STATE-BATTLESTATE] 初期生成（ステップ0）。クリーチャーは不在（1-01 は召喚を持たない）。
+// [M-STATE-BATTLESTATE] 初期生成（ステップ0）。クリーチャーは不在。
 export function createBattleState(options: CreateBattleOptions): BattleState {
-  const hero = createUnit('MINE', 'MASTER', 1, options.heroMaxHp, options.heroActs);
-  const enemy = createUnit('FOE', 'MASTER', 2, options.enemyRecord.max_hp, options.enemyActs);
-  const units: (Unit | null)[] = [null, hero, enemy, null];
-  return {
+  const state: BattleState = {
     step: 0,
     scene_level: options.sceneLevel,
-    units,
-    unit_id_seq: nextUnitIdSeq,
+    units: [null, null, null, null],
+    unit_id_seq: 0,
     instant_used: {},
   };
+  const heroHp = options.heroHp ?? options.heroMaxHp;
+  state.units[1] = createUnit(allocateUnitId(state), 'MINE', 'MASTER', 1, options.heroMaxHp, heroHp, options.heroActs);
+  const enemyMaxHp = options.enemyRecord.max_hp;
+  state.units[2] = createUnit(allocateUnitId(state), 'FOE', 'MASTER', 2, enemyMaxHp, enemyMaxHp, options.enemyActs);
+  return state;
 }
 
 export function unitAt(state: BattleState, posIdx: number): Unit | null {

@@ -1,11 +1,20 @@
 // [I-PLAN-MASTERGEN]
-// `pnpm gen:master` のエントリポイント。M0 の範囲は 1-01 の敵マスターおよび
-// 主人公初期キット（[M-DATA-HERO-INIT]）に限る（[I-PLAN-MASTERGEN]［M0 の範囲］）。
+// `pnpm gen:master` のエントリポイント。範囲は [I-PLAN-MASTERGEN]［M0 の範囲］および
+// [I-PLAN-MILESTONE]［M3 のマスタ範囲］に従う。
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateEnemyLef, generateHeroInitActions, mergeActionRecords } from './lib.js';
+import { ATTENDANTS } from './authoring/attendants.js';
+import { SCENES } from './authoring/scenes.js';
+import {
+  buildAttendantRecords,
+  buildSceneRecords,
+  generateEnemyDorn,
+  generateEnemyLef,
+  generateHeroInitActions,
+  mergeActionRecords,
+} from './lib.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, '..', '..', 'src', 'data', 'generated');
@@ -23,23 +32,13 @@ function sortedEntries(record) {
     .map((key) => [key, record[key]]);
 }
 
-function serializeActionMasters(record) {
+function serializeRecordMap(constName, typeName, record) {
   const body = sortedEntries(record)
     .map(([key, value]) => `  ${JSON.stringify(key)}: ${JSON.stringify(value, null, 2).replace(/\n/g, '\n  ')},`)
     .join('\n');
   return (
-    "import type { ActionMasterRecord } from '../types.js';\n\n" +
-    `export const ACTION_MASTERS = {\n${body}\n} as const satisfies Record<string, ActionMasterRecord>;\n`
-  );
-}
-
-function serializeEnemyMasters(record) {
-  const body = sortedEntries(record)
-    .map(([key, value]) => `  ${JSON.stringify(key)}: ${JSON.stringify(value, null, 2).replace(/\n/g, '\n  ')},`)
-    .join('\n');
-  return (
-    "import type { EnemyMasterRecord } from '../types.js';\n\n" +
-    `export const ENEMY_MASTERS = {\n${body}\n} as const satisfies Record<string, EnemyMasterRecord>;\n`
+    `import type { ${typeName} } from '../types.js';\n\n` +
+    `export const ${constName} = {\n${body}\n} as const satisfies Record<string, ${typeName}>;\n`
   );
 }
 
@@ -47,17 +46,30 @@ function serializeHeroInit(order) {
   return `export const HERO_INIT_ACTIONS = ${JSON.stringify(order, null, 2)} as const satisfies readonly string[];\n`;
 }
 
+function sceneById(sceneId) {
+  const scene = SCENES.find((entry) => entry.scene_id === sceneId);
+  if (scene === undefined) {
+    throw new Error(`未知のシーンID: ${sceneId}`);
+  }
+  return scene;
+}
+
 function main() {
-  const level = 3; // [M-DATA-SCENES] 1-01
-  const maxHp = 10; // [M-DATA-SCENES] 1-01
-  const lef = generateEnemyLef(level, maxHp);
+  // 敵マスター HP は [M-DATA-SCENES] の「敵マスター HP」列による。
+  const lef = generateEnemyLef(sceneById('SCENE_1_01').level, 10);
+  const dorn = generateEnemyDorn(sceneById('SCENE_1_02').level, 27);
   const heroInit = generateHeroInitActions();
 
-  const actionMasters = mergeActionRecords([lef.actions, heroInit.records]);
-  const enemyMasters = { [lef.record.enemy_id]: lef.record };
+  const actionMasters = mergeActionRecords([lef.actions, dorn.actions, heroInit.records]);
+  const enemyMasters = { [lef.record.enemy_id]: lef.record, [dorn.record.enemy_id]: dorn.record };
 
-  writeGenerated('action-masters.ts', serializeActionMasters(actionMasters));
-  writeGenerated('enemy-masters.ts', serializeEnemyMasters(enemyMasters));
+  writeGenerated('action-masters.ts', serializeRecordMap('ACTION_MASTERS', 'ActionMasterRecord', actionMasters));
+  writeGenerated('enemy-masters.ts', serializeRecordMap('ENEMY_MASTERS', 'EnemyMasterRecord', enemyMasters));
+  writeGenerated('scene-masters.ts', serializeRecordMap('SCENE_MASTERS', 'SceneMasterRecord', buildSceneRecords(SCENES)));
+  writeGenerated(
+    'attendant-masters.ts',
+    serializeRecordMap('ATTENDANT_MASTERS', 'AttendantMasterRecord', buildAttendantRecords(ATTENDANTS)),
+  );
   writeGenerated('hero-init.ts', serializeHeroInit(heroInit.order));
 }
 

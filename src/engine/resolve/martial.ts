@@ -104,6 +104,8 @@ function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit): voi
     master_ref: memory.class_id,
     sys_flags: memory.sys_flags,
     base_params: { ...memory.params },
+    merge_params: { ...memory.params },
+    uses_initial: memory.uses_left_before,
     uses_left: memory.uses_left_before,
     seal_accum: 0,
     is_copy: true,
