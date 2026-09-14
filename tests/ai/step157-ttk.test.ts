@@ -1,11 +1,6 @@
-// [A-EVAL-TTK] [V-NUM-STEP157] ステップ157の候補手評価（[V-TEST-POSITIONS] T-18 の局面）を、
-// 定跡を無効化した単体検証として再現する。合本の表に掲載された TTK(敵→主) の実数値と、
-// 本実装の ttk()/quiesce() の出力が一致することを確認する。
-//
-// TTK(主→敵) は本実装では検証対象としない（[src/ai/ttk.ts] 冒頭コメントの開示：多段命中かつ
-// リソース補充を要する場合に合本掲載値と数ステップのずれが生じるため）。到達時間・妨害モデル・
-// 着弾予測時点の防御力／距離の検証は TTK(敵→主) の4例（体勢AR3・体勢AR6・武技重撃AR3・パス）で
-// 十分に行える。
+// [V-NUM-STEP157] ステップ157の候補手評価（定跡無効時の単体検証）と [V-TEST-POSITIONS] T-18。
+// 各候補手を適用した局面の TTK(敵→主)・TTK(主→敵)・x_survival・生存項＋PASS減点が、[A-EVAL-TTK] の
+// 算出手続きの出力として掲載値と一致することを確認する。
 
 import { describe, expect, it } from 'vitest';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
@@ -18,10 +13,16 @@ import { createScene } from '../../src/engine/setup.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { applyMove } from '../../src/ai/apply.js';
 import { cloneState } from '../../src/ai/clone.js';
+import { SCALE } from '../../src/ai/constants.js';
+import { signedRoundDiv } from '../../src/ai/fixed.js';
+import { defaultProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 import { runQuiescence } from '../../src/ai/quiesce.js';
-import { ttk } from '../../src/ai/ttk.js';
+import { decideActionDetailed } from '../../src/ai/search.js';
+import { ttk, xSurvival } from '../../src/ai/ttk.js';
 
 const PREFERRED_CLASS_ID = 'ACT_MIND_AR3';
+const W_SURVIVAL = 4000;
+const FRENZY_PASS = -800; // [A-PROFILE-TABLE] 狂乱プロファイル
 
 const scriptedDecision: DecisionProvider = (state: BattleState, unit: Unit): Decision => {
   const preferred = executableActions(state, unit).find((action) => action.master_ref === PREFERRED_CLASS_ID);
@@ -60,45 +61,61 @@ function findUnit(state: BattleState, side: 'MINE' | 'FOE'): Unit {
   return unit;
 }
 
-// TTK(敵→主) のみを返す（上部コメントの理由により TTK(主→敵) は対象外）。
-function teAfter(state: BattleState, instanceIdOrPass: string | null): number {
-  const clone = cloneState(state);
-  const enemy = findUnit(clone, 'FOE');
-  const move =
-    instanceIdOrPass === null
-      ? ({ kind: 'PASS' } as const)
-      : ({ kind: 'ACT', action: enemy.acts.find((a) => a.instance_id === instanceIdOrPass)! } as const);
-  applyMove(clone, enemy, move, deps);
-  const hero = findUnit(clone, 'MINE');
-  const enemyAfter = findUnit(clone, 'FOE');
-  const { trace } = runQuiescence(cloneState(clone), deps);
-  return ttk(enemyAfter, hero, { trace, level: clone.scene_level });
+interface Row {
+  readonly te: number;
+  readonly tp: number;
+  readonly xSurvivalMilli: number;
+  readonly total: number;
 }
 
-describe('[V-NUM-STEP157] 候補手評価（定跡無効時の単体検証）TTK(敵→主)', () => {
-  it('体勢AR3: 708', () => {
+function rowAfter(classIdOrPass: string): Row {
+  const state = step157State();
+  const enemy = findUnit(state, 'FOE');
+  const move =
+    classIdOrPass === 'PASS'
+      ? ({ kind: 'PASS' } as const)
+      : ({ kind: 'ACT', action: enemy.acts.find((a) => a.master_ref === classIdOrPass)! } as const);
+  applyMove(state, enemy, move, deps);
+  const { trace } = runQuiescence(cloneState(state), deps);
+  const inputs = { trace, level: state.scene_level };
+  const tp = ttk(findUnit(state, 'MINE'), findUnit(state, 'FOE'), inputs);
+  const te = ttk(findUnit(state, 'FOE'), findUnit(state, 'MINE'), inputs);
+  const x = xSurvival(tp, te, SCALE);
+  const survival = signedRoundDiv(W_SURVIVAL * x, SCALE);
+  return {
+    te,
+    tp,
+    xSurvivalMilli: signedRoundDiv(x * 1000, SCALE),
+    total: survival + (classIdOrPass === 'PASS' ? FRENZY_PASS : 0),
+  };
+}
+
+describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
+  it.each([
+    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 999, tp: 787, xSurvivalMilli: -119, total: -477 } },
+    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 999, tp: 875, xSurvivalMilli: -66, total: -266 } },
+    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 787, tp: 681, xSurvivalMilli: -72, total: -289 } },
+    { move: 'PASS', label: 'パス', expected: { te: 607, tp: 437, xSurvivalMilli: -163, total: -1452 } },
+  ])('$label', ({ move, expected }) => {
+    expect(rowAfter(move)).toEqual(expected);
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-18 パスへの負のボーナスと妨害モデル（定跡無効）', () => {
+  const frenzy: EffectiveProfile = { ...defaultProfile(), actionBonus: { PASS: FRENZY_PASS } };
+
+  function chosen(prof: EffectiveProfile): string {
     const state = step157State();
     const enemy = findUnit(state, 'FOE');
-    const guard3 = enemy.acts.find((a) => a.master_ref === 'ACT_GUARD_AR3')!;
-    expect(teAfter(state, guard3.instance_id)).toBe(708);
+    const { decision } = decideActionDetailed(state, enemy, prof, deps);
+    return decision.kind === 'PASS' ? 'PASS' : enemy.acts.find((a) => a.instance_id === decision.instanceId)!.master_ref;
+  }
+
+  it('T-18: 生存項のみの比較（PASS −800 を加味）では体勢AR6を選ぶ', () => {
+    expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_GUARD_AR6');
   });
 
-  it('体勢AR6: 662', () => {
-    const state = step157State();
-    const enemy = findUnit(state, 'FOE');
-    const guard6 = enemy.acts.find((a) => a.master_ref === 'ACT_GUARD_AR6')!;
-    expect(teAfter(state, guard6.instance_id)).toBe(662);
-  });
-
-  it('武技（重撃）AR3: 787（発生236の投資が妨害の遮蔽として働く）', () => {
-    const state = step157State();
-    const enemy = findUnit(state, 'FOE');
-    const heavy3 = enemy.acts.find((a) => a.master_ref === 'ACT_HEAVY_AR3')!;
-    expect(teAfter(state, heavy3.instance_id)).toBe(787);
-  });
-
-  it('パス: 607（妨害補正が有効に働く）', () => {
-    const state = step157State();
-    expect(teAfter(state, null)).toBe(607);
+  it('T-18: 1-01 の実効プロファイルによる探索では非パス手（武技（重撃）AR3）を選ぶ', () => {
+    expect(chosen(frenzy)).toBe('ACT_HEAVY_AR3');
   });
 });
