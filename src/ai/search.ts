@@ -129,7 +129,11 @@ function rankMoves(
       const passedAfter = move.kind === 'PASS' ? [...passedUnitIds, unit.unit_id] : passedUnitIds;
       value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter);
     }
-    value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+    // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
+    // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
+    if (ply === 0) {
+      value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+    }
     ranked.push({ move, value, outcome });
   }
   return ranked;

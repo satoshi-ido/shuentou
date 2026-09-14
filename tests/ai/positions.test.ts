@@ -1,13 +1,17 @@
 // [V-TEST-POSITIONS] 局面テストスイート（EPD方式）。各評価項につき3局面を置く。
 // 局面は実データに依存しない最小構成で組み、検証対象の特徴量・境界だけを直接指定する。
-// T-02・T-03 は tests/ai/hit-threshold.test.ts、T-18 の TTK 実数値は tests/ai/step157-ttk.test.ts にある。
+// T-12 は 1-01 の実データによる局面（tests/ai/positions-1-01.test.ts）、T-18 の TTK 実数値は tests/ai/step157-ttk.test.ts にある。
 // 手の選択は参照プレイヤーAIと同じ全11項のプロファイル（[V-TEST-REFAI]）で判定する。
 
 import { describe, expect, it } from 'vitest';
 import type { ActionMasterRecord } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
+import { runPreDecision } from '../../src/engine/pipeline/step.js';
+import { cloneState } from '../../src/ai/clone.js';
 import { evaluate } from '../../src/ai/evaluate.js';
 import { referenceProfile } from '../../src/ai/profile.js';
+import { runQuiescence } from '../../src/ai/quiesce.js';
+import { ttk } from '../../src/ai/ttk.js';
 import {
   chosenClassId,
   createDuel,
@@ -106,7 +110,8 @@ describe('[V-TEST-POSITIONS] T-09 リソース項・候補生成', () => {
     const BASIC_MIND = makeAction('FOE_MIND_BASIC', { gain_vp: 5, charge_pp: charge, step_startup: 5, step_recovery: 5 });
     const HIT = martialAction('FOE_HIT', { atk: 10, dmg_hp: 500, cost_pp: ppCost, step_startup: 5, step_recovery: 5 });
     const HEAVY = martialAction('FOE_HEAVY', { atk: 20, dmg_hp: 1000, cost_pp: ppCost + 2, step_startup: 10, step_recovery: 10 });
-    const { state, enemy } = duel([MIND], [HIT, HEAVY, BASIC_MIND]);
+    const HERO_SLOW = martialAction('HERO_SLOW', { atk: 10, dmg_hp: 500, step_thought: 60, step_startup: 10, step_recovery: 10 });
+    const { state, enemy } = duel([HERO_SLOW], [HIT, HEAVY, BASIC_MIND]);
     enemy.pp = 0;
     expect(chosenClassId(state, enemy)).toBe('FOE_MIND_BASIC');
   });
@@ -284,5 +289,131 @@ describe('[V-TEST-POSITIONS] T-15 同着の非対称性', () => {
     hero.elapsed_thought = elapsed;
     enemy.elapsed_thought = elapsed;
     expect(evaluate(state, referenceProfile(), 0, NO_SUMMON_DEPS)).toBeGreaterThan(0);
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-14 リソース補充の加算', () => {
+  // TTK(a→d) = 到達時間 + 初回補充時間 + 実効発生 + (必要ヒット数−1)×フルサイクル + 後続補充回数×補充サイクル（[A-EVAL-TTK]）。
+  const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 1000, cost_pp: 2, step_thought: 20, step_startup: 10, step_recovery: 10 });
+  const CHARGE = makeAction('HERO_CHARGE', { gain_vp: 2, charge_pp: 100, step_thought: 30, step_startup: 5, step_recovery: 5 });
+  const HIT_CYCLE = 40;
+  const CHARGE_CYCLE = 40;
+
+  it.each([
+    { name: 'PP2・コスト2・必要ヒット数3', pp: 2, enemyHp: 90, expected: 20 + 10 + 2 * HIT_CYCLE + 2 * CHARGE_CYCLE },
+    { name: 'PP4・コスト2・必要ヒット数3', pp: 4, enemyHp: 90, expected: 20 + 10 + 2 * HIT_CYCLE + 1 * CHARGE_CYCLE },
+    { name: 'PP0・コスト2・必要ヒット数2', pp: 0, enemyHp: 60, expected: 20 + CHARGE_CYCLE + 10 + 1 * HIT_CYCLE + 1 * CHARGE_CYCLE },
+  ])('T-14: $name', ({ pp, enemyHp, expected }) => {
+    const { state, hero, enemy } = duel([HIT, CHARGE], [MIND], 60, enemyHp);
+    hero.pp = pp;
+    const { trace } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
+    const value = ttk(hero, enemy, { trace, level: state.scene_level });
+    const requiredHits = Math.ceil(enemyHp / 30);
+    const naiveVolley = 20 + 10 + (requiredHits - 1) * HIT_CYCLE;
+    expect(value).toBe(expected);
+    expect(value).toBeGreaterThan(naiveVolley);
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-24 同一陣営1ステップ1回制限', () => {
+  // 主人公マスター（前列）とクリーチャー（後列）の位置干渉付き通常武技が同一ステップに発動し、
+  // いずれも敵陣の前列・後列に命中する。入れ替えは1回のみ成立する（[M-PIPE-P2-APPLY]#3・[M-RESOLVE-INTERFERE]#4）。
+  it.each([
+    { name: '斥けと招き', master: 'PUSH', creature: 'PULL' },
+    { name: '斥けと斥け', master: 'PUSH', creature: 'PUSH' },
+    { name: '双方と双方', master: 'BOTH', creature: 'BOTH' },
+  ] as const)('T-24: $name', ({ master, creature }) => {
+    const M_HIT = martialAction('HERO_INTERFERE', { atk: 10, range: 2, dmg_hp: 100, interfere_pos: master, step_startup: 5, step_recovery: 10 });
+    const C_HIT = martialAction('CR_INTERFERE', { atk: 10, range: 3, dmg_hp: 100, interfere_pos: creature, step_startup: 5, step_recovery: 10 });
+    const IDLE = makeAction('FOE_IDLE', { gain_vp: 1, step_thought: 500 });
+    const { state, hero, enemy } = duel([M_HIT], [IDLE], 60, 60);
+    const counter = { instance_id_seq: 50 };
+    const heroCreature = placeUnit(state, { side: 'MINE', kind: 'CREATURE', pos: 0, maxHp: 30, acts: [C_HIT], counter });
+    const foeCreature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 3, maxHp: 30, acts: [IDLE], counter });
+    setStartup(hero, 'HERO_INTERFERE', 5);
+    setStartup(heroCreature, 'CR_INTERFERE', 5);
+    state.step = 1;
+
+    runPreDecision(state, NO_SUMMON_DEPS);
+
+    expect([enemy.pos_idx, foeCreature.pos_idx]).toEqual([3, 2]);
+    expect(state.units[2]).toBe(foeCreature);
+    expect(state.units[3]).toBe(enemy);
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-02/T-03 命中不能な技の火力0扱いと閾値', () => {
+  const STANCE = makeAction('FOE_STANCE', { deploy_ap: 30, step_startup: 5, step_recovery: 5 });
+  const HERO_HIT = martialAction('HERO_HIT', { atk: 20, dmg_hp: 500, step_thought: 20, step_startup: 10, step_recovery: 10 });
+
+  // 敵PPは潤沢。武技はいずれもPPコストを持ち、コストでは選択が妨げられない。
+  function position(heroAp: number, martials: readonly ActionMasterRecord[]): Duel {
+    const d = duel([HERO_HIT], [...martials, MIND, STANCE]);
+    d.hero.ap = heroAp;
+    d.enemy.pp = 50;
+    return d;
+  }
+
+  it.each([
+    { name: 'AP40、武技の攻撃力39・30', heroAp: 40, atks: [39, 30] },
+    { name: 'AP60、武技の攻撃力59', heroAp: 60, atks: [59] },
+    { name: 'AP25、武技の攻撃力24・10・1', heroAp: 25, atks: [24, 10, 1] },
+  ])('T-02: $name', ({ heroAp, atks }) => {
+    const martials = atks.map((atk, i) => martialAction(`FOE_HIT_${i}`, { atk, dmg_hp: 1500, cost_pp: 2, step_startup: 5, step_recovery: 5 }));
+    const { state, enemy } = position(heroAp, martials);
+    expect(['ACT_MIND', 'FOE_STANCE']).toContain(chosenClassId(state, enemy));
+  });
+
+  it.each([
+    { name: 'AP40、重撃の攻撃力41', heroAp: 40 },
+    { name: 'AP60、重撃の攻撃力61', heroAp: 60 },
+    { name: 'AP25、重撃の攻撃力26', heroAp: 25 },
+  ])('T-03: $name', ({ heroAp }) => {
+    const weak = martialAction('FOE_HIT_0', { atk: heroAp - 1, dmg_hp: 1500, cost_pp: 2, step_startup: 5, step_recovery: 5 });
+    const heavy = martialAction('FOE_HEAVY', { atk: heroAp + 1, dmg_hp: 1500, cost_pp: 2, step_startup: 5, step_recovery: 5 });
+    const { state, enemy } = position(heroAp, [weak, heavy]);
+    expect(chosenClassId(state, enemy)).toBe('FOE_HEAVY');
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-08 焦燥項', () => {
+  // 双方が体勢で壁を張り合った長期戦。敵はAP・PPともに潤沢で、壁を割れる武技を持つ。
+  it.each([
+    { name: '600ステップ経過', step: 600 },
+    { name: '800ステップ経過', step: 800 },
+    { name: '1200ステップ経過', step: 1200 },
+  ])('T-08: $name', ({ step }) => {
+    const HERO_GUARD = makeAction('HERO_GUARD', { deploy_ap: 60, step_thought: 60, step_startup: 20, step_recovery: 40 });
+    const FOE_GUARD = makeAction('FOE_GUARD', { deploy_ap: 60, step_startup: 20, step_recovery: 40 });
+    const BREAK = martialAction('FOE_BREAK', { atk: 65, dmg_hp: 800, cost_pp: 5, step_startup: 20, step_recovery: 20 });
+    const { state, hero, enemy } = duel([HERO_GUARD], [FOE_GUARD, MIND, BREAK]);
+    state.step = step;
+    hero.ap = 60;
+    enemy.ap = 60;
+    enemy.pp = 40;
+    setRecovery(hero, 'HERO_GUARD', 40, 10);
+    expect(chosenClassId(state, enemy)).toBe('FOE_BREAK');
+  });
+});
+
+describe('[V-TEST-POSITIONS] T-21 招きの固有発火条件（前列回避・後列命中）', () => {
+  // 主人公側は前列クリーチャーが体勢展開中（防御力40）、後列マスターは思考中でAP0・HP45。
+  // 敵の射程1の武技は後列マスターに届かない。招きでマスターを前列へ引き出せば、その武技で倒しきれる。
+  it.each([
+    { name: '射程2・攻撃力30の招き', range: 2, atk: 30, wall: 40 },
+    { name: '射程3・攻撃力30の招き', range: 3, atk: 30, wall: 40 },
+    { name: '射程2・攻撃力50の招きと壁60', range: 2, atk: 50, wall: 60 },
+  ])('T-21: $name', ({ range, atk, wall }) => {
+    const HERO_ROOT = martialAction('HERO_ROOT', { atk: 8, dmg_hp: 1000, step_thought: 300, step_startup: 14, step_recovery: 50 });
+    const CR_WALL = makeAction('CR_WALL', { deploy_ap: wall, def_efficiency: 100, step_startup: 5, step_recovery: 200 });
+    const PULL = martialAction('FOE_PULL', { atk, range, dmg_hp: 300, cost_pp: 2, interfere_pos: 'PULL', step_startup: 5, step_recovery: 10 });
+    const FOE_SLASH = martialAction('FOE_SLASH', { atk, dmg_hp: 1500, cost_pp: 2, step_startup: 10, step_recovery: 10 });
+    const { state, hero, enemy } = duel([HERO_ROOT], [MIND, FOE_SLASH, PULL], 45, 60);
+    moveUnit(state, hero, 0);
+    const creature = placeUnit(state, { side: 'MINE', kind: 'CREATURE', pos: 1, maxHp: 30, acts: [CR_WALL], counter: { instance_id_seq: 50 } });
+    creature.ap = wall;
+    setRecovery(creature, 'CR_WALL', 200, 10);
+    enemy.pp = 10;
+    expect(chosenClassId(state, enemy)).toBe('FOE_PULL');
   });
 });
