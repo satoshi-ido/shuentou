@@ -11,7 +11,7 @@ import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../data/generated/hero-init.j
 import { SCENE_MASTERS } from '../data/generated/scene-masters.js';
 import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMasterRecord } from '../data/types.js';
-import { instruct, resumeBattle, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
+import { instruct, resumeBattle, resumeTime, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
 import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../engine/game/intermission.js';
 import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } from '../engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
@@ -182,7 +182,7 @@ function attachClient(sceneId: string): void {
   client?.dispose();
   client = new AiDecisionClient(createAiWorkerPort(), sceneId, () => {
     // 応答後の再開も再生速度に従う（停止中は1ステップのみ進めて静止させる）。
-    battleResult = resumeBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) });
+    stepForward(stepsPerFrame(loop.speed));
     render();
   });
 }
@@ -334,6 +334,18 @@ const screenHandlers: ScreenHandlers = {
   },
 };
 
+// 時間を進める。自動時間停止中は確定操作2（ステップ進行確定・[M-STATE-HISTORY]）として
+// 停止を解いてから進め、停止していない場合はそのまま続きを進める。
+function stepForward(maxSteps: number): void {
+  const session = requireSession();
+  const state = session.data.run.battle_state;
+  const steps = Math.max(maxSteps, 1);
+  battleResult =
+    state !== null && state.pause_reason !== null
+      ? resumeTime(session, ctx, { maxSteps: steps })
+      : resumeBattle(session, ctx, { maxSteps: steps });
+}
+
 // 進行中のバトルから離れる：再生ループと探索ワーカーを止める。
 function leaveBattle(): void {
   loop.stop();
@@ -380,12 +392,18 @@ const battleHandlers: BattleScreenHandlers = {
     setWatch(requireSession(), instanceId, kind, !(state?.watching[instanceId]?.[kind] ?? false));
     render();
   },
+  // 1歩進める：時間停止を解いて1ステップだけ進め、再び静止させる。
   onResume: () => {
-    battleResult = resumeBattle(requireSession(), ctx, { maxSteps: 1 });
+    loop.speed = 'PAUSE';
+    stepForward(1);
     render();
   },
+  // 再生速度の選択。時間停止中に再生を選んだ場合は、ステップ進行確定として停止を解く。
   onSpeed: (speed) => {
     loop.speed = speed;
+    if (speed !== 'PAUSE' && battleResult === 'PAUSED') {
+      stepForward(stepsPerFrame(speed));
+    }
     render();
   },
   // 注目の記録のみ。提示は画面側がその場で描き替えるため再描画しない。
@@ -439,6 +457,7 @@ function renderBattle(): HTMLElement | null {
       selectedInstanceId,
       focusedInstanceId,
       speed: loop.speed,
+      stopped: battleResult === 'PAUSED',
       rewind: {
         count: meta.total_rewind_count,
         pending: pending.rewind_pending,

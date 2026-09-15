@@ -584,12 +584,14 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
 
   const top = element('div', 'timebar-row-top');
   const transport = element('div', 'transport');
+  // 自動時間停止中は、設定した速度ではなく停止していることを点灯で示す（[M-UI-PLAYBACK]）。
+  const lit: PlaybackSpeed = screen.stopped ? 'PAUSE' : screen.speed;
   const undo = buttonElement('btn-undo', '⟲ 取消');
   undo.title = '直前の指示を取り消す';
   onPrimary(undo, () => handlers.onUndo());
   transport.append(undo);
   for (const speed of SPEEDS) {
-    const node = buttonElement(speed === screen.speed ? 'on' : '', SPEED_GLYPH[speed]);
+    const node = buttonElement(speed === lit ? 'on' : '', SPEED_GLYPH[speed]);
     node.title = `再生速度 ${speed}`;
     onPrimary(node, () => handlers.onSpeed(speed));
     transport.append(node);
@@ -637,6 +639,8 @@ export interface BattleScreenState {
   readonly selectedInstanceId: string | null;
   readonly focusedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
+  // 自動時間停止により静止しているか（[M-PIPE-PAUSE-TRIGGER]）。再生操作の点灯に用いる。
+  readonly stopped: boolean;
   readonly rewind: RewindIndicator;
   // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
   // ホバーのたびに画面全体を組み直さない。
