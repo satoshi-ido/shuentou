@@ -144,7 +144,10 @@ function currentScene(): SceneMasterRecord {
 
 // [M-DATA-INTERP]［キーの語彙］共通キー。
 function commonKeys(): Record<string, string | number> {
-  const { run, meta } = requireSession().data;
+  if (session === null) {
+    return {}; // 進行の開始前（タイトル）はランが存在しない。文言の確認ダイアログは共通キーを用いない。
+  }
+  const { run, meta } = session.data;
   const scene = scenes[run.current_scene_id];
   return {
     TotalRewindCount: meta.total_rewind_count,
