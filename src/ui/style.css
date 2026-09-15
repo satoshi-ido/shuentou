@@ -57,6 +57,71 @@ body {
   overflow: hidden; /* 論理解像度の外へ要素をはみ出させない（[M-UI-VIEWPORT]） */
 }
 
+/* 画面本体と演出層はステージ直下に並ぶ。演出層は再描画の対象外とし、当たり判定を持たない。 */
+.screen-root {
+  height: 100%;
+}
+
+.effect-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 20;
+}
+
+/* [M-DATA-AUDIO-CUE] 発動（系統別）・命中・回避の演出。再生の完了で要素を取り除く。 */
+.fx {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-size: 30px;
+  line-height: 1;
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+.fx-trigger {
+  animation: fx-trigger 0.42s ease-out forwards;
+  text-shadow: 0 0 18px currentColor;
+}
+
+.fx-mind { color: var(--vp); }
+.fx-martial { color: var(--hp); }
+.fx-stance { color: var(--ap); }
+.fx-summon { color: var(--miasma); }
+.fx-swap { color: var(--pp); }
+
+.fx-hit {
+  color: #ffd9a0;
+  font-size: 40px;
+  text-shadow: 0 0 22px var(--ember);
+  animation: fx-hit 0.5s ease-out forwards;
+}
+
+.fx-miss {
+  color: var(--miss);
+  font-size: 26px;
+  animation: fx-miss 0.55s ease-out forwards;
+}
+
+@keyframes fx-trigger {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+  35% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(1.3); opacity: 0; }
+}
+
+@keyframes fx-hit {
+  0% { transform: translate(-50%, -50%) scale(1.6) rotate(-12deg); opacity: 0; }
+  25% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(2.1); opacity: 0; }
+}
+
+@keyframes fx-miss {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+  30% { transform: translate(-50%, -60%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -95%) scale(1); opacity: 0; }
+}
+
 /* 画面を包む器。高さの百分率が途切れると画面下端（下段の帯）が枠外へ押し出されるため、
    ステージの高さをそのまま伝える。 */
 .screen-host {

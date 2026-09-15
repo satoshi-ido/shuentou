@@ -19,9 +19,12 @@ import { runP6Advance } from './p6-advance.js';
 import { runP7Landing } from './p7-landing.js';
 import { runP8Decision } from './p8-decision.js';
 import { runStepEnd } from './stepend.js';
+import type { CueSink } from '../cue.js';
 
 export interface StepDeps {
   readonly createCreature: CreatureFactory;
+  // [M-DATA-AUDIO-CUE] 発火契機の受け口。与えられた場合にのみ通知する（探索・未来予測では与えない）。
+  readonly onCue?: CueSink;
 }
 
 export interface StepResult {

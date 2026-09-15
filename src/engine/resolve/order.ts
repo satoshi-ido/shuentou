@@ -29,6 +29,7 @@ export interface ResolveDeps {
 
 export interface ResolveOutcome {
   readonly hitUnitIds: readonly string[];
+  readonly missUnitIds: readonly string[];
   readonly stunHitUnitIds: readonly string[];
   readonly interferenceRequest: InterferenceRequest | null; // NORMAL モードで未適用のまま返る場合のみ非Null
 }
@@ -76,6 +77,7 @@ export function resolveAction(
 
   return {
     hitUnitIds: martialOutcome.hitUnitIds,
+    missUnitIds: martialOutcome.missUnitIds,
     stunHitUnitIds: remainingStunHitUnitIds,
     interferenceRequest: remainingRequest,
   };

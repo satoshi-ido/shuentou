@@ -21,11 +21,13 @@ import { canInherit, inheritPool, type InheritTarget } from '../engine/progress/
 import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
+import type { BattleCue } from '../engine/cue.js';
 import type { ActionInstance, Unit, WatchKind } from '../engine/types.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
+import { EffectLayer } from './dom/effects.js';
 import {
   renderConfigOverlay,
   renderConfirmOverlay,
@@ -103,6 +105,15 @@ const stepDeps = {
   },
 };
 
+// 画面の再描画で消えない演出層。ステージ直下に常置し、画面本体とは別に差し替える。
+const screenRoot = document.createElement('div');
+screenRoot.className = 'screen-root';
+const effects = new EffectLayer(document.createElement('div'));
+stageElement.append(screenRoot, effects.root);
+
+// [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
+const battleDeps = { ...stepDeps, onCue: (cue: BattleCue): void => effects.play(cue) };
+
 let config: DisplayConfig = loadConfig(window.localStorage);
 let session: GameSession | null = null;
 let client: AiDecisionClient | null = null;
@@ -116,7 +127,7 @@ let notice = ''; // 一度だけ提示するシステム文言（履歴が空で
 const ctx: GameContext = {
   masters,
   foeDecision: (state, unit) => (client === null ? { kind: 'PASS' } : client.decisionFor(state, unit)),
-  stepDeps,
+  stepDeps: battleDeps,
   persist: (serialized) => window.localStorage.setItem(SAVE_KEY, serialized),
 };
 
@@ -374,6 +385,7 @@ function leaveBattle(): void {
   battleResult = 'PAUSED';
   selectedInstanceId = null;
   focusedInstanceId = null;
+  effects.clear();
 }
 
 
@@ -596,11 +608,11 @@ function renderOverlay(): HTMLElement | null {
 }
 
 function render(): void {
-  stageElement.replaceChildren();
-  stageElement.append(renderScreen());
+  screenRoot.replaceChildren();
+  screenRoot.append(renderScreen());
   const overlayNode = renderOverlay();
   if (overlayNode !== null) {
-    stageElement.append(overlayNode); // 画面を遷移させず重ねて提示する。同時に開くのは1件に限る。
+    screenRoot.append(overlayNode); // 画面を遷移させず重ねて提示する。同時に開くのは1件に限る。
   }
 }
 

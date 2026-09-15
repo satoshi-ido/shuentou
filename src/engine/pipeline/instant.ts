@@ -12,6 +12,8 @@ import {
 } from '../effective.js';
 import { INFINITE_USES } from '../params.js';
 import { resolveAction } from '../resolve/order.js';
+import type { CueSink } from '../cue.js';
+import { emitMartialResult, emitTrigger } from './cue-emit.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import type { ActionInstance, BattleState, LastActionSnapshot, Unit } from '../types.js';
 import { removeCreatures, type BattleOutcome } from './p5-discard.js';
@@ -19,6 +21,7 @@ import { runP6Advance } from './p6-advance.js';
 
 export interface InstantDeps {
   readonly createCreature: CreatureFactory;
+  readonly onCue?: CueSink; // [M-DATA-AUDIO-CUE] 発火契機の受け口
 }
 
 function hasMaster(state: BattleState, side: 'MINE' | 'FOE'): boolean {
@@ -81,14 +84,20 @@ export function runInstant(state: BattleState, unit: Unit, action: ActionInstanc
   }
   pushInstantUsed(state, unit.unit_id, action.master_ref);
 
+  // [M-DATA-AUDIO-CUE] ACTION_TRIGGER：統合解決パイプラインの Step 1 直前。
+  emitTrigger(deps.onCue, unit, action);
+
   // #2 統合効果の即時適用。
-  resolveAction(state.units, unit, action, 'INSTANT', {
+  const resolveOutcome = resolveAction(state.units, unit, action, 'INSTANT', {
     createCreature: deps.createCreature,
     level: state.scene_level,
     defenseOf: (target) => currentDefense(target),
     idCounter: state,
     appliedInterferenceSides: [],
   });
+
+  // [M-DATA-AUDIO-CUE] HIT / MISS：武技の命中判定の確定時。
+  emitMartialResult(deps.onCue, state, unit, action, resolveOutcome);
 
   // #3 即時破棄・自動前進・勝敗判定。
   const outcomeAfterEffects = discardDeadAndCheckVictory(state);

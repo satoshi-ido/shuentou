@@ -37,6 +37,7 @@ export interface InterferenceRequest {
 export interface MartialOutcome {
   readonly interferenceRequest: InterferenceRequest | null;
   readonly hitUnitIds: readonly string[]; // 命中した対象すべて（位置干渉の発火判定に用いる）
+  readonly missUnitIds: readonly string[]; // 射程内で回避した対象（[M-DATA-AUDIO-CUE] MISS の通知に用いる）
   readonly stunHitUnitIds: readonly string[]; // うち stun 付き技が命中した対象（[M-PIPE-P2-APPLY]#4）
 }
 
@@ -118,7 +119,7 @@ export interface MartialContext {
 // [M-RESOLVE-MARTIAL] Step 4 本体。
 export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionInstance): MartialOutcome {
   if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
-    return { interferenceRequest: null, hitUnitIds: [], stunHitUnitIds: [] };
+    return { interferenceRequest: null, hitUnitIds: [], missUnitIds: [], stunHitUnitIds: [] };
   }
   const effRange = effectiveRange(actor, action);
   const effAtk = effectiveAtk(actor, action);
@@ -127,11 +128,13 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
     .sort((a, b) => distance(actor.pos_idx, a.pos_idx) - distance(actor.pos_idx, b.pos_idx));
 
   const hitUnitIds: string[] = [];
+  const missUnitIds: string[] = [];
   const stunHitUnitIds: string[] = [];
   for (const target of targets) {
     const targetDefense = ctx.defenseOf(target);
     if (effAtk < targetDefense) {
-      continue; // 回避
+      missUnitIds.push(target.unit_id); // 回避
+      continue;
     }
     hitUnitIds.push(target.unit_id);
     if (action.base_params.stun) {
@@ -165,7 +168,7 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
   }
 
   const interferenceRequest = resolveInterferenceRequest(action, targets, hitUnitIds, actor.side);
-  return { interferenceRequest, hitUnitIds, stunHitUnitIds };
+  return { interferenceRequest, hitUnitIds, missUnitIds, stunHitUnitIds };
 }
 
 function resolveInterferenceRequest(
