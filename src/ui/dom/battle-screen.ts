@@ -374,13 +374,7 @@ function renderCardMetrics(card: ActionCardView): HTMLElement {
   return metrics;
 }
 
-function renderCard(
-  card: ActionCardView,
-  selected: boolean,
-  pausedInstanceId: string | null,
-  handlers: BattleScreenHandlers,
-  focus: CardFocus,
-): HTMLElement {
+function renderCard(card: ActionCardView, selected: boolean, pausedInstanceId: string | null, handlers: BattleScreenHandlers): HTMLElement {
   const dim = card.rank >= 2 || card.sealed;
   const classes = ['action-card', `card-rank${card.rank}`];
   if (selected) {
@@ -435,15 +429,7 @@ function renderCard(
     }
     handlers.onSelect(card.instanceId); // 実行中カードなど確定できないものは選択のみ
   });
-  // ホバーは注目のみを移し、判定プレビューと実行中カードの位置を当該アクションの見込みへ切り替える。
-  // 注目はカーソルが離れても解けず、次の注目または確定まで提示を保つ（ステップ進行で消えない）。
-  box.addEventListener('mouseenter', () => focus.enter(card));
   return box;
-}
-
-// 注目（ホバー）の移動。選択・確定とは独立に、提示だけを切り替える。
-interface CardFocus {
-  readonly enter: (card: ActionCardView) => void;
 }
 
 interface ColumnNodes {
@@ -458,7 +444,6 @@ function renderColumn(
   selectedInstanceId: string | null,
   pausedInstanceId: string | null,
   handlers: BattleScreenHandlers,
-  focus: CardFocus,
 ): ColumnNodes {
   const plate = column.plate;
   const side = plate === null ? 'empty' : plate.side.toLowerCase();
@@ -485,7 +470,7 @@ function renderColumn(
     list.append(element('div', 'blist-empty', plate === null ? '' : '（アクションなし）'));
   }
   for (const card of column.cards) {
-    list.append(renderCard(card, card.instanceId === selectedInstanceId, pausedInstanceId, handlers, focus));
+    list.append(renderCard(card, card.instanceId === selectedInstanceId, pausedInstanceId, handlers));
   }
   box.append(list);
   return { root: box, dock, stamps, plate: plate === null ? null : plateNode };
@@ -730,7 +715,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     paintPlates(view.previewDeltas);
   };
 
-  const focusOn = (column: BoardColumnView, card: ActionCardView, notify: boolean): void => {
+  const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
     fillPreview(inspector.prev, focus.preview);
@@ -745,8 +730,25 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
     paintPlates(focus.deltas);
-    if (notify) {
-      handlers.onFocus(card.instanceId); // 再描画をまたいで注目を保つ（歩進で提示が消えない）
+  };
+
+  // 注目（ホバー）の適用。判定プレビューの対象でないカード、およびカードの外は注目を解く。
+  let focusedId: string | null = screen.focusedInstanceId;
+  const applyFocus = (instanceId: string | null): void => {
+    const column = view.columns.find((candidate) =>
+      candidate.cards.some((card) => card.instanceId === instanceId && card.previewable),
+    );
+    const card = column?.cards.find((candidate) => candidate.instanceId === instanceId);
+    const next = column === undefined || card === undefined ? null : instanceId;
+    if (next === focusedId) {
+      return;
+    }
+    focusedId = next;
+    handlers.onFocus(next); // 再描画をまたいで注目を保つ（歩進で提示が消えない）
+    if (column !== undefined && card !== undefined) {
+      focusOn(column, card);
+    } else {
+      restore();
     }
   };
 
@@ -758,9 +760,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   boardWrap.append(background);
   const board = element('div', 'board');
   for (const column of view.columns) {
-    const nodes = renderColumn(column, screen.selectedInstanceId, pausedInstanceId, handlers, {
-      enter: (card) => focusOn(column, card, true),
-    });
+    const nodes = renderColumn(column, screen.selectedInstanceId, pausedInstanceId, handlers);
     docks[column.posIdx] = nodes.dock;
     stampBoxes[column.posIdx] = nodes.stamps;
     plateNodes[column.posIdx] = nodes.plate;
@@ -781,10 +781,17 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   );
   const focusedCard = focusedColumn?.cards.find((card) => card.instanceId === screen.focusedInstanceId);
   if (focusedColumn !== undefined && focusedCard !== undefined) {
-    focusOn(focusedColumn, focusedCard, false);
+    focusOn(focusedColumn, focusedCard);
   } else {
     restore();
   }
+
+  // カードの上にカーソルがある間だけ注目する。再描画で要素が入れ替わっても、次の移動で復帰する。
+  root.addEventListener('mousemove', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('.action-card') : null;
+    applyFocus(target instanceof HTMLElement ? (target.dataset.instanceId ?? null) : null);
+  });
+  root.addEventListener('mouseleave', () => applyFocus(null));
 
   root.addEventListener('contextmenu', (event) => {
     event.preventDefault();
