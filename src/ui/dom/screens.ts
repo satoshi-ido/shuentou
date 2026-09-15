@@ -6,6 +6,7 @@ import type { InheritTarget } from '../../engine/progress/inherit.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import type {
   DictionaryEntry,
+  InheritOptionView,
   IntermissionView,
   PartySlotView,
   PreBattleView,
@@ -92,8 +93,62 @@ export function renderPreBattle(view: PreBattleView, helpTitle: (helpId: string)
   return root;
 }
 
-function inheritLabel(target: InheritTarget, actionName: (classId: string) => string): string {
-  return target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
+// [M-INHERIT-MERGE]［UI要件］確定前のプレビュー。統合後の実効値と改善項目を示す。
+const INHERIT_KIND_LABEL: Readonly<Record<InheritOptionView['kind'], string>> = {
+  MAX_HP: '最大HPに加算',
+  NEW_SLOT: '新しいアクションとして加わる',
+  MERGE: '既存のアクションへ統合',
+  VANISH: '実効初期使用回数0により消滅',
+};
+
+function inheritOption(
+  option: InheritOptionView,
+  enabled: boolean,
+  strings: (id: string) => string,
+  onPick: () => void,
+): HTMLElement {
+  const card = element('div', `inherit-card${enabled ? '' : ' disabled'}`);
+  const head = element('div', 'inherit-head');
+  head.append(element('b', 'nm', option.label));
+  if (option.uses !== null) {
+    head.append(element('span', 'uses num', `残 ${option.uses}`));
+  }
+  card.append(head);
+
+  const metrics = element('div', 'inherit-metrics num');
+  if (option.steps !== null) {
+    metrics.append(
+      element('span', 'st-flow', `思${option.steps.thought} ▸ 発${option.steps.startup} ▸ 硬${option.steps.recovery}`),
+    );
+  }
+  for (const cost of option.costs) {
+    metrics.append(element('span', `cst cst-${cost.label.toLowerCase()}`, `${cost.label} ${cost.value}`));
+  }
+  if (option.range !== null) {
+    metrics.append(element('span', 'rng', `射 ${option.range} / 攻 ${option.atk ?? 0}`));
+  }
+  if (option.hpAdd !== null) {
+    metrics.append(element('span', 'hp-add', `最大HP +${option.hpAdd}`));
+  }
+  card.append(metrics);
+
+  const outcome = element('div', 'inherit-outcome');
+  outcome.append(element('span', 'kind', INHERIT_KIND_LABEL[option.kind]));
+  if (option.kind === 'MERGE') {
+    outcome.append(
+      element(
+        'span',
+        option.improved.length === 0 ? 'improve none' : 'improve',
+        option.improved.length === 0 ? strings('STR_INHERIT_NO_IMPROVE') : `改善：${option.improved.join(' / ')}`,
+      ),
+    );
+  }
+  card.append(outcome);
+
+  if (enabled) {
+    card.addEventListener('click', onPick);
+  }
+  return card;
 }
 
 // [M-INHERIT-POOL] 継承の段。UIプロトタイプに倣い、見出し・目的表示・従者の壇・2欄の順に並べる。
@@ -177,16 +232,15 @@ export function renderIntermission(
   const selected = view.slots.find((slot) => slot.attendantId === view.selectedAttendantId);
 
   const poolColumn = element('div', 'imcol');
-  poolColumn.append(element('h3', '', '継承できる資質'));
+  poolColumn.append(
+    element('h3', '', selected === undefined ? '継承できる資質' : `継承できる資質 ─ ${selected.name}を介して受け継ぐ場合`),
+  );
   const pool = element('div', 'pool');
   const canInheritNow = selected !== undefined && selected.inheritState === 'UNUSED';
-  for (const target of view.pool) {
+  for (const option of view.pool) {
     pool.append(
-      button(
-        'inherit',
-        inheritLabel(target, actionName),
-        () => (selected === undefined ? undefined : handlers.onInherit(selected.attendantId, target)),
-        !canInheritNow,
+      inheritOption(option, canInheritNow, strings, () =>
+        selected === undefined ? undefined : handlers.onInherit(selected.attendantId, option.target),
       ),
     );
   }

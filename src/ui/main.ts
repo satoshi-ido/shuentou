@@ -17,10 +17,11 @@ import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } f
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { executableActions } from '../engine/decision.js';
-import { canInherit, inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
+import { canInherit, inheritPool, previewInherit, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
+import type { RunState } from '../engine/run/state.js';
 import type { BattleCue } from '../engine/cue.js';
 import type { ActionInstance, Unit, WatchKind } from '../engine/types.js';
 import { AiDecisionClient } from './ai-client.js';
@@ -43,6 +44,7 @@ import {
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
+import { PARAM_LABEL } from './format.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
@@ -55,6 +57,7 @@ import {
   sceneNumberOf,
   screenOf,
   titleView,
+  type InheritOptionView,
   type OverlayKind,
 } from './view/screen-view.js';
 import { applyViewport } from './viewport.js';
@@ -520,6 +523,42 @@ function renderBattle(): HTMLElement | null {
   return host;
 }
 
+// [M-INHERIT-MERGE]［UI要件］選択中の従者を介して受け継ぐ場合の見込みを、継承プールの各項目について組む。
+function inheritOptions(run: RunState, attendantId: string | null): InheritOptionView[] {
+  const pool = inheritPool(run, masters).filter(
+    (target) => attendantId === null || canInherit(run, masters, attendantId, target),
+  );
+  if (attendantId === null) {
+    return [];
+  }
+  return pool.map((target) => {
+    const preview = previewInherit(run, masters, attendantId, target);
+    const label = target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
+    if (preview.kind === 'MAX_HP') {
+      return { target, label, kind: 'MAX_HP', steps: null, costs: [], range: null, atk: null, uses: null, hpAdd: preview.add, improved: [] };
+    }
+    if (preview.kind === 'VANISH') {
+      return { target, label, kind: 'VANISH', steps: null, costs: [], range: null, atk: null, uses: 0, hpAdd: null, improved: [] };
+    }
+    const params = preview.params;
+    const costs = (['HP', 'VP', 'PP', 'AP'] as const)
+      .map((key) => ({ label: key, value: params[`cost_${key.toLowerCase()}` as 'cost_hp' | 'cost_vp' | 'cost_pp' | 'cost_ap'] }))
+      .filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
+    return {
+      target,
+      label,
+      kind: preview.kind,
+      steps: { thought: params.step_thought, startup: params.step_startup, recovery: params.step_recovery },
+      costs,
+      range: params.range > 0 ? params.range : null,
+      atk: params.range > 0 ? params.atk : null,
+      uses: preview.usesInitial,
+      hpAdd: null,
+      improved: preview.kind === 'MERGE' ? preview.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)) : [],
+    };
+  });
+}
+
 function renderScreen(): HTMLElement {
   if (session === null) {
     // タイトルの提示に必要なのはセーブの有無と周回の終了のみ。ロード（バトル中の再開処理）は行わない。
@@ -543,7 +582,8 @@ function renderScreen(): HTMLElement {
     case 'BATTLE':
       return renderBattle() ?? renderEnding(screenHandlers);
     case 'INTERMISSION': {
-      const pool = inheritPool(run, masters);
+      const selected =
+        run.party.find((slot) => slot.attendant_id === selectedAttendantId)?.attendant_id ?? run.party[0]?.attendant_id ?? null;
       return renderIntermission(
         {
           objectiveStringId: objectiveStringId(scene.order),
@@ -563,11 +603,8 @@ function renderScreen(): HTMLElement {
             epithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
           })),
           // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
-          selectedAttendantId:
-            run.party.find((slot) => slot.attendant_id === selectedAttendantId)?.attendant_id ??
-            run.party[0]?.attendant_id ??
-            null,
-          pool: pool.filter((target) => run.party.some((slot) => canInherit(run, masters, slot.attendant_id, target))),
+          selectedAttendantId: selected,
+          pool: inheritOptions(run, selected),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
           noAttendant: run.party.length === 0,

@@ -1350,7 +1350,48 @@ button:focus-visible {
 }
 
 .pool { display: grid; gap: 5px; align-content: start; }
-.pool .inherit { text-align: left; }
+
+/* [M-INHERIT-MERGE]［UI要件］資質1件分のプレビュー。統合後の実効値と改善項目を示す。 */
+.inherit-card {
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--ember-dim);
+  background: linear-gradient(180deg, #17141d, #121017);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.inherit-card:hover { border-color: var(--ember); border-left-color: var(--ember); }
+.inherit-card.disabled { opacity: 0.45; cursor: default; }
+.inherit-card.disabled:hover { border-color: var(--line); border-left-color: var(--ember-dim); }
+
+.inherit-head { display: flex; align-items: baseline; gap: 8px; }
+.inherit-head .nm { font-family: var(--font-serif); font-size: 13px; letter-spacing: 0.04em; }
+.inherit-head .uses { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
+
+.inherit-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.inherit-metrics .st-flow { border: 1px solid var(--line); padding: 0 4px; }
+.inherit-metrics .cst-hp { color: var(--hp); }
+.inherit-metrics .cst-vp { color: var(--vp); }
+.inherit-metrics .cst-pp { color: var(--pp); }
+.inherit-metrics .cst-ap { color: var(--ap); }
+.inherit-metrics .rng { color: #ffb27a; }
+.inherit-metrics .hp-add { color: var(--ember); font-weight: 700; }
+
+.inherit-outcome { display: flex; gap: 8px; font-size: 10.5px; min-width: 0; }
+.inherit-outcome .kind { color: var(--muted); white-space: nowrap; }
+.inherit-outcome .improve { color: var(--ember); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inherit-outcome .improve.none { color: var(--miss); }
 
 .imrows { display: grid; gap: 2px; margin-bottom: 12px; }
 

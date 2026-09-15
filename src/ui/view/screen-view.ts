@@ -84,6 +84,20 @@ export interface FallenView {
   readonly epithet: string;
 }
 
+// [M-INHERIT-MERGE]［UI要件］継承対象1件分のプレビュー。選択中の従者の係数を適用した後の値を持つ。
+export interface InheritOptionView {
+  readonly target: InheritTarget;
+  readonly label: string;
+  readonly kind: 'MAX_HP' | 'NEW_SLOT' | 'MERGE' | 'VANISH';
+  readonly steps: { readonly thought: number; readonly startup: number; readonly recovery: number } | null;
+  readonly costs: readonly { readonly label: string; readonly value: number }[];
+  readonly range: number | null;
+  readonly atk: number | null;
+  readonly uses: number | null; // 実効初期使用回数
+  readonly hpAdd: number | null; // 最大HP加算
+  readonly improved: readonly string[]; // 統合による改善項目（[M-STATE-PARAMIDS] の表示名）
+}
+
 export interface IntermissionView {
   readonly objectiveStringId: string | null;
   readonly sceneName: string; // 次に遷移するシーン
@@ -92,7 +106,7 @@ export interface IntermissionView {
   readonly fallen: readonly FallenView[];
   // 壇で選択中の従者。継承先・供犠の対象となる。
   readonly selectedAttendantId: string | null;
-  readonly pool: readonly InheritTarget[];
+  readonly pool: readonly InheritOptionView[];
   readonly canSettle: boolean;
   readonly isActTransition: boolean;
   // [M-PROG-NOATTENDANT] 同行従者0人では継承・供犠を行えない（STR_LOCK_NO_ATTENDANT）。
