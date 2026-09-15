@@ -260,6 +260,24 @@ export function generateEnemyLefActions(level) {
   return records;
 }
 
+// [M-TMPL-ENEMY-1-02] 辺境伯ドルンの構成テンプレート行。
+export function enemyDornTemplate(level) {
+  const arBase = level * 10;
+  const arDouble = level * 20;
+  const arTriple = level * 30;
+  return [
+    templateRow('MIND', 'BASIC', 100, classId('MIND', arBase)),
+    templateRow('MIND', 'MUSOU', 100, classId('MUSOU', arBase)),
+    templateRow('MARTIAL', 'BASIC', 100, classId('SLASH', arBase)),
+    templateRow('MARTIAL', 'BASIC', 200, classId('SLASH', arDouble)),
+    templateRow('MARTIAL', 'BASIC', 300, classId('SLASH', arTriple)),
+    templateRow('MARTIAL', 'RUSH', 100, classId('RUSH', arBase)),
+    templateRow('MARTIAL', 'HEAVY', 100, classId('HEAVY', arBase)),
+    templateRow('STANCE', 'BASIC', 100, classId('GUARD', arBase)),
+    templateRow('STANCE', 'BASIC', 200, classId('GUARD', arDouble)),
+  ];
+}
+
 // [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-02]
 // 1-02 の敵マスター「辺境伯ドルン」が生成する所持アクション一式。追加枠は同変種の基本型の直後に置く。
 export function generateEnemyDornActions(level) {
@@ -391,4 +409,27 @@ export function generateEnemyLef(level, maxHp) {
     },
     actions,
   };
+}
+
+// [A-PROFILE-SCHEMA] 人が書く入力をレコードへ写す。weight_mult は centi へ変換する。
+export function buildAiProfileRecords(profiles) {
+  const result = {};
+  for (const profile of profiles) {
+    const weightMult = {};
+    for (const key of Object.keys(profile.weight_mult).sort()) {
+      weightMult[key] = decimalStringToCenti(profile.weight_mult[key]);
+    }
+    const actionBonus = {};
+    for (const key of Object.keys(profile.action_bonus).sort()) {
+      actionBonus[key] = profile.action_bonus[key];
+    }
+    result[profile.profile_id] = {
+      profile_id: profile.profile_id,
+      display_name: profile.display_name,
+      weight_mult: weightMult,
+      action_bonus: actionBonus,
+      dynamic_weight: profile.dynamic_weight,
+    };
+  }
+  return result;
 }

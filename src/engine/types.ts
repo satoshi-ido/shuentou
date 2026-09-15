@@ -83,6 +83,13 @@ export interface PauseReason {
   readonly remaining_steps: number | null;
 }
 
+// [A-SEARCH-REUSE]［記録と適用］再探索抑制の記録。
+export interface ReuseRecord {
+  readonly hash: number; // 盤面ハッシュ（FNV-1a 32bit）
+  readonly until: number; // 惰性の期限ステップ
+  readonly executable: readonly string[]; // 実行可能アクションのインスタンスID昇順配列
+}
+
 // [A-BOOK-SEMANTICS] 定跡の進行状態。lookup の戻り値として更新後の値を返し、呼び出し側が BattleState へ反映する。
 export interface BookProgress {
   readonly book_index: number;
@@ -106,4 +113,5 @@ export interface BattleState {
   book_index: number;
   book_aborted: boolean;
   book_wait_elapsed: number | null;
+  ai_reuse: Record<string, ReuseRecord>;
 }

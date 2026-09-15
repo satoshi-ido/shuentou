@@ -73,9 +73,13 @@ export function executableActions(state: BattleState, unit: Unit): ActionInstanc
 
 // book は定跡を参照した決定主体が返す更新後の定跡進行状態（[A-BOOK-SEMANTICS]）。[M-PIPE-P8-ORDER] の
 // 呼び出し側が BattleState へ反映する。
+// source は決定の出所（[A-BOOK-SEMANTICS] の定跡 HIT か [A-SEARCH-ALGORITHM] の探索か）。
+// [A-SEARCH-REUSE] の記録は探索の結果に対してのみ作る。
+export type DecisionSource = 'BOOK' | 'SEARCH';
+
 export type Decision =
-  | { readonly kind: 'PASS'; readonly book?: BookProgress }
-  | { readonly kind: 'ACT'; readonly instanceId: string; readonly book?: BookProgress };
+  | { readonly kind: 'PASS'; readonly book?: BookProgress; readonly source?: DecisionSource }
+  | { readonly kind: 'ACT'; readonly instanceId: string; readonly book?: BookProgress; readonly source?: DecisionSource };
 
 // 決定主体（AI・プレイヤー・検証用スクリプト）が思考中ユニット1体につき1回呼ばれる。
 export type DecisionProvider = (state: BattleState, unit: Unit) => Decision;

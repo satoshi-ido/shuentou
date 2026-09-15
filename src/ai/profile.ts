@@ -2,20 +2,23 @@
 // 全30体分のAIプロファイルマスタ（[A-PROFILE-TABLE]）はM5の範囲であるため、本モジュールは
 // フィールド構成と1-01用の既定値（[A-DIFF-CONFIG]）のみを提供する。
 
+import type { AiProfileRecord, EnemyMasterRecord, SceneMasterRecord } from '../data/types.js';
 import { BONUS_DEFAULT_PASS } from './constants.js';
 
-export type FeatureKey =
-  | 'survival'
-  | 'tempo'
-  | 'board'
-  | 'slip'
-  | 'impatience'
-  | 'debuff'
-  | 'pp'
-  | 'seal'
-  | 'vp'
-  | 'position'
-  | 'copy';
+export const FEATURE_KEYS = [
+  'board',
+  'copy',
+  'debuff',
+  'impatience',
+  'position',
+  'pp',
+  'seal',
+  'slip',
+  'survival',
+  'tempo',
+  'vp',
+] as const;
+export type FeatureKey = (typeof FEATURE_KEYS)[number];
 
 // [A-EVAL-WEIGHTS] 推奨初期重み。
 export const BASE_WEIGHTS: Readonly<Record<FeatureKey, number>> = {
@@ -32,24 +35,26 @@ export const BASE_WEIGHTS: Readonly<Record<FeatureKey, number>> = {
   copy: 300,
 };
 
-export type ActionTag =
-  | 'MIND'
-  | 'MARTIAL'
-  | 'STANCE'
-  | 'SUMMON'
-  | 'SWAP'
-  | 'RUSH'
-  | 'HEAVY'
-  | 'INTERFERE'
-  | 'STRIP_VP'
-  | 'STRIP_PP'
-  | 'STRIP_AP'
-  | 'DEBUFF'
-  | 'SEAL'
-  | 'SLIP'
-  | 'COPY'
-  | 'SELF_HARM'
-  | 'PASS';
+export const ACTION_TAGS = [
+  'MIND',
+  'MARTIAL',
+  'STANCE',
+  'SUMMON',
+  'SWAP',
+  'RUSH',
+  'HEAVY',
+  'INTERFERE',
+  'STRIP_VP',
+  'STRIP_PP',
+  'STRIP_AP',
+  'DEBUFF',
+  'SEAL',
+  'SLIP',
+  'COPY',
+  'SELF_HARM',
+  'PASS',
+] as const;
+export type ActionTag = (typeof ACTION_TAGS)[number];
 
 // [A-PROFILE-RESOLVE]「フィールド構成」。
 export interface EffectiveProfile {
@@ -111,4 +116,74 @@ export function actionBonusOf(prof: EffectiveProfile, tag: ActionTag): number {
     return override;
   }
   return tag === 'PASS' ? BONUS_DEFAULT_PASS : 0;
+}
+
+// [A-PROFILE-RESOLVE] 実効プロファイルの構築。バトル開始時に1度だけ構築し、以降マスタを再参照しない。
+// 値はマスタから複製し、レコード側の参照を共有しない。
+export interface ProfileSources {
+  readonly scene: SceneMasterRecord;
+  readonly enemy: EnemyMasterRecord;
+  readonly profile: AiProfileRecord;
+}
+
+function requireValue<T>(value: T | null, label: string, sceneId: string): T {
+  if (value === null) {
+    throw new Error(`シーンマスタに${label}がない: ${sceneId}`);
+  }
+  return value;
+}
+
+function copyWeightMult(record: AiProfileRecord): Partial<Record<FeatureKey, number>> {
+  const result: Partial<Record<FeatureKey, number>> = {};
+  for (const [key, value] of Object.entries(record.weight_mult)) {
+    if (!(FEATURE_KEYS as readonly string[]).includes(key)) {
+      throw new Error(`未知の評価特徴量キー: ${record.profile_id} ${key}`);
+    }
+    result[key as FeatureKey] = value;
+  }
+  return result;
+}
+
+function copyActionBonus(record: AiProfileRecord): Partial<Record<ActionTag, number>> {
+  const result: Partial<Record<ActionTag, number>> = {};
+  for (const [key, value] of Object.entries(record.action_bonus)) {
+    if (!(ACTION_TAGS as readonly string[]).includes(key)) {
+      throw new Error(`未知のアクション種別タグ: ${record.profile_id} ${key}`);
+    }
+    result[key as ActionTag] = value;
+  }
+  return result;
+}
+
+export function buildEffectiveProfile({ scene, enemy, profile }: ProfileSources): EffectiveProfile {
+  if (enemy.ai_profile_id === null) {
+    throw new Error(`AIを実行しない敵マスター: ${enemy.enemy_id}`); // 手順1（[M-TMPL-VESSEL]）
+  }
+  if (enemy.ai_profile_id !== profile.profile_id) {
+    throw new Error(`敵マスターの参照先と一致しないプロファイル: ${enemy.ai_profile_id} / ${profile.profile_id}`);
+  }
+  if (profile.dynamic_weight !== null) {
+    // 手順3（[A-MIRROR-5-09]）。対象は PROFILE_MIRROR の1件のみであり、5-09 の投入時に実装する。
+    throw new Error(`動的重み生成は未実装: ${profile.profile_id}`);
+  }
+  const evalMask = [...requireValue(scene.eval_mask, '有効特徴量', scene.scene_id)].sort();
+  for (const key of evalMask) {
+    if (!(FEATURE_KEYS as readonly string[]).includes(key)) {
+      throw new Error(`未知の評価特徴量キー: ${scene.scene_id} ${key}`);
+    }
+  }
+  return {
+    profileId: profile.profile_id,
+    weightMult: copyWeightMult(profile), // 手順2
+    actionBonus: copyActionBonus(profile),
+    // 手順4：シーンマスタから写す（値の正本は [A-DIFF-CONFIG]）。
+    maxDepth: requireValue(scene.max_depth, '探索深度', scene.scene_id),
+    nodeLimit: requireValue(scene.node_limit, 'ノード数上限', scene.scene_id),
+    jointAction: scene.joint_action,
+    deferredDecision: scene.deferred_decision,
+    evalMask: evalMask as readonly FeatureKey[],
+    inertiaSteps: requireValue(scene.inertia_steps, '惰性ステップ数', scene.scene_id),
+    expectedLength: requireValue(scene.expected_length, '想定戦闘長', scene.scene_id),
+    bookId: enemy.book_id ?? null, // 手順5
+  };
 }

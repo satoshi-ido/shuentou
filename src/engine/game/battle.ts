@@ -8,7 +8,7 @@
 // 時間停止トリガーの #3（UI監視トグル）は [M-UI-WATCH] の判定を用い、#4（手動停止）は stopAtStep で与える。
 // 停止事由は BattleState の pause_reason に記録する（[M-DATA-PAUSE-REASON]）。
 
-import { executableActions } from '../decision.js';
+import { executableActions, type DecisionProvider } from '../decision.js';
 import { createBattleState } from '../battle.js';
 import { instantiateActionList } from '../instantiate.js';
 import type { BattleOutcome } from '../pipeline/p5-discard.js';
@@ -16,7 +16,8 @@ import { executeAction, runSideDecisionLoop, type ExecutedAction } from '../pipe
 import { runPreDecision } from '../pipeline/step.js';
 import { runStepEnd } from '../pipeline/stepend.js';
 import { settleBattleClear } from '../progress/clear.js';
-import { enemyOf, sceneOf } from '../run/masters.js';
+import { bookOf, enemyOf, sceneOf } from '../run/masters.js';
+import { isSearchSuppressed, updateReuse } from '../reuse.js';
 import { cloneRun, cloneState } from '../run/snapshot.js';
 import type { BattleState, PauseReason, Unit, WatchFlags, WatchKind } from '../types.js';
 import { applyWatchDefault, detectWatchEdges, syncWatchKeys, watchMetReason, type WatchEdge } from '../watch.js';
@@ -35,6 +36,23 @@ export interface StartOptions extends AdvanceOptions {
 }
 
 const SCENE_5_11 = 'SCENE_5_11';
+
+// [A-SEARCH-REUSE] 敵軍AIの決定主体に再探索抑制を挟む。定跡が有効な間は抑制せず毎決定点で問い合わせる。
+function foeDecisionWithReuse(session: GameSession, ctx: GameContext): DecisionProvider {
+  const scene = sceneOf(ctx.masters, session.data.run.current_scene_id);
+  const enemy = enemyOf(ctx.masters, scene.enemy_id);
+  const bookLength = enemy.book_id === null ? 0 : bookOf(ctx.masters, enemy.book_id).steps.length;
+  const inertiaSteps = scene.inertia_steps ?? 0;
+  return (state, unit) => {
+    const bookActive = !state.book_aborted && state.book_index < bookLength;
+    if (!bookActive && isSearchSuppressed(state, unit)) {
+      return { kind: 'PASS' };
+    }
+    const decision = ctx.foeDecision(state, unit);
+    updateReuse(state, unit, decision.kind === 'PASS' && decision.source === 'SEARCH', inertiaSteps);
+    return decision;
+  };
+}
 
 function battleOf(session: GameSession): BattleState {
   const { run } = session.data;
@@ -67,12 +85,13 @@ function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleO
 // ステップの先頭（ステップ0は《処理8》の先頭）から、時間停止または決着まで進める。
 function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceOptions): BattleResult {
   const state = battleOf(session);
+  const foeDecision = foeDecisionWithReuse(session, ctx);
   for (;;) {
     const pre = runPreDecision(state, ctx.stepDeps);
     if (pre !== 'NONE') {
       return finish(session, ctx, pre);
     }
-    const foe = runSideDecisionLoop(state, 'FOE', ctx.foeDecision, ctx.stepDeps);
+    const foe = runSideDecisionLoop(state, 'FOE', foeDecision, ctx.stepDeps);
     if (foe.outcome !== 'NONE') {
       return finish(session, ctx, foe.outcome);
     }

@@ -202,15 +202,16 @@ export function decideActionDetailed(
   if (prof.bookId !== null && unit.side === 'FOE' && unit.unit_kind === 'MASTER') {
     const lookup = lookupBook(state, unit, bookOf(prof.bookId));
     if (lookup.kind === 'MOVE') {
-      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress }, score: 0, nodesConsumed: 0 };
+      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
     }
     if (lookup.kind === 'PASS_MOVE') {
-      return { decision: { kind: 'PASS', book: lookup.progress }, score: 0, nodesConsumed: 0 };
+      return { decision: { kind: 'PASS', book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
     }
     const searched = searchRoot(state, unit, prof, deps);
-    return { ...searched, decision: { ...searched.decision, book: lookup.progress } };
+    return { ...searched, decision: { ...searched.decision, book: lookup.progress, source: 'SEARCH' } };
   }
-  return searchRoot(state, unit, prof, deps);
+  const searched = searchRoot(state, unit, prof, deps);
+  return { ...searched, decision: { ...searched.decision, source: 'SEARCH' } };
 }
 
 function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): DecideActionResult {

@@ -70,6 +70,7 @@ export function createBattleState(options: CreateBattleOptions): BattleState {
     book_index: 0,
     book_aborted: false,
     book_wait_elapsed: null,
+    ai_reuse: {},
   };
   const heroHp = options.heroHp ?? options.heroMaxHp;
   state.units[1] = createUnit(allocateUnitId(state), 'MINE', 'MASTER', 1, options.heroMaxHp, heroHp, options.heroActs);

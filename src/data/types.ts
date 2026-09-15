@@ -129,3 +129,13 @@ export interface EnemyMasterRecord {
   readonly fixed_cycle: readonly string[] | null; // ai_profile_id が null のときのみ非 null
   readonly audit_exempt: boolean;
 }
+
+// [A-PROFILE-SCHEMA] AIプロファイルマスタのレコード。weight_mult は centi（既定100）、
+// action_bonus は評価値と同じ固定小数。既定値と同値のエントリは置かない。
+export interface AiProfileRecord {
+  readonly profile_id: string; // 体系は [A-PROFILE-ID]
+  readonly display_name: string;
+  readonly weight_mult: Readonly<Record<string, number>>;
+  readonly action_bonus: Readonly<Record<string, number>>;
+  readonly dynamic_weight: 'MIRROR_STATS' | null;
+}
