@@ -1430,6 +1430,37 @@ button:focus-visible {
 .imrow .k { color: var(--muted); }
 .imrow .v { font-family: var(--font-serif); }
 
+/* 主人公の所持アクション一覧（継承の結果を確かめる欄）。 */
+.hero-acts { display: grid; gap: 4px; margin-bottom: 12px; }
+
+.hero-act {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #17141d, #121017);
+  padding: 4px 6px;
+}
+
+.hero-act-head { display: flex; align-items: baseline; gap: 8px; }
+.hero-act-head .nm {
+  font-family: var(--font-serif);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.hero-act-head .uses { margin-left: auto; font-family: var(--font-mono); font-size: 10px; color: var(--muted); }
+
+.hero-act-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.hero-act-metrics .st-flow { border: 1px solid var(--line); padding: 0 4px; }
+
 /* [M-PROG-SACRIFICE] 供犠。取り返しのつかない決済であることを配色で示す。 */
 .sac {
   border: 1px solid #7a353d;

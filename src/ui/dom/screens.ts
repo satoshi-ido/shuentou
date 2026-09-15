@@ -285,33 +285,64 @@ export function renderIntermission(
   poolColumn.append(pool);
   grid.append(poolColumn);
 
-  const actionColumn = element('div', 'imcol');
-  actionColumn.append(element('h3', '', '選択中の従者'));
-  if (selected === undefined) {
-    actionColumn.append(element('p', 'notice', '壇の従者を選ぶ'));
-  } else {
-    const rows = element('div', 'imrows');
-    const row = (key: string, value: string): void => {
-      const line = element('div', 'imrow');
-      line.append(element('span', 'k', key));
-      line.append(element('span', 'v', value));
-      rows.append(line);
-    };
-    row('名', `${selected.name}〈${selected.epithet}〉`);
-    row('継承枠', INHERIT_STATE_LABEL[selected.inheritState]);
-    actionColumn.append(rows);
+  const heroColumn = element('div', 'imcol');
+  heroColumn.append(element('h3', '', `${view.hero.name}の現状`));
+  const heroRows = element('div', 'imrows');
+  const heroHp = element('div', 'imrow');
+  heroHp.append(element('span', 'k', SYMBOL.hp));
+  heroHp.append(element('span', 'v num', `${view.hero.hp} / ${view.hero.maxHp}`));
+  heroRows.append(heroHp);
+  const heroCount = element('div', 'imrow');
+  heroCount.append(element('span', 'k', '所持アクション'));
+  heroCount.append(element('span', 'v num', String(view.hero.acts.length)));
+  heroRows.append(heroCount);
+  heroColumn.append(heroRows);
 
-    // [M-PROG-SACRIFICE] 供犠：従者1名を消滅させ、主人公のHPを全回復する。
+  const heroActs = element('div', 'hero-acts');
+  for (const act of view.hero.acts) {
+    const card = element('div', 'hero-act');
+    const head = element('div', 'hero-act-head');
+    head.append(element('b', 'nm', act.name));
+    head.append(element('span', 'uses num', `${SYMBOL.remaining} ${act.uses}`));
+    card.append(head);
+    const metrics = element('div', 'hero-act-metrics num');
+    metrics.append(
+      element(
+        'span',
+        'st-flow',
+        `${SYMBOL.stepThought}${act.steps.thought} ${STEP_ARROW} ${SYMBOL.stepStartup}${act.steps.startup} ${STEP_ARROW} ${SYMBOL.stepRecovery}${act.steps.recovery}`,
+      ),
+    );
+    for (const cost of act.costs) {
+      metrics.append(element('span', 'cst', `${cost.label} ${cost.value}`));
+    }
+    if (act.range !== null) {
+      metrics.append(element('span', 'rng', `${SYMBOL.range} ${act.range} / ${SYMBOL.atk} ${act.atk ?? 0}`));
+    }
+    card.append(metrics);
+    heroActs.append(card);
+  }
+  heroColumn.append(heroActs);
+
+  // [M-PROG-SACRIFICE] 供犠は継承を終えてから選ぶ。1回のインターミッションにつき1回まで。
+  if (view.inheritDone) {
     const sac = element('div', 'sac');
     sac.append(element('h3', '', '⚠ 供犠'));
-    sac.append(element('p', '', '従者1名を消滅させ、主人公のHPを最大HPまで回復する。'));
-    sac.append(button('sacbtn', '選択中の従者を捧げる', () => handlers.onSacrifice(selected.attendantId), !selected.canSacrifice));
-    actionColumn.append(sac);
+    sac.append(element('p', '', '同行従者1名を消滅させ、主人公の現在HPを最大HPまで回復する。'));
+    sac.append(
+      button(
+        'sacbtn',
+        selected === undefined ? '壇の従者を選ぶ' : `${selected.name}を捧げる`,
+        () => (selected === undefined ? undefined : handlers.onSacrifice(selected.attendantId)),
+        selected === undefined || !selected.canSacrifice,
+      ),
+    );
+    heroColumn.append(sac);
   }
   if (view.noticeText !== '') {
-    actionColumn.append(element('p', 'notice', view.noticeText));
+    heroColumn.append(element('p', 'notice', view.noticeText));
   }
-  grid.append(actionColumn);
+  grid.append(heroColumn);
   root.append(grid);
   return root;
 }

@@ -101,6 +101,24 @@ export interface InheritOptionView {
   readonly improved: readonly string[];
 }
 
+// 主人公の所持アクション1件分（インターミッションでは補正が存在しないため基礎値をそのまま示す）。
+export interface HeroActionView {
+  readonly instanceId: string;
+  readonly name: string;
+  readonly steps: { readonly thought: number; readonly startup: number; readonly recovery: number };
+  readonly costs: readonly { readonly label: string; readonly value: number }[];
+  readonly range: number | null;
+  readonly atk: number | null;
+  readonly uses: string; // 残り / 実効初期（無限は ∞）
+}
+
+export interface HeroView {
+  readonly name: string;
+  readonly hp: number;
+  readonly maxHp: number;
+  readonly acts: readonly HeroActionView[];
+}
+
 export interface IntermissionView {
   readonly objectiveStringId: string | null;
   readonly sceneName: string; // 次に遷移するシーン
@@ -109,6 +127,9 @@ export interface IntermissionView {
   readonly fallen: readonly FallenView[];
   // 壇で選択中の従者。継承先・供犠の対象となる。
   readonly selectedAttendantId: string | null;
+  readonly hero: HeroView;
+  // 同行従者全員の継承権を使い切った（または継承できる資質がない）か。供犠はこの後に提示する。
+  readonly inheritDone: boolean;
   readonly pool: readonly InheritOptionView[];
   readonly canSettle: boolean;
   readonly isActTransition: boolean;

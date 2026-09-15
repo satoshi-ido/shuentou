@@ -44,6 +44,7 @@ import {
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
+import { formatUses } from './format.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
@@ -56,6 +57,7 @@ import {
   sceneNumberOf,
   screenOf,
   titleView,
+  type HeroView,
   type InheritOptionView,
   type OverlayKind,
 } from './view/screen-view.js';
@@ -523,6 +525,30 @@ function renderBattle(): HTMLElement | null {
 }
 
 // [M-INHERIT-MERGE]［UI要件］選択中の従者を介して受け継ぐ場合の見込みを、継承プールの各項目について組む。
+// インターミッションでは補正が存在しないため、所持アクションは基礎値をそのまま示す。
+function heroView(run: RunState): HeroView {
+  return {
+    name: HERO_INIT_UNIT.display_name,
+    hp: run.hero_hp,
+    maxHp: run.hero_max_hp,
+    acts: run.hero_acts.map((action) => {
+      const params = action.base_params;
+      const costs = (['HP', 'VP', 'PP', 'AP'] as const)
+        .map((key) => ({ label: key, value: params[`cost_${key.toLowerCase()}` as 'cost_hp' | 'cost_vp' | 'cost_pp' | 'cost_ap'] }))
+        .filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
+      return {
+        instanceId: action.instance_id,
+        name: actionName(action.master_ref),
+        steps: { thought: params.step_thought, startup: params.step_startup, recovery: params.step_recovery },
+        costs,
+        range: params.range > 0 ? params.range : null,
+        atk: params.range > 0 ? params.atk : null,
+        uses: formatUses(action.uses_left, action.uses_initial),
+      };
+    }),
+  };
+}
+
 function inheritOptions(run: RunState, attendantId: string | null): InheritOptionView[] {
   const pool = inheritPool(run, masters).filter(
     (target) => attendantId === null || canInherit(run, masters, attendantId, target),
@@ -617,6 +643,9 @@ function renderScreen(): HTMLElement {
           })),
           // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
           selectedAttendantId: selected,
+          hero: heroView(run),
+          // 継承権を使い切った（または継承できる資質がない）時点で供犠を選べるようにする。
+          inheritDone: run.party.every((slot) => slot.inherit_state !== 'UNUSED') || inheritPool(run, masters).length === 0,
           pool: inheritOptions(run, selected),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
