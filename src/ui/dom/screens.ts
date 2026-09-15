@@ -169,14 +169,14 @@ function inheritOption(
         option.improved.length === 0 ? 'improve none' : 'improve',
         option.improved.length === 0
           ? strings('STR_INHERIT_NO_IMPROVE')
-          : `統合で改善：${option.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)).join(' / ')}`,
+          : `（改善：${option.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)).join(' / ')}）`,
       ),
     );
   }
   // 係数の改善のうち、カードに値として現れない項目は名称を添えて示す。
   const hidden = option.boosted.filter((key) => !VISIBLE_IMPROVE_KEYS.includes(key));
   if (hidden.length > 0) {
-    outcome.append(element('span', 'improve', `他：${hidden.map((key) => PARAM_LABEL[key] ?? key).join(' / ')}`));
+    outcome.append(element('span', 'improve', `（他：${hidden.map((key) => PARAM_LABEL[key] ?? key).join(' / ')}）`));
   }
   card.append(outcome);
 

@@ -1413,7 +1413,7 @@ button:focus-visible {
 
 .inherit-outcome { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 10.5px; min-width: 0; }
 .inherit-outcome .kind { color: var(--muted); white-space: nowrap; }
-.inherit-outcome .improve { color: var(--ember); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.inherit-outcome .improve { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .inherit-outcome .improve.none { color: var(--miss); }
 
 .imrows { display: grid; gap: 2px; margin-bottom: 12px; }
