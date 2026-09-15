@@ -316,6 +316,10 @@ const screenHandlers: ScreenHandlers = {
     client?.invalidate();
     focusedInstanceId = null;
     selectedInstanceId = null;
+    // 復元先は確定操作の直前、すなわち《処理8》の時間停止中である。巻き戻した局面を
+    // 見直せるよう、再生を続けずその場で静止させる（[M-REWIND-UNDO]・[M-UI-PLAYBACK]）。
+    loop.speed = 'PAUSE';
+    battleResult = 'PAUSED';
     render();
   },
   onRollbackBattle: () => {
