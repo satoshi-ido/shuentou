@@ -116,6 +116,7 @@ describe('[M-UI-HUD]［判定プレビュー］', () => {
       vpBefore: 0,
       targetPp: 2,
       ppBefore: 0,
+      chargeCenti: 100,
       raises: true,
     });
     hero.pp = 5;

@@ -40,6 +40,7 @@ export type ActionPreview =
       readonly vpBefore: number;
       readonly targetPp: number;
       readonly ppBefore: number;
+      readonly chargeCenti: number; // 実効PP充填効率（[M-RESOLVE-MIND]#3）
       readonly raises: boolean;
     }
   | { readonly kind: 'SWAP'; readonly posIdxAfter: number }
@@ -98,7 +99,15 @@ export function previewOf(state: BattleState, unit: Unit, action: ActionInstance
   if (hasFlag(flags, 'FLAG_MIND')) {
     const gainVp = effectiveGainVp(unit, action);
     const targetPp = roundDiv((unit.vp + gainVp) * effectiveChargePpCenti(unit, action), 100);
-    return { kind: 'MIND', gainVp, vpBefore: unit.vp, targetPp, ppBefore: unit.pp, raises: targetPp > unit.pp };
+    return {
+      kind: 'MIND',
+      gainVp,
+      vpBefore: unit.vp,
+      targetPp,
+      ppBefore: unit.pp,
+      chargeCenti: effectiveChargePpCenti(unit, action),
+      raises: targetPp > unit.pp,
+    };
   }
   if (hasFlag(flags, 'FLAG_SWAP')) {
     return { kind: 'SWAP', posIdxAfter: partnerSlotOf(unit.pos_idx) };

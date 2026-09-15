@@ -559,10 +559,13 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
           rows: [
             { key: SYMBOL.vp, value: `${preview.vpBefore} + ${preview.gainVp} → ${preview.vpBefore + preview.gainVp}` },
             {
+              // [M-RESOLVE-MIND]#3 目標PP = round(加算後VP × 実効PP充填効率)、#4 現在PPが下回るときのみ引き上げる。
               key: SYMBOL.pp,
-              value: preview.raises
-                ? `${preview.ppBefore} → ${preview.targetPp}`
-                : `${preview.targetPp} ≦ ${preview.ppBefore}（据え置き）`,
+              value: `(${preview.vpBefore} + ${preview.gainVp}) × ${formatCenti(preview.chargeCenti)} = ${preview.targetPp}`,
+            },
+            {
+              key: '充填',
+              value: preview.raises ? `${preview.ppBefore} → ${preview.targetPp}` : `${preview.ppBefore}（据え置き）`,
               tone: preview.raises ? 'hit' : 'no',
             },
           ],
