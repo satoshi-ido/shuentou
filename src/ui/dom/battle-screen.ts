@@ -164,30 +164,10 @@ function renderTimeline(timeline: Timeline): HTMLElement {
   return box;
 }
 
-// [M-DATA-PAUSE-REASON] 事由文言は文言マスタに属する。文言マスタの投入まではプレースホルダ書式で示す（[I-PLAN-TEXT]）。
-function pauseReasonText(view: BattleView): string {
-  const reason = view.pauseReason;
-  if (reason === null) {
-    return '';
-  }
-  const parts = [`[STR_PAUSE_${reason.code}]`];
-  if (reason.unit_id !== null) {
-    parts.push(view.plates.find((plate) => plate.unitId === reason.unit_id)?.name ?? reason.unit_id);
-  }
-  if (reason.instance_id !== null) {
-    parts.push(view.cards.find((card) => card.instanceId === reason.instance_id)?.name ?? reason.instance_id);
-  }
-  if (reason.watch_kind !== null) {
-    parts.push(view.cards[0]?.watch.find((toggle) => toggle.kind === reason.watch_kind)?.symbol ?? reason.watch_kind);
-  }
-  if (reason.remaining_steps !== null) {
-    parts.push(`${SYMBOL.remaining}${reason.remaining_steps}`);
-  }
-  return parts.join(' ');
-}
-
 export interface BattleScreenState {
   readonly view: BattleView;
+  // [M-DATA-PAUSE-REASON] 解決済みの事由文言（文言マスタ由来）。停止していないときは空文字。
+  readonly pauseText: string;
   readonly selectedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
 }
@@ -208,7 +188,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
 
   const status = element('div', 'status num');
   status.append(element('span', 'status-step', `ステップ ${view.step}`));
-  status.append(element('span', 'status-pause', pauseReasonText(view)));
+  status.append(element('span', 'status-pause', screen.pauseText));
   root.append(status);
 
   const dock = element('div', 'dock');

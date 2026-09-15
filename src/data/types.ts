@@ -139,3 +139,50 @@ export interface AiProfileRecord {
   readonly action_bonus: Readonly<Record<string, number>>;
   readonly dynamic_weight: 'MIRROR_STATS' | null;
 }
+
+// [M-DATA-INTERP]［文脈束］
+export type ContextBundle = 'ACTION' | 'UNIT' | 'ATTENDANT' | 'ENEMY' | 'PAUSE' | 'SACRIFICE' | 'REFILL' | 'HELP';
+
+// [M-DATA-STRINGMASTER]
+export interface StringMasterRecord {
+  readonly string_id: string; // STR_ を接頭とする
+  readonly text: string; // 補間記法は [M-DATA-INTERP]
+  readonly context: readonly ContextBundle[]; // 本文が用いる束のみを列挙する
+}
+
+// [M-DATA-HELPMASTER]
+export type HelpCategory = 'RESOURCE' | 'STEP' | 'ACTION' | 'PROGRESS' | 'UI';
+
+export interface HelpMasterRecord {
+  readonly help_id: string; // HELP_ を接頭とする
+  readonly title: string;
+  readonly body: string; // 実効値キーを認めない
+  readonly unlock_key: string | null; // 語彙は [M-DATA-UNLOCKKEYS]
+  readonly category: HelpCategory;
+  readonly order: number; // 同一 category 内の並び順
+}
+
+// [M-DATA-ASSETMASTER]
+export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTION' | 'SCENE' | 'SCRIPT' | 'GLOBAL';
+export type AssetSlot = 'PORTRAIT' | 'PLATE' | 'ICON' | 'BGM' | 'SE';
+// [M-DATA-AUDIO-CUE]
+export type AudioCueKey =
+  | 'BATTLE'
+  | 'INTERMISSION'
+  | 'SCRIPT'
+  | 'ACTION_TRIGGER'
+  | 'HIT'
+  | 'MISS'
+  | 'UNIT_DESTROY'
+  | 'WATCH_PAUSE'
+  | 'UI_CONFIRM'
+  | 'UI_CANCEL';
+
+export interface AssetMasterRecord {
+  readonly asset_id: string; // ASSET_ を接頭とする
+  readonly owner_kind: AssetOwnerKind;
+  readonly owner_id: string | null; // owner_kind が HERO・GLOBAL のとき Null
+  readonly slot: AssetSlot;
+  readonly cue: AudioCueKey | null; // slot が BGM・SE のとき非Null
+  readonly path: string;
+}

@@ -7,6 +7,7 @@ import { BOOK_MASTERS } from '../data/generated/book-masters.js';
 import { ENEMY_MASTERS } from '../data/generated/enemy-masters.js';
 import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../data/generated/scene-masters.js';
+import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import { instruct, resumeBattle, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
 import { newGameSession } from '../engine/game/save.js';
 import type { GameContext } from '../engine/game/session.js';
@@ -16,6 +17,8 @@ import type { ActionInstance, Unit, WatchKind } from '../engine/types.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig } from './config.js';
+import { createStringTable } from './text.js';
+import { pauseReasonText } from './view/pause-text.js';
 import { renderBattleScreen } from './dom/battle-screen.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
 import { buildBattleView, type UnitNaming } from './view/battle-view.js';
@@ -61,6 +64,29 @@ const naming: UnitNaming = {
   actionName: (action: ActionInstance) => actions[action.master_ref]?.display_name ?? action.master_ref,
 };
 
+const strings = createStringTable(STRING_MASTERS);
+
+// [M-DATA-INTERP]［キーの語彙］共通キー。進行に応じて更新する値はここへ集約する。
+function commonKeys(): Record<string, string | number> {
+  const { run, meta } = session.data;
+  const scene = scenes[run.current_scene_id];
+  return {
+    TotalRewindCount: meta.total_rewind_count,
+    PlaythroughCount: meta.playthrough_count,
+    SacrificeCount: run.sacrificed.length,
+    EnshrinedCount: run.enshrined_count,
+    UnenshrinedCount: 14 - run.enshrined_count,
+    CoreCount: run.enshrined_count,
+    ActNumber: scene.act,
+    PartyCount: run.party.length,
+    SceneName: scene.display_name,
+    SceneNumber: scene.scene_id.replace('SCENE_', '').replace('_', '-'),
+    HeroName: HERO_INIT_UNIT.display_name,
+    HeroHp: run.hero_hp,
+    HeroHpMax: run.hero_max_hp,
+  };
+}
+
 const stepDeps = {
   createCreature: (): never => {
     throw new Error('クリーチャーマスタは未投入である');
@@ -89,7 +115,17 @@ function render(): void {
     return;
   }
   const view = buildBattleView({ state, deps: stepDeps, naming, selectedInstanceId });
-  renderBattleScreen(stage as HTMLElement, { view, selectedInstanceId, speed: loop.speed }, handlers);
+  const pauseText =
+    state.pause_reason === null
+      ? ''
+      : pauseReasonText(state, state.pause_reason, {
+          strings,
+          common: commonKeys(),
+          unitName: naming.displayName,
+          unitRoleName: naming.roleName,
+          actionName: (classId) => actions[classId]?.display_name ?? classId,
+        });
+  renderBattleScreen(stage as HTMLElement, { view, pauseText, selectedInstanceId, speed: loop.speed }, handlers);
 }
 
 function apply(next: BattleResult): void {

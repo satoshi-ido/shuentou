@@ -433,3 +433,84 @@ export function buildAiProfileRecords(profiles) {
   }
   return result;
 }
+
+// [M-DATA-INTERP]［文脈束］各束が供給する代表的な補間キー。プレースホルダ本文の組み立てに用いる。
+const BUNDLE_KEYS = {
+  ACTION: ['ActionName'],
+  UNIT: ['UnitName'],
+  ATTENDANT: ['AttendantName'],
+  ENEMY: ['EnemyName'],
+  PAUSE: ['WatchLabel', 'RemainingSteps'],
+  SACRIFICE: ['PartyCountAfter'],
+  REFILL: ['SlotCount', 'RemainCount'],
+  HELP: ['HelpTitle', 'HelpBody'],
+};
+
+// [I-PLAN-TEXT]［プレースホルダの書式］レコードIDを角括弧で囲み、用いる補間キーを列挙する。
+export function placeholderText(recordId, keys) {
+  const interpolations = keys.map((key) => `{${key}}`);
+  return [`[${recordId}]`, ...interpolations].join(' ');
+}
+
+// [M-DATA-STRINGMASTER]［見出しとボタン名］基底の string_id に _HEAD / _BTN を後置する。
+export function buildStringRecords(strings) {
+  const result = {};
+  const add = (stringId, context, keys) => {
+    if (result[stringId] !== undefined) {
+      throw new Error(`文言IDの重複: ${stringId}`);
+    }
+    result[stringId] = { string_id: stringId, text: placeholderText(stringId, keys), context: [...context] };
+  };
+  for (const entry of strings) {
+    const context = [...entry.context].sort();
+    const keys = [...context.flatMap((bundle) => BUNDLE_KEYS[bundle] ?? []), ...(entry.keys ?? [])];
+    add(entry.string_id, context, keys);
+    if (entry.confirm === true) {
+      // 確認ダイアログは見出しと決定ボタン名を別レコードで持つ。いずれも共通キーのみで書く。
+      add(`${entry.string_id}_HEAD`, [], []);
+      add(`${entry.string_id}_BTN`, [], []);
+    }
+  }
+  return result;
+}
+
+// [M-DATA-HELPMASTER] order は同一 category 内での定義順に 1 から振る。
+export function buildHelpRecords(helps) {
+  const result = {};
+  const orders = {};
+  for (const entry of helps) {
+    if (result[entry.help_id] !== undefined) {
+      throw new Error(`解説IDの重複: ${entry.help_id}`);
+    }
+    orders[entry.category] = (orders[entry.category] ?? 0) + 1;
+    result[entry.help_id] = {
+      help_id: entry.help_id,
+      title: placeholderText(`${entry.help_id}_TITLE`, []),
+      body: placeholderText(entry.help_id, []),
+      unlock_key: entry.unlock_key,
+      category: entry.category,
+      order: orders[entry.category],
+    };
+  }
+  return result;
+}
+
+// [M-DATA-ASSETMASTER] 条件付必須（owner_id・cue）をオーサリング時に検査する。
+export function buildAssetRecords(assets) {
+  const result = {};
+  for (const entry of assets) {
+    if (result[entry.asset_id] !== undefined) {
+      throw new Error(`アセットIDの重複: ${entry.asset_id}`);
+    }
+    const ownerless = entry.owner_kind === 'HERO' || entry.owner_kind === 'GLOBAL';
+    if (ownerless !== (entry.owner_id === null)) {
+      throw new Error(`owner_id の条件付必須に反する: ${entry.asset_id}`);
+    }
+    const audio = entry.slot === 'BGM' || entry.slot === 'SE';
+    if (audio !== (entry.cue !== null)) {
+      throw new Error(`cue の条件付必須に反する: ${entry.asset_id}`);
+    }
+    result[entry.asset_id] = { ...entry };
+  }
+  return result;
+}

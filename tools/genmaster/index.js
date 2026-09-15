@@ -8,11 +8,17 @@ import { fileURLToPath } from 'node:url';
 import { ATTENDANTS } from './authoring/attendants.js';
 import { BOOKS } from './authoring/books.js';
 import { AI_PROFILES } from './authoring/profiles.js';
+import { ASSETS } from './authoring/assets.js';
+import { HELPS } from './authoring/helps.js';
+import { STRINGS } from './authoring/strings.js';
 import { SCENES } from './authoring/scenes.js';
 import {
   buildAttendantRecords,
   buildAiProfileRecords,
+  buildAssetRecords,
   buildBookRecord,
+  buildHelpRecords,
+  buildStringRecords,
   buildSceneRecords,
   enemyDornTemplate,
   enemyLefTemplate,
@@ -102,6 +108,11 @@ function main() {
   writeGenerated('book-masters.ts', serializeRecordMap('BOOK_MASTERS', 'BookMasterRecord', bookMasters));
 
   // [A-PROFILE-SCHEMA] AIプロファイルマスタ。範囲は 1-01・1-02 の敵マスターが参照する2件に限る。
+  // [M-DATA-STRINGMASTER]・[M-DATA-HELPMASTER]・[M-DATA-ASSETMASTER]。本文は [I-PLAN-TEXT] のプレースホルダ。
+  writeGenerated('string-masters.ts', serializeRecordMap('STRING_MASTERS', 'StringMasterRecord', buildStringRecords(STRINGS)));
+  writeGenerated('help-masters.ts', serializeRecordMap('HELP_MASTERS', 'HelpMasterRecord', buildHelpRecords(HELPS)));
+  writeGenerated('asset-masters.ts', serializeRecordMap('ASSET_MASTERS', 'AssetMasterRecord', buildAssetRecords(ASSETS)));
+
   writeGenerated(
     'ai-profile-masters.ts',
     serializeRecordMap('AI_PROFILE_MASTERS', 'AiProfileRecord', buildAiProfileRecords(AI_PROFILES)),
