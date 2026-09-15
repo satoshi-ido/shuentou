@@ -25,7 +25,7 @@
   --cut-red: #ff334b;
 
   --lane-height: 30px;
-  --cell-height: 168px;
+  --cell-height: 208px;
 }
 
 html,
@@ -985,56 +985,67 @@ button:focus-visible {
   grid-template-columns: 1fr 340px;
   border-top: 1px solid var(--line);
   background: #100e15;
-  min-height: 86px;
+  min-height: 0;
 }
 
 .inspstrip {
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 2px;
   border-right: 1px solid var(--line);
   background: transparent;
   min-width: 0;
   overflow: hidden;
 }
 
-.ibox { padding: 4px 12px; min-width: 0; }
+.ibox { padding: 3px 10px; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
+/* 見出し・注目中のアクション名・内容・ステップ数を1行に収める。 */
 .ibox .ttl {
   display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
   color: var(--muted);
-  margin-bottom: 2px;
+  min-width: 0;
 }
 
 .ibox .ttl b {
   font-family: var(--font-serif);
-  font-size: 13px;
+  font-size: 12px;
   color: var(--ember);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ibox .ttl .ttl-step {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   color: var(--muted);
+  flex-shrink: 0;
 }
 
 .prev {
   display: flex;
+  align-items: center;
   gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
   overflow-x: auto;
 }
 
 .pg {
-  flex: 0 1 200px;
-  min-width: 150px;
-  padding: 0 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 0 10px;
   border-right: 1px solid var(--line);
+  white-space: nowrap;
 }
 
 .pg:first-child { padding-left: 0; }
@@ -1042,21 +1053,18 @@ button:focus-visible {
 
 .pg .cap {
   font-size: 10px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.08em;
   color: var(--muted);
-  margin-bottom: 1px;
 }
 
+/* 1件の行は「見出し 値」を横に並べる（縦積みをやめて高さを節約する）。 */
 .row {
   display: flex;
-  justify-content: space-between;
-  gap: 8px;
+  align-items: baseline;
+  gap: 4px;
   font-family: var(--font-mono);
   font-size: 10.5px;
-  border-bottom: 1px solid rgba(43, 39, 51, 0.4);
 }
-
-.row:last-child { border-bottom: none; }
 .row .k { color: var(--muted); }
 .row.hit .v { color: var(--ember); font-weight: 700; }
 .row.no .v { color: var(--miss); }
@@ -1065,9 +1073,9 @@ button:focus-visible {
 .timebar {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   gap: 4px;
-  padding: 6px 10px;
+  padding: 4px 10px;
   background: linear-gradient(180deg, #120f17, #0c0a10);
   min-width: 0;
 }
@@ -1123,7 +1131,8 @@ button:focus-visible {
   min-width: 0;
   border: 1px solid var(--ember-dim);
   background: rgba(255, 138, 43, 0.06);
-  padding: 2px 8px;
+  padding: 1px 8px;
+  font-size: 10.5px;
 }
 
 .why-idle { visibility: hidden; }
@@ -1150,15 +1159,15 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.timebar-row-bottom { display: flex; flex-wrap: wrap; gap: 4px; }
+.timebar-row-bottom { display: flex; flex-wrap: wrap; gap: 3px; }
 
 .rbtn {
   font-size: 10.5px;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   color: var(--ink);
   background: #16131c;
   border: 1px solid var(--line);
-  padding: 3px 8px;
+  padding: 2px 6px;
   cursor: pointer;
   white-space: nowrap;
 }

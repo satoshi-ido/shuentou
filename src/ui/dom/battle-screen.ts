@@ -569,17 +569,27 @@ interface Inspector {
   readonly prev: HTMLElement; // 判定プレビューの本体（注目の移動に応じて描き替える）
 }
 
-function renderInspector(view: BattleView): Inspector {
+function renderInspector(view: BattleView, screen: BattleScreenState): Inspector {
   const strip = element('div', 'inspstrip');
   const box = element('div', 'ibox');
   const title = element('div', 'ttl');
-  title.append(document.createTextNode('判定プレビュー'));
+  title.append(document.createTextNode('判定'));
   const name = element('b', '');
   title.append(name);
-  title.append(element('span', 'ttl-step num', `ステップ ${view.step}`));
-  box.append(title);
   const prev = element('div', 'prev');
-  box.append(prev);
+  title.append(prev); // 見出しと内容を1行に収める
+  title.append(element('span', 'ttl-step num', `歩 ${view.step}`));
+  box.append(title);
+
+  // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
+  // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
+  const message = screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
+  const why = element('div', message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice');
+  why.setAttribute('role', 'status');
+  why.append(element('span', 'dot'));
+  why.append(element('span', 't', message));
+  box.append(why);
+
   strip.append(box);
   return { root: strip, name, prev };
 }
@@ -634,24 +644,14 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
   top.append(renderRewindCore(screen.rewind));
   bar.append(top);
 
-  // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
-  // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
-  const message = screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
-  const whyClass = message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice';
-  const why = element('div', whyClass);
-  why.setAttribute('role', 'status');
-  why.append(element('span', 'dot'));
-  why.append(element('span', 't', message));
-  bar.append(why);
-
   const bottom = element('div', 'timebar-row-bottom');
   const buttons: readonly { readonly className: string; readonly label: string; readonly title: string; readonly onClick: () => void }[] = [
     // [M-META-SAVEDATA]［バトル中の保存を行わない］中断は直近のバトル開始時セーブからの再開とする。
-    { className: 'rbtn util', label: '⏸ 中断', title: '戦闘を中断してタイトルへ戻る', onClick: handlers.onQuitBattle },
+    { className: 'rbtn util', label: '中断', title: '戦闘を中断してタイトルへ戻る', onClick: handlers.onQuitBattle },
     { className: 'rbtn util', label: '辞典', title: '辞典を開く', onClick: handlers.onOpenDictionary },
     { className: 'rbtn util', label: '設定', title: '表示・音響設定を開く', onClick: handlers.onOpenConfig },
-    { className: 'rbtn', label: '再走（戦闘初期状態）', title: 'ステップ0へ巻き戻す', onClick: handlers.onRollbackBattle },
-    { className: 'rbtn', label: '再走（編成・継承）', title: '過去のインターミッションへ戻る', onClick: handlers.onOpenRollback },
+    { className: 'rbtn', label: '再走：戦闘', title: '再走（戦闘初期状態）：ステップ0へ巻き戻す', onClick: handlers.onRollbackBattle },
+    { className: 'rbtn', label: '再走：編成', title: '再走（編成・継承）：過去のインターミッションへ戻る', onClick: handlers.onOpenRollback },
   ];
   for (const entry of buttons) {
     const node = buttonElement(entry.className, entry.label);
@@ -689,7 +689,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   timelineHost.append(renderTimeline(view.timeline, view.columns));
   root.append(timelineHost);
 
-  const inspector = renderInspector(view);
+  const inspector = renderInspector(view, screen);
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
   const plateNodes: (HTMLElement | null)[] = [null, null, null, null];
