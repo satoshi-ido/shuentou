@@ -54,6 +54,13 @@ body {
   font-size: 13.5px;
   line-height: 1.5;
   user-select: none;
+  overflow: hidden; /* 論理解像度の外へ要素をはみ出させない（[M-UI-VIEWPORT]） */
+}
+
+/* 画面を包む器。高さの百分率が途切れると画面下端（下段の帯）が枠外へ押し出されるため、
+   ステージの高さをそのまま伝える。 */
+.screen-host {
+  height: 100%;
 }
 
 * {
@@ -909,13 +916,32 @@ button:focus-visible {
 .row.no .v { color: var(--miss); }
 .row.stop .v { color: #d2707a; font-weight: 700; }
 
-.timebar { padding: 6px 12px; display: flex; flex-direction: column; gap: 6px; }
+.timebar { padding: 5px 12px; display: flex; flex-direction: column; gap: 5px; }
 
 .timebar-row-top {
   display: flex;
   align-items: center;
   gap: 12px;
 }
+
+.spacer { flex: 1 1 auto; }
+
+/* [M-META-COUNTERS] 終焉燈による因果再走の累積回数。 */
+.rewind-core {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 8px;
+  border: 1px solid var(--ember-dim);
+  background: rgba(255, 138, 43, 0.06);
+  flex-shrink: 0;
+}
+
+.rewind-core .lamp { font-size: 12px; color: var(--ember); }
+.rewind-count { font-family: var(--font-mono); font-size: 11.5px; color: var(--ember); font-weight: 700; }
+.rewind-core.pending { border-style: dashed; border-color: var(--iron); background: transparent; }
+.rewind-core.pending .lamp,
+.rewind-core.pending .rewind-count { color: #7a6a63; }
 
 .transport { display: flex; gap: 1px; }
 
@@ -975,7 +1001,20 @@ button:focus-visible {
 
 .rbtn:hover { border-color: var(--ember); color: #fff; }
 .rbtn.util { color: var(--muted); }
-.btn-undo { border-color: var(--ember-dim); color: var(--ember); }
+.transport .btn-undo { border-color: var(--ember-dim); color: var(--ember); margin-right: 8px; }
+
+.rollback-target {
+  font-size: 12.5px;
+  color: var(--ink);
+  background: var(--bg-sunken);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--ember-dim);
+  padding: 7px 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.rollback-target:hover { border-color: var(--ember); border-left-color: var(--ember); color: #fff; }
 
 /* ── 各画面（[M-UI-SCREENS]） ── */
 .screen {

@@ -27,8 +27,17 @@ export interface BattleScreenHandlers {
   readonly onSpeed: (speed: PlaybackSpeed) => void;
   readonly onUndo: () => void;
   readonly onRollbackBattle: () => void;
+  readonly onOpenRollback: () => void;
+  readonly onQuitBattle: () => void;
   readonly onOpenConfig: () => void;
   readonly onOpenDictionary: () => void;
+}
+
+// [M-META-COUNTERS]・[M-META-PENDING] 因果再走の累積回数と、巻き戻し保留の有無。
+export interface RewindIndicator {
+  readonly count: number;
+  readonly pending: boolean;
+  readonly pendingText: string; // 保留中に示す文言（文言マスタ由来）。保留がなければ空文字。
 }
 
 // 再生速度（[M-UI-PLAYBACK]）。
@@ -510,11 +519,24 @@ function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
   }
 }
 
+// [M-META-COUNTERS] 終焉燈による因果再走の累積回数。巻き戻し保留が立っている間はその旨を併せて示す。
+function renderRewindCore(rewind: RewindIndicator): HTMLElement {
+  const core = element('div', `rewind-core${rewind.pending ? ' pending' : ''}`);
+  core.title = rewind.pendingText === '' ? '因果再走の累積回数' : rewind.pendingText;
+  core.append(element('span', 'lamp', '🜂'));
+  core.append(element('b', 'rewind-count num', String(rewind.count)));
+  return core;
+}
+
 function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers): HTMLElement {
   const bar = element('div', 'timebar');
 
   const top = element('div', 'timebar-row-top');
   const transport = element('div', 'transport');
+  const undo = buttonElement('btn-undo', '⟲ 取消');
+  undo.title = '直前の指示を取り消す';
+  undo.addEventListener('click', () => handlers.onUndo());
+  transport.append(undo);
   for (const speed of SPEEDS) {
     const node = buttonElement(speed === screen.speed ? 'on' : '', SPEED_GLYPH[speed]);
     node.title = `再生速度 ${speed}`;
@@ -525,6 +547,9 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
   stepOnce.addEventListener('click', () => handlers.onResume());
   transport.append(stepOnce);
   top.append(transport);
+  top.append(element('span', 'spacer'));
+  top.append(renderRewindCore(screen.rewind));
+  bar.append(top);
 
   // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していないときは行そのものを描画しない。
   if (screen.pauseText !== '') {
@@ -532,19 +557,21 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
     why.setAttribute('role', 'status');
     why.append(element('span', 'dot'));
     why.append(element('span', 't', screen.pauseText));
-    top.append(why);
+    bar.append(why);
   }
-  bar.append(top);
 
   const bottom = element('div', 'timebar-row-bottom');
-  const buttons: readonly { readonly className: string; readonly label: string; readonly onClick: () => void }[] = [
-    { className: 'rbtn btn-undo', label: '⟲ 取消', onClick: handlers.onUndo },
-    { className: 'rbtn', label: '再走（戦闘初期状態）', onClick: handlers.onRollbackBattle },
-    { className: 'rbtn util', label: '辞典', onClick: handlers.onOpenDictionary },
-    { className: 'rbtn util', label: '設定', onClick: handlers.onOpenConfig },
+  const buttons: readonly { readonly className: string; readonly label: string; readonly title: string; readonly onClick: () => void }[] = [
+    // [M-META-SAVEDATA]［バトル中の保存を行わない］中断は直近のバトル開始時セーブからの再開とする。
+    { className: 'rbtn util', label: '⏸ 中断', title: '戦闘を中断してタイトルへ戻る', onClick: handlers.onQuitBattle },
+    { className: 'rbtn util', label: '辞典', title: '辞典を開く', onClick: handlers.onOpenDictionary },
+    { className: 'rbtn util', label: '設定', title: '表示・音響設定を開く', onClick: handlers.onOpenConfig },
+    { className: 'rbtn', label: '再走（戦闘初期状態）', title: 'ステップ0へ巻き戻す', onClick: handlers.onRollbackBattle },
+    { className: 'rbtn', label: '再走（編成・継承）', title: '過去のインターミッションへ戻る', onClick: handlers.onOpenRollback },
   ];
   for (const entry of buttons) {
     const node = buttonElement(entry.className, entry.label);
+    node.title = entry.title;
     node.addEventListener('click', () => entry.onClick());
     bottom.append(node);
   }
@@ -558,6 +585,7 @@ export interface BattleScreenState {
   readonly pauseText: string;
   readonly selectedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
+  readonly rewind: RewindIndicator;
   // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
   // ホバーのたびに画面全体を組み直さない。
   readonly focusFor: (instanceId: string) => FocusPreview;

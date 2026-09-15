@@ -13,7 +13,7 @@ import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMasterRecord } from '../data/types.js';
 import { instruct, resumeBattle, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
 import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../engine/game/intermission.js';
-import { canUndo, rollbackBattle, undo } from '../engine/game/rewind.js';
+import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } from '../engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { canInherit, inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
@@ -33,8 +33,10 @@ import {
   renderIntermission,
   renderPreBattle,
   renderRefill,
+  renderRollbackOverlay,
   renderTitle,
   type ConfirmDialog,
+  type RollbackTarget,
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
@@ -316,7 +318,29 @@ const screenHandlers: ScreenHandlers = {
       render();
     });
   },
+  // [M-REWIND-ROLLBACK] 過去インターミッションへの復帰。復帰先より後のスナップショットは破棄される。
+  onRollbackIntermission: (order) => {
+    // ［複数対象の提示］破棄されるインターミッション（復帰先より後の段）を行として並べる。
+    const rows = rollbackOrders(requireSession())
+      .filter((candidate) => candidate > order)
+      .map(() => resolveString('STR_CONFIRM_ROLLBACK_IM_ROW'));
+    openConfirm('STR_CONFIRM_ROLLBACK_IM', rows, () => {
+      leaveBattle();
+      rollbackIntermission(requireSession(), order);
+      render();
+    });
+  },
 };
+
+// 進行中のバトルから離れる：再生ループと探索ワーカーを止める。
+function leaveBattle(): void {
+  loop.stop();
+  client?.dispose();
+  client = null;
+  battleResult = 'PAUSED';
+  selectedInstanceId = null;
+}
+
 
 const battleHandlers: BattleScreenHandlers = {
   onSelect: (instanceId) => {
@@ -352,9 +376,22 @@ const battleHandlers: BattleScreenHandlers = {
     loop.speed = speed;
     render();
   },
-  // バトル画面からも共通の導線（取消・再走・辞典・設定）を開く（[M-UI-SCREENS]［重畳する要素］）。
+  // バトル画面からも共通の導線（取消・再走・中断・辞典・設定）を開く（[M-UI-SCREENS]［重畳する要素］）。
   onUndo: () => screenHandlers.onUndo(),
   onRollbackBattle: () => screenHandlers.onRollbackBattle(),
+  onOpenRollback: () => {
+    overlay = 'ROLLBACK';
+    render();
+  },
+  // [M-META-SAVEDATA]［バトル中の保存を行わない］中断はタイトルへ戻るのみ。再開は直近の
+  // バトル開始時セーブからのロードとなる。
+  onQuitBattle: () => {
+    openConfirm('STR_CONFIRM_QUIT_BATTLE', [], () => {
+      leaveBattle();
+      session = null;
+      render();
+    });
+  },
   onOpenConfig: () => screenHandlers.onOpenConfig(),
   onOpenDictionary: () => screenHandlers.onOpenDictionary(),
 };
@@ -375,10 +412,23 @@ function renderBattle(): HTMLElement | null {
           unitRoleName: naming.roleName,
           actionName,
         });
+  const { meta, pending } = requireSession().data;
   const host = document.createElement('div');
+  host.className = 'screen-host'; // 論理解像度の高さを画面まで伝える器（[M-UI-VIEWPORT]）
   renderBattleScreen(
     host,
-    { view, pauseText, selectedInstanceId, speed: loop.speed, focusFor: (id) => focusPreview(state, id, stepDeps, naming) },
+    {
+      view,
+      pauseText,
+      selectedInstanceId,
+      speed: loop.speed,
+      rewind: {
+        count: meta.total_rewind_count,
+        pending: pending.rewind_pending,
+        pendingText: pending.rewind_pending ? resolveString('STR_REWIND_PENDING') : '',
+      },
+      focusFor: (id) => focusPreview(state, id, stepDeps, naming),
+    },
     battleHandlers,
   );
   return host;
@@ -452,6 +502,21 @@ function renderScreen(): HTMLElement {
   }
 }
 
+// 復帰先の候補：記録済みインターミッションの各段（[M-STATE-IMSNAPSHOT]）。
+function rollbackTargets(): RollbackTarget[] {
+  if (session === null) {
+    return [];
+  }
+  return rollbackOrders(session).map((order) => {
+    const scene = Object.values(scenes).find((candidate) => candidate.order === order);
+    return {
+      order,
+      sceneNumber: scene === undefined ? String(order) : sceneNumberOf(scene.scene_id),
+      sceneName: scene?.display_name ?? '',
+    };
+  });
+}
+
 function renderOverlay(): HTMLElement | null {
   switch (overlay) {
     case 'CONFIG':
@@ -463,6 +528,8 @@ function renderOverlay(): HTMLElement | null {
         (category) => CATEGORY_LABEL[category],
         screenHandlers,
       );
+    case 'ROLLBACK':
+      return renderRollbackOverlay(rollbackTargets(), resolveString, screenHandlers);
     case 'CONFIRM':
       return dialog === null ? null : renderConfirmOverlay(dialog, screenHandlers);
     default:

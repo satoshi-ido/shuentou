@@ -21,6 +21,7 @@ export interface ScreenHandlers {
   readonly onRefill: (attendantId: string) => void;
   readonly onUndo: () => void;
   readonly onRollbackBattle: () => void;
+  readonly onRollbackIntermission: (order: number) => void;
 }
 
 function element(tag: string, className: string, text?: string): HTMLElement {
@@ -234,6 +235,31 @@ export function renderDictionaryOverlay(
     root.append(item);
   }
   root.append(button('primary', '閉じる', handlers.onCloseOverlay));
+  return root;
+}
+
+// [M-REWIND-ROLLBACK]［過去インターミッションへのロールバック］復帰先の選択。
+// 復帰先より後のインターミッションのスナップショットは破棄される（[M-STATE-IMSNAPSHOT]）。
+export interface RollbackTarget {
+  readonly order: number;
+  readonly sceneNumber: string;
+  readonly sceneName: string;
+}
+
+export function renderRollbackOverlay(targets: readonly RollbackTarget[], strings: (id: string) => string, handlers: ScreenHandlers): HTMLElement {
+  const root = element('div', 'overlay overlay-rollback');
+  root.append(element('h2', 'overlay-title', '再走（編成・継承）'));
+  if (targets.length === 0) {
+    root.append(element('p', 'notice', strings('STR_UNDO_UNAVAILABLE')));
+  }
+  for (const target of targets) {
+    root.append(
+      button('rollback-target', `${target.sceneNumber} ${target.sceneName} の前のインターミッションへ`, () =>
+        handlers.onRollbackIntermission(target.order),
+      ),
+    );
+  }
+  root.append(button('menu', '閉じる', handlers.onCloseOverlay));
   return root;
 }
 

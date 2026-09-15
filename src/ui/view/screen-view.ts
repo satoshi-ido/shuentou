@@ -7,7 +7,7 @@ import type { SaveData } from '../../engine/meta/types.js';
 import type { RunState } from '../../engine/run/state.js';
 
 export type ScreenKind = 'TITLE' | 'PRE_BATTLE' | 'BATTLE' | 'INTERMISSION' | 'REFILL' | 'ENDING';
-export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM';
+export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM' | 'ROLLBACK';
 
 // [M-UI-SCREENS] 画面は phase から定まる。従者補充は INTERMISSION のうちアクト移行の段（[M-PROG-REFILL]）。
 export function screenOf(run: RunState): ScreenKind {
