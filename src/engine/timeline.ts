@@ -4,6 +4,7 @@
 
 import type { DecisionProvider } from './decision.js';
 import { effectiveStepRecovery, effectiveStepStartup } from './effective.js';
+import { executeAction } from './pipeline/p8-decision.js';
 import { runStepBody, type StepDeps } from './pipeline/step.js';
 import { runStepEnd } from './pipeline/stepend.js';
 import type { ActionInstance, BattleState, Side, Unit } from './types.js';
@@ -119,9 +120,24 @@ function isConverged(state: BattleState): boolean {
   return state.units.every((unit) => unit === null || unit.state === 'THOUGHT');
 }
 
-// [M-UI-TIMELINE] state は変更しない。
-export function simulateTimeline(state: BattleState, span: number, deps: StepDeps): Timeline {
+// [M-UI-TIMELINE]「注目中のアクションの仮定展開」指示確定を仮定するアクション。
+export interface TimelinePlan {
+  readonly unitId: string;
+  readonly instanceId: string;
+}
+
+// [M-UI-TIMELINE] state は変更しない。plan を与えた場合は、当該アクションの指示確定を仮定して展開する。
+
+export function simulateTimeline(state: BattleState, span: number, deps: StepDeps, plan: TimelinePlan | null = null): Timeline {
   const sim = structuredClone(state);
+  if (plan !== null) {
+    // [M-PIPE-P8-ORDER]#3 当該ユニットが当該アクションを指示確定したものとして適用する。
+    const unit = sim.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === plan.unitId);
+    const action = unit?.acts.find((candidate) => candidate.instance_id === plan.instanceId);
+    if (unit !== undefined && action !== undefined) {
+      executeAction(sim, unit, action, deps);
+    }
+  }
   const start = sim.step;
   const end = start + span;
   const framesByUnit: Record<string, Frame[]> = {};

@@ -81,3 +81,24 @@ describe('[M-UI-TIMELINE] 表示枠の幅', () => {
     expect(timelineSpan(createDuel({ heroMaxHp: 1, heroActs: [FLASH], enemyMaxHp: 1, enemyActs: [HUGE] }))).toBe(22);
   });
 });
+
+describe('[M-UI-TIMELINE] 注目中のアクションの仮定展開', () => {
+  it('指示確定を仮定すると、当該ユニットのレーンに発生・硬直の区間が現れる', () => {
+    const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 100, step_startup: 4, step_recovery: 3 });
+    const state = createDuel({ heroMaxHp: 60, heroActs: [HIT], enemyMaxHp: 60, enemyActs: [HIT] });
+    const hero = findUnit(state, 'MINE');
+    const span = 20;
+    const base = simulateTimeline(state, span, NO_SUMMON_DEPS);
+    const baseLane = base.lanes.find((lane) => lane.unitId === hero.unit_id);
+    expect(baseLane?.segments.map((segment) => segment.kind)).toEqual(['THOUGHT']); // 待機と仮定した展開
+
+    const planned = simulateTimeline(state, span, NO_SUMMON_DEPS, {
+      unitId: hero.unit_id,
+      instanceId: hero.acts[0].instance_id,
+    });
+    const plannedLane = planned.lanes.find((lane) => lane.unitId === hero.unit_id);
+    expect(plannedLane?.segments.map((segment) => segment.kind)).toEqual(['STARTUP', 'RECOVERY', 'THOUGHT']);
+    expect(plannedLane?.segments[0]).toMatchObject({ start: state.step, elapsedAtStart: 0, required: 4 });
+    expect(state.units.find((unit) => unit?.unit_id === hero.unit_id)?.state).toBe('THOUGHT'); // 起点は変更しない
+  });
+});

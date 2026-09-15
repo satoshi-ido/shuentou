@@ -294,6 +294,16 @@ button:focus-visible {
   opacity: 0.85;
 }
 
+/* [M-UI-TIMELINE]「注目中のアクションの仮定展開」差分のある区間を際立たせ、変わらないレーンは沈める。 */
+.timeline.has-plan .lane:not(.has-diff) .seg { opacity: 0.5; }
+
+.seg-new {
+  border-color: var(--ember);
+  color: #ffd9a0;
+  box-shadow: 0 0 0 1px rgba(255, 138, 43, 0.5) inset, 0 0 10px -3px var(--ember);
+  z-index: 2;
+}
+
 .nowline {
   position: absolute;
   top: 0;

@@ -419,6 +419,8 @@ export interface FocusPreview {
   readonly stamps: readonly ForecastStamp[];
   // ユニットプレートへ反映する見込み値（実行側の消費・対象側のHP推移）。
   readonly deltas: readonly PlateDelta[];
+  // [M-UI-TIMELINE]「注目中のアクションの仮定展開」。提示できない場合は Null。
+  readonly timeline: Timeline | null;
 }
 
 // 注目中のアクション1件に対する提示（判定プレビューと戦域の着弾予測）。ホバーのたびに
@@ -426,14 +428,22 @@ export interface FocusPreview {
 export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
-    return { preview: null, stamps: [], deltas: [] };
+    return { preview: null, stamps: [], deltas: [], timeline: null };
   }
   if (!isPreviewTarget(state, owner.unit, owner.action)) {
-    return { preview: null, stamps: [], deltas: [] }; // 実行できないアクションの見込みは提示しない
+    return { preview: null, stamps: [], deltas: [], timeline: null }; // 実行できないアクションの見込みは提示しない
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
   const stamps = forecastOf(state, owner.unit, owner.action, preview, naming);
-  return { preview, stamps, deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps) };
+  // 実行中アクションは既に展開へ現れているため、仮定展開を重ねない。
+  const running = owner.unit.state !== 'THOUGHT' && owner.unit.last_act?.instance_id === owner.action.instance_id;
+  const plan = running ? null : { unitId: owner.unit.unit_id, instanceId: owner.action.instance_id };
+  return {
+    preview,
+    stamps,
+    deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps),
+    timeline: plan === null ? null : simulateTimeline(state, timelineSpan(state), deps, plan),
+  };
 }
 
 export interface BattleViewOptions {

@@ -224,11 +224,11 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     const { state, hero, enemy } = duel();
     hero.elapsed_thought = 5; // PP不足のまま（HIT の実効消費PPは2）
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
-    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
     const mind = hero.acts[0]; // 思考蓄積待ち（必要思考20）
-    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
-    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
-    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
+    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
+    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
   });
 
   it('実行中（発生中）のアクションは自軍・敵軍いずれも提示する', () => {

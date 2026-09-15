@@ -132,8 +132,27 @@ function renderRuler(start: number, span: number): HTMLElement {
   return ruler;
 }
 
-function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[]): HTMLElement {
-  const box = element('div', 'timeline');
+// 仮定展開の区間が、素の展開に無い（または位置・長さが変わった）ものかどうか。
+function isNewSegment(base: Timeline | null, unitId: string, segment: TimelineSegment): boolean {
+  if (base === null) {
+    return false;
+  }
+  const lane = base.lanes.find((candidate) => candidate.unitId === unitId);
+  if (lane === undefined) {
+    return true;
+  }
+  return !lane.segments.some(
+    (candidate) =>
+      candidate.kind === segment.kind &&
+      candidate.start === segment.start &&
+      candidate.length === segment.length &&
+      candidate.instanceId === segment.instanceId,
+  );
+}
+
+// base を与えると仮定展開の表示となり、差分を持つレーンだけを際立たせる（[M-UI-TIMELINE]）。
+function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[], base: Timeline | null = null): HTMLElement {
+  const box = element('div', `timeline${base === null ? '' : ' has-plan'}`);
   const lanes = element('div', 'lanes');
 
   const span = drawSpan(timeline.span);
@@ -152,15 +171,25 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[])
 
     const lane = element('div', `lane lane-${side}`);
     const laneData = timeline.lanes.find((candidate) => candidate.posIdx === column.posIdx);
+    let laneChanged = false;
     for (const segment of laneData?.segments ?? []) {
       // 表示枠の末尾で切り詰めた区間は、右端を破線で示す（思考中区間は終端を持たないため常に切り詰め）。
       const overflow =
         segment.start + segment.length >= timeline.start + span &&
         (segment.required === null || segment.elapsedAtStart + segment.length < segment.required);
-      const seg = element('div', `seg seg-${segment.kind.toLowerCase()}${overflow ? ' overflow-right' : ''}`, segmentLabel(segment));
+      const changed = laneData !== undefined && isNewSegment(base, laneData.unitId, segment);
+      laneChanged = laneChanged || changed;
+      const seg = element(
+        'div',
+        `seg seg-${segment.kind.toLowerCase()}${overflow ? ' overflow-right' : ''}${changed ? ' seg-new' : ''}`,
+        segmentLabel(segment),
+      );
       seg.style.left = `${((segment.start - timeline.start) * 100) / span}%`;
       seg.style.width = `${(segment.length * 100) / span}%`;
       lane.append(seg);
+    }
+    if (laneChanged) {
+      lane.classList.add('has-diff');
     }
     grid.append(lane);
   }
@@ -656,7 +685,9 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   stage.replaceChildren();
   const root = element('div', 'battle');
 
-  root.append(renderTimeline(view.timeline, view.columns));
+  const timelineHost = element('div', 'timeline-host');
+  timelineHost.append(renderTimeline(view.timeline, view.columns));
+  root.append(timelineHost);
 
   const inspector = renderInspector(view);
   const docks: (HTMLElement | null)[] = [null, null, null, null];
@@ -713,6 +744,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
     paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
     paintPlates(view.previewDeltas);
+    timelineHost.replaceChildren(renderTimeline(view.timeline, view.columns));
   };
 
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
@@ -730,6 +762,12 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
     paintPlates(focus.deltas);
+    // [M-UI-TIMELINE]「注目中のアクションの仮定展開」素の展開との差分を際立たせて描く。
+    timelineHost.replaceChildren(
+      focus.timeline === null
+        ? renderTimeline(view.timeline, view.columns)
+        : renderTimeline(focus.timeline, view.columns, view.timeline),
+    );
   };
 
   // 注目（ホバー）の適用。判定プレビューの対象でないカード、およびカードの外は注目を解く。
