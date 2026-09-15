@@ -145,21 +145,6 @@ export const STRING_MASTERS = {
     "text": "[STR_CONFIRM_SACRIFICE_HEAD]",
     "context": []
   },
-  "STR_CONFIRM_UNDO": {
-    "string_id": "STR_CONFIRM_UNDO",
-    "text": "[STR_CONFIRM_UNDO]",
-    "context": []
-  },
-  "STR_CONFIRM_UNDO_BTN": {
-    "string_id": "STR_CONFIRM_UNDO_BTN",
-    "text": "[STR_CONFIRM_UNDO_BTN]",
-    "context": []
-  },
-  "STR_CONFIRM_UNDO_HEAD": {
-    "string_id": "STR_CONFIRM_UNDO_HEAD",
-    "text": "[STR_CONFIRM_UNDO_HEAD]",
-    "context": []
-  },
   "STR_HELP_FIRST_SIGHT": {
     "string_id": "STR_HELP_FIRST_SIGHT",
     "text": "[STR_HELP_FIRST_SIGHT] {HelpTitle} {HelpBody}",

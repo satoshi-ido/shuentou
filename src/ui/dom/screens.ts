@@ -98,6 +98,9 @@ export function renderIntermission(
   if (view.objectiveStringId !== null) {
     root.append(element('p', 'objective', strings(view.objectiveStringId)));
   }
+  if (view.noticeText !== '') {
+    root.append(element('p', 'notice', view.noticeText));
+  }
   if (view.noAttendant) {
     root.append(element('p', 'notice', strings('STR_LOCK_NO_ATTENDANT')));
   }

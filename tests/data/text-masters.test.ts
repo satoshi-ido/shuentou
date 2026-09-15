@@ -21,7 +21,6 @@ const REQUIRED_STRINGS: readonly (readonly [string, readonly ContextBundle[]])[]
   ['STR_CONFIRM_SACRIFICE', ['ATTENDANT', 'SACRIFICE']],
   ['STR_LOCK_NO_ATTENDANT', []],
   ['STR_CONFIRM_IM_COMMIT', []],
-  ['STR_CONFIRM_UNDO', []],
   ['STR_CONFIRM_ROLLBACK_BATTLE', []],
   ['STR_CONFIRM_ROLLBACK_IM', []],
   ['STR_REWIND_PENDING', []],

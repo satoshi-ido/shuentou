@@ -1004,6 +1004,11 @@ button:focus-visible {
 
 .why-idle { visibility: hidden; }
 
+/* 事由以外のシステム文言（提示は一度きり）。 */
+.why-notice { border-color: var(--iron); background: transparent; }
+.why-notice .dot { background: var(--muted); box-shadow: none; }
+.why-notice .t { color: var(--muted); }
+
 .why .dot {
   width: 5px;
   height: 5px;

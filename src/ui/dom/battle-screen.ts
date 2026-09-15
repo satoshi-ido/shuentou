@@ -607,10 +607,12 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
 
   // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
   // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
-  const why = element('div', screen.pauseText === '' ? 'why why-idle' : 'why');
+  const message = screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
+  const whyClass = message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice';
+  const why = element('div', whyClass);
   why.setAttribute('role', 'status');
   why.append(element('span', 'dot'));
-  why.append(element('span', 't', screen.pauseText));
+  why.append(element('span', 't', message));
   bar.append(why);
 
   const bottom = element('div', 'timebar-row-bottom');
@@ -636,6 +638,8 @@ export interface BattleScreenState {
   readonly view: BattleView;
   // [M-DATA-PAUSE-REASON] 解決済みの事由文言（文言マスタ由来）。停止していないときは空文字。
   readonly pauseText: string;
+  // 一度だけ提示するシステム文言（アンドゥ履歴が空である旨など）。提示がなければ空文字。
+  readonly noticeText: string;
   readonly selectedInstanceId: string | null;
   readonly focusedInstanceId: string | null;
   readonly speed: PlaybackSpeed;

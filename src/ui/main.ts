@@ -111,6 +111,7 @@ let dialog: ConfirmDialog | null = null;
 let selectedInstanceId: string | null = null;
 let focusedInstanceId: string | null = null; // 注目中のアクション（判定プレビューの対象）
 let battleResult: BattleResult = 'PAUSED';
+let notice = ''; // 一度だけ提示するシステム文言（履歴が空である旨など）
 
 const ctx: GameContext = {
   masters,
@@ -302,15 +303,20 @@ const screenHandlers: ScreenHandlers = {
     confirmRefill(requireSession(), ctx, attendantId);
     render();
   },
+  // [M-REWIND-UNDO]［確認を挟まない］1クリックで即時に適用する。
+  // 履歴が空の場合は適用せず、その旨を提示する（[M-STATE-HISTORY]）。
   onUndo: () => {
     if (!canUndo(requireSession())) {
+      notice = resolveString('STR_UNDO_UNAVAILABLE');
+      render();
       return;
     }
-    openConfirm('STR_CONFIRM_UNDO', [], () => {
-      undo(requireSession());
-      client?.invalidate();
-      render();
-    });
+    notice = '';
+    undo(requireSession());
+    client?.invalidate();
+    focusedInstanceId = null;
+    selectedInstanceId = null;
+    render();
   },
   onRollbackBattle: () => {
     openConfirm('STR_CONFIRM_ROLLBACK_BATTLE', [], () => {
@@ -333,6 +339,13 @@ const screenHandlers: ScreenHandlers = {
     });
   },
 };
+
+// 一度だけ提示するシステム文言を取り出す（取り出したら消える）。
+function takeNotice(): string {
+  const text = notice;
+  notice = '';
+  return text;
+}
 
 // 時間を進める。自動時間停止中は確定操作2（ステップ進行確定・[M-STATE-HISTORY]）として
 // 停止を解いてから進め、停止していない場合はそのまま続きを進める。
@@ -454,6 +467,7 @@ function renderBattle(): HTMLElement | null {
     {
       view,
       pauseText,
+      noticeText: takeNotice(),
       selectedInstanceId,
       focusedInstanceId,
       speed: loop.speed,
@@ -510,6 +524,7 @@ function renderScreen(): HTMLElement {
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
           noAttendant: run.party.length === 0,
+          noticeText: takeNotice(),
         },
         resolveString,
         actionName,

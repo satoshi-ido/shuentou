@@ -87,6 +87,8 @@ export interface IntermissionView {
   readonly isActTransition: boolean;
   // [M-PROG-NOATTENDANT] 同行従者0人では継承・供犠を行えない（STR_LOCK_NO_ATTENDANT）。
   readonly noAttendant: boolean;
+  // 一度だけ提示するシステム文言（アンドゥ履歴が空である旨など）。提示がなければ空文字。
+  readonly noticeText: string;
 }
 
 export interface RefillView {

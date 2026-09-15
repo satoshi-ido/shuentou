@@ -25,7 +25,6 @@ export const STRINGS = [
   { string_id: 'STR_REFILL_SHORT', context: ['REFILL'] },
   { string_id: 'STR_REFILL_DONE', context: [] },
   // ［巻き戻し］
-  { string_id: 'STR_CONFIRM_UNDO', context: [], confirm: true },
   { string_id: 'STR_CONFIRM_ROLLBACK_BATTLE', context: [], confirm: true },
   { string_id: 'STR_CONFIRM_ROLLBACK_IM', context: [], confirm: true },
   { string_id: 'STR_CONFIRM_ROLLBACK_IM_ROW', context: [] },
