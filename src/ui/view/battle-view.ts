@@ -101,6 +101,8 @@ export interface BattleView {
   readonly step: number;
   readonly plates: readonly PlateView[];
   readonly columns: readonly BoardColumnView[];
+  // 発生中アクションの着弾予測。戦域の対象マスへ重ねて示す。
+  readonly stamps: readonly ForecastStamp[];
   readonly cards: readonly ActionCardView[];
   readonly cardsUnitId: string | null;
   readonly timeline: Timeline;
@@ -235,17 +237,108 @@ function watchTogglesOf(state: BattleState, unit: Unit, action: ActionInstance, 
 
 // ［判定プレビュー］任意のアクションインスタンスに対する見込み。カードのホバーなど、
 // 画面側が随時に問い合わせるための入口であり、ビュー全体の再構築を伴わない。
-export function previewForInstance(state: BattleState, instanceId: string, deps: StepDeps): ActionPreview | null {
+function ownerOf(state: BattleState, instanceId: string): { unit: Unit; action: ActionInstance } | null {
   for (const unit of state.units) {
     if (unit === null) {
       continue;
     }
     const action = unit.acts.find((candidate) => candidate.instance_id === instanceId);
     if (action !== undefined) {
-      return previewOf(state, unit, action, deps);
+      return { unit, action };
     }
   }
   return null;
+}
+
+// ［判定プレビュー］戦域の各マスへ重ねる着弾の見込み。発生中アクションについては常に、
+// 選択中・注目中のアクションについては仮定として示す。
+export interface ForecastStamp {
+  readonly unitId: string; // 攻撃側
+  readonly side: Side; // 攻撃側の陣営
+  readonly posIdx: number; // 提示するマス
+  readonly kind: 'HIT' | 'MISS' | 'INTERRUPT';
+  readonly running: boolean; // 発生中の実行アクション（仮定ではない）
+  readonly actionName: string;
+  readonly atk: number;
+  readonly defense: number; // 対象の実効防御力（中断は自身の防御力）
+  readonly damage: number;
+  readonly hpBefore: number;
+  readonly hpAfter: number;
+  readonly fireStep: number; // 発動（中断は成立）のステップ
+}
+
+function forecastOf(
+  state: BattleState,
+  unit: Unit,
+  action: ActionInstance,
+  preview: ActionPreview,
+  naming: UnitNaming,
+): ForecastStamp[] {
+  if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
+    return [];
+  }
+  const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
+  const startup = effectiveStepStartup(unit, action);
+  const base = {
+    unitId: unit.unit_id,
+    side: unit.side,
+    running,
+    actionName: naming.actionName(action),
+    atk: effectiveAtk(unit, action),
+    fireStep: state.step + Math.max(running ? startup - unit.elapsed_startup : startup, 0),
+  };
+  // 中断が予測される場合は着弾しない。成立位置は攻撃側のマスに示す（[M-UI-HUD]［判定プレビュー］）。
+  if (preview.kind === 'INTERRUPT') {
+    return [
+      {
+        ...base,
+        posIdx: unit.pos_idx,
+        kind: 'INTERRUPT',
+        defense: currentDefense(unit),
+        damage: 0,
+        hpBefore: unit.hp,
+        hpAfter: unit.hp,
+        fireStep: state.step + preview.steps,
+      },
+    ];
+  }
+  if (preview.kind !== 'MARTIAL') {
+    return [];
+  }
+  return preview.targets.flatMap((target) => {
+    const victim = state.units[target.posIdx];
+    if (victim === null || victim === undefined) {
+      return [];
+    }
+    const damage = target.damage ?? 0;
+    return [
+      {
+        ...base,
+        posIdx: target.posIdx,
+        kind: target.hit ? ('HIT' as const) : ('MISS' as const),
+        defense: currentDefense(victim),
+        damage,
+        hpBefore: victim.hp,
+        hpAfter: Math.max(victim.hp - damage, 0),
+      },
+    ];
+  });
+}
+
+export interface FocusPreview {
+  readonly preview: ActionPreview | null;
+  readonly stamps: readonly ForecastStamp[];
+}
+
+// 注目中のアクション1件に対する提示（判定プレビューと戦域の着弾予測）。ホバーのたびに
+// ビュー全体を組み直さないための入口であり、見込みの計算は1回に限る。
+export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
+  const owner = ownerOf(state, instanceId);
+  if (owner === null) {
+    return { preview: null, stamps: [] };
+  }
+  const preview = previewOf(state, owner.unit, owner.action, deps);
+  return { preview, stamps: forecastOf(state, owner.unit, owner.action, preview, naming) };
 }
 
 export interface BattleViewOptions {
@@ -283,10 +376,19 @@ export function buildBattleView(options: BattleViewOptions): BattleView {
       ? undefined
       : (selectedUnit.acts.find((action) => action.instance_id === options.selectedInstanceId) ??
         selectedUnit.acts.find((action) => action.instance_id === selectedUnit.last_act?.instance_id && selectedUnit.state === 'STARTUP'));
+  // 発生中のユニットについては、選択・注目によらず常に着弾の見込みを戦域へ示す。
+  const stamps = units.flatMap((unit) => {
+    if (unit.state !== 'STARTUP') {
+      return [];
+    }
+    const action = unit.acts.find((candidate) => candidate.instance_id === unit.last_act?.instance_id);
+    return action === undefined ? [] : forecastOf(state, unit, action, previewOf(state, unit, action, deps), naming);
+  });
   return {
     step: state.step,
     plates,
     columns,
+    stamps,
     cards: cardsUnit === undefined ? [] : (columns.find((column) => column.posIdx === cardsUnit.pos_idx)?.cards ?? []),
     cardsUnitId: cardsUnit?.unit_id ?? null,
     timeline: simulateTimeline(state, timelineSpan(state), deps),

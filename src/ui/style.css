@@ -318,6 +318,61 @@ button:focus-visible {
   overflow: hidden;
 }
 
+/* ［判定プレビュー］戦域へ重ねる着弾予測。発生中アクションの見込みを対象マスに示す。 */
+.stamps {
+  position: absolute;
+  top: 6px;
+  left: 4px;
+  right: 4px;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.stamp {
+  text-align: center;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.stamp .s {
+  display: inline-block;
+  font-family: var(--font-serif);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  padding: 1px 5px;
+  border: 1px solid var(--ember);
+  color: var(--ember);
+  background: rgba(20, 12, 4, 0.95);
+}
+
+.stamp .n {
+  font-family: var(--font-mono);
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffd9a0;
+  line-height: 1.1;
+  text-shadow: 0 0 16px rgba(255, 138, 43, 0.55);
+}
+
+.stamp .sub {
+  font-size: 9.5px;
+  color: #c79a6a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stamp-foe .s { border-color: var(--miasma); color: #c4a6e4; background: rgba(18, 12, 26, 0.95); }
+.stamp-foe .n { color: #d9c4f2; text-shadow: 0 0 16px rgba(144, 112, 200, 0.5); }
+.stamp-foe .sub { color: #9f92b8; }
+
+.stamp-no .s { border-color: var(--miss); color: var(--miss); background: rgba(14, 13, 17, 0.95); }
+.stamp-no .n { color: var(--miss); font-size: 11px; text-shadow: none; }
+.stamp-no .sub { color: var(--miss); }
+
 .figure {
   position: relative;
   width: 52px;

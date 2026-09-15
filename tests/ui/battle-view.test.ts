@@ -17,7 +17,7 @@ import {
   formatUses,
   INFINITY_MARK,
 } from '../../src/ui/format.js';
-import { buildBattleView, previewForInstance, type UnitNaming } from '../../src/ui/view/battle-view.js';
+import { buildBattleView, focusPreview, type UnitNaming } from '../../src/ui/view/battle-view.js';
 import { previewOf } from '../../src/ui/view/preview.js';
 import { activationRank, sortedActions } from '../../src/ui/view/sort.js';
 import { createDuel, findUnit, makeAction, martialAction, NO_SUMMON_DEPS, setRecovery, setStartup } from '../ai/fixtures.js';
@@ -212,9 +212,76 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
   it('インスタンスIDから、自軍・敵軍いずれのアクションの見込みも引ける', () => {
     const { state, hero, enemy } = duel();
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
-    expect(previewForInstance(state, hit.instance_id, NO_SUMMON_DEPS)).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
     const foeMind = enemy.acts[0];
-    expect(previewForInstance(state, foeMind.instance_id, NO_SUMMON_DEPS)).toEqual(previewOf(state, enemy, foeMind, NO_SUMMON_DEPS));
-    expect(previewForInstance(state, 'ACT_MISSING', NO_SUMMON_DEPS)).toBeNull();
+    expect(focusPreview(state, foeMind.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(
+      previewOf(state, enemy, foeMind, NO_SUMMON_DEPS),
+    );
+    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+  });
+
+  it('武技は注目した時点の仮定として、対象マスへの着弾予測を伴う', () => {
+    const { state, hero } = duel();
+    hero.pp = 5;
+    hero.elapsed_thought = 5;
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    // 発生10の武技。命中見込みと、発動ステップ・HPの推移を対象マスに示す。
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).stamps).toEqual([
+      {
+        unitId: hero.unit_id,
+        side: 'MINE',
+        posIdx: 2,
+        kind: 'HIT',
+        running: false,
+        actionName: 'HIT',
+        atk: 20,
+        defense: 0,
+        damage: 9,
+        hpBefore: 40,
+        hpAfter: 31,
+        fireStep: 10,
+      },
+    ]);
+    // 心気のように対象を持たない系統は着弾予測を持たない。
+    expect(focusPreview(state, hero.acts[0].instance_id, NO_SUMMON_DEPS, naming).stamps).toEqual([]);
+  });
+});
+
+describe('[M-UI-HUD]［判定プレビュー］発生中アクションの着弾予測', () => {
+  it('発生中のユニットの見込みは、選択や注目によらず常に戦域へ示される', () => {
+    const { state, hero } = duel();
+    setStartup(hero, 'HIT', 4); // 発生10のうち4経過、残6で着弾
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(view.stamps).toEqual([
+      {
+        unitId: hero.unit_id,
+        side: 'MINE',
+        posIdx: 2,
+        kind: 'HIT',
+        running: true,
+        actionName: 'HIT',
+        atk: 20,
+        defense: 0,
+        damage: 9,
+        hpBefore: 40,
+        hpAfter: 31,
+        fireStep: 6,
+      },
+    ]);
+  });
+
+  it('攻撃力が防御力に満たない場合は回避として示す', () => {
+    const { state, hero, enemy } = duel();
+    enemy.ap = 40; // 防御力 40 > 攻撃力 20
+    setStartup(hero, 'HIT', 0);
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(view.stamps).toMatchObject([{ posIdx: 2, kind: 'MISS', atk: 20, defense: 40, damage: 0 }]);
+  });
+
+  it('思考中・硬直中のユニットは着弾予測を持たない', () => {
+    const { state, hero } = duel();
+    expect(buildBattleView({ state, deps: NO_SUMMON_DEPS, naming }).stamps).toEqual([]);
+    setRecovery(hero, 'HIT', 10, 2);
+    expect(buildBattleView({ state, deps: NO_SUMMON_DEPS, naming }).stamps).toEqual([]);
   });
 });

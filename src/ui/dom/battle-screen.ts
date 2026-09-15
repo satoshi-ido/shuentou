@@ -5,7 +5,15 @@
 import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
 import type { PlaybackSpeed } from '../config.js';
 import { INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
-import type { ActionCardView, BattleView, BoardColumnView, PlateView, WatchToggleView } from '../view/battle-view.js';
+import type {
+  ActionCardView,
+  BattleView,
+  BoardColumnView,
+  FocusPreview,
+  ForecastStamp,
+  PlateView,
+  WatchToggleView,
+} from '../view/battle-view.js';
 import type { ActionPreview } from '../view/preview.js';
 import type { WatchKind } from '../../engine/types.js';
 import type { Timeline, TimelineSegment } from '../../engine/timeline.js';
@@ -229,6 +237,31 @@ function dockPreviewContent(plate: PlateView, card: ActionCardView, preview: Act
   return box;
 }
 
+// ［判定プレビュー］戦域の対象マスへ重ねる着弾の見込み。
+// 自軍のアクションは命中・回避を、敵軍のアクションは被弾・回避として示す。
+function stampNode(stamp: ForecastStamp): HTMLElement {
+  const incoming = stamp.side === 'FOE';
+  const box = element('div', `stamp${incoming ? ' stamp-foe' : ''}${stamp.kind === 'HIT' ? '' : ' stamp-no'}`);
+  if (stamp.kind === 'INTERRUPT') {
+    box.append(element('div', 's', '中断'));
+    box.append(element('div', 'n', '不発'));
+    box.append(element('div', 'sub num', `ステップ ${stamp.fireStep} に中断（〈${stamp.actionName}〉）`));
+    return box;
+  }
+  if (stamp.kind === 'MISS') {
+    box.append(element('div', 's', '回避'));
+    box.append(element('div', 'n', incoming ? '無傷' : '防衛'));
+    box.append(element('div', 'sub num', `${SYMBOL.atk} ${stamp.atk} ＜ ${SYMBOL.defense} ${stamp.defense}`));
+    return box;
+  }
+  box.append(element('div', 's', incoming ? '被弾' : stamp.running ? '命中（発生中）' : '命中'));
+  box.append(element('div', 'n num', String(stamp.damage)));
+  box.append(
+    element('div', 'sub num', `ステップ ${stamp.fireStep} 発動（${SYMBOL.hp} ${stamp.hpBefore} → ${stamp.hpAfter}）`),
+  );
+  return box;
+}
+
 // ── 中段：アクションカード（[M-UI-SORT]・[M-UI-WATCH]） ──
 
 function renderWatchToggle(card: ActionCardView, toggle: WatchToggleView, handlers: BattleScreenHandlers): HTMLElement {
@@ -344,6 +377,7 @@ interface CardFocus {
 interface ColumnNodes {
   readonly root: HTMLElement;
   readonly dock: HTMLElement;
+  readonly stamps: HTMLElement; // 戦域のマスへ重ねる着弾予測の器
 }
 
 function renderColumn(
@@ -357,6 +391,8 @@ function renderColumn(
   const box = element('div', `bcol bcol-${side}${plate?.isMaster === true ? ' master' : ''}`);
 
   const cell = element('div', 'cell');
+  const stamps = element('div', 'stamps');
+  cell.append(stamps);
   const figure = element('div', 'figure');
   figure.append(element('div', 'head'));
   figure.append(element('div', 'body'));
@@ -377,7 +413,7 @@ function renderColumn(
     list.append(renderCard(card, card.instanceId === selectedInstanceId, handlers, focus));
   }
   box.append(list);
-  return { root: box, dock };
+  return { root: box, dock, stamps };
 }
 
 // ── 下段：判定プレビューと再生操作 ──
@@ -522,8 +558,9 @@ export interface BattleScreenState {
   readonly pauseText: string;
   readonly selectedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
-  // 注目中のアクションに対する判定プレビューの問い合わせ。ホバーのたびに画面全体を組み直さない。
-  readonly previewFor: (instanceId: string) => ActionPreview | null;
+  // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
+  // ホバーのたびに画面全体を組み直さない。
+  readonly focusFor: (instanceId: string) => FocusPreview;
 }
 
 export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState, handlers: BattleScreenHandlers): void {
@@ -535,7 +572,25 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
 
   const inspector = renderInspector(view);
   const docks: (HTMLElement | null)[] = [null, null, null, null];
+  const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
   const selectedCard = view.columns.flatMap((column) => column.cards).find((card) => card.instanceId === screen.selectedInstanceId);
+  const selectedFocus = selectedCard === undefined ? null : screen.focusFor(selectedCard.instanceId);
+
+  // 戦域の着弾予測：発生中アクションの見込みを常に示し、注目中のアクションがあれば
+  // 当該ユニットの分をその仮定で置き換える（1ユニットが同時に持つ実行は1件に限るため）。
+  const paintStamps = (focused: { readonly unitId: string; readonly stamps: readonly ForecastStamp[] } | null): void => {
+    const stamps = [
+      ...view.stamps.filter((stamp) => focused === null || stamp.unitId !== focused.unitId),
+      ...(focused?.stamps ?? []),
+    ];
+    for (const column of view.columns) {
+      const box = stampBoxes[column.posIdx];
+      if (box === undefined || box === null) {
+        continue;
+      }
+      box.replaceChildren(...stamps.filter((stamp) => stamp.posIdx === column.posIdx).map(stampNode));
+    }
+  };
 
   // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
   const restore = (): void => {
@@ -550,17 +605,19 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       const previewing = selectedCard !== undefined && plate !== null && plate.running === null && selectedCard.unitId === plate.unitId;
       dock.replaceChildren(previewing && plate !== null ? dockPreviewContent(plate, selectedCard, view.preview) : dockContent(plate));
     }
+    paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
   };
 
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
-    const preview = screen.previewFor(card.instanceId);
+    const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
-    fillPreview(inspector.prev, preview);
+    fillPreview(inspector.prev, focus.preview);
     const dock = docks[column.posIdx];
     const plate = column.plate;
     if (dock !== undefined && dock !== null && plate !== null && plate.running === null) {
-      dock.replaceChildren(dockPreviewContent(plate, card, preview));
+      dock.replaceChildren(dockPreviewContent(plate, card, focus.preview));
     }
+    paintStamps({ unitId: card.unitId, stamps: focus.stamps });
   };
 
   const boardWrap = element('div', 'battle-board-wrap');
@@ -576,6 +633,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       leave: () => restore(),
     });
     docks[column.posIdx] = nodes.dock;
+    stampBoxes[column.posIdx] = nodes.stamps;
     board.append(nodes.root);
   }
   boardWrap.append(board);
