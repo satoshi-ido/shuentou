@@ -858,8 +858,10 @@ button:focus-visible {
 /* [M-UI-HUD] 監視トグルは2つの状態を独立に示す：監視ON＝枠、条件の充足＝ラベル。 */
 .watch-met { color: var(--ember); font-weight: 700; } /* 条件ON：ラベルのみ点灯 */
 .watching { border-color: var(--ember); box-shadow: 0 0 6px -2px var(--ember); } /* 監視ON：枠のみ点灯 */
-.watch-na { opacity: 0.28; cursor: default; }
-.watch-idle { opacity: 0.6; }
+/* 対象外・非対象状態はラベルを沈めて示す。要素全体を減光すると監視ONの枠まで消えるため、
+   不透明度は用いない。 */
+.watch-na { color: #4a4553; cursor: default; }
+.watch-idle { color: #6b6478; }
 
 /* ── 判定プレビューと再生操作 ── */
 /* 判定プレビューを左に広く、再生操作の帯を右下の一角に置く（UIプロトタイプの2分割）。 */
