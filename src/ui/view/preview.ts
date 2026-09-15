@@ -15,7 +15,7 @@ import { hasFlag } from '../../engine/flags.js';
 import { partnerSlotOf } from '../../engine/resolve/partner.js';
 import type { StepDeps } from '../../engine/pipeline/step.js';
 import type { ActionInstance, BattleState, Unit } from '../../engine/types.js';
-import { evaluateActionWatch } from '../../engine/watch.js';
+import { stunInterruptSteps } from '../../engine/watch.js';
 import { roundDiv } from '../../num/helpers.js';
 
 export interface MartialTargetPreview {
@@ -62,10 +62,10 @@ function defenseAfterStance(unit: Unit, action: ActionInstance): number {
 }
 
 export function previewOf(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): ActionPreview {
-  // 中断の予測は監視条件『スタン』の判定（[M-UI-WATCH]）を用いる。
-  const stun = evaluateActionWatch(state, unit, action, deps).STUN;
-  if (stun.status === 'UNMET') {
-    return { kind: 'INTERRUPT', steps: stun.remainingSteps };
+  // 中断の予測は監視条件『スタン』と同じ展開（[M-UI-WATCH]）で求める。
+  const interrupt = stunInterruptSteps(state, unit, action, deps);
+  if (interrupt !== null) {
+    return { kind: 'INTERRUPT', steps: interrupt };
   }
   const flags = action.sys_flags;
   if (hasFlag(flags, 'FLAG_MARTIAL')) {

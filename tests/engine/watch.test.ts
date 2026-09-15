@@ -108,7 +108,7 @@ describe('[M-DATA-PAUSE-REASON] 停止事由レコード', () => {
 
   it('ステップ進行確定でプッシュされる停止中のステートは事由を保持し、再停止時は新たな事由を設定する', () => {
     const { session, ctx } = sessionWith(passiveFoe);
-    startBattle(session, ctx, { stopAtStep: 150 });
+    startBattle(session, ctx, { watchDefault: 'ALL_OFF', stopAtStep: 150 });
     const history = session.data.run.history_stack;
     resumeTime(session, ctx, { stopAtStep: 152 });
     expect(history.at(-1)?.battle_state?.pause_reason?.code).toBe('MANUAL_PAUSE');
@@ -149,19 +149,21 @@ describe('[M-UI-WATCH] 充足判定', () => {
     expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ READY: 'MET', HIT_FRONT: 'MET' });
   });
 
-  it('『スタン』：発動までにスタン付き武技が着弾しなければ充足、先に着弾すれば未充足、スタン源がなければ対象外', () => {
+  it('『スタン』：中断されずに発動できるとき充足、先に着弾すれば未充足。対象外を持たない', () => {
     const SLOW = martialAction('HERO_SLOW', { atk: 10, dmg_hp: 100, step_startup: 10, step_recovery: 5 });
     const QUICK = martialAction('HERO_QUICK', { atk: 10, dmg_hp: 100, step_startup: 0, step_recovery: 5 });
     const STUN = martialAction('FOE_STUN', { atk: 10, dmg_hp: 100, stun: true, step_startup: 20, step_recovery: 5 });
     const early = duel([SLOW, QUICK], [STUN]);
     setStartup(early.enemy, 'FOE_STUN', 15); // 残り5：主人公の発動（10）より先に着弾
     expect(statusOf(early.state, early.hero, 'HERO_SLOW').STUN).toBe('UNMET');
-    expect(statusOf(early.state, early.hero, 'HERO_QUICK').STUN).toBe('NA');
+    expect(statusOf(early.state, early.hero, 'HERO_QUICK').STUN).toBe('MET'); // 即時型は中断され得ない
     const late = duel([SLOW], [STUN]);
     setStartup(late.enemy, 'FOE_STUN', 5); // 残り15
     expect(statusOf(late.state, late.hero, 'HERO_SLOW').STUN).toBe('MET');
     const none = duel([SLOW], [MIND]);
-    expect(statusOf(none.state, none.hero, 'HERO_SLOW').STUN).toBe('NA');
+    expect(statusOf(none.state, none.hero, 'HERO_SLOW').STUN).toBe('MET'); // スタン源が無ければ中断され得ない
+    none.hero.acts[0].uses_left = 0; // 実行できない手は未充足
+    expect(statusOf(none.state, none.hero, 'HERO_SLOW').STUN).toBe('UNMET');
   });
 
   it('『回避』：脅威の発動までに防御が成立すれば充足、間に合わなければ未充足、脅威がなければ待機、手段がなければ対象外', () => {
@@ -229,9 +231,12 @@ describe('[M-UI-WATCH] 充足判定', () => {
     const edges = detectWatchEdges(state, NO_SUMMON_DEPS);
     expect(edges.map((edge) => [edge.unitId, edge.instanceId, edge.kind])).toEqual([
       [creature.unit_id, 'IID0070', 'READY'],
+      [creature.unit_id, 'IID0070', 'STUN'],
       ['U0000', 'IID0000', 'READY'],
+      ['U0000', 'IID0000', 'STUN'],
       ['U0000', 'IID0000', 'HIT_FRONT'],
       ['U0000', 'IID0001', 'READY'],
+      ['U0000', 'IID0001', 'STUN'],
     ]);
     expect(detectWatchEdges(state, NO_SUMMON_DEPS)).toEqual([]);
   });

@@ -172,39 +172,67 @@ function confirmedClone(state: BattleState, unitId: string, instanceId: string, 
 }
 
 // [M-UI-WATCH]『スタン』：a の発動ステップまで展開し、スタンによる中断を受けずに発動するか。
-function stunStatus(state: BattleState, unit: Unit, action: ActionInstance, executable: boolean, deps: StepDeps): WatchEvaluation {
+// スタン中断の源（敵軍の発生中のスタン付き武技）のうち、最も早く着弾するものまでの残ステップ数。
+// 源が存在しない場合は Null。
+function stunThreatRemaining(state: BattleState): number | null {
   const stunners = foeStartupActions(
     state,
     (_foe, foeAction) => foeAction.base_params.stun && hasFlag(foeAction.sys_flags, 'FLAG_MARTIAL'),
   );
-  if (isInstant(action) || stunners.length === 0) {
-    return NEVER;
+  return stunners.length === 0 ? null : Math.min(...stunners.map((threat) => threat.remaining));
+}
+
+// 確定仮定展開（実行中アクションについては現ステートからの展開）で、発動前に中断されるかを判定する。
+function interruptedBeforeFiring(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): boolean {
+  const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
+  let clone: BattleState | null;
+  if (running) {
+    clone = structuredClone(state);
+    runStepEnd(clone);
+  } else {
+    clone = confirmedClone(state, unit.unit_id, action.instance_id, deps);
   }
-  const remainingSteps = Math.min(...stunners.map((threat) => threat.remaining));
-  if (!executable) {
-    return { status: 'UNMET', remainingSteps };
-  }
-  const clone = confirmedClone(state, unit.unit_id, action.instance_id, deps);
   if (clone === null) {
-    return { status: 'UNMET', remainingSteps };
+    return true;
   }
   const limit = effectiveStepStartup(unit, action) + 1;
   for (let i = 0; i < limit; i += 1) {
     const actor = findUnitById(clone, unit.unit_id);
     if (actor === undefined || actor.state !== 'STARTUP' || actor.last_act?.instance_id !== action.instance_id) {
-      return { status: 'UNMET', remainingSteps };
+      return true;
     }
     // [M-PIPE-P1-FREEZE]#1 当ステップ開始時点で発動条件を満たせば、同ステップのスタンでは中断されない（相打ち）。
     const fires = actor.elapsed_startup >= effectiveStepStartup(actor, action);
     const { outcome } = advanceStep(clone, alwaysPass, deps);
     if (fires) {
-      return { status: 'MET', remainingSteps };
+      return false;
     }
     if (outcome !== 'NONE') {
-      return { status: outcome === 'WIN' ? 'MET' : 'UNMET', remainingSteps };
+      return outcome !== 'WIN';
     }
   }
-  return { status: 'UNMET', remainingSteps };
+  return true;
+}
+
+// [M-UI-HUD]［判定プレビュー］中断が予測される場合の成立ステップ数。中断されない場合は Null。
+export function stunInterruptSteps(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): number | null {
+  const threat = stunThreatRemaining(state);
+  if (threat === null || isInstant(action)) {
+    return null; // 中断が起こり得ない
+  }
+  return interruptedBeforeFiring(state, unit, action, deps) ? threat : null;
+}
+
+// [M-UI-WATCH]『スタン』対象外（NA）を持たない。中断が起こり得ない場合は、実行可能である限り充足。
+function stunStatus(state: BattleState, unit: Unit, action: ActionInstance, executable: boolean, deps: StepDeps): WatchEvaluation {
+  const threat = stunThreatRemaining(state);
+  if (threat === null || isInstant(action)) {
+    return { status: executable ? 'MET' : 'UNMET', remainingSteps: 0 };
+  }
+  if (!executable) {
+    return { status: 'UNMET', remainingSteps: threat };
+  }
+  return { status: interruptedBeforeFiring(state, unit, action, deps) ? 'UNMET' : 'MET', remainingSteps: threat };
 }
 
 // [M-UI-WATCH]『回避』の回避手段。
