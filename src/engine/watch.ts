@@ -91,14 +91,15 @@ export function applyWatchDefault(state: BattleState, defaults: WatchFlags): voi
   }
 }
 
-function hitStatus(unit: Unit, action: ActionInstance, target: Unit | null): WatchEvaluation {
+function hitStatus(unit: Unit, action: ActionInstance, target: Unit | null, executable: boolean): WatchEvaluation {
   if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || target === null) {
     return NEVER;
   }
   if (Math.abs(unit.pos_idx - target.pos_idx) > effectiveRange(unit, action)) {
     return NEVER;
   }
-  const met = effectiveAtk(unit, action) >= currentDefense(target);
+  // ［充足判定］対象外でなくとも、実行できない手は未充足とする。
+  const met = executable && effectiveAtk(unit, action) >= currentDefense(target);
   return { status: met ? 'MET' : 'UNMET', remainingSteps: 0 };
 }
 
@@ -266,8 +267,8 @@ export function evaluateActionWatch(state: BattleState, unit: Unit, action: Acti
   return {
     READY: { status: executable ? 'MET' : 'UNMET', remainingSteps: 0 },
     STUN: stunStatus(state, unit, action, executable, deps),
-    HIT_FRONT: hitStatus(unit, action, state.units[FOE_FRONT_IDX] ?? null),
-    HIT_BACK: hitStatus(unit, action, state.units[FOE_BACK_IDX] ?? null),
+    HIT_FRONT: hitStatus(unit, action, state.units[FOE_FRONT_IDX] ?? null, executable),
+    HIT_BACK: hitStatus(unit, action, state.units[FOE_BACK_IDX] ?? null, executable),
     EVADE: evadeStatus(state, unit, action, executable, deps),
   };
 }

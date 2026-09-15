@@ -138,6 +138,15 @@ describe('[M-UI-WATCH] 充足判定', () => {
     expect(statusOf(state, hero, 'ACT_MIND')).toMatchObject({ HIT_FRONT: 'NA', HIT_BACK: 'NA' });
   });
 
+  it('実行できないアクションは、命中見込みがあっても未充足とする', () => {
+    const COSTLY = martialAction('HERO_COSTLY', { atk: 20, range: 1, dmg_hp: 100, cost_pp: 5, step_startup: 5 });
+    const { state, hero, enemy } = duel([COSTLY], [MIND]);
+    enemy.ap = 0; // 実効防御力0：攻撃力20は命中見込みを満たす
+    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ READY: 'UNMET', HIT_FRONT: 'UNMET' });
+    hero.pp = 5; // 実効消費PPを満たすと、同じ局面で命中見込みも充足へ変わる
+    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ READY: 'MET', HIT_FRONT: 'MET' });
+  });
+
   it('『スタン』：発動までにスタン付き武技が着弾しなければ充足、先に着弾すれば未充足、スタン源がなければ対象外', () => {
     const SLOW = martialAction('HERO_SLOW', { atk: 10, dmg_hp: 100, step_startup: 10, step_recovery: 5 });
     const QUICK = martialAction('HERO_QUICK', { atk: 10, dmg_hp: 100, step_startup: 0, step_recovery: 5 });
