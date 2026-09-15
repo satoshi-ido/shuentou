@@ -77,14 +77,24 @@ function segmentLabel(segment: TimelineSegment): string {
     : `${symbol} 0/${required}`;
 }
 
-function renderRuler(timeline: Timeline): HTMLElement {
+// 表示枠の幅は目盛の反復回数そのものであるため、描画側でも整数・正数へ丸めて用いる
+// （[M-UI-TIMELINE] の SPAN は 20〜60 にクランプされるが、描画は与えられた値を信用しない）。
+const SPAN_DRAW_MIN = 1;
+const SPAN_DRAW_MAX = 240;
+
+function drawSpan(span: number): number {
+  const truncated = Math.trunc(span);
+  return Number.isFinite(truncated) ? Math.min(Math.max(truncated, SPAN_DRAW_MIN), SPAN_DRAW_MAX) : SPAN_DRAW_MIN;
+}
+
+function renderRuler(start: number, span: number): HTMLElement {
   const ruler = element('div', 'ruler num');
-  ruler.style.gridTemplateColumns = `repeat(${timeline.span}, 1fr)`;
-  const interval = timeline.span > 40 ? 5 : timeline.span > 22 ? 2 : 1;
-  for (let offset = 0; offset < timeline.span; offset += 1) {
-    const step = timeline.start + offset;
+  ruler.style.gridTemplateColumns = `repeat(${span}, 1fr)`;
+  const interval = span > 40 ? 5 : span > 22 ? 2 : 1;
+  for (let offset = 0; offset < span; offset += 1) {
+    const step = start + offset;
     const cell = element('span', offset === 0 ? 'now' : '');
-    cell.textContent = offset === 0 || offset === timeline.span - 1 || step % interval === 0 ? String(step) : '·';
+    cell.textContent = offset === 0 || offset === span - 1 || step % interval === 0 ? String(step) : '·';
     ruler.append(cell);
   }
   return ruler;
@@ -94,10 +104,11 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[])
   const box = element('div', 'timeline');
   const lanes = element('div', 'lanes');
 
+  const span = drawSpan(timeline.span);
   const labels = element('div', 'lane-labels');
   labels.append(element('div', 'hd', 'ユニット'));
   const grid = element('div', 'grid');
-  grid.append(renderRuler(timeline));
+  grid.append(renderRuler(timeline.start, span));
 
   for (const column of columns) {
     const plate = column.plate;
@@ -112,11 +123,11 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[])
     for (const segment of laneData?.segments ?? []) {
       // 表示枠の末尾で切り詰めた区間は、右端を破線で示す（思考中区間は終端を持たないため常に切り詰め）。
       const overflow =
-        segment.start + segment.length >= timeline.start + timeline.span &&
+        segment.start + segment.length >= timeline.start + span &&
         (segment.required === null || segment.elapsedAtStart + segment.length < segment.required);
       const seg = element('div', `seg seg-${segment.kind.toLowerCase()}${overflow ? ' overflow-right' : ''}`, segmentLabel(segment));
-      seg.style.left = `${((segment.start - timeline.start) * 100) / timeline.span}%`;
-      seg.style.width = `${(segment.length * 100) / timeline.span}%`;
+      seg.style.left = `${((segment.start - timeline.start) * 100) / span}%`;
+      seg.style.width = `${(segment.length * 100) / span}%`;
       lane.append(seg);
     }
     grid.append(lane);

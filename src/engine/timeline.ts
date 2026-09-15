@@ -59,7 +59,10 @@ export function timelineSpan(state: BattleState): number {
   if (count === 0) {
     return SPAN_NO_ACTION;
   }
-  return Math.min(Math.max(roundDiv(total * 14, count * 10), SPAN_MIN), SPAN_MAX);
+  const span = roundDiv(total * 14, count * 10);
+  // 平均が算出できない場合（有限でない値）は既定値へ倒す。SPAN は描画の反復回数を決めるため、
+  // 0 や NaN を表示側へ渡さない。
+  return Number.isFinite(span) ? Math.min(Math.max(span, SPAN_MIN), SPAN_MAX) : SPAN_NO_ACTION;
 }
 
 interface Frame {

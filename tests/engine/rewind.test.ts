@@ -2,7 +2,7 @@
 // [M-META-SAVEDATA] [I-STATE-JSON] [I-PLAN-MILESTONE]（M3 受け入れ線）
 
 import { describe, expect, it } from 'vitest';
-import { resumeTime, startBattle } from '../../src/engine/game/battle.js';
+import { resumeBattle, resumeTime, startBattle } from '../../src/engine/game/battle.js';
 import {
   confirmInherit,
   confirmRefill,
@@ -11,7 +11,7 @@ import {
   settleIntermission,
 } from '../../src/engine/game/intermission.js';
 import { rollbackBattle, rollbackIntermission, undo } from '../../src/engine/game/rewind.js';
-import { loadGame, newGameSession } from '../../src/engine/game/save.js';
+import { loadGame, newGameSession, peekSave } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { createContext, playBattle, playOneOperation, scriptedFoe } from './game-fixtures.js';
 
@@ -185,6 +185,31 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     const data = JSON.parse(recorder.saves[0] ?? '');
     data.save_version = oldVersion;
     expect(loadGame(JSON.stringify(data), ctx)).toEqual({ ok: false, reason: 'VERSION_MISMATCH', save_version: oldVersion });
+  });
+});
+
+describe('進行の防護', () => {
+  it('タイトルの読み取りはバトル中のセーブでも進行を伴わない', () => {
+    const { session, ctx, recorder } = setup();
+    startBattle(session, ctx);
+    const serialized = recorder.saves[0] ?? '';
+    const peeked = peekSave(serialized);
+    expect(peeked?.run.phase).toBe('BATTLE');
+    expect(JSON.stringify(peeked)).toBe(serialized); // 読み取りはステートを進めない
+    expect(peekSave(JSON.stringify({ ...JSON.parse(serialized), save_version: 2 }))).toBeNull();
+  });
+
+  it('時間停止にも決着にも到達しない進行は、際限なく回らず不整合として検出する', () => {
+    const { session, ctx } = setup();
+    // 決定主体が常にパスを返し、自軍にも実行可能手がない局面（[M-PIPE-PAUSE-TRIGGER] のいずれも成立しない）。
+    const passing: GameContext = { ...ctx, foeDecision: () => ({ kind: 'PASS' }) };
+    startBattle(session, passing, { maxSteps: 1 });
+    for (const unit of session.data.run.battle_state?.units ?? []) {
+      if (unit !== null) {
+        unit.acts = [];
+      }
+    }
+    expect(() => resumeBattle(session, passing)).toThrow(/ステップ進行した/);
   });
 });
 

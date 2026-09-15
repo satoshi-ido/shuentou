@@ -14,7 +14,7 @@ import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMast
 import { instruct, resumeBattle, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
 import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../engine/game/intermission.js';
 import { canUndo, rollbackBattle, undo } from '../engine/game/rewind.js';
-import { loadGame, newGameSession } from '../engine/game/save.js';
+import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { canInherit, inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
@@ -172,16 +172,23 @@ function openConfirm(baseId: string, rows: readonly string[], onConfirm: () => v
   render();
 }
 
-function startScene(): void {
-  const scene = currentScene();
+// [I-ENV-WORKER] 当該シーンの探索ワーカーを繋ぐ。バトルの進行より先に行う必要がある。
+// 決定主体が不在のまま進行させると、敵軍が常にパスとなり時間停止事由が成立しない。
+function attachClient(sceneId: string): void {
   client?.dispose();
-  client = new AiDecisionClient(createAiWorkerPort(), scene.scene_id, () => {
-    battleResult = resumeBattle(requireSession(), ctx);
+  client = new AiDecisionClient(createAiWorkerPort(), sceneId, () => {
+    // 応答後の再開も再生速度に従う（停止中は1ステップのみ進めて静止させる）。
+    battleResult = resumeBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) });
     render();
   });
+}
+
+function startScene(): void {
+  const scene = currentScene();
+  attachClient(scene.scene_id);
   battleResult = startBattle(requireSession(), ctx, {
     watchDefault: config.watchDefault,
-    maxSteps: stepsPerFrame(config.defaultPlaybackSpeed),
+    maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
   });
   loop.speed = config.defaultPlaybackSpeed;
   loop.start();
@@ -206,11 +213,25 @@ const screenHandlers: ScreenHandlers = {
     if (serialized === null) {
       return;
     }
-    const loaded = loadGame(serialized, ctx);
-    if (!loaded.ok) {
+    const saved = peekSave(serialized);
+    if (saved === null) {
       return; // ［データバージョン］不一致はマイグレーションせず拒否する
     }
+    // ［バトル中の保存を行わない］バトル中のセーブは再開処理を伴うため、先にワーカーを繋ぐ。
+    const resumesBattle = saved.run.phase === 'BATTLE';
+    if (resumesBattle) {
+      attachClient(saved.run.current_scene_id);
+      loop.speed = config.defaultPlaybackSpeed;
+    }
+    const loaded = loadGame(serialized, ctx, { maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1) });
+    if (!loaded.ok) {
+      return;
+    }
     session = loaded.session;
+    battleResult = loaded.battle ?? 'PAUSED';
+    if (resumesBattle) {
+      loop.start();
+    }
     render();
   },
   onOpenConfig: () => {
@@ -290,7 +311,8 @@ const screenHandlers: ScreenHandlers = {
   onRollbackBattle: () => {
     openConfirm('STR_CONFIRM_ROLLBACK_BATTLE', [], () => {
       client?.invalidate();
-      battleResult = rollbackBattle(requireSession(), ctx);
+      // 再開は再生速度に従う（1回の呼び出しで時間停止まで進めきらない）。
+      battleResult = rollbackBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) });
       render();
     });
   },
@@ -364,9 +386,9 @@ function renderBattle(): HTMLElement | null {
 
 function renderScreen(): HTMLElement {
   if (session === null) {
+    // タイトルの提示に必要なのはセーブの有無と周回の終了のみ。ロード（バトル中の再開処理）は行わない。
     const serialized = window.localStorage.getItem(SAVE_KEY);
-    const loaded = serialized === null ? null : loadGame(serialized, ctx);
-    return renderTitle(titleView(loaded !== null && loaded.ok ? loaded.session.data : null), (id) => strings.resolve(id), screenHandlers);
+    return renderTitle(titleView(serialized === null ? null : peekSave(serialized)), (id) => strings.resolve(id), screenHandlers);
   }
   const { run, meta } = requireSession().data;
   const scene = scenes[run.current_scene_id];

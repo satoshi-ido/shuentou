@@ -41,6 +41,11 @@ export interface StartOptions extends AdvanceOptions {
 
 const SCENE_5_11 = 'SCENE_5_11';
 
+// 進行の防護。時間停止も決着も成立しないまま歩進が際限なく続く状況（決定主体が常にパスを返す等の
+// 呼び出し側の不整合）を、フリーズさせずに検出する。[M-PIPE-PAUSE-TRIGGER] の規定を変えるものではなく、
+// 正常な進行がこの歩数に達することはない（最長の開幕でも 147 ステップ・[V-NUM-OPENING]）。
+const ADVANCE_GUARD_STEPS = 100000;
+
 // [A-SEARCH-REUSE] 敵軍AIの決定主体に再探索抑制を挟む。定跡が有効な間は抑制せず毎決定点で問い合わせる。
 function foeDecisionWithReuse(session: GameSession, ctx: GameContext): DecisionProvider {
   const scene = sceneOf(ctx.masters, session.data.run.current_scene_id);
@@ -124,6 +129,9 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
     advanced += 1;
     if (options.maxSteps !== undefined && advanced >= options.maxSteps) {
       return 'RUNNING';
+    }
+    if (advanced >= ADVANCE_GUARD_STEPS) {
+      throw new Error(`時間停止にも決着にも到達しないまま ${ADVANCE_GUARD_STEPS} ステップ進行した（ステップ ${state.step}）`);
     }
   }
 }
