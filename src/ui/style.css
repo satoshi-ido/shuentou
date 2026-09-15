@@ -744,36 +744,44 @@ button:focus-visible {
 .action-card.inert:hover { border-color: var(--line); }
 .action-card.sealed { border-color: #5b2b35; background: #170e12; cursor: not-allowed; }
 /* [M-DATA-PAUSE-REASON] 時間停止の事由が指すアクション。停止の原因を一覧の中で見分ける。
-   事由は停止中にのみ記録されるため（解除時に Null へ戻す）、明滅は静止している間だけ続く。 */
-@keyframes pause-focus-pulse {
+   事由は停止中にのみ記録されるため（解除時に Null へ戻す）、明滅は静止している間だけ続く。
+   キーフレームは陣営ごとに実体の色で書く（カスタムプロパティの解決に依存させない）。 */
+@keyframes pause-focus-mine {
   0%,
   100% {
-    box-shadow: 0 0 0 1px var(--focus-accent) inset, 0 0 4px -2px var(--focus-accent);
+    border-color: #8e4e17;
+    box-shadow: 0 0 0 1px rgba(255, 138, 43, 0.35) inset, 0 0 3px -1px rgba(255, 138, 43, 0.5);
   }
   50% {
-    box-shadow: 0 0 0 1px var(--focus-accent) inset, 0 0 14px 0 var(--focus-accent);
+    border-color: #ff8a2b;
+    box-shadow: 0 0 0 2px rgba(255, 138, 43, 0.85) inset, 0 0 16px 1px rgba(255, 138, 43, 0.75);
+  }
+}
+
+@keyframes pause-focus-foe {
+  0%,
+  100% {
+    border-color: #5b4785;
+    box-shadow: 0 0 0 1px rgba(144, 112, 200, 0.35) inset, 0 0 3px -1px rgba(144, 112, 200, 0.5);
+  }
+  50% {
+    border-color: #9070c8;
+    box-shadow: 0 0 0 2px rgba(144, 112, 200, 0.9) inset, 0 0 16px 1px rgba(144, 112, 200, 0.8);
   }
 }
 
 .action-card.pause-focus,
 .acting-card-dock.pause-focus {
-  --focus-accent: var(--ember);
-  border-color: var(--focus-accent);
-  box-shadow: 0 0 0 1px var(--focus-accent) inset, 0 0 12px -3px var(--focus-accent);
-  animation: pause-focus-pulse 1.1s ease-in-out infinite;
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember) inset, 0 0 12px -3px var(--ember);
+  animation: pause-focus-mine 1.1s ease-in-out infinite;
 }
 
 .bcol-foe .action-card.pause-focus,
 .bcol-foe .acting-card-dock.pause-focus {
-  --focus-accent: var(--miasma);
-}
-
-/* 動きを抑える設定の端末では明滅させず、静止した強調のみを残す。 */
-@media (prefers-reduced-motion: reduce) {
-  .action-card.pause-focus,
-  .acting-card-dock.pause-focus {
-    animation: none;
-  }
+  border-color: var(--miasma);
+  box-shadow: 0 0 0 1px var(--miasma) inset, 0 0 12px -3px var(--miasma);
+  animation-name: pause-focus-foe;
 }
 
 .action-header {
