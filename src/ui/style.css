@@ -147,3 +147,71 @@ body {
   cursor: pointer;
 }
 .speed-on { border-color: #c08a3e; }
+
+/* ── 各画面（[M-UI-SCREENS]） ── */
+.screen {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 32px;
+  box-sizing: border-box;
+  height: 100%;
+}
+
+.screen-title h1 { font-size: 40px; letter-spacing: 0.3em; }
+.screen h1 { margin: 0 0 8px; font-size: 22px; }
+.notice { opacity: 0.75; font-size: 13px; margin: 0; }
+.objective { font-size: 15px; margin: 0; }
+.enemy { font-size: 14px; opacity: 0.85; margin: 0; }
+
+.primary, .menu, .help, .inherit, .sacrifice, .refill, .config-choice {
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+  background: #241f1a;
+  border: 1px solid #55483c;
+  border-radius: 3px;
+  padding: 6px 14px;
+  cursor: pointer;
+}
+
+.primary { border-color: #c08a3e; }
+button:disabled { opacity: 0.4; cursor: default; }
+.overlay-bar { margin-top: auto; display: flex; gap: 8px; }
+
+.party { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.party-slot { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; border: 1px solid #3a332c; border-radius: 4px; padding: 8px; }
+.attendant-name { font-weight: 600; }
+.inherit-state { font-size: 11px; opacity: 0.7; }
+.inherit-pool, .refill-pool, .im-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.refill-count { font-size: 14px; margin: 0; }
+
+/* ── 重畳する要素（設定・辞典・確認ダイアログ）。同時に開くのは1件に限る ── */
+.overlay {
+  position: absolute;
+  top: 60px;
+  left: 120px;
+  width: 1040px;
+  max-height: 600px;
+  overflow-y: auto;
+  background: #17130f;
+  border: 1px solid #6a5a44;
+  border-radius: 6px;
+  padding: 20px 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overlay-title { margin: 0; font-size: 18px; }
+.config-row { display: flex; gap: 8px; align-items: center; }
+.config-label { width: 200px; font-size: 13px; }
+.config-on { border-color: #c08a3e; }
+.dict-category { margin: 10px 0 2px; font-size: 14px; opacity: 0.8; }
+.dict-entry { border-left: 2px solid #55483c; padding-left: 10px; }
+.dict-title { font-size: 13px; font-weight: 600; }
+.dict-body { font-size: 12px; opacity: 0.85; }
+.confirm-body, .confirm-row { margin: 0; font-size: 13px; }
+.confirm-actions { display: flex; gap: 8px; margin-top: 6px; }
