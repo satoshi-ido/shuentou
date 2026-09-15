@@ -1461,6 +1461,14 @@ button:focus-visible {
 
 .hero-act-metrics .st-flow { border: 1px solid var(--line); padding: 0 4px; }
 
+/* 資質に注目している間の変化。増える枠・値が変わる枠を際立たせる。 */
+.hero-act.changed {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px rgba(255, 138, 43, 0.35) inset;
+}
+
+.imrow.changed .v { color: var(--ember); font-weight: 700; }
+
 /* [M-PROG-SACRIFICE] 供犠。取り返しのつかない決済であることを配色で示す。 */
 .sac {
   border: 1px solid #7a353d;

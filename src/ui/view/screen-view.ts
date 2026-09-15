@@ -99,6 +99,9 @@ export interface InheritOptionView {
   readonly boosted: readonly string[];
   // 統合による改善項目（パラメータID）。
   readonly improved: readonly string[];
+  // [M-INHERIT-MERGE]［UI要件］受け継いだ後の主人公と、変化する所持アクション。
+  readonly heroAfter: HeroView;
+  readonly changedInstanceId: string | null;
 }
 
 // 主人公の所持アクション1件分（インターミッションでは補正が存在しないため基礎値をそのまま示す）。

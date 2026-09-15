@@ -217,6 +217,7 @@ export type InheritPreview =
       readonly classId: string;
       readonly params: ActionParams; // 統合後の基礎値
       readonly usesInitial: number; // 統合後の実効初期使用回数（最大値・合算しない）
+      readonly existingInstanceId: string; // 統合先のスロット（[M-INHERIT-MERGE] インスタンスIDを維持する）
       readonly improved: readonly string[]; // 統合により改善された項目（0件は「改善なし」）
       readonly boosted: readonly string[];
     };
@@ -299,6 +300,7 @@ export function previewInherit(
     classId: record.class_id,
     params: merged,
     usesInitial: Math.max(existing.uses_initial, usesInitial),
+    existingInstanceId: existing.instance_id,
     improved: improvedKeys(existing, merged, usesInitial),
     boosted,
   };

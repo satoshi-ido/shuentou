@@ -7,6 +7,7 @@ import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextS
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
   DictionaryEntry,
+  HeroView,
   InheritOptionView,
   IntermissionView,
   PartySlotView,
@@ -109,6 +110,9 @@ const VISIBLE_IMPROVE_KEYS: readonly string[] = [
   'uses',
 ];
 
+// 最大HPの変化を示すための擬似ID（アクションのインスタンスIDと衝突しない）。
+export const HERO_MAX_HP_CHANGE = '#MAX_HP';
+
 const INHERIT_KIND_LABEL: Readonly<Record<InheritOptionView['kind'], string>> = {
   MAX_HP: '最大HPに加算',
   NEW_SLOT: '新しいアクションとして加わる',
@@ -116,8 +120,48 @@ const INHERIT_KIND_LABEL: Readonly<Record<InheritOptionView['kind'], string>> = 
   VANISH: '実効初期使用回数0により消滅',
 };
 
+// 主人公の現状（または受け継いだ後の姿）。changedInstanceId の行を強調する。
+function heroBodyContent(hero: HeroView, changedInstanceId: string | null): HTMLElement[] {
+  const rows = element('div', 'imrows');
+  const hp = element('div', `imrow${changedInstanceId === HERO_MAX_HP_CHANGE ? ' changed' : ''}`);
+  hp.append(element('span', 'k', SYMBOL.hp));
+  hp.append(element('span', 'v num', `${hero.hp} / ${hero.maxHp}`));
+  rows.append(hp);
+  const count = element('div', 'imrow');
+  count.append(element('span', 'k', '所持アクション'));
+  count.append(element('span', 'v num', String(hero.acts.length)));
+  rows.append(count);
+
+  const acts = element('div', 'hero-acts');
+  for (const act of hero.acts) {
+    const card = element('div', `hero-act${act.instanceId === changedInstanceId ? ' changed' : ''}`);
+    const head = element('div', 'hero-act-head');
+    head.append(element('b', 'nm', act.name));
+    head.append(element('span', 'uses num', `${SYMBOL.remaining} ${act.uses}`));
+    card.append(head);
+    const metrics = element('div', 'hero-act-metrics num');
+    metrics.append(
+      element(
+        'span',
+        'st-flow',
+        `${SYMBOL.stepThought}${act.steps.thought} ${STEP_ARROW} ${SYMBOL.stepStartup}${act.steps.startup} ${STEP_ARROW} ${SYMBOL.stepRecovery}${act.steps.recovery}`,
+      ),
+    );
+    for (const cost of act.costs) {
+      metrics.append(element('span', 'cst', `${cost.label} ${cost.value}`));
+    }
+    if (act.range !== null) {
+      metrics.append(element('span', 'rng', `${SYMBOL.range} ${act.range} / ${SYMBOL.atk} ${act.atk ?? 0}`));
+    }
+    card.append(metrics);
+    acts.append(card);
+  }
+  return [rows, acts];
+}
+
 function inheritOption(
   option: InheritOptionView,
+  index: number,
   enabled: boolean,
   strings: (id: string) => string,
   onPick: () => void,
@@ -125,6 +169,7 @@ function inheritOption(
   // 従者特性係数で基礎値から改善した値は、その値自体を強調して示す（[M-DATA-INSTANTIATE]・[M-INHERIT-MERGE]［UI要件］）。
   const improved = (key: string): string => (option.boosted.includes(key) ? ' boost' : '');
   const card = element('div', `inherit-card${enabled ? '' : ' disabled'}`);
+  card.dataset.index = String(index);
   const head = element('div', 'inherit-head');
   head.append(element('b', 'nm', option.label));
   if (option.uses !== null) {
@@ -272,13 +317,13 @@ export function renderIntermission(
   );
   const pool = element('div', 'pool');
   const canInheritNow = selected !== undefined && selected.inheritState === 'UNUSED';
-  for (const option of view.pool) {
+  view.pool.forEach((option, index) => {
     pool.append(
-      inheritOption(option, canInheritNow, strings, () =>
+      inheritOption(option, index, canInheritNow, strings, () =>
         selected === undefined ? undefined : handlers.onInherit(selected.attendantId, option.target),
       ),
     );
-  }
+  });
   if (view.pool.length === 0) {
     pool.append(element('p', 'notice', '継承できる資質がない'));
   }
@@ -286,7 +331,10 @@ export function renderIntermission(
   grid.append(poolColumn);
 
   const heroColumn = element('div', 'imcol');
-  heroColumn.append(element('h3', '', `${view.hero.name}の現状`));
+  const heroHead = element('h3', '', `${view.hero.name}の現状`);
+  heroColumn.append(heroHead);
+  const heroBody = element('div', 'hero-body');
+  heroColumn.append(heroBody);
   const heroRows = element('div', 'imrows');
   const heroHp = element('div', 'imrow');
   heroHp.append(element('span', 'k', SYMBOL.hp));
@@ -296,7 +344,7 @@ export function renderIntermission(
   heroCount.append(element('span', 'k', '所持アクション'));
   heroCount.append(element('span', 'v num', String(view.hero.acts.length)));
   heroRows.append(heroCount);
-  heroColumn.append(heroRows);
+  heroBody.append(heroRows);
 
   const heroActs = element('div', 'hero-acts');
   for (const act of view.hero.acts) {
@@ -322,7 +370,7 @@ export function renderIntermission(
     card.append(metrics);
     heroActs.append(card);
   }
-  heroColumn.append(heroActs);
+  heroBody.append(heroActs);
 
   // [M-PROG-SACRIFICE] 供犠は継承を終えてから選ぶ。1回のインターミッションにつき1回まで。
   if (view.inheritDone) {
@@ -344,6 +392,27 @@ export function renderIntermission(
   }
   grid.append(heroColumn);
   root.append(grid);
+
+  // [M-INHERIT-MERGE]［UI要件］資質に注目している間、右欄を受け継いだ後の姿へ差し替える。
+  // 要素の入れ替えに影響されないよう、ポインタの位置から注目を決める。
+  let focusedLabel: string | null = null;
+  const showHero = (option: InheritOptionView | null): void => {
+    const label = option?.label ?? null;
+    if (label === focusedLabel) {
+      return;
+    }
+    focusedLabel = label;
+    heroHead.textContent = option === null ? `${view.hero.name}の現状` : `${view.hero.name} ─ ${option.label}を受け継いだ後`;
+    heroBody.replaceChildren(
+      ...heroBodyContent(option === null ? view.hero : option.heroAfter, option?.changedInstanceId ?? null),
+    );
+  };
+  pool.addEventListener('mousemove', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('.inherit-card') : null;
+    const index = target instanceof HTMLElement ? Number(target.dataset.index ?? '-1') : -1;
+    showHero(view.pool[index] ?? null);
+  });
+  pool.addEventListener('mouseleave', () => showHero(null));
   return root;
 }
 
