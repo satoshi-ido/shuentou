@@ -603,14 +603,13 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
   top.append(renderRewindCore(screen.rewind));
   bar.append(top);
 
-  // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していないときは行そのものを描画しない。
-  if (screen.pauseText !== '') {
-    const why = element('div', 'why');
-    why.setAttribute('role', 'status');
-    why.append(element('span', 'dot'));
-    why.append(element('span', 't', screen.pauseText));
-    bar.append(why);
-  }
+  // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
+  // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
+  const why = element('div', screen.pauseText === '' ? 'why why-idle' : 'why');
+  why.setAttribute('role', 'status');
+  why.append(element('span', 'dot'));
+  why.append(element('span', 't', screen.pauseText));
+  bar.append(why);
 
   const bottom = element('div', 'timebar-row-bottom');
   const buttons: readonly { readonly className: string; readonly label: string; readonly title: string; readonly onClick: () => void }[] = [

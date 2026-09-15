@@ -694,6 +694,7 @@ button:focus-visible {
   font-size: 11px;
   color: var(--muted);
   text-align: center;
+  flex: 0 0 auto;
 }
 
 .action-card {
@@ -706,6 +707,8 @@ button:focus-visible {
   gap: 2px;
   cursor: pointer;
   overflow: hidden;
+  /* 表示枠が縮んでもカードを押し潰さず、[M-UI-SCROLL] の縦スクロールへ回す。 */
+  flex: 0 0 auto;
 }
 
 .action-card > *:not(.thought-progress-bg) {
@@ -992,12 +995,14 @@ button:focus-visible {
   display: flex;
   align-items: center;
   gap: 6px;
-  flex: 1 1 auto;
+  flex: 0 0 auto; /* 停止事由の有無で帯の高さを動かさない */
   min-width: 0;
   border: 1px solid var(--ember-dim);
   background: rgba(255, 138, 43, 0.06);
   padding: 2px 8px;
 }
+
+.why-idle { visibility: hidden; }
 
 .why .dot {
   width: 5px;
