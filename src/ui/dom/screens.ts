@@ -5,6 +5,7 @@ import type { HelpMasterRecord } from '../../data/types.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
+import { HERO_MAX_HP_CHANGE } from '../view/screen-view.js';
 import type {
   DictionaryEntry,
   HeroView,
@@ -109,9 +110,6 @@ const VISIBLE_IMPROVE_KEYS: readonly string[] = [
   'atk',
   'uses',
 ];
-
-// 最大HPの変化を示すための擬似ID（アクションのインスタンスIDと衝突しない）。
-export const HERO_MAX_HP_CHANGE = '#MAX_HP';
 
 const INHERIT_KIND_LABEL: Readonly<Record<InheritOptionView['kind'], string>> = {
   MAX_HP: '最大HPに加算',

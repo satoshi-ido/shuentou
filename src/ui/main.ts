@@ -17,18 +17,16 @@ import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } f
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { executableActions } from '../engine/decision.js';
-import { canInherit, inheritPool, previewInherit, type InheritTarget } from '../engine/progress/inherit.js';
+import { inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
-import type { RunState } from '../engine/run/state.js';
 import type { BattleCue } from '../engine/cue.js';
 import type { ActionInstance, Unit, WatchKind } from '../engine/types.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
-import { HERO_MAX_HP_CHANGE } from './dom/screens.js';
 import { EffectLayer } from './dom/effects.js';
 import {
   renderConfigOverlay,
@@ -45,7 +43,7 @@ import {
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
-import { formatUses } from './format.js';
+import { heroView, inheritOptions } from './view/intermission-view.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
@@ -58,9 +56,6 @@ import {
   sceneNumberOf,
   screenOf,
   titleView,
-  type HeroActionView,
-  type HeroView,
-  type InheritOptionView,
   type OverlayKind,
 } from './view/screen-view.js';
 import { applyViewport } from './viewport.js';
@@ -526,140 +521,6 @@ function renderBattle(): HTMLElement | null {
   return host;
 }
 
-// [M-INHERIT-MERGE]［UI要件］選択中の従者を介して受け継ぐ場合の見込みを、継承プールの各項目について組む。
-// インターミッションでは補正が存在しないため、所持アクションは基礎値をそのまま示す。
-function heroView(run: RunState): HeroView {
-  return {
-    name: HERO_INIT_UNIT.display_name,
-    hp: run.hero_hp,
-    maxHp: run.hero_max_hp,
-    acts: run.hero_acts.map((action) => {
-      const params = action.base_params;
-      const costs = (['HP', 'VP', 'PP', 'AP'] as const)
-        .map((key) => ({ label: key, value: params[`cost_${key.toLowerCase()}` as 'cost_hp' | 'cost_vp' | 'cost_pp' | 'cost_ap'] }))
-        .filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
-      return {
-        instanceId: action.instance_id,
-        name: actionName(action.master_ref),
-        steps: { thought: params.step_thought, startup: params.step_startup, recovery: params.step_recovery },
-        costs,
-        range: params.range > 0 ? params.range : null,
-        atk: params.range > 0 ? params.atk : null,
-        uses: formatUses(action.uses_left, action.uses_initial),
-      };
-    }),
-  };
-}
-
-// 受け継いだ後の主人公。最大HP加算・新規スロット・統合のいずれも、確定前の見込みとして組む。
-function heroAfterOf(base: HeroView, preview: ReturnType<typeof previewInherit>, label: string): {
-  readonly hero: HeroView;
-  readonly changedInstanceId: string | null;
-} {
-  if (preview.kind === 'MAX_HP') {
-    return { hero: { ...base, maxHp: preview.maxHpAfter }, changedInstanceId: HERO_MAX_HP_CHANGE };
-  }
-  if (preview.kind === 'VANISH') {
-    return { hero: base, changedInstanceId: null };
-  }
-  const params = preview.params;
-  const costs = (['HP', 'VP', 'PP', 'AP'] as const)
-    .map((key) => ({ label: key, value: params[`cost_${key.toLowerCase()}` as 'cost_hp' | 'cost_vp' | 'cost_pp' | 'cost_ap'] }))
-    .filter((entry) => entry.value !== 0);
-  const view: HeroActionView = {
-    instanceId: preview.kind === 'MERGE' ? preview.existingInstanceId : NEW_SLOT_INSTANCE_ID,
-    name: label,
-    steps: { thought: params.step_thought, startup: params.step_startup, recovery: params.step_recovery },
-    costs,
-    range: params.range > 0 ? params.range : null,
-    atk: params.range > 0 ? params.atk : null,
-    uses: `${preview.usesInitial} / ${preview.usesInitial}`,
-  };
-  if (preview.kind === 'NEW_SLOT') {
-    return { hero: { ...base, acts: [...base.acts, view] }, changedInstanceId: view.instanceId };
-  }
-  return {
-    hero: {
-      ...base,
-      acts: base.acts.map((act) =>
-        act.instanceId === preview.existingInstanceId ? { ...view, uses: `${preview.usesInitial} / ${preview.usesInitial}` } : act,
-      ),
-    },
-    changedInstanceId: preview.existingInstanceId,
-  };
-}
-
-const NEW_SLOT_INSTANCE_ID = '#NEW_SLOT';
-
-function inheritOptions(run: RunState, attendantId: string | null): InheritOptionView[] {
-  const pool = inheritPool(run, masters).filter(
-    (target) => attendantId === null || canInherit(run, masters, attendantId, target),
-  );
-  if (attendantId === null) {
-    return [];
-  }
-  const base = heroView(run);
-  return pool.map((target) => {
-    const preview = previewInherit(run, masters, attendantId, target);
-    const label = target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
-    const after = heroAfterOf(base, preview, label);
-    if (preview.kind === 'MAX_HP') {
-      return {
-        target,
-        label,
-        kind: 'MAX_HP',
-        steps: null,
-        costs: [],
-        range: null,
-        atk: null,
-        uses: null,
-        hpAdd: preview.add,
-        boosted: preview.boosted,
-        improved: [],
-        heroAfter: after.hero,
-        changedInstanceId: after.changedInstanceId,
-      };
-    }
-    if (preview.kind === 'VANISH') {
-      return {
-        target,
-        label,
-        kind: 'VANISH',
-        steps: null,
-        costs: [],
-        range: null,
-        atk: null,
-        uses: 0,
-        hpAdd: null,
-        boosted: [],
-        improved: [],
-        heroAfter: after.hero,
-        changedInstanceId: null,
-      };
-    }
-    const params = preview.params;
-    const costs = (['HP', 'VP', 'PP', 'AP'] as const)
-      .map((key) => ({ label: key, value: params[`cost_${key.toLowerCase()}` as 'cost_hp' | 'cost_vp' | 'cost_pp' | 'cost_ap'] }))
-      .filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
-    return {
-      target,
-      label,
-      kind: preview.kind,
-      steps: { thought: params.step_thought, startup: params.step_startup, recovery: params.step_recovery },
-      costs,
-      range: params.range > 0 ? params.range : null,
-      atk: params.range > 0 ? params.atk : null,
-      uses: preview.usesInitial,
-      hpAdd: null,
-      // 係数による改善は当該の値を強調し、統合による改善は別に示す。値はパラメータIDのまま渡す。
-      boosted: preview.boosted,
-      improved: preview.kind === 'MERGE' ? preview.improved : [],
-      heroAfter: after.hero,
-      changedInstanceId: after.changedInstanceId,
-    };
-  });
-}
-
 function renderScreen(): HTMLElement {
   if (session === null) {
     // タイトルの提示に必要なのはセーブの有無と周回の終了のみ。ロード（バトル中の再開処理）は行わない。
@@ -705,10 +566,10 @@ function renderScreen(): HTMLElement {
           })),
           // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
           selectedAttendantId: selected,
-          hero: heroView(run),
+          hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),
           // 継承権を使い切った（または継承できる資質がない）時点で供犠を選べるようにする。
           inheritDone: run.party.every((slot) => slot.inherit_state !== 'UNUSED') || inheritPool(run, masters).length === 0,
-          pool: inheritOptions(run, selected),
+          pool: inheritOptions(run, masters, selected, HERO_INIT_UNIT.display_name, actionName),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
           noAttendant: run.party.length === 0,

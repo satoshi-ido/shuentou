@@ -104,6 +104,10 @@ export interface InheritOptionView {
   readonly changedInstanceId: string | null;
 }
 
+// 主人公の変化のうち、所持アクションのインスタンスIDでは指せないものを指す擬似ID。
+export const HERO_MAX_HP_CHANGE = '#MAX_HP';
+export const NEW_SLOT_INSTANCE_ID = '#NEW_SLOT';
+
 // 主人公の所持アクション1件分（インターミッションでは補正が存在しないため基礎値をそのまま示す）。
 export interface HeroActionView {
   readonly instanceId: string;
