@@ -49,7 +49,15 @@ function serializeRecordMap(constName, typeName, record) {
 }
 
 function serializeHeroInit(order) {
-  return `export const HERO_INIT_ACTIONS = ${JSON.stringify(order, null, 2)} as const satisfies readonly string[];\n`;
+  // [M-DATA-HERO-INIT]［ユニット定義］表示名・役割名・最大HP。
+  const unit = { display_name: 'セイン', role_name: 'マスター', max_hp: 60 };
+  return (
+    `export const HERO_INIT_ACTIONS = ${JSON.stringify(order, null, 2)} as const satisfies readonly string[];
+
+` +
+    `export const HERO_INIT_UNIT = ${JSON.stringify(unit, null, 2)} as const;
+`
+  );
 }
 
 function sceneById(sceneId) {

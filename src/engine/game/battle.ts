@@ -24,11 +24,14 @@ import { applyWatchDefault, detectWatchEdges, syncWatchKeys, watchMetReason, typ
 import { autosave, beginConfirmOperation, type GameContext, type GameSession } from './session.js';
 
 // AWAIT_FOE は敵軍AIの応答待ちで中断した状態（[I-ENV-WORKER]）。応答後に resumeBattle で再開する。
-export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS' | 'AWAIT_FOE';
+export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS' | 'AWAIT_FOE' | 'RUNNING';
 
 export interface AdvanceOptions {
   // [M-PIPE-PAUSE-TRIGGER]#4 手動停止を要求する最初のステップ数。
   readonly stopAtStep?: number;
+  // [M-UI-PLAYBACK] 1回の呼び出しで越えるステップ境界の上限（1描画フレームあたりの歩進）。
+  // 上限に達した時点で RUNNING を返し、次の呼び出しで続きから進める。省略時は時間停止まで進める。
+  readonly maxSteps?: number;
 }
 
 export interface StartOptions extends AdvanceOptions {
@@ -88,6 +91,7 @@ function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleO
 function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceOptions): BattleResult {
   const state = battleOf(session);
   const foeDecision = foeDecisionWithReuse(session, ctx);
+  let advanced = 0;
   for (;;) {
     const pending = session.pending_step ?? { preDone: false, loop: newSideLoopState() };
     if (!pending.preDone) {
@@ -117,6 +121,10 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
       return 'PAUSED';
     }
     runStepEnd(state);
+    advanced += 1;
+    if (options.maxSteps !== undefined && advanced >= options.maxSteps) {
+      return 'RUNNING';
+    }
   }
 }
 

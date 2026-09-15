@@ -34,3 +34,116 @@ body {
 .num {
   font-variant-numeric: tabular-nums;
 }
+
+/* ── バトル画面（[M-UI-SCREENS]・[M-UI-HUD]）。固定レイアウトであり、要素の再配置を伴う可変レイアウトを設けない ── */
+.battle {
+  display: grid;
+  grid-template-rows: 200px 150px 28px 1fr 40px 44px;
+  gap: 8px;
+  height: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.plate {
+  border: 1px solid #4a4038;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #1d1916;
+  font-size: 13px;
+  overflow: hidden;
+}
+
+.plate-mine { border-color: #7a5a2e; }
+.plate-foe { border-color: #5a2e2e; }
+.plate-empty { opacity: 0.4; display: grid; place-items: center; }
+.plate-head { display: flex; gap: 6px; align-items: baseline; margin-bottom: 4px; }
+.plate-pos { opacity: 0.6; font-size: 11px; }
+.plate-name { font-weight: 600; }
+.plate-resources { display: flex; gap: 10px; }
+.plate-chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; font-size: 11px; }
+.chip { border: 1px solid #55483c; border-radius: 10px; padding: 0 6px; }
+.chip-slip { border-color: #7a4a2e; }
+.chip-buff { border-color: #2e6a5a; }
+.chip-debuff { border-color: #6a2e4a; }
+.plate-running { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; font-size: 11px; opacity: 0.9; }
+
+/* ── 未来予測タイムライン（[M-UI-TIMELINE]） ── */
+.timeline { border: 1px solid #3a332c; border-radius: 4px; padding: 4px; overflow: hidden; }
+.tl-ruler { font-size: 11px; opacity: 0.6; margin-bottom: 2px; }
+.tl-lane { display: flex; height: 26px; margin-bottom: 2px; }
+.tl-seg { font-size: 10px; line-height: 26px; padding: 0 4px; box-sizing: border-box; white-space: nowrap; overflow: hidden; }
+.tl-startup { background: #5a3a22; }
+.tl-recovery { background: #3a2f22; }
+.tl-thought { background: #23303a; }
+
+.status { display: flex; gap: 16px; font-size: 12px; opacity: 0.85; }
+
+/* ── アクション一覧（[M-UI-SORT]・[M-UI-SCROLL]） ── */
+.dock {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto; /* 所持アクション数が表示枠を超えた場合に縦スクロールを有効化する */
+  padding-right: 4px;
+}
+
+.card {
+  border: 1px solid #453b31;
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: #211c18;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: 'head watch' 'steps watch' 'values watch';
+  gap: 2px 8px;
+  cursor: pointer;
+}
+
+.card-rank1 { opacity: 0.85; }
+.card-rank2 { opacity: 0.6; }
+.card-rank3 { opacity: 0.4; }
+.card-selected { border-color: #c08a3e; }
+.card-head { grid-area: head; display: flex; gap: 8px; align-items: baseline; }
+.card-icon { width: 1em; }
+.card-name { font-weight: 600; }
+.card-uses { margin-left: auto; opacity: 0.8; }
+.card-steps { grid-area: steps; font-size: 11px; opacity: 0.8; }
+.card-values { grid-area: values; display: flex; gap: 8px; font-size: 11px; }
+.card-watch { grid-area: watch; display: flex; gap: 4px; align-items: center; }
+
+.watch {
+  font: inherit;
+  font-size: 11px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid #55483c;
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+.watch-on { border-color: #c08a3e; }
+.watch-met { background: #3a2f16; }
+.watch-na { opacity: 0.35; }
+.watch-idle { opacity: 0.6; }
+
+.preview { font-size: 12px; min-height: 1.4em; opacity: 0.9; }
+.controls { display: flex; gap: 6px; align-items: center; }
+.speed, .resume {
+  font: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  background: #241f1a;
+  border: 1px solid #55483c;
+  border-radius: 3px;
+  padding: 4px 10px;
+  cursor: pointer;
+}
+.speed-on { border-color: #c08a3e; }
