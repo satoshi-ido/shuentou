@@ -123,6 +123,7 @@ let selectedInstanceId: string | null = null;
 let focusedInstanceId: string | null = null; // 注目中のアクション（判定プレビューの対象）
 let battleResult: BattleResult = 'PAUSED';
 let notice = ''; // 一度だけ提示するシステム文言（履歴が空である旨など）
+let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者
 
 const ctx: GameContext = {
   masters,
@@ -284,6 +285,10 @@ const screenHandlers: ScreenHandlers = {
   onStartBattle: () => startScene(),
   onInherit: (attendantId, target: InheritTarget) => {
     confirmInherit(requireSession(), ctx, attendantId, target);
+    render();
+  },
+  onSelectAttendant: (attendantId) => {
+    selectedAttendantId = attendantId;
     render();
   },
   onSacrifice: (attendantId) => {
@@ -551,6 +556,17 @@ function renderScreen(): HTMLElement {
             inheritState: slot.inherit_state,
             canSacrifice: canSacrifice(run, slot.attendant_id),
           })),
+          // [M-PROG-SACRIFICE] 供犠により消滅した従者。
+          fallen: run.sacrificed.map((attendantId) => ({
+            attendantId,
+            name: attendantName(ATTENDANT_MASTERS, attendantId),
+            epithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
+          })),
+          // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
+          selectedAttendantId:
+            run.party.find((slot) => slot.attendant_id === selectedAttendantId)?.attendant_id ??
+            run.party[0]?.attendant_id ??
+            null,
           pool: pool.filter((target) => run.party.some((slot) => canInherit(run, masters, slot.attendant_id, target))),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),

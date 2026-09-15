@@ -1210,6 +1210,185 @@ button:focus-visible {
 
 .rollback-target:hover { border-color: var(--ember); border-left-color: var(--ember); color: #fff; }
 
+/* ── インターミッション（[M-INHERIT-POOL]・[M-UI-OBJECTIVE]）。UIプロトタイプの構成に倣う ── */
+.screen.screen-intermission {
+  display: grid;
+  grid-template-rows: auto auto 200px 1fr;
+  gap: 0;
+  padding: 0;
+  height: 100%;
+}
+
+.imhead {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+
+.imhead .im-title {
+  font-family: var(--font-serif);
+  font-size: 17px;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.imhead .sub { font-size: 12px; color: var(--muted); }
+
+/* [M-UI-OBJECTIVE] 目的表示。提示しない段でも行の高さを保つ。 */
+.objbar {
+  display: flex;
+  align-items: center;
+  padding: 4px 18px;
+  font-size: 12px;
+  color: var(--ember);
+  background: rgba(255, 138, 43, 0.05);
+  border-bottom: 1px solid var(--line);
+  min-height: 24px;
+}
+
+.objbar-idle { color: transparent; }
+
+.imfield {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.1), transparent 70%),
+    radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.12), transparent 70%),
+    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);
+}
+
+.imstage {
+  display: grid;
+  grid-template-columns: 1fr 1px 240px;
+  align-items: end;
+  height: 100%;
+  padding: 12px 24px;
+}
+
+.party {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 10px;
+  height: 100%;
+}
+
+.pm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.pm .figure { width: 44px; height: 74px; margin-bottom: 6px; }
+.pm.sel .figure .head,
+.pm.sel .figure .body { border-color: var(--ember); box-shadow: 0 0 26px -6px rgba(255, 138, 43, 0.75); }
+
+.pm .pmp {
+  border: 1px solid var(--line);
+  background: rgba(13, 11, 17, 0.88);
+  padding: 3px 8px;
+  text-align: center;
+  min-width: 108px;
+}
+
+.pm.sel .pmp { border-color: var(--ember); background: #1b1309; }
+.pm .pmn { font-family: var(--font-serif); font-size: 12.5px; letter-spacing: 0.04em; }
+.pm .pmt { font-size: 10.5px; color: var(--muted); }
+.pm .pms { font-family: var(--font-mono); font-size: 10.5px; color: var(--ember); }
+
+.pm.fallen { cursor: default; opacity: 0.55; }
+.pm.fallen .figure { filter: grayscale(1); }
+.pm.fallen .pmn { color: var(--muted); }
+
+.pm-empty {
+  align-self: center;
+  font-size: 12px;
+  color: var(--miss);
+}
+
+.imdiv {
+  background: linear-gradient(180deg, transparent, rgba(196, 204, 216, 0.28), rgba(196, 204, 216, 0.04));
+  height: 82%;
+  align-self: end;
+}
+
+.fallenwrap {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+  height: 100%;
+  padding-left: 20px;
+  overflow: hidden;
+}
+
+.imgrid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 0;
+}
+
+.imcol {
+  border-right: 1px solid var(--line);
+  padding: 12px 16px;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.imcol:last-child { border-right: none; }
+
+.imcol h3 {
+  margin: 0 0 8px;
+  font-family: var(--font-serif);
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.pool { display: grid; gap: 5px; align-content: start; }
+.pool .inherit { text-align: left; }
+
+.imrows { display: grid; gap: 2px; margin-bottom: 12px; }
+
+.imrow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 11.5px;
+  padding: 2px 0;
+  border-bottom: 1px solid rgba(43, 39, 51, 0.5);
+}
+
+.imrow .k { color: var(--muted); }
+.imrow .v { font-family: var(--font-serif); }
+
+/* [M-PROG-SACRIFICE] 供犠。取り返しのつかない決済であることを配色で示す。 */
+.sac {
+  border: 1px solid #7a353d;
+  background: #180d11;
+  padding: 10px;
+}
+
+.sac h3 { color: #e2626d; margin: 0 0 6px; font-size: 12.5px; letter-spacing: 0.08em; }
+.sac p { font-size: 11.5px; color: #c4bcb2; margin: 0 0 8px; line-height: 1.5; }
+
+.sacbtn {
+  width: 100%;
+  border: 1px solid #8e3a44;
+  background: #291117;
+  color: #ff7a88;
+  padding: 7px;
+  cursor: pointer;
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+}
+
+.sacbtn:hover:not(:disabled) { background: #451a23; color: #fff; border-color: var(--hp); }
+
 /* ── 各画面（[M-UI-SCREENS]） ── */
 .screen {
   display: flex;

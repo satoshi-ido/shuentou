@@ -4,7 +4,14 @@
 import type { HelpMasterRecord } from '../../data/types.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
-import type { DictionaryEntry, IntermissionView, PreBattleView, RefillView, TitleView } from '../view/screen-view.js';
+import type {
+  DictionaryEntry,
+  IntermissionView,
+  PartySlotView,
+  PreBattleView,
+  RefillView,
+  TitleView,
+} from '../view/screen-view.js';
 
 export interface ScreenHandlers {
   readonly onNewGame: () => void;
@@ -17,6 +24,7 @@ export interface ScreenHandlers {
   readonly onStartBattle: () => void;
   readonly onInherit: (attendantId: string, target: InheritTarget) => void;
   readonly onSacrifice: (attendantId: string) => void;
+  readonly onSelectAttendant: (attendantId: string) => void;
   readonly onSettleIntermission: () => void;
   readonly onRefill: (attendantId: string) => void;
   readonly onUndo: () => void;
@@ -88,43 +96,134 @@ function inheritLabel(target: InheritTarget, actionName: (classId: string) => st
   return target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
 }
 
+// [M-INHERIT-POOL] 継承の段。UIプロトタイプに倣い、見出し・目的表示・従者の壇・2欄の順に並べる。
+const INHERIT_STATE_LABEL: Readonly<Record<PartySlotView['inheritState'], string>> = {
+  UNUSED: '継承枠あり',
+  SPENT: '継承済み',
+  FORFEITED: '枠を失効',
+};
+
+function figure(className: string): HTMLElement {
+  const node = element('div', className);
+  node.append(element('div', 'head'));
+  node.append(element('div', 'body'));
+  return node;
+}
+
+// 壇に並ぶ従者1名。クリックで選択し、継承先・供犠の対象とする。
+function partyMember(slot: PartySlotView, selected: boolean, handlers: ScreenHandlers): HTMLElement {
+  const node = element('div', `pm${selected ? ' sel' : ''}`);
+  node.append(figure('figure'));
+  const plate = element('div', 'pmp');
+  plate.append(element('div', 'pmn', slot.name));
+  plate.append(element('div', 'pmt', `〈${slot.epithet}〉`));
+  plate.append(element('div', 'pms', INHERIT_STATE_LABEL[slot.inheritState]));
+  node.append(plate);
+  node.addEventListener('click', () => handlers.onSelectAttendant(slot.attendantId));
+  return node;
+}
+
 export function renderIntermission(
   view: IntermissionView,
   strings: (id: string) => string,
   actionName: (classId: string) => string,
   handlers: ScreenHandlers,
 ): HTMLElement {
-  const root = screenRoot('intermission', `インターミッション：次は ${view.sceneNumber} ${view.sceneName}`);
-  if (view.objectiveStringId !== null) {
-    root.append(element('p', 'objective', strings(view.objectiveStringId)));
-  }
-  if (view.noticeText !== '') {
-    root.append(element('p', 'notice', view.noticeText));
-  }
-  if (view.noAttendant) {
-    root.append(element('p', 'notice', strings('STR_LOCK_NO_ATTENDANT')));
-  }
+  const root = element('div', 'screen screen-intermission im');
+
+  const head = element('div', 'imhead');
+  head.append(element('h2', 'im-title', '継承・編成'));
+  head.append(element('span', 'sub', `次は ${view.sceneNumber} ${view.sceneName}`));
+  head.append(element('span', 'spacer'));
+  head.append(button('rbtn util', '辞典', handlers.onOpenDictionary));
+  head.append(button('rbtn util', '設定', handlers.onOpenConfig));
+  head.append(button('rbtn btn-undo', '⟲ 取消', handlers.onUndo));
+  head.append(button('primary', '確定して進む', handlers.onSettleIntermission, !view.canSettle));
+  root.append(head);
+
+  // [M-UI-OBJECTIVE] 目的表示。提示しない段でも行の高さを保つ。
+  const objective = element('div', `objbar${view.objectiveStringId === null ? ' objbar-idle' : ''}`);
+  objective.setAttribute('role', 'status');
+  objective.textContent = view.objectiveStringId === null ? '' : strings(view.objectiveStringId);
+  root.append(objective);
+
+  const field = element('div', 'imfield');
+  const stage = element('div', 'imstage');
   const party = element('div', 'party');
   for (const slot of view.slots) {
-    const row = element('div', 'party-slot');
-    row.append(element('span', 'attendant-name', `${slot.name}〈${slot.epithet}〉`));
-    row.append(element('span', 'inherit-state', slot.inheritState));
-    if (slot.inheritState === 'UNUSED') {
-      const pool = element('div', 'inherit-pool');
-      for (const target of view.pool) {
-        pool.append(button('inherit', inheritLabel(target, actionName), () => handlers.onInherit(slot.attendantId, target)));
-      }
-      row.append(pool);
-    }
-    row.append(button('sacrifice', '供犠', () => handlers.onSacrifice(slot.attendantId), !slot.canSacrifice));
-    party.append(row);
+    party.append(partyMember(slot, slot.attendantId === view.selectedAttendantId, handlers));
   }
-  root.append(party);
-  const actions = element('div', 'im-actions');
-  actions.append(button('primary', '決済を確定', handlers.onSettleIntermission, !view.canSettle));
-  actions.append(button('menu', 'アンドゥ', handlers.onUndo));
-  root.append(actions);
-  root.append(overlayBar(handlers));
+  if (view.noAttendant) {
+    // [M-PROG-NOATTENDANT] 同行従者0人では継承・供犠を行えない。
+    party.append(element('div', 'pm-empty', strings('STR_LOCK_NO_ATTENDANT')));
+  }
+  stage.append(party);
+  stage.append(element('div', 'imdiv'));
+  const fallen = element('div', 'fallenwrap');
+  for (const lost of view.fallen) {
+    const node = element('div', 'pm fallen');
+    node.append(figure('figure'));
+    const plate = element('div', 'pmp');
+    plate.append(element('div', 'pmn', lost.name));
+    plate.append(element('div', 'pmt', `〈${lost.epithet}〉`));
+    node.append(plate);
+    fallen.append(node);
+  }
+  stage.append(fallen);
+  field.append(stage);
+  root.append(field);
+
+  const grid = element('div', 'imgrid');
+  const selected = view.slots.find((slot) => slot.attendantId === view.selectedAttendantId);
+
+  const poolColumn = element('div', 'imcol');
+  poolColumn.append(element('h3', '', '継承できる資質'));
+  const pool = element('div', 'pool');
+  const canInheritNow = selected !== undefined && selected.inheritState === 'UNUSED';
+  for (const target of view.pool) {
+    pool.append(
+      button(
+        'inherit',
+        inheritLabel(target, actionName),
+        () => (selected === undefined ? undefined : handlers.onInherit(selected.attendantId, target)),
+        !canInheritNow,
+      ),
+    );
+  }
+  if (view.pool.length === 0) {
+    pool.append(element('p', 'notice', '継承できる資質がない'));
+  }
+  poolColumn.append(pool);
+  grid.append(poolColumn);
+
+  const actionColumn = element('div', 'imcol');
+  actionColumn.append(element('h3', '', '選択中の従者'));
+  if (selected === undefined) {
+    actionColumn.append(element('p', 'notice', '壇の従者を選ぶ'));
+  } else {
+    const rows = element('div', 'imrows');
+    const row = (key: string, value: string): void => {
+      const line = element('div', 'imrow');
+      line.append(element('span', 'k', key));
+      line.append(element('span', 'v', value));
+      rows.append(line);
+    };
+    row('名', `${selected.name}〈${selected.epithet}〉`);
+    row('継承枠', INHERIT_STATE_LABEL[selected.inheritState]);
+    actionColumn.append(rows);
+
+    // [M-PROG-SACRIFICE] 供犠：従者1名を消滅させ、主人公のHPを全回復する。
+    const sac = element('div', 'sac');
+    sac.append(element('h3', '', '⚠ 供犠'));
+    sac.append(element('p', '', '従者1名を消滅させ、主人公のHPを最大HPまで回復する。'));
+    sac.append(button('sacbtn', '選択中の従者を捧げる', () => handlers.onSacrifice(selected.attendantId), !selected.canSacrifice));
+    actionColumn.append(sac);
+  }
+  if (view.noticeText !== '') {
+    actionColumn.append(element('p', 'notice', view.noticeText));
+  }
+  grid.append(actionColumn);
+  root.append(grid);
   return root;
 }
 

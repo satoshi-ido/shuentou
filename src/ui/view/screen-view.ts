@@ -77,11 +77,21 @@ export interface PartySlotView {
   readonly canSacrifice: boolean;
 }
 
+// [M-PROG-SACRIFICE] 供犠により消滅した従者（壇の脇に並べる）。
+export interface FallenView {
+  readonly attendantId: string;
+  readonly name: string;
+  readonly epithet: string;
+}
+
 export interface IntermissionView {
   readonly objectiveStringId: string | null;
   readonly sceneName: string; // 次に遷移するシーン
   readonly sceneNumber: string;
   readonly slots: readonly PartySlotView[];
+  readonly fallen: readonly FallenView[];
+  // 壇で選択中の従者。継承先・供犠の対象となる。
+  readonly selectedAttendantId: string | null;
   readonly pool: readonly InheritTarget[];
   readonly canSettle: boolean;
   readonly isActTransition: boolean;
