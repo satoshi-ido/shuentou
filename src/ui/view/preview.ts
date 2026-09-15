@@ -23,14 +23,25 @@ export interface MartialTargetPreview {
   readonly posIdx: number;
   readonly hit: boolean;
   readonly damage: number | null; // 成立時のHPダメージ見込み
+  // 計算式の提示に用いる（[M-UI-HUD]［判定プレビュー］`実効攻撃力 ≧ 実効防御力` の成否）。
+  readonly defense: number;
+  readonly hpBefore: number;
+  readonly hpAfter: number;
 }
 
 export type ActionPreview =
   | { readonly kind: 'INTERRUPT'; readonly steps: number } // 中断が予測される場合は最優先で提示する
-  | { readonly kind: 'MARTIAL'; readonly targets: readonly MartialTargetPreview[] }
+  | { readonly kind: 'MARTIAL'; readonly atk: number; readonly targets: readonly MartialTargetPreview[] }
   | { readonly kind: 'MARTIAL_NO_TARGET' }
-  | { readonly kind: 'STANCE'; readonly deployAp: number; readonly defenseAfter: number }
-  | { readonly kind: 'MIND'; readonly gainVp: number; readonly targetPp: number; readonly raises: boolean }
+  | { readonly kind: 'STANCE'; readonly deployAp: number; readonly efficiencyCenti: number; readonly defenseAfter: number }
+  | {
+      readonly kind: 'MIND';
+      readonly gainVp: number;
+      readonly vpBefore: number;
+      readonly targetPp: number;
+      readonly ppBefore: number;
+      readonly raises: boolean;
+    }
   | { readonly kind: 'SWAP'; readonly posIdxAfter: number }
   | { readonly kind: 'SUMMON'; readonly creatureId: string }
   | { readonly kind: 'NONE' };
@@ -45,15 +56,20 @@ function martialPreview(state: BattleState, unit: Unit, action: ActionInstance):
     if (target === null || target === undefined || Math.abs(unit.pos_idx - target.pos_idx) > range) {
       continue;
     }
-    const hit = atk >= currentDefense(target);
+    const defense = currentDefense(target);
+    const hit = atk >= defense;
+    const damage = hit ? levelHpDamage(effectiveDmgHpCenti(unit, action), state.scene_level) : null;
     targets.push({
       unitId: target.unit_id,
       posIdx: target.pos_idx,
       hit,
-      damage: hit ? levelHpDamage(effectiveDmgHpCenti(unit, action), state.scene_level) : null,
+      damage,
+      defense,
+      hpBefore: Math.max(target.hp, 0),
+      hpAfter: Math.max(target.hp - (damage ?? 0), 0),
     });
   }
-  return targets.length === 0 ? { kind: 'MARTIAL_NO_TARGET' } : { kind: 'MARTIAL', targets };
+  return targets.length === 0 ? { kind: 'MARTIAL_NO_TARGET' } : { kind: 'MARTIAL', atk, targets };
 }
 
 // [M-CALC-DEFENSE] 発動後は実行中アクションの防御効率で防御力が決まる。
@@ -72,12 +88,17 @@ export function previewOf(state: BattleState, unit: Unit, action: ActionInstance
     return martialPreview(state, unit, action);
   }
   if (hasFlag(flags, 'FLAG_STANCE')) {
-    return { kind: 'STANCE', deployAp: effectiveDeployAp(unit, action), defenseAfter: defenseAfterStance(unit, action) };
+    return {
+      kind: 'STANCE',
+      deployAp: effectiveDeployAp(unit, action),
+      efficiencyCenti: action.base_params.def_efficiency,
+      defenseAfter: defenseAfterStance(unit, action),
+    };
   }
   if (hasFlag(flags, 'FLAG_MIND')) {
     const gainVp = effectiveGainVp(unit, action);
     const targetPp = roundDiv((unit.vp + gainVp) * effectiveChargePpCenti(unit, action), 100);
-    return { kind: 'MIND', gainVp, targetPp, raises: targetPp > unit.pp };
+    return { kind: 'MIND', gainVp, vpBefore: unit.vp, targetPp, ppBefore: unit.pp, raises: targetPp > unit.pp };
   }
   if (hasFlag(flags, 'FLAG_SWAP')) {
     return { kind: 'SWAP', posIdxAfter: partnerSlotOf(unit.pos_idx) };

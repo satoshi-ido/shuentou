@@ -4,7 +4,7 @@
 
 import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
 import type { PlaybackSpeed } from '../config.js';
-import { INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
+import { formatCenti, INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
   ActionCardView,
   BattleView,
@@ -527,10 +527,15 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
         cap: POS_LABEL[target.posIdx] ?? '',
         rows: target.hit
           ? [
-              { key: '判定', value: '命中', tone: 'hit' as const },
-              { key: SYMBOL.hp, value: `−${target.damage ?? 0}`, tone: 'hit' as const },
+              // [M-UI-HUD]［判定プレビュー］実効攻撃力 ≧ 実効防御力 の成否と、HPダメージ見込み。
+              { key: '命中', value: `${SYMBOL.atk}${preview.atk} ≧ ${SYMBOL.defense}${target.defense}`, tone: 'hit' as const },
+              {
+                key: SYMBOL.hp,
+                value: `${target.hpBefore} − ${target.damage ?? 0} → ${target.hpAfter}`,
+                tone: 'hit' as const,
+              },
             ]
-          : [{ key: '判定', value: '回避', tone: 'no' as const }],
+          : [{ key: '回避', value: `${SYMBOL.atk}${preview.atk} ＜ ${SYMBOL.defense}${target.defense}`, tone: 'no' as const }],
       }));
     case 'MARTIAL_NO_TARGET':
       return [{ cap: '武技', rows: [{ key: '対象', value: '射程内に不在', tone: 'no' }] }];
@@ -539,8 +544,11 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
         {
           cap: '体勢',
           rows: [
-            { key: '展開AP', value: String(preview.deployAp) },
-            { key: `発動後${SYMBOL.defense}`, value: String(preview.defenseAfter), tone: 'hit' },
+            {
+              key: `発動後${SYMBOL.defense}`,
+              value: `${preview.deployAp} × ${formatCenti(preview.efficiencyCenti)} → ${preview.defenseAfter}`,
+              tone: 'hit',
+            },
           ],
         },
       ];
@@ -549,8 +557,14 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
         {
           cap: '心気',
           rows: [
-            { key: '加算VP', value: String(preview.gainVp) },
-            { key: '充填後PP', value: String(preview.targetPp), tone: preview.raises ? 'hit' : 'no' },
+            { key: SYMBOL.vp, value: `${preview.vpBefore} + ${preview.gainVp} → ${preview.vpBefore + preview.gainVp}` },
+            {
+              key: SYMBOL.pp,
+              value: preview.raises
+                ? `${preview.ppBefore} → ${preview.targetPp}`
+                : `${preview.targetPp} ≦ ${preview.ppBefore}（据え置き）`,
+              tone: preview.raises ? 'hit' : 'no',
+            },
           ],
         },
       ];

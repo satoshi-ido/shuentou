@@ -2,6 +2,7 @@
 // 描画に必要な文字列・数値を組み立てる。HUD は BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である。
 
 import { currentDefense } from '../../engine/defense.js';
+import { isInstant } from '../../engine/decision.js';
 import {
   effectiveAtk,
   effectiveCostAp,
@@ -366,14 +367,21 @@ function changed(before: number, after: number): number | null {
   return before === after ? null : after;
 }
 
-// 実行側は実効消費コストの支払い後、心気は加算VP・充填後PP目標値（[M-UI-HUD]［判定プレビュー］）。
-// 実行中アクションのコストは実行開始時に支払い済みのため、重ねて差し引かない。
-function actorDelta(unit: Unit, action: ActionInstance, preview: ActionPreview, running: boolean): PlateDelta | null {
+// 実行側は実効消費コストの支払い後。コストは指示確定の時点で支払うため（[M-PIPE-P8-DECISION]）、
+// 通常アクションでも即座に反映する。発動時に生じる効果（心気の加算VP・充填後PP目標値）は、
+// 即時型アクションに限り反映する。実行中アクションのコストは支払い済みのため重ねて差し引かない。
+function actorDelta(
+  unit: Unit,
+  action: ActionInstance,
+  preview: ActionPreview,
+  running: boolean,
+  instant: boolean,
+): PlateDelta | null {
   const hp = running ? unit.hp : unit.hp - effectiveCostHp(unit, action);
   let vp = running ? unit.vp : unit.vp - effectiveCostVp(unit, action);
   let pp = running ? unit.pp : unit.pp - effectiveCostPp(unit, action);
   const ap = running ? unit.ap : unit.ap - effectiveCostAp(unit, action);
-  if (preview.kind === 'MIND') {
+  if (instant && preview.kind === 'MIND') {
     vp += preview.gainVp;
     pp = preview.raises ? preview.targetPp : pp;
   }
@@ -410,8 +418,10 @@ function plateDeltasOf(
     return []; // 中断が見込まれる場合、実行そのものが成立しない
   }
   const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
-  const actor = actorDelta(unit, action, preview, running);
-  return [...(actor === null ? [] : [actor]), ...targetDeltas(stamps, state)];
+  const instant = isInstant(action);
+  const actor = actorDelta(unit, action, preview, running, instant);
+  // 通常アクションの着弾は発動時であり、指示の時点では確定しない。対象側は即時型に限り反映する。
+  return [...(actor === null ? [] : [actor]), ...(instant ? targetDeltas(stamps, state) : [])];
 }
 
 export interface FocusPreview {

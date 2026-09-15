@@ -91,7 +91,8 @@ describe('[M-UI-HUD]［判定プレビュー］', () => {
     enemy.ap = 10;
     expect(previewOf(state, hero, hero.acts[1], NO_SUMMON_DEPS)).toEqual({
       kind: 'MARTIAL',
-      targets: [{ unitId: enemy.unit_id, posIdx: 2, hit: true, damage: 9 }],
+      atk: 20,
+      targets: [{ unitId: enemy.unit_id, posIdx: 2, hit: true, damage: 9, defense: 10, hpBefore: 40, hpAfter: 31 }],
     });
     enemy.ap = 30;
     expect(previewOf(state, hero, hero.acts[1], NO_SUMMON_DEPS)).toMatchObject({ kind: 'MARTIAL', targets: [{ hit: false, damage: null }] });
@@ -99,12 +100,24 @@ describe('[M-UI-HUD]［判定プレビュー］', () => {
 
   it('体勢：展開AP実効値と発動後の防御力', () => {
     const { state, hero } = duel();
-    expect(previewOf(state, hero, hero.acts[2], NO_SUMMON_DEPS)).toEqual({ kind: 'STANCE', deployAp: 30, defenseAfter: 60 });
+    expect(previewOf(state, hero, hero.acts[2], NO_SUMMON_DEPS)).toEqual({
+      kind: 'STANCE',
+      deployAp: 30,
+      efficiencyCenti: 200,
+      defenseAfter: 60,
+    });
   });
 
   it('心気：加算VP実効値と充填後のPP目標値、目標値が現在PPを上回らない場合はその旨', () => {
     const { state, hero } = duel();
-    expect(previewOf(state, hero, hero.acts[0], NO_SUMMON_DEPS)).toEqual({ kind: 'MIND', gainVp: 2, targetPp: 2, raises: true });
+    expect(previewOf(state, hero, hero.acts[0], NO_SUMMON_DEPS)).toEqual({
+      kind: 'MIND',
+      gainVp: 2,
+      vpBefore: 0,
+      targetPp: 2,
+      ppBefore: 0,
+      raises: true,
+    });
     hero.pp = 5;
     expect(previewOf(state, hero, hero.acts[0], NO_SUMMON_DEPS)).toMatchObject({ raises: false });
   });
@@ -310,32 +323,32 @@ describe('[M-UI-HUD]［判定プレビュー］発生中アクションの着弾
 });
 
 describe('[M-UI-HUD]［判定プレビュー］ユニットプレートへの反映', () => {
-  it('実行側は消費後のリソース、対象側は命中後のHPを見込み値として持つ', () => {
-    const { state, hero, enemy } = duel();
+  it('通常アクションは指示確定で確定する消費のみを映し、発動時の効果は映さない', () => {
+    const { state, hero } = duel();
     hero.pp = 5;
     hero.elapsed_thought = 5;
-    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!; // 発生10の武技
     const focus = focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming);
-    expect(focus.deltas).toEqual([
-      { unitId: hero.unit_id, tone: 'SELF', hp: null, vp: null, pp: 3, ap: null }, // 実効消費PP2
-      { unitId: enemy.unit_id, tone: 'DAMAGE', hp: 31, vp: null, pp: null, ap: null },
-    ]);
+    // 実効消費PP2はこの時点で支払う。着弾は発動時のため、対象側の見込みは持たない。
+    expect(focus.deltas).toEqual([{ unitId: hero.unit_id, tone: 'SELF', hp: null, vp: null, pp: 3, ap: null }]);
   });
 
-  it('心気は加算VPと充填後のPP目標値を映す', () => {
-    const { state, hero } = duel();
-    hero.elapsed_thought = 20;
-    const mind = hero.acts[0];
-    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming).deltas).toEqual([
+  it('即時型アクションは発動時の効果まで映す', () => {
+    const INSTANT_MIND = makeAction('INSTANT_MIND', { gain_vp: 2, charge_pp: 100, step_thought: 0, step_startup: 0, step_recovery: 5 });
+    const state = createDuel({ heroMaxHp: 60, heroActs: [INSTANT_MIND], enemyMaxHp: 40, enemyActs: [MIND] });
+    syncWatchKeys(state);
+    const hero = findUnit(state, 'MINE');
+    expect(focusPreview(state, hero.acts[0].instance_id, NO_SUMMON_DEPS, naming).deltas).toEqual([
       { unitId: hero.unit_id, tone: 'SELF', hp: null, vp: 2, pp: 2, ap: null },
     ]);
   });
 
-  it('発生中アクションの見込みは選択によらずプレートへ映る', () => {
-    const { state, hero, enemy } = duel();
+  it('発生中の通常アクションは、着弾の見込みをプレートへ映さない（戦域の着弾予測で示す）', () => {
+    const { state, hero } = duel();
     setStartup(hero, 'HIT', 4);
     const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
-    expect(view.previewDeltas).toEqual([{ unitId: enemy.unit_id, tone: 'DAMAGE', hp: 31, vp: null, pp: null, ap: null }]);
+    expect(view.previewDeltas).toEqual([]);
+    expect(view.stamps).toMatchObject([{ kind: 'HIT', hpAfter: 31 }]);
   });
 });
 
