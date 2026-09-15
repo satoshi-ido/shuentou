@@ -840,19 +840,26 @@ button:focus-visible {
 .watching { box-shadow: 0 0 0 1px var(--ember), 0 0 8px -2px var(--ember); }
 
 /* ── 判定プレビューと再生操作 ── */
+/* 判定プレビューを左に広く、再生操作の帯を右下の一角に置く（UIプロトタイプの2分割）。 */
 .footer-strip {
+  display: grid;
+  grid-template-columns: 1fr 340px;
   border-top: 1px solid var(--line);
-  background: var(--panel);
+  background: #100e15;
+  min-height: 86px;
 }
 
 .inspstrip {
-  border-bottom: 1px solid var(--line);
-  background: var(--bg-deep);
-  height: 70px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  min-width: 0;
   overflow: hidden;
 }
 
-.ibox { padding: 4px 12px; }
+.ibox { padding: 4px 12px; min-width: 0; }
 
 .ibox .ttl {
   display: flex;
@@ -916,12 +923,21 @@ button:focus-visible {
 .row.no .v { color: var(--miss); }
 .row.stop .v { color: #d2707a; font-weight: 700; }
 
-.timebar { padding: 5px 12px; display: flex; flex-direction: column; gap: 5px; }
+.timebar {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+  padding: 6px 10px;
+  background: linear-gradient(180deg, #120f17, #0c0a10);
+  min-width: 0;
+}
 
 .timebar-row-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .spacer { flex: 1 1 auto; }
@@ -950,13 +966,14 @@ button:focus-visible {
   background: #16131c;
   color: var(--muted);
   font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 3px 9px;
+  font-size: 10.5px;
+  padding: 2px 7px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .transport button.on { color: var(--ember); border-color: var(--ember); background: #20140a; }
-.transport button.step-once { margin-left: 8px; font-family: var(--font-ui); }
+.transport button.step-once { margin-left: 6px; font-family: var(--font-ui); }
 
 /* [M-DATA-PAUSE-REASON] 自動時間停止の事由表示。 */
 .why {
@@ -987,16 +1004,17 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-.timebar-row-bottom { display: flex; gap: 6px; }
+.timebar-row-bottom { display: flex; flex-wrap: wrap; gap: 4px; }
 
 .rbtn {
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
   color: var(--ink);
-  background: var(--panel);
+  background: #16131c;
   border: 1px solid var(--line);
-  padding: 3px 10px;
+  padding: 3px 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .rbtn:hover { border-color: var(--ember); color: #fff; }

@@ -543,7 +543,8 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
     node.addEventListener('click', () => handlers.onSpeed(speed));
     transport.append(node);
   }
-  const stepOnce = buttonElement('step-once', '1ステップ進める');
+  const stepOnce = buttonElement('step-once', '1歩進める');
+  stepOnce.title = '1ステップだけ進める';
   stepOnce.addEventListener('click', () => handlers.onResume());
   transport.append(stepOnce);
   top.append(transport);
