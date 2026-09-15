@@ -11,6 +11,7 @@ import type {
   BoardColumnView,
   FocusPreview,
   ForecastStamp,
+  LockReason,
   PlateDelta,
   PlateView,
   WatchToggleView,
@@ -586,6 +587,52 @@ interface Inspector {
   readonly prev: HTMLElement; // 判定プレビューの本体（注目の移動に応じて描き替える）
 }
 
+// 実行できないアクションの詳細（[M-UI-HUD]［表示要素］アクションカードと同じ値）。
+function detailGroup(card: ActionCardView): PreviewGroup {
+  const rows: PreviewRow[] = [
+    { key: 'ステップ', value: `${SYMBOL.stepThought}${card.stepThought} ${STEP_ARROW} ${SYMBOL.stepStartup}${card.stepStartup} ${STEP_ARROW} ${SYMBOL.stepRecovery}${card.stepRecovery}` },
+  ];
+  if (card.costs.length > 0) {
+    rows.push({ key: 'コスト', value: card.costs.map((cost) => `${cost.label} ${cost.value}`).join(' ') });
+  }
+  if (card.range !== null) {
+    rows.push({ key: `${SYMBOL.range} / ${SYMBOL.atk}`, value: `${card.range} / ${card.atk ?? 0}` });
+  }
+  rows.push({ key: SYMBOL.remaining, value: card.uses });
+  if (card.seal !== null) {
+    rows.push({ key: '封', value: card.seal });
+  }
+  return { cap: '詳細', rows };
+}
+
+// [M-UI-HUD]［判定語彙］実行できない理由。相方に関する理由は文言マスタの完結した文を用いる。
+function lockRow(reason: LockReason, lockText: (stringId: string, unitId: string | null) => string): PreviewRow {
+  switch (reason.kind) {
+    case 'RUNNING':
+      return { key: '実行中', value: reason.stateLabel, tone: 'no' };
+    case 'NO_USES':
+      return { key: SYMBOL.remaining, value: '0', tone: 'no' };
+    case 'SEALED':
+      return { key: '封印', value: `${reason.seal} ≧ 1.00`, tone: 'no' };
+    case 'THOUGHT':
+      return {
+        key: SYMBOL.stepThought,
+        value: `${reason.elapsed} / ${reason.required}（${SYMBOL.remaining}${Math.max(reason.required - reason.elapsed, 0)}）`,
+        tone: 'no',
+      };
+    case 'COST':
+      return {
+        key: reason.label,
+        value: `必要 ${reason.need} / 現在 ${reason.have}${reason.strict ? '（支払い後に残らない）' : ''}`,
+        tone: 'no',
+      };
+    case 'INSTANT_USED':
+      return { key: '即時', value: '同一ステップで使用済み', tone: 'no' };
+    default:
+      return { key: '相方', value: lockText(reason.stringId, reason.unitId), tone: 'no' };
+  }
+}
+
 function renderInspector(view: BattleView, screen: BattleScreenState): Inspector {
   const strip = element('div', 'inspstrip');
   const box = element('div', 'ibox');
@@ -611,9 +658,9 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   return { root: strip, name, prev };
 }
 
-function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
+function fillGroups(prev: HTMLElement, groups: readonly PreviewGroup[]): void {
   prev.replaceChildren();
-  for (const group of preview === null ? [] : previewGroups(preview)) {
+  for (const group of groups) {
     const pg = element('div', 'pg');
     pg.append(element('div', 'cap', group.cap));
     for (const row of group.rows) {
@@ -624,6 +671,10 @@ function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
     }
     prev.append(pg);
   }
+}
+
+function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
+  fillGroups(prev, preview === null ? [] : previewGroups(preview));
 }
 
 // [M-META-COUNTERS] 終焉燈による因果再走の累積回数。巻き戻し保留が立っている間はその旨を併せて示す。
@@ -695,6 +746,8 @@ export interface BattleScreenState {
   // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
   // ホバーのたびに画面全体を組み直さない。
   readonly focusFor: (instanceId: string) => FocusPreview;
+  // [M-UI-HUD]［判定語彙］相方に関する理由の文言（文言マスタ由来）。
+  readonly lockText: (stringId: string, unitId: string | null) => string;
 }
 
 export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState, handlers: BattleScreenHandlers): void {
@@ -767,7 +820,15 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
-    fillPreview(inspector.prev, focus.preview);
+    if (focus.lock !== null) {
+      // 実行できない自軍アクション：見込みの代わりに詳細と理由を示す（[M-UI-HUD]［判定語彙］）。
+      fillGroups(inspector.prev, [
+        detailGroup(card),
+        { cap: '実行不可', rows: focus.lock.reasons.map((reason) => lockRow(reason, screen.lockText)) },
+      ]);
+    } else {
+      fillPreview(inspector.prev, focus.preview);
+    }
     for (const other of view.columns) {
       const dock = docks[other.posIdx];
       const plate = other.plate;
@@ -790,8 +851,10 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 注目（ホバー）の適用。判定プレビューの対象でないカード、およびカードの外は注目を解く。
   let focusedId: string | null = screen.focusedInstanceId;
   const applyFocus = (instanceId: string | null): void => {
+    // 実行できない自軍アクションも注目の対象とする（理由を示すため）。敵軍の手札は対象外。
+    const focusable = (card: ActionCardView): boolean => card.previewable || card.side === 'MINE';
     const column = view.columns.find((candidate) =>
-      candidate.cards.some((card) => card.instanceId === instanceId && card.previewable),
+      candidate.cards.some((card) => card.instanceId === instanceId && focusable(card)),
     );
     const card = column?.cards.find((candidate) => candidate.instanceId === instanceId);
     const next = column === undefined || card === undefined ? null : instanceId;
@@ -832,7 +895,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 歩進や巻き戻しで画面を組み直しても、直前の注目を引き継いで提示を保つ。
   // 対象が失われた場合（実行・消費など）に限り、選択中または実行中の提示へ戻す。
   const focusedColumn = view.columns.find((column) =>
-    column.cards.some((card) => card.instanceId === screen.focusedInstanceId && card.previewable),
+    column.cards.some((card) => card.instanceId === screen.focusedInstanceId && (card.previewable || card.side === 'MINE')),
   );
   const focusedCard = focusedColumn?.cards.find((card) => card.instanceId === screen.focusedInstanceId);
   if (focusedColumn !== undefined && focusedCard !== undefined) {

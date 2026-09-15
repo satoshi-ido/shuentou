@@ -3,6 +3,7 @@
 
 import { currentDefense } from '../../engine/defense.js';
 import { isInstant } from '../../engine/decision.js';
+import { partnerOf } from '../../engine/resolve/partner.js';
 import {
   effectiveAtk,
   effectiveCostAp,
@@ -424,6 +425,81 @@ function plateDeltasOf(
   return [...(actor === null ? [] : [actor]), ...(instant ? targetDeltas(stamps, state) : [])];
 }
 
+// [M-UI-HUD]［判定語彙］実行できない理由。数値・記号で示すものと、文言マスタに属する
+// 完結した文（相方に関する理由）とを分ける。
+export type LockReason =
+  | { readonly kind: 'RUNNING'; readonly stateLabel: '発生中' | '硬直中' }
+  | { readonly kind: 'SEALED'; readonly seal: string }
+  | { readonly kind: 'NO_USES' }
+  | { readonly kind: 'THOUGHT'; readonly elapsed: number; readonly required: number }
+  // HPコストは支払い後に残る必要がある（[M-PIPE-SUICIDE]）。strict はその区別。
+  | { readonly kind: 'COST'; readonly label: string; readonly need: number; readonly have: number; readonly strict: boolean }
+  | { readonly kind: 'INSTANT_USED' }
+  | { readonly kind: 'PARTNER'; readonly stringId: string; readonly unitId: string | null };
+
+export interface LockView {
+  readonly reasons: readonly LockReason[];
+}
+
+const PARTNER_STRING_ID = {
+  ABSENT: 'STR_LOCK_NO_PARTNER',
+  STARTUP: 'STR_LOCK_PARTNER_STARTUP',
+  RECOVERY: 'STR_LOCK_PARTNER_RECOVERY',
+} as const;
+
+// 実行できない理由を、[M-PIPE-P8-ORDER]・[M-PIPE-SUICIDE] の実行可否判定と同じ順で列挙する。
+export function lockReasonsOf(state: BattleState, unit: Unit, action: ActionInstance): LockReason[] {
+  const reasons: LockReason[] = [];
+  if (unit.state === 'STARTUP' || unit.state === 'RECOVERY') {
+    reasons.push({ kind: 'RUNNING', stateLabel: unit.state === 'STARTUP' ? '発生中' : '硬直中' });
+  }
+  if (action.uses_left === 0) {
+    reasons.push({ kind: 'NO_USES' });
+  }
+  if (action.seal_accum >= SEAL_LIMIT_CENTI) {
+    reasons.push({ kind: 'SEALED', seal: formatCenti(action.seal_accum) });
+  }
+  const thought = effectiveStepThought(unit, action);
+  if (unit.elapsed_thought < thought) {
+    reasons.push({ kind: 'THOUGHT', elapsed: unit.elapsed_thought, required: thought });
+  }
+  for (const cost of costsOf(unit, action)) {
+    if (cost.short) {
+      reasons.push({ kind: 'COST', label: cost.label, need: cost.value, have: resourceOf(unit, cost.label), strict: cost.label === 'HP' });
+    }
+  }
+  if (isInstant(action) && (state.instant_used[unit.unit_id] ?? []).includes(action.master_ref)) {
+    reasons.push({ kind: 'INSTANT_USED' });
+  }
+  // ［判定語彙］相方に関する理由（隊列交代）。文言マスタの完結した文で示す。
+  if (hasFlag(action.sys_flags, 'FLAG_SWAP')) {
+    const partner = partnerOf(state.units, unit);
+    if (partner === null) {
+      reasons.push({ kind: 'PARTNER', stringId: PARTNER_STRING_ID.ABSENT, unitId: null });
+    } else if (partner.state === 'STARTUP' || partner.state === 'RECOVERY') {
+      reasons.push({
+        kind: 'PARTNER',
+        stringId: partner.state === 'STARTUP' ? PARTNER_STRING_ID.STARTUP : PARTNER_STRING_ID.RECOVERY,
+        unitId: partner.unit_id,
+      });
+    }
+  }
+  return reasons;
+}
+
+function resourceOf(unit: Unit, label: string): number {
+  switch (label) {
+    case 'HP':
+      return unit.hp;
+    case 'VP':
+      return unit.vp;
+    case 'PP':
+      return unit.pp;
+    default:
+      return unit.ap;
+  }
+}
+
 export interface FocusPreview {
   readonly preview: ActionPreview | null;
   readonly stamps: readonly ForecastStamp[];
@@ -431,6 +507,8 @@ export interface FocusPreview {
   readonly deltas: readonly PlateDelta[];
   // [M-UI-TIMELINE]「注目中のアクションの仮定展開」。提示できない場合は Null。
   readonly timeline: Timeline | null;
+  // 自軍の実行できないアクションに注目した場合の理由。実行可能・敵軍の手札では Null。
+  readonly lock: LockView | null;
 }
 
 // 注目中のアクション1件に対する提示（判定プレビューと戦域の着弾予測）。ホバーのたびに
@@ -438,10 +516,12 @@ export interface FocusPreview {
 export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
-    return { preview: null, stamps: [], deltas: [], timeline: null };
+    return { preview: null, stamps: [], deltas: [], timeline: null, lock: null };
   }
   if (!isPreviewTarget(state, owner.unit, owner.action)) {
-    return { preview: null, stamps: [], deltas: [], timeline: null }; // 実行できないアクションの見込みは提示しない
+    // 見込みは提示しない。自軍のアクションに限り、実行できない理由を示す（[M-UI-HUD]［判定語彙］）。
+    const lock = owner.unit.side === 'MINE' ? { reasons: lockReasonsOf(state, owner.unit, owner.action) } : null;
+    return { preview: null, stamps: [], deltas: [], timeline: null, lock };
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
   const stamps = forecastOf(state, owner.unit, owner.action, preview, naming);
@@ -453,6 +533,7 @@ export function focusPreview(state: BattleState, instanceId: string, deps: StepD
     stamps,
     deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps),
     timeline: plan === null ? null : simulateTimeline(state, timelineSpan(state), deps, plan),
+    lock: null,
   };
 }
 

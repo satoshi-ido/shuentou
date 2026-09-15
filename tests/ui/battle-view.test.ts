@@ -234,15 +234,53 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
   });
 
-  it('実行できないアクションと敵軍の手札は提示しない', () => {
+  it('実行できないアクションと敵軍の手札は見込みを提示しない', () => {
     const { state, hero, enemy } = duel();
     hero.elapsed_thought = 5; // PP不足のまま（HIT の実効消費PPは2）
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
-    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toMatchObject({ preview: null, stamps: [], deltas: [], timeline: null });
     const mind = hero.acts[0]; // 思考蓄積待ち（必要思考20）
-    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
-    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
-    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [], timeline: null });
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toMatchObject({ preview: null, stamps: [], timeline: null });
+    // 敵軍の手札は理由も示さない。
+    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({
+      preview: null,
+      stamps: [],
+      deltas: [],
+      timeline: null,
+      lock: null,
+    });
+    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({
+      preview: null,
+      stamps: [],
+      deltas: [],
+      timeline: null,
+      lock: null,
+    });
+  });
+
+  it('自軍の実行できないアクションは、実行できない理由を示す', () => {
+    const { state, hero } = duel();
+    hero.elapsed_thought = 5;
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!; // 必要思考5・消費PP2
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).lock?.reasons).toEqual([
+      { kind: 'COST', label: 'PP', need: 2, have: 0, strict: false },
+    ]);
+    const mind = hero.acts[0]; // 必要思考20
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming).lock?.reasons).toEqual([
+      { kind: 'THOUGHT', elapsed: 5, required: 20 },
+    ]);
+    const sealed = hero.acts.find((action) => action.master_ref === 'SEALED')!;
+    sealed.seal_accum = 100;
+    sealed.uses_left = 0;
+    expect(focusPreview(state, sealed.instance_id, NO_SUMMON_DEPS, naming).lock?.reasons).toEqual([
+      { kind: 'NO_USES' },
+      { kind: 'SEALED', seal: '1.00' },
+    ]);
+    setStartup(hero, 'HIT', 1); // 実行中のユニットは、どの手も実行できない
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming).lock?.reasons[0]).toEqual({
+      kind: 'RUNNING',
+      stateLabel: '発生中',
+    });
   });
 
   it('実行中（発生中）のアクションは自軍・敵軍いずれも提示する', () => {

@@ -24,11 +24,14 @@ export const WATCH_LABEL_STRING_ID: Readonly<Record<WatchKind | 'NA' | 'IDLE', s
   IDLE: 'STR_WATCH_IDLE',
 };
 
-export interface PauseTextSources {
-  readonly strings: StringTable;
-  readonly common: BundleValues;
+export interface UnitTextSources {
   readonly unitName: (unit: Unit) => string;
   readonly unitRoleName: (unit: Unit) => string | null;
+}
+
+export interface PauseTextSources extends UnitTextSources {
+  readonly strings: StringTable;
+  readonly common: BundleValues;
   readonly actionName: (classId: string) => string;
 }
 
@@ -39,7 +42,8 @@ function unitOf(state: BattleState, unitId: string | null): Unit | undefined {
   return state.units.find((unit): unit is Unit => unit !== null && unit.unit_id === unitId);
 }
 
-function unitBundle(unit: Unit, sources: PauseTextSources): BundleValues {
+// [M-DATA-INTERP]［文脈束］UNIT。停止事由のほか、相方に関する文言（[M-UI-HUD]［判定語彙］）でも用いる。
+export function unitBundleOf(unit: Unit, sources: UnitTextSources): BundleValues {
   return {
     UnitName: sources.unitName(unit),
     UnitRoleName: sources.unitRoleName(unit) ?? '',
@@ -55,7 +59,7 @@ export function pauseReasonText(state: BattleState, reason: PauseReason, sources
   const bundles: NonNullable<TextContext['bundles']> = {};
   const unit = unitOf(state, reason.unit_id);
   if (unit !== undefined) {
-    bundles.UNIT = unitBundle(unit, sources);
+    bundles.UNIT = unitBundleOf(unit, sources);
   }
   if (reason.instance_id !== null) {
     const action = unit?.acts.find((candidate) => candidate.instance_id === reason.instance_id);

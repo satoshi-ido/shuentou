@@ -45,7 +45,7 @@ import {
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
-import { pauseReasonText } from './view/pause-text.js';
+import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
 import {
   attendantEpithet,
   attendantName,
@@ -500,6 +500,14 @@ function renderBattle(): HTMLElement | null {
         pendingText: pending.rewind_pending ? resolveString('STR_REWIND_PENDING') : '',
       },
       focusFor: (id) => focusPreview(state, id, stepDeps, naming),
+      // [M-UI-HUD]［判定語彙］相方に関する理由は文言マスタの完結した文。対象ユニットの束を供給する。
+      lockText: (stringId, unitId) => {
+        const unit = state.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
+        return strings.resolve(stringId, {
+          common: commonKeys(),
+          bundles: unit === undefined ? {} : { UNIT: unitBundleOf(unit, { unitName: naming.displayName, unitRoleName: naming.roleName }) },
+        });
+      },
     },
     battleHandlers,
   );
