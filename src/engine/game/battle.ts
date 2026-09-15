@@ -12,7 +12,7 @@ import { executableActions, type DecisionProvider } from '../decision.js';
 import { createBattleState } from '../battle.js';
 import { instantiateActionList } from '../instantiate.js';
 import type { BattleOutcome } from '../pipeline/p5-discard.js';
-import { executeAction, runSideDecisionLoop, type ExecutedAction } from '../pipeline/p8-decision.js';
+import { executeAction, newSideLoopState, runSideDecisionLoop, type ExecutedAction } from '../pipeline/p8-decision.js';
 import { runPreDecision } from '../pipeline/step.js';
 import { runStepEnd } from '../pipeline/stepend.js';
 import { settleBattleClear } from '../progress/clear.js';
@@ -23,7 +23,8 @@ import type { BattleState, PauseReason, Unit, WatchFlags, WatchKind } from '../t
 import { applyWatchDefault, detectWatchEdges, syncWatchKeys, watchMetReason, type WatchEdge } from '../watch.js';
 import { autosave, beginConfirmOperation, type GameContext, type GameSession } from './session.js';
 
-export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS';
+// AWAIT_FOE は敵軍AIの応答待ちで中断した状態（[I-ENV-WORKER]）。応答後に resumeBattle で再開する。
+export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS' | 'AWAIT_FOE';
 
 export interface AdvanceOptions {
   // [M-PIPE-PAUSE-TRIGGER]#4 手動停止を要求する最初のステップ数。
@@ -74,6 +75,7 @@ function instructableUnits(state: BattleState): Unit[] {
 }
 
 function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleOutcome, 'NONE'>): BattleResult {
+  session.pending_step = null;
   if (outcome === 'WIN') {
     settleBattleClear(session.data.run, ctx.masters);
     session.battle_start_run = null;
@@ -87,11 +89,20 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
   const state = battleOf(session);
   const foeDecision = foeDecisionWithReuse(session, ctx);
   for (;;) {
-    const pre = runPreDecision(state, ctx.stepDeps);
-    if (pre !== 'NONE') {
-      return finish(session, ctx, pre);
+    const pending = session.pending_step ?? { preDone: false, loop: newSideLoopState() };
+    if (!pending.preDone) {
+      const pre = runPreDecision(state, ctx.stepDeps);
+      if (pre !== 'NONE') {
+        return finish(session, ctx, pre);
+      }
+      pending.preDone = true;
     }
-    const foe = runSideDecisionLoop(state, 'FOE', foeDecision, ctx.stepDeps);
+    const foe = runSideDecisionLoop(state, 'FOE', foeDecision, ctx.stepDeps, pending.loop);
+    if (foe.awaiting) {
+      session.pending_step = pending; // [I-ENV-WORKER] 応答後に同じ地点から再開する
+      return 'AWAIT_FOE';
+    }
+    session.pending_step = null;
     if (foe.outcome !== 'NONE') {
       return finish(session, ctx, foe.outcome);
     }
@@ -185,6 +196,7 @@ export function startBattle(session: GameSession, ctx: GameContext, options: Sta
     syncWatchKeys(run.battle_state);
   }
   run.phase = 'BATTLE';
+  session.pending_step = null;
   session.battle_start_run = cloneRun(run);
   autosave(session, ctx); // ［保存契機］バトル開始時（ステップ0の生成完了時）
   return runUntilPause(session, ctx, options);
@@ -192,6 +204,12 @@ export function startBattle(session: GameSession, ctx: GameContext, options: Sta
 
 // ステップ0生成直後のステートから最初の時間停止まで進める（ロード・バトル開始時ロールバック）。
 export function enterBattle(session: GameSession, ctx: GameContext, options: AdvanceOptions = {}): BattleResult {
+  session.pending_step = null;
+  return runUntilPause(session, ctx, options);
+}
+
+// [I-ENV-WORKER] 敵軍AIの応答が得られた後、中断した地点から進行を再開する。
+export function resumeBattle(session: GameSession, ctx: GameContext, options: AdvanceOptions = {}): BattleResult {
   return runUntilPause(session, ctx, options);
 }
 

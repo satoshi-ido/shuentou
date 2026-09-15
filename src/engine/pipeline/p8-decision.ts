@@ -59,8 +59,21 @@ export interface ExecutedAction {
   readonly remainingSteps: number;
 }
 
+// [I-ENV-WORKER] 決定待ちで中断した地点から再開するための、当該ステップ内の進行状態。
+export interface SideLoopState {
+  passed: string[];
+  acted: boolean;
+  firstExecuted: ExecutedAction | null;
+}
+
+export function newSideLoopState(): SideLoopState {
+  return { passed: [], acted: false, firstExecuted: null };
+}
+
 export interface DecisionLoopResult {
   readonly outcome: BattleOutcome;
+  // 決定が未応答のため中断したとき true。呼び出し側は同じ SideLoopState で再開する。
+  readonly awaiting: boolean;
   // [M-PIPE-PAUSE-TRIGGER]#2 の判定に用いる。1件以上のアクションを実行したとき true。
   readonly acted: boolean;
   // [M-DATA-PAUSE-REASON]「同時成立時」：最初に実行されたアクション。
@@ -75,10 +88,9 @@ export function runSideDecisionLoop(
   side: Side,
   decisionFor: DecisionProvider,
   deps: P8Deps,
+  loop: SideLoopState = newSideLoopState(),
 ): DecisionLoopResult {
-  const passed: string[] = [];
-  let acted = false;
-  let firstExecuted: ExecutedAction | null = null;
+  const passed = loop.passed;
   const maxIterations = 64;
   for (let i = 0; i < maxIterations; i += 1) {
     const candidate = sideUnits(state, side).find((unit) => unit.state === 'THOUGHT' && !passed.includes(unit.unit_id));
@@ -86,6 +98,9 @@ export function runSideDecisionLoop(
       break;
     }
     const decision = decisionFor(state, candidate);
+    if (decision.kind === 'AWAIT') {
+      return { outcome: 'NONE', acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: true };
+    }
     if (decision.book !== undefined) {
       state.book_index = decision.book.book_index;
       state.book_aborted = decision.book.book_aborted;
@@ -100,9 +115,9 @@ export function runSideDecisionLoop(
       passed.push(candidate.unit_id);
       continue;
     }
-    acted = true;
+    loop.acted = true;
     const instant = isInstant(action);
-    firstExecuted ??= {
+    loop.firstExecuted ??= {
       unitId: candidate.unit_id,
       instanceId: action.instance_id,
       instant,
@@ -110,12 +125,13 @@ export function runSideDecisionLoop(
     };
     const outcome = executeAction(state, candidate, action, deps);
     if (outcome !== 'NONE') {
-      return { outcome, acted, firstExecuted };
+      return { outcome, acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: false };
     }
   }
-  return { outcome: 'NONE', acted, firstExecuted };
+  return { outcome: 'NONE', acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: false };
 }
 
+// ヘッドレス実行（探索・検証）用。決定主体は同期に応答する前提であり、AWAIT は扱わない。
 export function runP8Decision(state: BattleState, decisionFor: DecisionProvider, deps: P8Deps): BattleOutcome {
   const foe = runSideDecisionLoop(state, 'FOE', decisionFor, deps);
   if (foe.outcome !== 'NONE') {

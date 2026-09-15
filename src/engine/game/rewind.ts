@@ -19,6 +19,7 @@ export function undo(session: GameSession): void {
     throw new Error('アンドゥできる履歴がない');
   }
   session.data.run = fromHistoryEntry(entry, run, remaining);
+  session.pending_step = null; // [I-ENV-WORKER] 局面が変わるため進行中の要求の応答は破棄する
   markPending(session, 'UNDO');
 }
 
@@ -28,6 +29,7 @@ export function rollbackBattle(session: GameSession, ctx: GameContext, options: 
     throw new Error('バトル開始時ロールバックはバトル中に限る');
   }
   session.data.run = cloneRun(session.battle_start_run); // HistoryStack は空（［破棄契機］3.）
+  session.pending_step = null;
   markPending(session, 'ROLLBACK_BATTLE');
   return enterBattle(session, ctx, options);
 }
@@ -45,6 +47,7 @@ export function rollbackIntermission(session: GameSession, order: number): void 
   }
   const kept = run.im_snapshots.filter((entry) => entry.order <= order);
   session.data.run = fromImSnapshot(snapshot, kept);
+  session.pending_step = null;
   session.battle_start_run = null;
   markPending(session, 'ROLLBACK_INTERMISSION');
 }

@@ -77,9 +77,15 @@ export function executableActions(state: BattleState, unit: Unit): ActionInstanc
 // [A-SEARCH-REUSE] の記録は探索の結果に対してのみ作る。
 export type DecisionSource = 'BOOK' | 'SEARCH';
 
+// AWAIT は「決定がまだ得られていない」ことを表す（[I-ENV-WORKER] ワーカーへの要求が未応答）。
+// 受け取った呼び出し側は当該ステップの進行を中断し、応答後に同じ地点から再開する。
 export type Decision =
   | { readonly kind: 'PASS'; readonly book?: BookProgress; readonly source?: DecisionSource }
-  | { readonly kind: 'ACT'; readonly instanceId: string; readonly book?: BookProgress; readonly source?: DecisionSource };
+  | { readonly kind: 'ACT'; readonly instanceId: string; readonly book?: BookProgress; readonly source?: DecisionSource }
+  | { readonly kind: 'AWAIT' };
+
+// 決定主体が実際に返した決定（AWAIT を除く）。
+export type ResolvedDecision = Exclude<Decision, { readonly kind: 'AWAIT' }>;
 
 // 決定主体（AI・プレイヤー・検証用スクリプト）が思考中ユニット1体につき1回呼ばれる。
 export type DecisionProvider = (state: BattleState, unit: Unit) => Decision;

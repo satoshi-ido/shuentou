@@ -6,7 +6,7 @@
 
 import { BOOK_MASTERS } from '../data/generated/book-masters.js';
 import type { BookMasterRecord } from '../data/types.js';
-import type { Decision } from '../engine/decision.js';
+import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
@@ -175,7 +175,7 @@ function isMasterSlipSuicide(unit: Unit, move: AiMove, outcome: BattleOutcome): 
 }
 
 export interface DecideActionResult {
-  readonly decision: Decision;
+  readonly decision: ResolvedDecision;
   readonly score: number;
   // [D-05] 決定点1回（反復深化の全深さを通じた累計）で消費したノード数。
   readonly nodesConsumed: number;
@@ -216,7 +216,7 @@ export function decideActionDetailed(
 
 function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): DecideActionResult {
   const budget: NodeBudget = { remaining: prof.nodeLimit };
-  let bestDecision: Decision = { kind: 'PASS' };
+  let bestDecision: ResolvedDecision = { kind: 'PASS' };
   let bestScore = 0;
   let completedAnyDepth = false;
 
@@ -260,6 +260,6 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
   return { decision: bestDecision, score: bestScore, nodesConsumed: prof.nodeLimit - Math.max(budget.remaining, 0) };
 }
 
-export function decideAction(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): Decision {
+export function decideAction(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): ResolvedDecision {
   return decideActionDetailed(state, unit, prof, deps).decision;
 }
