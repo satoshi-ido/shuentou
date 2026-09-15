@@ -641,12 +641,15 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   title.append(document.createTextNode('判定'));
   const name = element('b', '');
   title.append(name);
-  const desc = element('span', 'ttl-desc');
-  title.append(desc);
   const prev = element('div', 'prev');
   title.append(prev); // 見出しと内容を1行に収める
   title.append(element('span', 'ttl-step num', `歩 ${view.step}`));
   box.append(title);
+
+  // 下段：アクションの効果説明（[M-STATE-ACTIONMASTER]）と、自動時間停止の事由を並べる。
+  const foot = element('div', 'ibox-foot');
+  const desc = element('span', 'act-desc');
+  foot.append(desc);
 
   // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
   // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
@@ -655,7 +658,8 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   why.setAttribute('role', 'status');
   why.append(element('span', 'dot'));
   why.append(element('span', 't', message));
-  box.append(why);
+  foot.append(why);
+  box.append(foot);
 
   strip.append(box);
   return { root: strip, name, desc, prev };

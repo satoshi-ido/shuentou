@@ -1021,16 +1021,26 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
-/* [M-STATE-ACTIONMASTER] 効果説明。1行で省略し、見出し行の高さを変えない。 */
-.ibox .ttl .ttl-desc {
-  flex: 0 1 auto;
+/* 判定欄の下段：効果説明（左・可変幅）と自動時間停止の事由（右）。行の高さは内容によらず一定。 */
+.ibox-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* [M-STATE-ACTIONMASTER] 効果説明。空いた幅いっぱいを使い、あふれる分は省略する。 */
+.ibox-foot .act-desc {
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: 11px;
   color: var(--muted);
-  letter-spacing: 0;
 }
+
+.ibox-foot .why { max-width: 46%; }
 
 .ibox .ttl .ttl-step {
   margin-left: auto;
