@@ -221,11 +221,11 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     const { state, hero, enemy } = duel();
     hero.elapsed_thought = 5; // PP不足のまま（HIT の実効消費PPは2）
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
-    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
     const mind = hero.acts[0]; // 思考蓄積待ち（必要思考20）
-    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
-    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
-    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
+    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
+    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [], deltas: [] });
   });
 
   it('実行中（発生中）のアクションは自軍・敵軍いずれも提示する', () => {
@@ -303,5 +303,35 @@ describe('[M-UI-HUD]［判定プレビュー］発生中アクションの着弾
     expect(buildBattleView({ state, deps: NO_SUMMON_DEPS, naming }).stamps).toEqual([]);
     setRecovery(hero, 'HIT', 10, 2);
     expect(buildBattleView({ state, deps: NO_SUMMON_DEPS, naming }).stamps).toEqual([]);
+  });
+});
+
+describe('[M-UI-HUD]［判定プレビュー］ユニットプレートへの反映', () => {
+  it('実行側は消費後のリソース、対象側は命中後のHPを見込み値として持つ', () => {
+    const { state, hero, enemy } = duel();
+    hero.pp = 5;
+    hero.elapsed_thought = 5;
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    const focus = focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming);
+    expect(focus.deltas).toEqual([
+      { unitId: hero.unit_id, tone: 'SELF', hp: null, vp: null, pp: 3, ap: null }, // 実効消費PP2
+      { unitId: enemy.unit_id, tone: 'DAMAGE', hp: 31, vp: null, pp: null, ap: null },
+    ]);
+  });
+
+  it('心気は加算VPと充填後のPP目標値を映す', () => {
+    const { state, hero } = duel();
+    hero.elapsed_thought = 20;
+    const mind = hero.acts[0];
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming).deltas).toEqual([
+      { unitId: hero.unit_id, tone: 'SELF', hp: null, vp: 2, pp: 2, ap: null },
+    ]);
+  });
+
+  it('発生中アクションの見込みは選択によらずプレートへ映る', () => {
+    const { state, hero, enemy } = duel();
+    setStartup(hero, 'HIT', 4);
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(view.previewDeltas).toEqual([{ unitId: enemy.unit_id, tone: 'DAMAGE', hp: 31, vp: null, pp: null, ap: null }]);
   });
 });

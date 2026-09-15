@@ -11,6 +11,7 @@ import type {
   BoardColumnView,
   FocusPreview,
   ForecastStamp,
+  PlateDelta,
   PlateView,
   WatchToggleView,
 } from '../view/battle-view.js';
@@ -163,13 +164,36 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[])
 
 const CHIP_CLASS: Readonly<Record<'SLIP' | 'BUFF' | 'DEBUFF', string>> = { SLIP: 'slip', BUFF: 'up', DEBUFF: 'down' };
 
-function renderPlate(plate: PlateView): HTMLElement {
+// ［判定プレビュー］見込み値を持つ項目は `現在 → 見込み` の形に差し替える。
+function previewValue(className: string, label: string, current: number, after: number | null, tone: string): HTMLElement {
+  const node = element('span', className);
+  node.append(document.createTextNode(`${label} `));
+  if (after === null) {
+    node.append(element('b', 'num', String(current)));
+    return node;
+  }
+  node.append(element('span', 'num was', String(current)));
+  node.append(element('span', 'arrow', '→'));
+  node.append(element('b', `num chg ${tone}`, String(after)));
+  return node;
+}
+
+function renderPlate(plate: PlateView, delta: PlateDelta | null): HTMLElement {
   const box = element('div', 'plate');
   box.dataset.unitId = plate.unitId;
+  const tone = delta?.tone === 'DAMAGE' ? 'chg-damage' : 'chg-self';
   const name = element('div', 'pname');
   name.append(element('b', '', plate.name));
   name.append(element('span', `role-tag${plate.side === 'FOE' ? ' foe' : ''}`, plate.roleName ?? POS_LABEL[plate.posIdx] ?? ''));
-  name.append(element('span', 'hp num', `${SYMBOL.hp} ${plate.hp}`));
+  const hp = element('span', 'hp num');
+  if (delta?.hp === null || delta?.hp === undefined) {
+    hp.textContent = `${SYMBOL.hp} ${plate.hp}`;
+  } else {
+    hp.append(document.createTextNode(`${SYMBOL.hp} ${plate.hpValue} `));
+    hp.append(element('span', 'arrow', '→'));
+    hp.append(element('b', `chg ${tone}`, ` ${delta.hp}`));
+  }
+  name.append(hp);
   box.append(name);
 
   const info = element('div', 'pinfo');
@@ -179,9 +203,9 @@ function renderPlate(plate: PlateView): HTMLElement {
   }
   info.append(chips);
   const res = element('div', 'res num');
-  res.append(valueSpan('vp', SYMBOL.vp, String(plate.vp)));
-  res.append(valueSpan('pp', SYMBOL.pp, String(plate.pp)));
-  res.append(valueSpan('ap', SYMBOL.ap, String(plate.ap)));
+  res.append(previewValue('vp', SYMBOL.vp, plate.vp, delta?.vp ?? null, tone));
+  res.append(previewValue('pp', SYMBOL.pp, plate.pp, delta?.pp ?? null, tone));
+  res.append(previewValue('ap', SYMBOL.ap, plate.ap, delta?.ap ?? null, tone));
   info.append(res);
   box.append(info);
   return box;
@@ -394,6 +418,7 @@ interface ColumnNodes {
   readonly root: HTMLElement;
   readonly dock: HTMLElement;
   readonly stamps: HTMLElement; // 戦域のマスへ重ねる着弾予測の器
+  readonly plate: HTMLElement | null; // 見込み値の反映で差し替えるユニットプレート
 }
 
 function renderColumn(
@@ -414,7 +439,8 @@ function renderColumn(
   figure.append(element('div', 'body'));
   cell.append(figure);
   cell.append(element('div', 'ground'));
-  cell.append(plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate));
+  const plateNode = plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate, null);
+  cell.append(plateNode);
   box.append(cell);
 
   const dock = element('div', 'dock-slot');
@@ -429,7 +455,7 @@ function renderColumn(
     list.append(renderCard(card, card.instanceId === selectedInstanceId, handlers, focus));
   }
   box.append(list);
-  return { root: box, dock, stamps };
+  return { root: box, dock, stamps, plate: plate === null ? null : plateNode };
 }
 
 // ── 下段：判定プレビューと再生操作 ──
@@ -610,6 +636,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const inspector = renderInspector(view);
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
+  const plateNodes: (HTMLElement | null)[] = [null, null, null, null];
   const selectedCard = view.columns.flatMap((column) => column.cards).find((card) => card.instanceId === screen.selectedInstanceId);
   const selectedFocus = selectedCard === undefined ? null : screen.focusFor(selectedCard.instanceId);
 
@@ -629,6 +656,20 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
   };
 
+  // ユニットプレートへ見込み値（実行側の消費・対象側のHP推移）を映す。
+  const paintPlates = (deltas: readonly PlateDelta[]): void => {
+    for (const column of view.columns) {
+      const current = plateNodes[column.posIdx];
+      const plate = column.plate;
+      if (current === undefined || current === null || plate === null) {
+        continue;
+      }
+      const next = renderPlate(plate, deltas.find((delta) => delta.unitId === plate.unitId) ?? null);
+      current.replaceWith(next);
+      plateNodes[column.posIdx] = next;
+    }
+  };
+
   // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
   const restore = (): void => {
     inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
@@ -643,6 +684,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       dock.replaceChildren(previewing && plate !== null ? dockPreviewContent(plate, selectedCard, view.preview) : dockContent(plate));
     }
     paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
+    paintPlates(view.previewDeltas);
   };
 
   const focusOn = (column: BoardColumnView, card: ActionCardView, notify: boolean): void => {
@@ -659,6 +701,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       dock.replaceChildren(target && plate !== null ? dockPreviewContent(plate, card, focus.preview) : dockContent(plate));
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
+    paintPlates(focus.deltas);
     if (notify) {
       handlers.onFocus(card.instanceId); // 再描画をまたいで注目を保つ（歩進で提示が消えない）
     }
@@ -677,6 +720,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     });
     docks[column.posIdx] = nodes.dock;
     stampBoxes[column.posIdx] = nodes.stamps;
+    plateNodes[column.posIdx] = nodes.plate;
     board.append(nodes.root);
   }
   boardWrap.append(board);

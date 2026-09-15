@@ -50,7 +50,8 @@ export interface PlateView {
   readonly name: string;
   readonly roleName: string | null;
   readonly isMaster: boolean;
-  readonly hp: string;
+  readonly hp: string; // 現在HP / 最大HP
+  readonly hpValue: number;
   readonly vp: number;
   readonly pp: number;
   readonly ap: number;
@@ -108,6 +109,8 @@ export interface BattleView {
   readonly cardsUnitId: string | null;
   readonly timeline: Timeline;
   readonly preview: ActionPreview | null;
+  // 選択中・実行中の見込みをユニットプレートへ反映する値。
+  readonly previewDeltas: readonly PlateDelta[];
   readonly pauseReason: PauseReason | null;
   readonly instructable: boolean;
 }
@@ -175,6 +178,7 @@ function plateOf(unit: Unit, naming: UnitNaming): PlateView {
     roleName: naming.roleName(unit),
     isMaster: unit.unit_kind === 'MASTER',
     hp: formatHp(unit.hp, unit.max_hp),
+    hpValue: Math.max(unit.hp, 0),
     vp: unit.vp,
     pp: unit.pp,
     ap: unit.ap,
@@ -337,9 +341,73 @@ export function isPreviewTarget(state: BattleState, unit: Unit, action: ActionIn
   return unit.side === 'MINE' && activationRank(state, unit, action) === 0;
 }
 
+// ［判定プレビュー］ユニットプレートへ反映する見込み値。現在値と異なる項目だけを持つ。
+export interface PlateDelta {
+  readonly unitId: string;
+  readonly tone: 'SELF' | 'DAMAGE'; // 実行側の増減か、被弾側の減少か
+  readonly hp: number | null;
+  readonly vp: number | null;
+  readonly pp: number | null;
+  readonly ap: number | null;
+}
+
+function changed(before: number, after: number): number | null {
+  return before === after ? null : after;
+}
+
+// 実行側は実効消費コストの支払い後、心気は加算VP・充填後PP目標値（[M-UI-HUD]［判定プレビュー］）。
+// 実行中アクションのコストは実行開始時に支払い済みのため、重ねて差し引かない。
+function actorDelta(unit: Unit, action: ActionInstance, preview: ActionPreview, running: boolean): PlateDelta | null {
+  const hp = running ? unit.hp : unit.hp - effectiveCostHp(unit, action);
+  let vp = running ? unit.vp : unit.vp - effectiveCostVp(unit, action);
+  let pp = running ? unit.pp : unit.pp - effectiveCostPp(unit, action);
+  const ap = running ? unit.ap : unit.ap - effectiveCostAp(unit, action);
+  if (preview.kind === 'MIND') {
+    vp += preview.gainVp;
+    pp = preview.raises ? preview.targetPp : pp;
+  }
+  const delta: PlateDelta = {
+    unitId: unit.unit_id,
+    tone: 'SELF',
+    hp: changed(unit.hp, hp),
+    vp: changed(unit.vp, vp),
+    pp: changed(unit.pp, pp),
+    ap: changed(unit.ap, ap),
+  };
+  return delta.hp === null && delta.vp === null && delta.pp === null && delta.ap === null ? null : delta;
+}
+
+// 対象側は着弾の見込みによるHPの推移。
+function targetDeltas(stamps: readonly ForecastStamp[], state: BattleState): PlateDelta[] {
+  return stamps.flatMap((stamp) => {
+    const victim = state.units[stamp.posIdx];
+    if (stamp.kind !== 'HIT' || victim === null || victim === undefined) {
+      return [];
+    }
+    return [{ unitId: victim.unit_id, tone: 'DAMAGE' as const, hp: stamp.hpAfter, vp: null, pp: null, ap: null }];
+  });
+}
+
+function plateDeltasOf(
+  state: BattleState,
+  unit: Unit,
+  action: ActionInstance,
+  preview: ActionPreview,
+  stamps: readonly ForecastStamp[],
+): PlateDelta[] {
+  if (preview.kind === 'INTERRUPT') {
+    return []; // 中断が見込まれる場合、実行そのものが成立しない
+  }
+  const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
+  const actor = actorDelta(unit, action, preview, running);
+  return [...(actor === null ? [] : [actor]), ...targetDeltas(stamps, state)];
+}
+
 export interface FocusPreview {
   readonly preview: ActionPreview | null;
   readonly stamps: readonly ForecastStamp[];
+  // ユニットプレートへ反映する見込み値（実行側の消費・対象側のHP推移）。
+  readonly deltas: readonly PlateDelta[];
 }
 
 // 注目中のアクション1件に対する提示（判定プレビューと戦域の着弾予測）。ホバーのたびに
@@ -347,13 +415,14 @@ export interface FocusPreview {
 export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
-    return { preview: null, stamps: [] };
+    return { preview: null, stamps: [], deltas: [] };
   }
   if (!isPreviewTarget(state, owner.unit, owner.action)) {
-    return { preview: null, stamps: [] }; // 実行できないアクションの見込みは提示しない
+    return { preview: null, stamps: [], deltas: [] }; // 実行できないアクションの見込みは提示しない
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
-  return { preview, stamps: forecastOf(state, owner.unit, owner.action, preview, naming) };
+  const stamps = forecastOf(state, owner.unit, owner.action, preview, naming);
+  return { preview, stamps, deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps) };
 }
 
 export interface BattleViewOptions {
@@ -404,6 +473,12 @@ export function buildBattleView(options: BattleViewOptions): BattleView {
     const action = unit.acts.find((candidate) => candidate.instance_id === unit.last_act?.instance_id);
     return action === undefined ? [] : forecastOf(state, unit, action, previewOf(state, unit, action, deps), naming);
   });
+  // 選択中または実行中のアクションの見込み。プレートへ反映する値も同じ見込みから導く。
+  const preview = selectedUnit === undefined || selected === undefined ? null : previewOf(state, selectedUnit, selected, deps);
+  const previewDeltas =
+    preview === null || selectedUnit === undefined || selected === undefined
+      ? []
+      : plateDeltasOf(state, selectedUnit, selected, preview, forecastOf(state, selectedUnit, selected, preview, naming));
   return {
     step: state.step,
     plates,
@@ -412,7 +487,8 @@ export function buildBattleView(options: BattleViewOptions): BattleView {
     cards: cardsUnit === undefined ? [] : (columns.find((column) => column.posIdx === cardsUnit.pos_idx)?.cards ?? []),
     cardsUnitId: cardsUnit?.unit_id ?? null,
     timeline: simulateTimeline(state, timelineSpan(state), deps),
-    preview: selectedUnit === undefined || selected === undefined ? null : previewOf(state, selectedUnit, selected, deps),
+    preview,
+    previewDeltas,
     pauseReason: state.pause_reason,
     instructable: columns.some((column) => column.cards.some((card) => card.executable)),
   };

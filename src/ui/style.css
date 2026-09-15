@@ -541,10 +541,20 @@ button:focus-visible {
   color: var(--muted);
 }
 
+/* ［判定プレビュー］プレートに映す見込み値。現在値は淡く、見込み値を強調する。 */
+.plate .was { color: var(--miss); }
+.plate .arrow { color: var(--iron); margin: 0 1px; }
+.plate .chg { font-weight: 700; }
+.plate .chg-self { color: var(--ember); }
+.plate .chg-damage { color: var(--hp); }
+.pname .hp .chg-self { color: var(--ember); }
+
 .pinfo .res b { font-size: 11px; }
 .pinfo .res .vp b { color: var(--vp); }
 .pinfo .res .pp b { color: var(--pp); }
 .pinfo .res .ap b { color: var(--ap); }
+.pinfo .res b.chg-self { color: var(--ember); }
+.pinfo .res b.chg-damage { color: var(--hp); }
 
 /* ［実行中カード］1行のドックスロット */
 .dock-slot {
