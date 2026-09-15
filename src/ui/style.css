@@ -743,6 +743,23 @@ button:focus-visible {
 .action-card.inert { cursor: default; }
 .action-card.inert:hover { border-color: var(--line); }
 .action-card.sealed { border-color: #5b2b35; background: #170e12; cursor: not-allowed; }
+/* [M-DATA-PAUSE-REASON] 時間停止の事由が指すアクション。停止の原因を一覧の中で見分ける。 */
+.action-card.pause-focus {
+  border-color: var(--ember);
+  box-shadow: 0 0 0 1px var(--ember) inset, 0 0 12px -3px var(--ember);
+}
+
+.bcol-foe .action-card.pause-focus {
+  border-color: var(--miasma);
+  box-shadow: 0 0 0 1px var(--miasma) inset, 0 0 12px -3px var(--miasma);
+}
+
+.acting-card-dock.pause-focus { box-shadow: 0 0 0 1px var(--miasma), 0 0 12px -3px var(--miasma); }
+.acting-card-dock.phase-startup.pause-focus { box-shadow: 0 0 0 1px var(--ember), 0 0 12px -3px var(--ember); }
+.bcol-foe .acting-card-dock.pause-focus,
+.bcol-foe .acting-card-dock.phase-startup.pause-focus {
+  box-shadow: 0 0 0 1px var(--miasma), 0 0 12px -3px var(--miasma);
+}
 
 .action-header {
   display: flex;

@@ -33,6 +33,7 @@ export interface ChipView {
 }
 
 export interface RunningCardView {
+  readonly instanceId: string | null;
   readonly name: string;
   readonly phase: 'STARTUP' | 'RECOVERY';
   readonly stateLabel: '発生中' | '硬直中';
@@ -159,6 +160,7 @@ function runningOf(unit: Unit, actionName: (action: ActionInstance) => string): 
   const elapsed = startup ? unit.elapsed_startup : unit.elapsed_recovery;
   const required = startup ? (action === undefined ? 0 : effectiveStepStartup(unit, action)) : unit.applied_recovery;
   return {
+    instanceId: unit.last_act?.instance_id ?? null,
     name: action === undefined ? (unit.last_act?.class_id ?? '─') : actionName(action),
     phase: startup ? 'STARTUP' : 'RECOVERY',
     stateLabel: startup ? '発生中' : '硬直中',

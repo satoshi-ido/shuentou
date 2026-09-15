@@ -235,7 +235,7 @@ function renderThinkSlot(plate: PlateView): HTMLElement {
 }
 
 // ［実行中カード］実行中アクションの表示名・現在ステート・経過／残ステップ数・実効攻撃力・実効防御力。
-function dockContent(plate: PlateView | null): HTMLElement {
+function dockContent(plate: PlateView | null, pausedInstanceId: string | null = null): HTMLElement {
   if (plate === null) {
     return element('div', 'think-slot', 'ユニット不在');
   }
@@ -243,7 +243,8 @@ function dockContent(plate: PlateView | null): HTMLElement {
   if (running === null) {
     return renderThinkSlot(plate);
   }
-  const card = element('div', `acting-card-dock phase-${running.phase.toLowerCase()}`);
+  const paused = running.instanceId !== null && running.instanceId === pausedInstanceId;
+  const card = element('div', `acting-card-dock phase-${running.phase.toLowerCase()}${paused ? ' pause-focus' : ''}`);
   const gauge = element('div', 'gauge-bar-bg');
   const fill = element('i', '');
   fill.style.width = `${running.required === 0 ? 0 : Math.min((running.elapsed * 100) / running.required, 100)}%`;
@@ -373,11 +374,21 @@ function renderCardMetrics(card: ActionCardView): HTMLElement {
   return metrics;
 }
 
-function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScreenHandlers, focus: CardFocus): HTMLElement {
+function renderCard(
+  card: ActionCardView,
+  selected: boolean,
+  pausedInstanceId: string | null,
+  handlers: BattleScreenHandlers,
+  focus: CardFocus,
+): HTMLElement {
   const dim = card.rank >= 2 || card.sealed;
   const classes = ['action-card', `card-rank${card.rank}`];
   if (selected) {
     classes.push('sel');
+  }
+  // [M-DATA-PAUSE-REASON] 時間停止の事由が指すアクション（敵軍の発生・即時解決など）を強調する。
+  if (card.instanceId === pausedInstanceId) {
+    classes.push('pause-focus');
   }
   if (card.running) {
     classes.push('in-use');
@@ -445,6 +456,7 @@ interface ColumnNodes {
 function renderColumn(
   column: BoardColumnView,
   selectedInstanceId: string | null,
+  pausedInstanceId: string | null,
   handlers: BattleScreenHandlers,
   focus: CardFocus,
 ): ColumnNodes {
@@ -465,7 +477,7 @@ function renderColumn(
   box.append(cell);
 
   const dock = element('div', 'dock-slot');
-  dock.append(dockContent(plate));
+  dock.append(dockContent(plate, pausedInstanceId));
   box.append(dock);
 
   const list = element('div', 'blist');
@@ -473,7 +485,7 @@ function renderColumn(
     list.append(element('div', 'blist-empty', plate === null ? '' : '（アクションなし）'));
   }
   for (const card of column.cards) {
-    list.append(renderCard(card, card.instanceId === selectedInstanceId, handlers, focus));
+    list.append(renderCard(card, card.instanceId === selectedInstanceId, pausedInstanceId, handlers, focus));
   }
   box.append(list);
   return { root: box, dock, stamps, plate: plate === null ? null : plateNode };
@@ -665,6 +677,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
   const plateNodes: (HTMLElement | null)[] = [null, null, null, null];
+  const pausedInstanceId = view.pauseReason?.instance_id ?? null;
   const selectedCard = view.columns.flatMap((column) => column.cards).find((card) => card.instanceId === screen.selectedInstanceId);
   const selectedFocus = selectedCard === undefined ? null : screen.focusFor(selectedCard.instanceId);
 
@@ -709,7 +722,9 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
         continue;
       }
       const previewing = selectedCard !== undefined && plate !== null && plate.running === null && selectedCard.unitId === plate.unitId;
-      dock.replaceChildren(previewing && plate !== null ? dockPreviewContent(plate, selectedCard, view.preview) : dockContent(plate));
+      dock.replaceChildren(
+        previewing && plate !== null ? dockPreviewContent(plate, selectedCard, view.preview) : dockContent(plate, pausedInstanceId),
+      );
     }
     paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
     paintPlates(view.previewDeltas);
@@ -726,7 +741,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
         continue;
       }
       const target = other.posIdx === column.posIdx && plate !== null && plate.running === null;
-      dock.replaceChildren(target && plate !== null ? dockPreviewContent(plate, card, focus.preview) : dockContent(plate));
+      dock.replaceChildren(target && plate !== null ? dockPreviewContent(plate, card, focus.preview) : dockContent(plate, pausedInstanceId));
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
     paintPlates(focus.deltas);
@@ -743,7 +758,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   boardWrap.append(background);
   const board = element('div', 'board');
   for (const column of view.columns) {
-    const nodes = renderColumn(column, screen.selectedInstanceId, handlers, {
+    const nodes = renderColumn(column, screen.selectedInstanceId, pausedInstanceId, handlers, {
       enter: (card) => focusOn(column, card, true),
     });
     docks[column.posIdx] = nodes.dock;
