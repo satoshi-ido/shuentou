@@ -72,6 +72,18 @@ function buttonElement(className: string, text: string): HTMLButtonElement {
   return node;
 }
 
+// 再生中は毎フレーム画面を組み直すため、押下と解放の間に要素が入れ替わると click が成立しない。
+// バトル画面の操作はいずれも左ボタンの押下時点で受け取る。
+function onPrimary(node: HTMLElement, handler: () => void): void {
+  node.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
+    handler();
+  });
+}
+
 // 記号と値の組（`記号 値`）。値は等幅数字で描く。
 function valueSpan(className: string, label: string, value: string): HTMLElement {
   const node = element('span', className);
@@ -302,7 +314,11 @@ function stampNode(stamp: ForecastStamp): HTMLElement {
 function renderWatchToggle(card: ActionCardView, toggle: WatchToggleView, handlers: BattleScreenHandlers): HTMLElement {
   const node = buttonElement(`watch-toggle watch-${toggle.status.toLowerCase()}${toggle.on ? ' watching' : ''}`, toggle.symbol);
   node.title = `${toggle.symbol}：${toggle.on ? '監視ON' : '監視OFF'} / ${toggle.status}`;
-  node.addEventListener('click', (event) => {
+  node.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) {
+      return;
+    }
+    event.preventDefault();
     event.stopPropagation(); // ドラッグを用いず、カード上の5要素を直接クリックして切り替える（[M-UI-VIEWPORT]）
     handlers.onToggleWatch(card.instanceId, toggle.kind);
   });
@@ -396,9 +412,10 @@ function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScr
     box.classList.add('inert');
     return box;
   }
-  box.addEventListener('click', () => {
+  // 左クリックは選択および確定。時間が進んでいる間（一時停止中でないとき）も同じ手順で確定する。
+  onPrimary(box, () => {
     if (selected && card.executable) {
-      handlers.onInstruct(card.instanceId); // 左クリックは選択および確定
+      handlers.onInstruct(card.instanceId);
       return;
     }
     handlers.onSelect(card.instanceId);
@@ -568,17 +585,17 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
   const transport = element('div', 'transport');
   const undo = buttonElement('btn-undo', '⟲ 取消');
   undo.title = '直前の指示を取り消す';
-  undo.addEventListener('click', () => handlers.onUndo());
+  onPrimary(undo, () => handlers.onUndo());
   transport.append(undo);
   for (const speed of SPEEDS) {
     const node = buttonElement(speed === screen.speed ? 'on' : '', SPEED_GLYPH[speed]);
     node.title = `再生速度 ${speed}`;
-    node.addEventListener('click', () => handlers.onSpeed(speed));
+    onPrimary(node, () => handlers.onSpeed(speed));
     transport.append(node);
   }
   const stepOnce = buttonElement('step-once', '1歩進める');
   stepOnce.title = '1ステップだけ進める';
-  stepOnce.addEventListener('click', () => handlers.onResume());
+  onPrimary(stepOnce, () => handlers.onResume());
   transport.append(stepOnce);
   top.append(transport);
   top.append(element('span', 'spacer'));
@@ -606,7 +623,7 @@ function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers
   for (const entry of buttons) {
     const node = buttonElement(entry.className, entry.label);
     node.title = entry.title;
-    node.addEventListener('click', () => entry.onClick());
+    onPrimary(node, () => entry.onClick());
     bottom.append(node);
   }
   bar.append(bottom);

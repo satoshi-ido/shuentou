@@ -2,7 +2,9 @@
 // [M-META-SAVEDATA] [I-STATE-JSON] [I-PLAN-MILESTONE]（M3 受け入れ線）
 
 import { describe, expect, it } from 'vitest';
-import { resumeBattle, resumeTime, startBattle } from '../../src/engine/game/battle.js';
+import { instruct, resumeBattle, resumeTime, startBattle } from '../../src/engine/game/battle.js';
+import { executableActions } from '../../src/engine/decision.js';
+import type { Unit } from '../../src/engine/types.js';
 import {
   confirmInherit,
   confirmRefill,
@@ -210,6 +212,27 @@ describe('進行の防護', () => {
       }
     }
     expect(() => resumeBattle(session, passing)).toThrow(/ステップ進行した/);
+  });
+});
+
+describe('[M-PIPE-P8-DECISION] 指示の受け付け', () => {
+  it('時間停止していないステップ境界でも、実行可能な自軍アクションを確定できる', () => {
+    const { session, ctx } = setup();
+    let result = startBattle(session, ctx, { maxSteps: 1 });
+    const state = session.data.run.battle_state;
+    if (state === null) {
+      throw new Error('バトル中ではない');
+    }
+    const heroOf = (): Unit => state.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE')!;
+    while (executableActions(state, heroOf()).length === 0 && state.step < 400) {
+      result = resumeBattle(session, ctx, { maxSteps: 1 });
+    }
+    const hero = heroOf();
+    const action = executableActions(state, hero)[0];
+    expect(result).toBe('RUNNING'); // 再生中（時間停止事由は成立していない）
+    expect(state.pause_reason).toBeNull();
+    instruct(session, ctx, hero.unit_id, action.instance_id, { maxSteps: 1 });
+    expect(hero.last_act?.instance_id).toBe(action.instance_id);
   });
 });
 

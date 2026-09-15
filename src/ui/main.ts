@@ -16,6 +16,7 @@ import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settl
 import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } from '../engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
+import { executableActions } from '../engine/decision.js';
 import { canInherit, inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
@@ -354,11 +355,19 @@ const battleHandlers: BattleScreenHandlers = {
     const unit = state?.units.find(
       (candidate) => candidate !== null && candidate.side === 'MINE' && candidate.acts.some((action) => action.instance_id === instanceId),
     );
-    if (unit === null || unit === undefined) {
+    if (state === null || unit === null || unit === undefined) {
+      return;
+    }
+    // 時間が進んでいる間は、描画とクリックの間にステップが進み実行可能でなくなることがある。
+    if (!executableActions(state, unit).some((action) => action.instance_id === instanceId)) {
       return;
     }
     selectedInstanceId = null;
-    battleResult = instruct(requireSession(), ctx, unit.unit_id, instanceId);
+    focusedInstanceId = null;
+    // 指示後の進行も再生速度に従う（確定だけで時間停止まで進めきらない）。
+    battleResult = instruct(requireSession(), ctx, unit.unit_id, instanceId, {
+      maxSteps: Math.max(stepsPerFrame(loop.speed), 1),
+    });
     render();
   },
   onCancel: () => {
