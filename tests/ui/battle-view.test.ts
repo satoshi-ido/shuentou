@@ -150,7 +150,10 @@ describe('[M-UI-HUD] ビューモデル', () => {
     expect(mind.watch.find((toggle) => toggle.kind === 'READY')).toMatchObject({ on: true, status: 'MET', symbol: '可' });
     expect(mind.watch.find((toggle) => toggle.kind === 'HIT_FRONT')).toMatchObject({ on: false, status: 'NA' });
     const hit = view.cards.find((card) => card.name === 'HIT')!;
-    expect(hit.costs).toEqual([{ label: 'PP', value: 2 }]);
+    expect(hit.costs).toEqual([{ label: 'PP', value: 2, short: true }]); // PP0 では払えない
+    hero.pp = 2;
+    const afforded = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(afforded.cards.find((card) => card.name === 'HIT')!.costs).toEqual([{ label: 'PP', value: 2, short: false }]);
     expect(hit).toMatchObject({ range: 1, atk: 20, seal: null });
   });
 
@@ -333,5 +336,32 @@ describe('[M-UI-HUD]［判定プレビュー］ユニットプレートへの反
     setStartup(hero, 'HIT', 4);
     const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
     expect(view.previewDeltas).toEqual([{ unitId: enemy.unit_id, tone: 'DAMAGE', hp: 31, vp: null, pp: null, ap: null }]);
+  });
+});
+
+describe('[M-UI-HUD]［実効消費コスト］不足しているリソースの提示', () => {
+  // 最大HP30・消費PP3のアクション1枚だけを持つ局面を、消費HPと所持PPを変えて組む。
+  const costsWith = (costHp: number, pp: number) => {
+    const state = createDuel({
+      heroMaxHp: 30,
+      heroActs: [makeAction('COST', { cost_hp: costHp, cost_pp: 3, step_startup: 5 })],
+      enemyMaxHp: 40,
+      enemyActs: [MIND],
+    });
+    syncWatchKeys(state);
+    findUnit(state, 'MINE').pp = pp;
+    return buildBattleView({ state, deps: NO_SUMMON_DEPS, naming }).cards[0].costs;
+  };
+
+  it('リソースごとに払えるかどうかを示す（HPは支払い後に残る必要がある）', () => {
+    // HP30 に対し消費HP30：支払うと0になるため払えない（[M-PIPE-SUICIDE]）。PPは同値まで払える。
+    expect(costsWith(30, 3)).toEqual([
+      { label: 'HP', value: 30, short: true },
+      { label: 'PP', value: 3, short: false },
+    ]);
+    expect(costsWith(29, 2)).toEqual([
+      { label: 'HP', value: 29, short: false },
+      { label: 'PP', value: 3, short: true },
+    ]);
   });
 });

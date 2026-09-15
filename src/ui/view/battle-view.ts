@@ -61,6 +61,13 @@ export interface PlateView {
   readonly running: RunningCardView | null;
 }
 
+// ［実効消費コスト］払えないリソースは short で示し、一覧上で見分けられるようにする。
+export interface CostView {
+  readonly label: string;
+  readonly value: number;
+  readonly short: boolean;
+}
+
 export interface WatchToggleView {
   readonly kind: WatchKind;
   readonly symbol: string;
@@ -85,7 +92,7 @@ export interface ActionCardView {
   readonly stepThought: number;
   readonly stepStartup: number;
   readonly stepRecovery: number;
-  readonly costs: readonly { readonly label: string; readonly value: number }[];
+  readonly costs: readonly CostView[];
   readonly range: number | null;
   readonly atk: number | null;
   readonly seal: string | null; // 封印蓄積値（0.00 は描画しない）
@@ -189,12 +196,14 @@ function plateOf(unit: Unit, naming: UnitNaming): PlateView {
   };
 }
 
-function costsOf(unit: Unit, action: ActionInstance): { label: string; value: number }[] {
-  const entries: { label: string; value: number }[] = [
-    { label: 'HP', value: effectiveCostHp(unit, action) },
-    { label: 'VP', value: effectiveCostVp(unit, action) },
-    { label: 'PP', value: effectiveCostPp(unit, action) },
-    { label: 'AP', value: effectiveCostAp(unit, action) },
+// 実効消費コストと、そのリソースが現在値で払えるかどうか。
+// HPのみ支払い後に残る必要があり（[M-PIPE-SUICIDE] 自滅の禁止）、他は同値まで払える。
+function costsOf(unit: Unit, action: ActionInstance): CostView[] {
+  const entries: CostView[] = [
+    { label: 'HP', value: effectiveCostHp(unit, action), short: unit.hp <= effectiveCostHp(unit, action) },
+    { label: 'VP', value: effectiveCostVp(unit, action), short: unit.vp < effectiveCostVp(unit, action) },
+    { label: 'PP', value: effectiveCostPp(unit, action), short: unit.pp < effectiveCostPp(unit, action) },
+    { label: 'AP', value: effectiveCostAp(unit, action), short: unit.ap < effectiveCostAp(unit, action) },
   ];
   return entries.filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
 }

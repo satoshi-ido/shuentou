@@ -830,6 +830,12 @@ button:focus-visible {
 .action-metrics .cst-vp { color: var(--vp); }
 .action-metrics .cst-pp { color: var(--pp); }
 .action-metrics .cst-ap { color: var(--ap); }
+.action-metrics .cst.cst-short {
+  color: var(--miss);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
 .action-metrics .atk-val { color: #ffb27a; }
 .action-metrics .seal-val { color: #e2626d; }
 

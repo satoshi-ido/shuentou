@@ -356,7 +356,10 @@ function renderCardMetrics(card: ActionCardView): HTMLElement {
   flow.append(valueSpan('', SYMBOL.stepRecovery, String(card.stepRecovery)));
   metrics.append(flow);
   for (const cost of card.costs) {
-    metrics.append(element('span', `cst cst-${cost.label.toLowerCase()}`, `${cost.label} ${cost.value}`));
+    // 払えないリソースは取り消し線と淡色で示す（[M-UI-HUD]［記号語彙］の表記はそのまま）。
+    metrics.append(
+      element('span', `cst cst-${cost.label.toLowerCase()}${cost.short ? ' cst-short' : ''}`, `${cost.label} ${cost.value}`),
+    );
   }
   if (card.range !== null) {
     metrics.append(element('span', 'rng', `${SYMBOL.range} ${card.range}`));
