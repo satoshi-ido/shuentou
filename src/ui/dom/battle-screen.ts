@@ -412,13 +412,14 @@ function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScr
     box.classList.add('inert');
     return box;
   }
-  // 左クリックは選択および確定。時間が進んでいる間（一時停止中でないとき）も同じ手順で確定する。
+  // [M-UI-VIEWPORT] ホバーが判定プレビューを担い、左クリックが選択および確定を担う。
+  // 実行可能なアクションは1回のクリックで実行を開始する（時間が進んでいる間も同じ）。
   onPrimary(box, () => {
-    if (selected && card.executable) {
+    if (card.executable) {
       handlers.onInstruct(card.instanceId);
       return;
     }
-    handlers.onSelect(card.instanceId);
+    handlers.onSelect(card.instanceId); // 実行中カードなど確定できないものは選択のみ
   });
   // ホバーは注目のみを移し、判定プレビューと実行中カードの位置を当該アクションの見込みへ切り替える。
   // 注目はカーソルが離れても解けず、次の注目または確定まで提示を保つ（ステップ進行で消えない）。
