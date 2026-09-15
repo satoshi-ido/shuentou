@@ -1349,7 +1349,13 @@ button:focus-visible {
   font-weight: 500;
 }
 
-.pool { display: grid; gap: 5px; align-content: start; }
+/* 資質一覧は3列に並べる（固定レイアウト・[M-UI-VIEWPORT]）。 */
+.pool {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  align-content: start;
+}
 
 /* [M-INHERIT-MERGE]［UI要件］資質1件分のプレビュー。統合後の実効値と改善項目を示す。 */
 .inherit-card {
@@ -1368,7 +1374,15 @@ button:focus-visible {
 .inherit-card.disabled:hover { border-color: var(--line); border-left-color: var(--ember-dim); }
 
 .inherit-head { display: flex; align-items: baseline; gap: 8px; }
-.inherit-head .nm { font-family: var(--font-serif); font-size: 13px; letter-spacing: 0.04em; }
+.inherit-head .nm {
+  font-family: var(--font-serif);
+  font-size: 12.5px;
+  letter-spacing: 0.04em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
 .inherit-head .uses { margin-left: auto; font-family: var(--font-mono); font-size: 10.5px; color: var(--muted); }
 
 .inherit-metrics {
@@ -1388,9 +1402,9 @@ button:focus-visible {
 .inherit-metrics .rng { color: #ffb27a; }
 .inherit-metrics .hp-add { color: var(--ember); font-weight: 700; }
 
-.inherit-outcome { display: flex; gap: 8px; font-size: 10.5px; min-width: 0; }
+.inherit-outcome { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 10.5px; min-width: 0; }
 .inherit-outcome .kind { color: var(--muted); white-space: nowrap; }
-.inherit-outcome .improve { color: var(--ember); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inherit-outcome .improve { color: var(--ember); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .inherit-outcome .improve.none { color: var(--miss); }
 
 .imrows { display: grid; gap: 2px; margin-bottom: 12px; }
