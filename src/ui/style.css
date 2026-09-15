@@ -855,10 +855,11 @@ button:focus-visible {
   cursor: pointer;
 }
 
-.watch-met { background: #2d1a0a; color: var(--ember); border-color: var(--ember); font-weight: 700; }
+/* [M-UI-HUD] 監視トグルは2つの状態を独立に示す：監視ON＝枠、条件の充足＝ラベル。 */
+.watch-met { color: var(--ember); font-weight: 700; } /* 条件ON：ラベルのみ点灯 */
+.watching { border-color: var(--ember); box-shadow: 0 0 6px -2px var(--ember); } /* 監視ON：枠のみ点灯 */
 .watch-na { opacity: 0.28; cursor: default; }
 .watch-idle { opacity: 0.6; }
-.watching { box-shadow: 0 0 0 1px var(--ember), 0 0 8px -2px var(--ember); }
 
 /* ── 判定プレビューと再生操作 ── */
 /* 判定プレビューを左に広く、再生操作の帯を右下の一角に置く（UIプロトタイプの2分割）。 */
