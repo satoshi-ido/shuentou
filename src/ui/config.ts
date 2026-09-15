@@ -1,7 +1,7 @@
 // [M-UI-CONFIG] 表示・音響設定。セーブデータに含めず、端末ローカル設定として別のキーで保持する
 // （[I-STATE-SNAPSHOT]「保存先」）。巻き戻し・周回移行・save_version のいずれにも関与しない。
 
-import { WATCH_KINDS, type WatchFlags } from '../engine/types.js';
+import type { WatchDefaultMode } from '../engine/watch.js';
 
 export type PlaybackSpeed = 'PAUSE' | 'X1' | 'X2' | 'X3';
 export type TextSpeed = 'SLOW' | 'NORMAL' | 'FAST' | 'INSTANT';
@@ -12,13 +12,14 @@ export interface DisplayConfig {
   readonly defaultPlaybackSpeed: PlaybackSpeed; // 反映契機：バトル開始時
   readonly textSpeed: TextSpeed;
   readonly simplifyEffects: boolean;
-  readonly watchDefault: WatchFlags; // 反映契機：バトル開始時
+  readonly watchDefault: WatchDefaultMode; // 反映契機：バトル開始時
 }
 
 export const CONFIG_STORAGE_KEY = 'shuentou.config';
 
 const PLAYBACK_SPEEDS: readonly PlaybackSpeed[] = ['PAUSE', 'X1', 'X2', 'X3'];
 const TEXT_SPEEDS: readonly TextSpeed[] = ['SLOW', 'NORMAL', 'FAST', 'INSTANT'];
+export const WATCH_DEFAULT_MODES: readonly WatchDefaultMode[] = ['BY_SYSTEM', 'ALL_OFF', 'ALL_ON'];
 
 export function defaultConfig(): DisplayConfig {
   return {
@@ -27,7 +28,7 @@ export function defaultConfig(): DisplayConfig {
     defaultPlaybackSpeed: 'X1',
     textSpeed: 'NORMAL',
     simplifyEffects: false,
-    watchDefault: { READY: false, STUN: false, HIT_FRONT: false, HIT_BACK: false, EVADE: false },
+    watchDefault: 'BY_SYSTEM',
   };
 }
 
@@ -55,20 +56,14 @@ export function parseConfig(serialized: string | null): DisplayConfig {
   } catch {
     return fallback;
   }
-  const rawWatch = (raw.watchDefault ?? {}) as Record<string, unknown>;
-  const watchDefault = { ...fallback.watchDefault };
-  for (const kind of WATCH_KINDS) {
-    if (typeof rawWatch[kind] === 'boolean') {
-      watchDefault[kind] = rawWatch[kind] as boolean;
-    }
-  }
   return {
     bgmVolume: volume(raw.bgmVolume, fallback.bgmVolume),
     seVolume: volume(raw.seVolume, fallback.seVolume),
     defaultPlaybackSpeed: oneOf(raw.defaultPlaybackSpeed, PLAYBACK_SPEEDS, fallback.defaultPlaybackSpeed),
     textSpeed: oneOf(raw.textSpeed, TEXT_SPEEDS, fallback.textSpeed),
     simplifyEffects: typeof raw.simplifyEffects === 'boolean' ? raw.simplifyEffects : fallback.simplifyEffects,
-    watchDefault,
+    // 旧版（Bool 5要素）の保存値は列挙に該当しないため既定へ戻る。
+    watchDefault: oneOf(raw.watchDefault, WATCH_DEFAULT_MODES, fallback.watchDefault),
   };
 }
 

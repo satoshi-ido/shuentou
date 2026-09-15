@@ -3,7 +3,7 @@
 
 import type { HelpMasterRecord } from '../../data/types.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
-import type { DisplayConfig, PlaybackSpeed, TextSpeed } from '../config.js';
+import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import type { DictionaryEntry, IntermissionView, PreBattleView, RefillView, TitleView } from '../view/screen-view.js';
 
 export interface ScreenHandlers {
@@ -201,16 +201,10 @@ export function renderConfigOverlay(config: DisplayConfig, handlers: ScreenHandl
   );
   root.append(simplify);
 
-  const watch = element('div', 'config-row');
-  watch.append(element('span', 'config-label', '監視トグルの既定'));
-  for (const kind of ['READY', 'STUN', 'HIT_FRONT', 'HIT_BACK', 'EVADE'] as const) {
-    watch.append(
-      button(`config-choice${config.watchDefault[kind] ? ' config-on' : ''}`, kind, () =>
-        handlers.onConfigChange({ ...config, watchDefault: { ...config.watchDefault, [kind]: !config.watchDefault[kind] } }),
-      ),
-    );
-  }
-  root.append(watch);
+  // [M-UI-CONFIG]「監視トグルの既定」BY_SYSTEM は系統別の既定（[M-UI-WATCH]［既定の監視条件］）。
+  root.append(
+    choice('監視トグルの既定', WATCH_DEFAULT_MODES, config.watchDefault, (next) => ({ ...config, watchDefault: next })),
+  );
 
   root.append(button('primary', '閉じる', handlers.onCloseOverlay));
   return root;

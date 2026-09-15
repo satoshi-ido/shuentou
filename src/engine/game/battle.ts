@@ -19,8 +19,15 @@ import { settleBattleClear } from '../progress/clear.js';
 import { bookOf, enemyOf, sceneOf } from '../run/masters.js';
 import { isSearchSuppressed, updateReuse } from '../reuse.js';
 import { cloneRun, cloneState } from '../run/snapshot.js';
-import type { BattleState, PauseReason, Unit, WatchFlags, WatchKind } from '../types.js';
-import { applyWatchDefault, detectWatchEdges, syncWatchKeys, watchMetReason, type WatchEdge } from '../watch.js';
+import type { BattleState, PauseReason, Unit, WatchKind } from '../types.js';
+import {
+  applyWatchDefault,
+  detectWatchEdges,
+  syncWatchKeys,
+  watchMetReason,
+  type WatchDefaultMode,
+  type WatchEdge,
+} from '../watch.js';
 import { autosave, beginConfirmOperation, type GameContext, type GameSession } from './session.js';
 
 // AWAIT_FOE は敵軍AIの応答待ちで中断した状態（[I-ENV-WORKER]）。応答後に resumeBattle で再開する。
@@ -36,7 +43,7 @@ export interface AdvanceOptions {
 
 export interface StartOptions extends AdvanceOptions {
   // [M-UI-CONFIG]「監視トグルの既定」。端末ローカル設定であり、ステップ0の生成時にのみ適用する。
-  readonly watchDefault?: WatchFlags;
+  readonly watchDefault?: WatchDefaultMode;
 }
 
 const SCENE_5_11 = 'SCENE_5_11';

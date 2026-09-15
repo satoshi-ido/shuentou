@@ -29,22 +29,24 @@ describe('[M-UI-CONFIG] 表示・音響設定', () => {
       defaultPlaybackSpeed: 'X1',
       textSpeed: 'NORMAL',
       simplifyEffects: false,
-      watchDefault: { READY: false, STUN: false, HIT_FRONT: false, HIT_BACK: false, EVADE: false },
+      watchDefault: 'BY_SYSTEM',
     });
   });
 
   it('セーブデータとは別のキーへ保存し、読み戻す', () => {
     const store: Record<string, string> = {};
     const storage = { getItem: (k: string) => store[k] ?? null, setItem: (k: string, v: string) => void (store[k] = v) };
-    const config = { ...defaultConfig(), bgmVolume: 10, defaultPlaybackSpeed: 'X3' as const, watchDefault: { ...defaultConfig().watchDefault, EVADE: true } };
+    const config = { ...defaultConfig(), bgmVolume: 10, defaultPlaybackSpeed: 'X3' as const, watchDefault: 'ALL_OFF' as const };
     saveConfig(storage, config);
     expect(Object.keys(store)).toEqual([CONFIG_STORAGE_KEY]);
     expect(loadConfig(storage)).toEqual(config);
   });
 
   it('欠落・範囲外・型違いの項目は項目単位で既定値に戻す', () => {
-    const parsed = parseConfig(JSON.stringify({ bgmVolume: 101, seVolume: 30, textSpeed: 'TURBO', watchDefault: { STUN: true, READY: 'yes' } }));
-    expect(parsed).toEqual({ ...defaultConfig(), seVolume: 30, watchDefault: { ...defaultConfig().watchDefault, STUN: true } });
+    // 旧版（Bool 5要素）の保存値も列挙に該当しないため既定へ戻る。
+    const parsed = parseConfig(JSON.stringify({ bgmVolume: 101, seVolume: 30, textSpeed: 'TURBO', watchDefault: { STUN: true } }));
+    expect(parsed).toEqual({ ...defaultConfig(), seVolume: 30 });
+    expect(parseConfig(JSON.stringify({ watchDefault: 'ALL_ON' }))).toEqual({ ...defaultConfig(), watchDefault: 'ALL_ON' });
     expect(parseConfig('not json')).toEqual(defaultConfig());
     expect(parseConfig(null)).toEqual(defaultConfig());
   });

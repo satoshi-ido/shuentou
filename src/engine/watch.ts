@@ -39,6 +39,28 @@ export function allWatchFlags(value: boolean): WatchFlags {
   return { READY: value, STUN: value, HIT_FRONT: value, HIT_BACK: value, EVADE: value };
 }
 
+// [M-UI-WATCH]［既定の監視条件］武技は『前列命中』『後列命中』のみ、それ以外は『スタン』のみ ON。
+export function defaultWatchFlags(action: ActionInstance): WatchFlags {
+  if (hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
+    return { ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true };
+  }
+  return { ...allWatchFlags(false), STUN: true };
+}
+
+// [M-UI-CONFIG]「監視トグルの既定」の指定。BY_SYSTEM は［既定の監視条件］に従う。
+export type WatchDefaultMode = 'BY_SYSTEM' | 'ALL_OFF' | 'ALL_ON';
+
+function watchFlagsFor(action: ActionInstance, mode: WatchDefaultMode): WatchFlags {
+  switch (mode) {
+    case 'ALL_OFF':
+      return allWatchFlags(false);
+    case 'ALL_ON':
+      return allWatchFlags(true);
+    default:
+      return defaultWatchFlags(action);
+  }
+}
+
 function mineUnits(state: BattleState): Unit[] {
   return state.units.filter((unit): unit is Unit => unit !== null && unit.side === 'MINE');
 }
@@ -62,7 +84,8 @@ export function syncWatchKeys(state: BattleState): void {
     for (const action of unit.acts) {
       liveIds.push(action.instance_id);
       if (state.watching[action.instance_id] === undefined) {
-        state.watching[action.instance_id] = allWatchFlags(false);
+        // ［既定の監視条件］途中で生成されたインスタンスにも系統別の既定を与える。
+        state.watching[action.instance_id] = defaultWatchFlags(action);
       }
       if (state.watch_prev_met[action.instance_id] === undefined) {
         state.watch_prev_met[action.instance_id] = allWatchFlags(false);
@@ -81,11 +104,11 @@ export function syncWatchKeys(state: BattleState): void {
   }
 }
 
-// [M-UI-CONFIG]「監視トグルの既定の適用」：ステップ0の生成時に自軍の全アクションへ条件単位で一律に適用する。
-export function applyWatchDefault(state: BattleState, defaults: WatchFlags): void {
+// [M-UI-CONFIG]「監視トグルの既定の適用」：ステップ0の生成時に自軍の全アクションへ適用する。
+export function applyWatchDefault(state: BattleState, mode: WatchDefaultMode): void {
   for (const unit of mineUnits(state)) {
     for (const action of unit.acts) {
-      state.watching[action.instance_id] = { ...defaults };
+      state.watching[action.instance_id] = watchFlagsFor(action, mode);
       state.watch_prev_met[action.instance_id] = allWatchFlags(false);
     }
   }

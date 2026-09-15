@@ -2,12 +2,12 @@
 
 import { describe, expect, it } from 'vitest';
 import { executableActions } from '../../src/engine/decision.js';
-import { instruct, resumeTime, setWatch, startBattle } from '../../src/engine/game/battle.js';
+import { instruct, resumeBattle, resumeTime, setWatch, startBattle } from '../../src/engine/game/battle.js';
 import { undo } from '../../src/engine/game/rewind.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext } from '../../src/engine/game/session.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
-import { allWatchFlags, detectWatchEdges, evaluateActionWatch, syncWatchKeys } from '../../src/engine/watch.js';
+import { allWatchFlags, applyWatchDefault, detectWatchEdges, evaluateActionWatch, syncWatchKeys } from '../../src/engine/watch.js';
 import {
   actionOf,
   createDuel,
@@ -39,9 +39,11 @@ function battle(session: ReturnType<typeof sessionWith>['session']): BattleState
 describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-01）', () => {
   it('『実行可能』をONにした心気（基本）が蓄積を終えたステップで停止し、事由を記録する', () => {
     const { session, ctx } = sessionWith(passiveFoe);
-    expect(startBattle(session, ctx, { watchDefault: { ...allWatchFlags(false), READY: true } })).toBe('PAUSED');
+    startBattle(session, ctx, { watchDefault: 'ALL_OFF', maxSteps: 1 });
     const state = battle(session);
     const hero = findUnit(state, 'MINE');
+    setWatch(session, actionOf(hero, 'ACT_MIND_AR3').instance_id, 'READY', true);
+    expect(resumeBattle(session, ctx)).toBe('PAUSED');
     expect(state.step).toBe(147); // [V-NUM-OPENING] 心気（基本）の必要思考147
     expect(state.pause_reason).toEqual({
       code: 'WATCH_MET',
@@ -54,11 +56,11 @@ describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-0
 
   it('既に充足している条件は次ステップ以降で停止を起こさず、ONへ切り替えても停止しない', () => {
     const { session, ctx } = sessionWith(passiveFoe);
-    startBattle(session, ctx, { watchDefault: { ...allWatchFlags(false), READY: true } });
+    expect(startBattle(session, ctx, { watchDefault: 'ALL_OFF', stopAtStep: 147 })).toBe('PAUSED');
     const state = battle(session);
     const hero = findUnit(state, 'MINE');
     for (const action of hero.acts) {
-      setWatch(session, action.instance_id, 'READY', true);
+      setWatch(session, action.instance_id, 'READY', true); // 既に充足している条件をONへ切り替える
     }
     const step = state.step;
     expect(resumeTime(session, ctx, { stopAtStep: step + 5 })).toBe('PAUSED');
@@ -68,7 +70,7 @@ describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-0
 
   it('監視OFFでは充足しても停止しないが、充足状態は更新される', () => {
     const { session, ctx } = sessionWith(passiveFoe);
-    expect(startBattle(session, ctx, { stopAtStep: 150 })).toBe('PAUSED');
+    expect(startBattle(session, ctx, { watchDefault: 'ALL_OFF', stopAtStep: 150 })).toBe('PAUSED');
     const state = battle(session);
     const hero = findUnit(state, 'MINE');
     expect(state.step).toBe(150);
@@ -176,7 +178,7 @@ describe('[M-UI-WATCH] 充足判定', () => {
     expect(statusOf(calm.state, calm.hero, 'HERO_FAST_GUARD').EVADE).toBe('IDLE');
   });
 
-  it('途中で生成されたインスタンスは全要素 False で登録し、破棄されたキーは削除する', () => {
+  it('途中で生成されたインスタンスは系統別の既定で登録し、破棄されたキーは削除する', () => {
     const { state, hero } = duel([MIND], [MIND]);
     syncWatchKeys(state);
     const removed = hero.acts[0].instance_id;
@@ -184,8 +186,35 @@ describe('[M-UI-WATCH] 充足判定', () => {
     placeUnit(state, { side: 'MINE', kind: 'CREATURE', pos: 0, maxHp: 10, acts: [MIND], counter: { instance_id_seq: 70 } });
     syncWatchKeys(state);
     expect(state.watching[removed]).toBeUndefined();
-    expect(state.watching.IID0070).toEqual(allWatchFlags(false));
+    // ［既定の監視条件］心気は『スタン』のみ ON。watch_prev_met はエッジの基準なので全要素 False。
+    expect(state.watching.IID0070).toEqual({ ...allWatchFlags(false), STUN: true });
     expect(state.watch_prev_met.IID0070).toEqual(allWatchFlags(false));
+  });
+
+  it('［既定の監視条件］武技は『前列命中』『後列命中』のみ、それ以外は『スタン』のみを ON で登録する', () => {
+    const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 100, step_startup: 5 });
+    const { state, hero } = duel([HIT, MIND], [MIND]);
+    syncWatchKeys(state);
+    expect(state.watching[actionOf(hero, 'HERO_HIT').instance_id]).toEqual({
+      ...allWatchFlags(false),
+      HIT_FRONT: true,
+      HIT_BACK: true,
+    });
+    expect(state.watching[actionOf(hero, 'ACT_MIND').instance_id]).toEqual({ ...allWatchFlags(false), STUN: true });
+  });
+
+  it('[M-UI-CONFIG]「監視トグルの既定」BY_SYSTEM は系統別、ALL_OFF / ALL_ON は5条件へ一律に適用する', () => {
+    const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 100, step_startup: 5 });
+    const { state, hero } = duel([HIT, MIND], [MIND]);
+    const flagsOf = (classId: string) => state.watching[actionOf(hero, classId).instance_id];
+    applyWatchDefault(state, 'ALL_ON');
+    expect(flagsOf('HERO_HIT')).toEqual(allWatchFlags(true));
+    expect(flagsOf('ACT_MIND')).toEqual(allWatchFlags(true));
+    applyWatchDefault(state, 'ALL_OFF');
+    expect(flagsOf('HERO_HIT')).toEqual(allWatchFlags(false));
+    applyWatchDefault(state, 'BY_SYSTEM');
+    expect(flagsOf('HERO_HIT')).toEqual({ ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true });
+    expect(flagsOf('ACT_MIND')).toEqual({ ...allWatchFlags(false), STUN: true });
   });
 
   it('同時成立時はマスインデックス → アクション配列インデックス → 条件の順で並べる', () => {
