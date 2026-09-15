@@ -797,10 +797,8 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
   };
 
-  // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
-  const restore = (): void => {
-    inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
-    fillPreview(inspector.prev, view.preview);
+  // 盤面側（実行中カード・着弾予測・プレート・予兆線）を、注目していないときの姿へ戻す。
+  const restoreBoard = (): void => {
     for (const column of view.columns) {
       const dock = docks[column.posIdx];
       const plate = column.plate;
@@ -817,18 +815,29 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     timelineHost.replaceChildren(renderTimeline(view.timeline, view.columns));
   };
 
+  // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
+  const restore = (): void => {
+    inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
+    fillPreview(inspector.prev, view.preview);
+    restoreBoard();
+  };
+
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
-    if (focus.lock !== null) {
-      // 実行できない自軍アクション：見込みの代わりに詳細と理由を示す（[M-UI-HUD]［判定語彙］）。
+    if (focus.preview === null) {
+      // 見込みを提示しない注目（敵軍の手札・実行できない自軍アクション）。
+      // 判定欄にはアクションの詳細を、自軍に限り実行できない理由を添えて示す（[M-UI-HUD]［判定語彙］）。
       fillGroups(inspector.prev, [
         detailGroup(card),
-        { cap: '実行不可', rows: focus.lock.reasons.map((reason) => lockRow(reason, screen.lockText)) },
+        ...(focus.lock === null
+          ? []
+          : [{ cap: '実行不可', rows: focus.lock.reasons.map((reason) => lockRow(reason, screen.lockText)) }]),
       ]);
-    } else {
-      fillPreview(inspector.prev, focus.preview);
+      restoreBoard(); // 盤面の提示（実行中の着弾予測など）は素のまま保つ
+      return;
     }
+    fillPreview(inspector.prev, focus.preview);
     for (const other of view.columns) {
       const dock = docks[other.posIdx];
       const plate = other.plate;
@@ -851,11 +860,8 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 注目（ホバー）の適用。判定プレビューの対象でないカード、およびカードの外は注目を解く。
   let focusedId: string | null = screen.focusedInstanceId;
   const applyFocus = (instanceId: string | null): void => {
-    // 実行できない自軍アクションも注目の対象とする（理由を示すため）。敵軍の手札は対象外。
-    const focusable = (card: ActionCardView): boolean => card.previewable || card.side === 'MINE';
-    const column = view.columns.find((candidate) =>
-      candidate.cards.some((card) => card.instanceId === instanceId && focusable(card)),
-    );
+    // 見込みを提示しないカードも注目の対象とする（詳細・理由を示すため）。
+    const column = view.columns.find((candidate) => candidate.cards.some((card) => card.instanceId === instanceId));
     const card = column?.cards.find((candidate) => candidate.instanceId === instanceId);
     const next = column === undefined || card === undefined ? null : instanceId;
     if (next === focusedId) {
@@ -895,7 +901,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 歩進や巻き戻しで画面を組み直しても、直前の注目を引き継いで提示を保つ。
   // 対象が失われた場合（実行・消費など）に限り、選択中または実行中の提示へ戻す。
   const focusedColumn = view.columns.find((column) =>
-    column.cards.some((card) => card.instanceId === screen.focusedInstanceId && (card.previewable || card.side === 'MINE')),
+    column.cards.some((card) => card.instanceId === screen.focusedInstanceId),
   );
   const focusedCard = focusedColumn?.cards.find((card) => card.instanceId === screen.focusedInstanceId);
   if (focusedColumn !== undefined && focusedCard !== undefined) {
