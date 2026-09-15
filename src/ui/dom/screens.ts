@@ -122,8 +122,8 @@ function inheritOption(
   strings: (id: string) => string,
   onPick: () => void,
 ): HTMLElement {
-  // 改善した項目は、値そのものを強調して示す（[M-INHERIT-MERGE]［UI要件］）。
-  const improved = (key: string): string => (option.improved.includes(key) ? ' boost' : '');
+  // 従者特性係数で基礎値から改善した値は、その値自体を強調して示す（[M-DATA-INSTANTIATE]・[M-INHERIT-MERGE]［UI要件］）。
+  const improved = (key: string): string => (option.boosted.includes(key) ? ' boost' : '');
   const card = element('div', `inherit-card${enabled ? '' : ' disabled'}`);
   const head = element('div', 'inherit-head');
   head.append(element('b', 'nm', option.label));
@@ -155,18 +155,26 @@ function inheritOption(
     metrics.append(range);
   }
   if (option.hpAdd !== null) {
-    metrics.append(element('span', 'hp-add', `最大HP +${option.hpAdd}`));
+    metrics.append(element('span', `hp-add${improved('hp_add')}`, `最大HP +${option.hpAdd}`));
   }
   card.append(metrics);
 
   const outcome = element('div', 'inherit-outcome');
   outcome.append(element('span', 'kind', INHERIT_KIND_LABEL[option.kind]));
-  if (option.kind === 'MERGE' && option.improved.length === 0) {
-    // 改善が0件である旨は明示する（[M-INHERIT-MERGE]［UI要件］辞退の判断に用いる）。
-    outcome.append(element('span', 'improve none', strings('STR_INHERIT_NO_IMPROVE')));
+  if (option.kind === 'MERGE') {
+    // [M-INHERIT-MERGE]［UI要件］統合で何項目が改善するかを示す。0件はその旨を明示する。
+    outcome.append(
+      element(
+        'span',
+        option.improved.length === 0 ? 'improve none' : 'improve',
+        option.improved.length === 0
+          ? strings('STR_INHERIT_NO_IMPROVE')
+          : `統合で改善：${option.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)).join(' / ')}`,
+      ),
+    );
   }
-  // カードに現れない項目の改善は、名称を添えて残らず示す。
-  const hidden = option.improved.filter((key) => !VISIBLE_IMPROVE_KEYS.includes(key));
+  // 係数の改善のうち、カードに値として現れない項目は名称を添えて示す。
+  const hidden = option.boosted.filter((key) => !VISIBLE_IMPROVE_KEYS.includes(key));
   if (hidden.length > 0) {
     outcome.append(element('span', 'improve', `他：${hidden.map((key) => PARAM_LABEL[key] ?? key).join(' / ')}`));
   }

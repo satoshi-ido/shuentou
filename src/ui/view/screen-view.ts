@@ -95,7 +95,10 @@ export interface InheritOptionView {
   readonly atk: number | null;
   readonly uses: number | null; // 実効初期使用回数
   readonly hpAdd: number | null; // 最大HP加算
-  readonly improved: readonly string[]; // 統合による改善項目（[M-STATE-PARAMIDS] の表示名）
+  // 従者特性係数により基礎値から改善した項目。当該の値を強調して示す。
+  readonly boosted: readonly string[];
+  // 統合による改善項目（パラメータID）。
+  readonly improved: readonly string[];
 }
 
 export interface IntermissionView {

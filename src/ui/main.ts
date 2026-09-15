@@ -534,10 +534,22 @@ function inheritOptions(run: RunState, attendantId: string | null): InheritOptio
     const preview = previewInherit(run, masters, attendantId, target);
     const label = target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
     if (preview.kind === 'MAX_HP') {
-      return { target, label, kind: 'MAX_HP', steps: null, costs: [], range: null, atk: null, uses: null, hpAdd: preview.add, improved: [] };
+      return {
+        target,
+        label,
+        kind: 'MAX_HP',
+        steps: null,
+        costs: [],
+        range: null,
+        atk: null,
+        uses: null,
+        hpAdd: preview.add,
+        boosted: preview.boosted,
+        improved: [],
+      };
     }
     if (preview.kind === 'VANISH') {
-      return { target, label, kind: 'VANISH', steps: null, costs: [], range: null, atk: null, uses: 0, hpAdd: null, improved: [] };
+      return { target, label, kind: 'VANISH', steps: null, costs: [], range: null, atk: null, uses: 0, hpAdd: null, boosted: [], improved: [] };
     }
     const params = preview.params;
     const costs = (['HP', 'VP', 'PP', 'AP'] as const)
@@ -553,7 +565,8 @@ function inheritOptions(run: RunState, attendantId: string | null): InheritOptio
       atk: params.range > 0 ? params.atk : null,
       uses: preview.usesInitial,
       hpAdd: null,
-      // 改善項目はパラメータIDのまま渡し、画面側で当該の値を強調する。
+      // 係数による改善は当該の値を強調し、統合による改善は別に示す。値はパラメータIDのまま渡す。
+      boosted: preview.boosted,
       improved: preview.kind === 'MERGE' ? preview.improved : [],
     };
   });

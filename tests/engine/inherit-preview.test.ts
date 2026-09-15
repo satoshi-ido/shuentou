@@ -53,3 +53,21 @@ describe('[M-INHERIT-MERGE] 継承プレビュー', () => {
     }
   });
 });
+
+describe('[M-DATA-INSTANTIATE] 従者特性係数による改善', () => {
+  it('係数で基礎値から改善した項目を、統合の有無によらず列挙する', () => {
+    const run = intermissionRun();
+    // リナ（ATTENDANT_01）は usesRate 4.50。継承するどのアクションも使用回数が増える。
+    const rina = run.party.find((slot) => slot.attendant_id === 'ATTENDANT_01')?.attendant_id;
+    expect(rina).toBeDefined();
+    const targets = inheritPool(run, MASTERS).filter((entry) => entry.kind === 'ACTION');
+    expect(targets.length).toBeGreaterThan(1);
+    for (const target of targets) {
+      const preview = previewInherit(run, MASTERS, rina!, target);
+      if (preview.kind === 'VANISH') {
+        continue;
+      }
+      expect(preview.boosted).toContain('uses'); // 新規スロット・統合のいずれでも強調の対象
+    }
+  });
+});
