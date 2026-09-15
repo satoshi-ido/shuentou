@@ -233,6 +233,21 @@ function watchTogglesOf(state: BattleState, unit: Unit, action: ActionInstance, 
   }));
 }
 
+// ［判定プレビュー］任意のアクションインスタンスに対する見込み。カードのホバーなど、
+// 画面側が随時に問い合わせるための入口であり、ビュー全体の再構築を伴わない。
+export function previewForInstance(state: BattleState, instanceId: string, deps: StepDeps): ActionPreview | null {
+  for (const unit of state.units) {
+    if (unit === null) {
+      continue;
+    }
+    const action = unit.acts.find((candidate) => candidate.instance_id === instanceId);
+    if (action !== undefined) {
+      return previewOf(state, unit, action, deps);
+    }
+  }
+  return null;
+}
+
 export interface BattleViewOptions {
   readonly state: BattleState;
   readonly deps: StepDeps;

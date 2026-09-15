@@ -169,16 +169,13 @@ function renderThinkSlot(plate: PlateView): HTMLElement {
 }
 
 // ［実行中カード］実行中アクションの表示名・現在ステート・経過／残ステップ数・実効攻撃力・実効防御力。
-function renderDockSlot(plate: PlateView | null): HTMLElement {
-  const dock = element('div', 'dock-slot');
+function dockContent(plate: PlateView | null): HTMLElement {
   if (plate === null) {
-    dock.append(element('div', 'think-slot', 'ユニット不在'));
-    return dock;
+    return element('div', 'think-slot', 'ユニット不在');
   }
   const running = plate.running;
   if (running === null) {
-    dock.append(renderThinkSlot(plate));
-    return dock;
+    return renderThinkSlot(plate);
   }
   const card = element('div', `acting-card-dock phase-${running.phase.toLowerCase()}`);
   const gauge = element('div', 'gauge-bar-bg');
@@ -195,8 +192,30 @@ function renderDockSlot(plate: PlateView | null): HTMLElement {
   right.append(valueSpan('atk-val', SYMBOL.atk, String(running.atk)));
   right.append(valueSpan('def-val', SYMBOL.defense, String(running.defense)));
   card.append(right);
-  dock.append(card);
-  return dock;
+  return card;
+}
+
+// 注目中（ホバーまたは選択中）のアクションを実行した場合の姿を、実行中カードの位置に仮に示す。
+function dockPreviewContent(plate: PlateView, card: ActionCardView, preview: ActionPreview | null): HTMLElement {
+  const startup = card.stepStartup > 0;
+  const cut = preview !== null && preview.kind === 'INTERRUPT';
+  const box = element('div', `acting-card-dock preview phase-${startup ? 'startup' : 'recovery'}${cut ? ' cut' : ''}`);
+  const main = element('div', 'dock-inline-main');
+  main.append(element('span', 'phase-tag', cut ? '中断' : startup ? '発生' : '硬直'));
+  main.append(element('span', 'dock-nm', card.name));
+  box.append(main);
+  const right = element('div', 'dock-inline-right num');
+  right.append(
+    cut && preview !== null && preview.kind === 'INTERRUPT'
+      ? valueSpan('', SYMBOL.remaining, String(preview.steps))
+      : valueSpan('', SYMBOL.remaining, String(startup ? card.stepStartup : card.stepRecovery)),
+  );
+  if (card.atk !== null) {
+    right.append(valueSpan('atk-val', SYMBOL.atk, String(card.atk)));
+  }
+  right.append(valueSpan('def-val', SYMBOL.defense, String(plate.defense)));
+  box.append(right);
+  return box;
 }
 
 // ── 中段：アクションカード（[M-UI-SORT]・[M-UI-WATCH]） ──
@@ -256,7 +275,7 @@ function renderCardMetrics(card: ActionCardView): HTMLElement {
   return metrics;
 }
 
-function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScreenHandlers): HTMLElement {
+function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScreenHandlers, focus: CardFocus): HTMLElement {
   const dim = card.rank >= 2 || card.sealed;
   const classes = ['action-card', `card-rank${card.rank}`];
   if (selected) {
@@ -299,10 +318,29 @@ function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScr
     }
     handlers.onSelect(card.instanceId);
   });
+  // ホバーは注目のみを移し、判定プレビューと実行中カードの位置を当該アクションの見込みへ切り替える。
+  box.addEventListener('mouseenter', () => focus.enter(card));
+  box.addEventListener('mouseleave', () => focus.leave());
   return box;
 }
 
-function renderColumn(column: BoardColumnView, selectedInstanceId: string | null, handlers: BattleScreenHandlers): HTMLElement {
+// 注目（ホバー）の移動。選択・確定とは独立に、提示だけを切り替える。
+interface CardFocus {
+  readonly enter: (card: ActionCardView) => void;
+  readonly leave: () => void;
+}
+
+interface ColumnNodes {
+  readonly root: HTMLElement;
+  readonly dock: HTMLElement;
+}
+
+function renderColumn(
+  column: BoardColumnView,
+  selectedInstanceId: string | null,
+  handlers: BattleScreenHandlers,
+  focus: CardFocus,
+): ColumnNodes {
   const plate = column.plate;
   const side = plate === null ? 'empty' : plate.side.toLowerCase();
   const box = element('div', `bcol bcol-${side}${plate?.isMaster === true ? ' master' : ''}`);
@@ -316,17 +354,19 @@ function renderColumn(column: BoardColumnView, selectedInstanceId: string | null
   cell.append(plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate));
   box.append(cell);
 
-  box.append(renderDockSlot(plate));
+  const dock = element('div', 'dock-slot');
+  dock.append(dockContent(plate));
+  box.append(dock);
 
   const list = element('div', 'blist');
   if (column.cards.length === 0) {
     list.append(element('div', 'blist-empty', plate === null ? '' : '（アクションなし）'));
   }
   for (const card of column.cards) {
-    list.append(renderCard(card, card.instanceId === selectedInstanceId, handlers));
+    list.append(renderCard(card, card.instanceId === selectedInstanceId, handlers, focus));
   }
   box.append(list);
-  return box;
+  return { root: box, dock };
 }
 
 // ── 下段：判定プレビューと再生操作 ──
@@ -387,15 +427,30 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
   }
 }
 
-function renderInspector(view: BattleView): HTMLElement {
+interface Inspector {
+  readonly root: HTMLElement;
+  readonly name: HTMLElement; // 注目中のアクション名
+  readonly prev: HTMLElement; // 判定プレビューの本体（注目の移動に応じて描き替える）
+}
+
+function renderInspector(view: BattleView): Inspector {
   const strip = element('div', 'inspstrip');
   const box = element('div', 'ibox');
   const title = element('div', 'ttl');
   title.append(document.createTextNode('判定プレビュー'));
-  title.append(element('b', 'num', `ステップ ${view.step}`));
+  const name = element('b', '');
+  title.append(name);
+  title.append(element('span', 'ttl-step num', `ステップ ${view.step}`));
   box.append(title);
   const prev = element('div', 'prev');
-  for (const group of view.preview === null ? [] : previewGroups(view.preview)) {
+  box.append(prev);
+  strip.append(box);
+  return { root: strip, name, prev };
+}
+
+function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
+  prev.replaceChildren();
+  for (const group of preview === null ? [] : previewGroups(preview)) {
     const pg = element('div', 'pg');
     pg.append(element('div', 'cap', group.cap));
     for (const row of group.rows) {
@@ -406,9 +461,6 @@ function renderInspector(view: BattleView): HTMLElement {
     }
     prev.append(pg);
   }
-  box.append(prev);
-  strip.append(box);
-  return strip;
 }
 
 function renderTimebar(screen: BattleScreenState, handlers: BattleScreenHandlers): HTMLElement {
@@ -459,6 +511,8 @@ export interface BattleScreenState {
   readonly pauseText: string;
   readonly selectedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
+  // 注目中のアクションに対する判定プレビューの問い合わせ。ホバーのたびに画面全体を組み直さない。
+  readonly previewFor: (instanceId: string) => ActionPreview | null;
 }
 
 export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState, handlers: BattleScreenHandlers): void {
@@ -468,6 +522,36 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
 
   root.append(renderTimeline(view.timeline, view.columns));
 
+  const inspector = renderInspector(view);
+  const docks: (HTMLElement | null)[] = [null, null, null, null];
+  const selectedCard = view.columns.flatMap((column) => column.cards).find((card) => card.instanceId === screen.selectedInstanceId);
+
+  // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
+  const restore = (): void => {
+    inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
+    fillPreview(inspector.prev, view.preview);
+    for (const column of view.columns) {
+      const dock = docks[column.posIdx];
+      const plate = column.plate;
+      if (dock === undefined || dock === null) {
+        continue;
+      }
+      const previewing = selectedCard !== undefined && plate !== null && plate.running === null && selectedCard.unitId === plate.unitId;
+      dock.replaceChildren(previewing && plate !== null ? dockPreviewContent(plate, selectedCard, view.preview) : dockContent(plate));
+    }
+  };
+
+  const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
+    const preview = screen.previewFor(card.instanceId);
+    inspector.name.textContent = card.name;
+    fillPreview(inspector.prev, preview);
+    const dock = docks[column.posIdx];
+    const plate = column.plate;
+    if (dock !== undefined && dock !== null && plate !== null && plate.running === null) {
+      dock.replaceChildren(dockPreviewContent(plate, card, preview));
+    }
+  };
+
   const boardWrap = element('div', 'battle-board-wrap');
   const background = element('div', 'field-bg');
   background.append(element('div', 'ash'));
@@ -476,15 +560,21 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   boardWrap.append(background);
   const board = element('div', 'board');
   for (const column of view.columns) {
-    board.append(renderColumn(column, screen.selectedInstanceId, handlers));
+    const nodes = renderColumn(column, screen.selectedInstanceId, handlers, {
+      enter: (card) => focusOn(column, card),
+      leave: () => restore(),
+    });
+    docks[column.posIdx] = nodes.dock;
+    board.append(nodes.root);
   }
   boardWrap.append(board);
   root.append(boardWrap);
 
   const footer = element('div', 'footer-strip');
-  footer.append(renderInspector(view));
+  footer.append(inspector.root);
   footer.append(renderTimebar(screen, handlers));
   root.append(footer);
+  restore();
 
   root.addEventListener('contextmenu', (event) => {
     event.preventDefault();

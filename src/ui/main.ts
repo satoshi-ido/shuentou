@@ -39,7 +39,7 @@ import {
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
 import { createStringTable, resolveHelp } from './text.js';
-import { buildBattleView, type UnitNaming } from './view/battle-view.js';
+import { buildBattleView, previewForInstance, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText } from './view/pause-text.js';
 import {
   attendantEpithet,
@@ -354,7 +354,11 @@ function renderBattle(): HTMLElement | null {
           actionName,
         });
   const host = document.createElement('div');
-  renderBattleScreen(host, { view, pauseText, selectedInstanceId, speed: loop.speed }, battleHandlers);
+  renderBattleScreen(
+    host,
+    { view, pauseText, selectedInstanceId, speed: loop.speed, previewFor: (id) => previewForInstance(state, id, stepDeps) },
+    battleHandlers,
+  );
   return host;
 }
 

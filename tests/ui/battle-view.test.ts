@@ -17,7 +17,7 @@ import {
   formatUses,
   INFINITY_MARK,
 } from '../../src/ui/format.js';
-import { buildBattleView, type UnitNaming } from '../../src/ui/view/battle-view.js';
+import { buildBattleView, previewForInstance, type UnitNaming } from '../../src/ui/view/battle-view.js';
 import { previewOf } from '../../src/ui/view/preview.js';
 import { activationRank, sortedActions } from '../../src/ui/view/sort.js';
 import { createDuel, findUnit, makeAction, martialAction, NO_SUMMON_DEPS, setRecovery, setStartup } from '../ai/fixtures.js';
@@ -205,5 +205,16 @@ describe('[M-FIELD-GRID] 盤面カラムのビューモデル', () => {
     const acting = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
     expect(acting.columns[1].plate?.running).toMatchObject({ phase: 'STARTUP', elapsed: 4, required: 10, stateLabel: '発生中' });
     expect(acting.columns[1].cards.find((card) => card.name === 'HIT')?.running).toBe(true);
+  });
+});
+
+describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの問い合わせ', () => {
+  it('インスタンスIDから、自軍・敵軍いずれのアクションの見込みも引ける', () => {
+    const { state, hero, enemy } = duel();
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    expect(previewForInstance(state, hit.instance_id, NO_SUMMON_DEPS)).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
+    const foeMind = enemy.acts[0];
+    expect(previewForInstance(state, foeMind.instance_id, NO_SUMMON_DEPS)).toEqual(previewOf(state, enemy, foeMind, NO_SUMMON_DEPS));
+    expect(previewForInstance(state, 'ACT_MISSING', NO_SUMMON_DEPS)).toBeNull();
   });
 });
