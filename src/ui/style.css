@@ -727,6 +727,8 @@ button:focus-visible {
 .bcol-foe .action-card.sel { border-color: var(--miasma); box-shadow: 0 0 0 1px rgba(144, 112, 200, 0.3) inset; }
 .action-card.in-use { border-color: var(--ember-dim); background: #1b1309; }
 .action-card.dim { opacity: 0.62; }
+.action-card.inert { cursor: default; }
+.action-card.inert:hover { border-color: var(--line); }
 .action-card.sealed { border-color: #5b2b35; background: #170e12; cursor: not-allowed; }
 
 .action-header {

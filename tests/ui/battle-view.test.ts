@@ -209,21 +209,41 @@ describe('[M-FIELD-GRID] 盤面カラムのビューモデル', () => {
 });
 
 describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの問い合わせ', () => {
-  it('インスタンスIDから、自軍・敵軍いずれのアクションの見込みも引ける', () => {
-    const { state, hero, enemy } = duel();
+  it('実行可能な自軍アクションの見込みをインスタンスIDから引ける', () => {
+    const { state, hero } = duel();
+    hero.pp = 5;
+    hero.elapsed_thought = 5;
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
     expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
+  });
+
+  it('実行できないアクションと敵軍の手札は提示しない', () => {
+    const { state, hero, enemy } = duel();
+    hero.elapsed_thought = 5; // PP不足のまま（HIT の実効消費PPは2）
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+    const mind = hero.acts[0]; // 思考蓄積待ち（必要思考20）
+    expect(focusPreview(state, mind.instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+    expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
+  });
+
+  it('実行中（発生中）のアクションは自軍・敵軍いずれも提示する', () => {
+    const { state, hero, enemy } = duel();
+    setStartup(hero, 'HIT', 4);
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).stamps).toMatchObject([{ kind: 'HIT', running: true }]);
+    setStartup(enemy, 'MIND', 2);
     const foeMind = enemy.acts[0];
     expect(focusPreview(state, foeMind.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(
       previewOf(state, enemy, foeMind, NO_SUMMON_DEPS),
     );
-    expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({ preview: null, stamps: [] });
   });
 
   it('武技は注目した時点の仮定として、対象マスへの着弾予測を伴う', () => {
     const { state, hero } = duel();
     hero.pp = 5;
-    hero.elapsed_thought = 5;
+    hero.elapsed_thought = 20; // いずれの手も実行可能な局面
     const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
     // 発生10の武技。命中見込みと、発動ステップ・HPの推移を対象マスに示す。
     expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).stamps).toEqual([

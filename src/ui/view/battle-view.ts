@@ -76,6 +76,7 @@ export interface ActionCardView {
   readonly rank: 0 | 1 | 2 | 3;
   readonly executable: boolean;
   readonly running: boolean; // 実行中（発生中・硬直中の実行対象）
+  readonly previewable: boolean; // 判定プレビューの対象（実行可能な自軍アクション、または実行中）
   readonly sealed: boolean; // 封印蓄積値が 1.00 に達している
   readonly isCopy: boolean; // ［写し］コピーで得たインスタンス
   readonly thoughtProgress: number; // 思考蓄積の充足率（0〜100、必要思考0は100）
@@ -200,6 +201,7 @@ function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: St
   const rank = activationRank(state, unit, action);
   const martial = hasFlag(action.sys_flags, 'FLAG_MARTIAL');
   const thought = effectiveStepThought(unit, action);
+  const running = unit.state !== 'THOUGHT' && unit.last_act?.instance_id === action.instance_id;
   return {
     instanceId: action.instance_id,
     unitId: unit.unit_id,
@@ -208,7 +210,8 @@ function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: St
     icon: iconOf(action),
     rank,
     executable: rank === 0 && unit.side === 'MINE',
-    running: unit.state !== 'THOUGHT' && unit.last_act?.instance_id === action.instance_id,
+    running,
+    previewable: (unit.state === 'STARTUP' && running) || (unit.side === 'MINE' && rank === 0),
     sealed: action.seal_accum >= SEAL_LIMIT_CENTI,
     isCopy: action.is_copy,
     thoughtProgress: thought === 0 ? 100 : Math.min(Math.round((unit.elapsed_thought * 100) / thought), 100),
@@ -325,6 +328,15 @@ function forecastOf(
   });
 }
 
+// ［判定プレビュー］提示の対象は「選択中または実行中のアクション」であり、選択できるのは
+// その時点で実行可能な自軍アクションに限る。コスト不足・思考蓄積待ち・封印・敵軍の手札は対象にしない。
+export function isPreviewTarget(state: BattleState, unit: Unit, action: ActionInstance): boolean {
+  if (unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id) {
+    return true; // 実行中（発生中）のアクション
+  }
+  return unit.side === 'MINE' && activationRank(state, unit, action) === 0;
+}
+
 export interface FocusPreview {
   readonly preview: ActionPreview | null;
   readonly stamps: readonly ForecastStamp[];
@@ -336,6 +348,9 @@ export function focusPreview(state: BattleState, instanceId: string, deps: StepD
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
     return { preview: null, stamps: [] };
+  }
+  if (!isPreviewTarget(state, owner.unit, owner.action)) {
+    return { preview: null, stamps: [] }; // 実行できないアクションの見込みは提示しない
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
   return { preview, stamps: forecastOf(state, owner.unit, owner.action, preview, naming) };
@@ -371,11 +386,16 @@ export function buildBattleView(options: BattleViewOptions): BattleView {
   const cardsUnit = mine.find((unit) => unit.unit_id === options.cardsUnitId) ?? [...mine].sort((a, b) => b.pos_idx - a.pos_idx)[0];
   // 判定プレビューの対象は選択中のアクションを所持するユニット。未選択のときは注目自軍ユニットの実行中アクション。
   const selectedUnit = units.find((unit) => unit.acts.some((action) => action.instance_id === options.selectedInstanceId)) ?? cardsUnit;
+  const runningOf = (unit: Unit): ActionInstance | undefined =>
+    unit.acts.find((action) => action.instance_id === unit.last_act?.instance_id && unit.state === 'STARTUP');
+  const chosen = selectedUnit?.acts.find((action) => action.instance_id === options.selectedInstanceId);
+  // ［判定プレビュー］提示するのは実行可能な自軍アクションと実行中アクションに限る。
   const selected =
     selectedUnit === undefined
       ? undefined
-      : (selectedUnit.acts.find((action) => action.instance_id === options.selectedInstanceId) ??
-        selectedUnit.acts.find((action) => action.instance_id === selectedUnit.last_act?.instance_id && selectedUnit.state === 'STARTUP'));
+      : chosen !== undefined && isPreviewTarget(state, selectedUnit, chosen)
+        ? chosen
+        : runningOf(selectedUnit);
   // 発生中のユニットについては、選択・注目によらず常に着弾の見込みを戦域へ示す。
   const stamps = units.flatMap((unit) => {
     if (unit.state !== 'STARTUP') {

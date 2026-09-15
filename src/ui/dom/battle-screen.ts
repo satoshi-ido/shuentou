@@ -366,6 +366,12 @@ function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScr
     box.append(watch);
   }
 
+  // ［判定プレビュー］実行できないアクション（コスト不足・思考蓄積待ち・封印・敵軍の手札）は
+  // 選択も注目もできない。提示するのは実行可能な自軍アクションと実行中アクションに限る。
+  if (!card.previewable) {
+    box.classList.add('inert');
+    return box;
+  }
   box.addEventListener('click', () => {
     if (selected && card.executable) {
       handlers.onInstruct(card.instanceId); // 左クリックは選択および確定
@@ -683,7 +689,9 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
 
   // 歩進や巻き戻しで画面を組み直しても、直前の注目を引き継いで提示を保つ。
   // 対象が失われた場合（実行・消費など）に限り、選択中または実行中の提示へ戻す。
-  const focusedColumn = view.columns.find((column) => column.cards.some((card) => card.instanceId === screen.focusedInstanceId));
+  const focusedColumn = view.columns.find((column) =>
+    column.cards.some((card) => card.instanceId === screen.focusedInstanceId && card.previewable),
+  );
   const focusedCard = focusedColumn?.cards.find((card) => card.instanceId === screen.focusedInstanceId);
   if (focusedColumn !== undefined && focusedCard !== undefined) {
     focusOn(focusedColumn, focusedCard, false);
