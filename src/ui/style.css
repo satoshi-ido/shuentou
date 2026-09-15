@@ -1394,7 +1394,15 @@ button:focus-visible {
   color: var(--muted);
 }
 
-.inherit-metrics .st-flow { border: 1px solid var(--line); padding: 0 4px; }
+.inherit-metrics .st-flow { display: inline-flex; gap: 1px; border: 1px solid var(--line); padding: 0 4px; }
+.inherit-metrics .st-flow .arrow { color: var(--iron); font-style: normal; }
+
+/* [M-INHERIT-MERGE]［UI要件］統合で改善する値は、その値自体を強調して示す。 */
+.inherit-card .boost {
+  color: var(--ember);
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(255, 138, 43, 0.35);
+}
 .inherit-metrics .cst-hp { color: var(--hp); }
 .inherit-metrics .cst-vp { color: var(--vp); }
 .inherit-metrics .cst-pp { color: var(--pp); }

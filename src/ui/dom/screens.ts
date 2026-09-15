@@ -4,6 +4,7 @@
 import type { HelpMasterRecord } from '../../data/types.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
+import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
   DictionaryEntry,
   InheritOptionView,
@@ -94,6 +95,20 @@ export function renderPreBattle(view: PreBattleView, helpTitle: (helpId: string)
 }
 
 // [M-INHERIT-MERGE]［UI要件］確定前のプレビュー。統合後の実効値と改善項目を示す。
+// カード上に値として現れる改善項目。これ以外は名称を添えて示す。
+const VISIBLE_IMPROVE_KEYS: readonly string[] = [
+  'step_thought',
+  'step_startup',
+  'step_recovery',
+  'cost_hp',
+  'cost_vp',
+  'cost_pp',
+  'cost_ap',
+  'range',
+  'atk',
+  'uses',
+];
+
 const INHERIT_KIND_LABEL: Readonly<Record<InheritOptionView['kind'], string>> = {
   MAX_HP: '最大HPに加算',
   NEW_SLOT: '新しいアクションとして加わる',
@@ -107,25 +122,37 @@ function inheritOption(
   strings: (id: string) => string,
   onPick: () => void,
 ): HTMLElement {
+  // 改善した項目は、値そのものを強調して示す（[M-INHERIT-MERGE]［UI要件］）。
+  const improved = (key: string): string => (option.improved.includes(key) ? ' boost' : '');
   const card = element('div', `inherit-card${enabled ? '' : ' disabled'}`);
   const head = element('div', 'inherit-head');
   head.append(element('b', 'nm', option.label));
   if (option.uses !== null) {
-    head.append(element('span', 'uses num', `残 ${option.uses}`));
+    head.append(element('span', `uses num${improved('uses')}`, `${SYMBOL.remaining} ${option.uses}`));
   }
   card.append(head);
 
   const metrics = element('div', 'inherit-metrics num');
   if (option.steps !== null) {
-    metrics.append(
-      element('span', 'st-flow', `思${option.steps.thought} ▸ 発${option.steps.startup} ▸ 硬${option.steps.recovery}`),
-    );
+    const flow = element('span', 'st-flow');
+    flow.append(element('span', improved('step_thought').trim(), `${SYMBOL.stepThought}${option.steps.thought}`));
+    flow.append(element('i', 'arrow', STEP_ARROW));
+    flow.append(element('span', improved('step_startup').trim(), `${SYMBOL.stepStartup}${option.steps.startup}`));
+    flow.append(element('i', 'arrow', STEP_ARROW));
+    flow.append(element('span', improved('step_recovery').trim(), `${SYMBOL.stepRecovery}${option.steps.recovery}`));
+    metrics.append(flow);
   }
   for (const cost of option.costs) {
-    metrics.append(element('span', `cst cst-${cost.label.toLowerCase()}`, `${cost.label} ${cost.value}`));
+    metrics.append(
+      element('span', `cst cst-${cost.label.toLowerCase()}${improved(`cost_${cost.label.toLowerCase()}`)}`, `${cost.label} ${cost.value}`),
+    );
   }
   if (option.range !== null) {
-    metrics.append(element('span', 'rng', `射 ${option.range} / 攻 ${option.atk ?? 0}`));
+    const range = element('span', 'rng');
+    range.append(element('span', improved('range').trim(), `${SYMBOL.range} ${option.range}`));
+    range.append(document.createTextNode(' / '));
+    range.append(element('span', improved('atk').trim(), `${SYMBOL.atk} ${option.atk ?? 0}`));
+    metrics.append(range);
   }
   if (option.hpAdd !== null) {
     metrics.append(element('span', 'hp-add', `最大HP +${option.hpAdd}`));
@@ -134,14 +161,14 @@ function inheritOption(
 
   const outcome = element('div', 'inherit-outcome');
   outcome.append(element('span', 'kind', INHERIT_KIND_LABEL[option.kind]));
-  if (option.kind === 'MERGE') {
-    outcome.append(
-      element(
-        'span',
-        option.improved.length === 0 ? 'improve none' : 'improve',
-        option.improved.length === 0 ? strings('STR_INHERIT_NO_IMPROVE') : `改善：${option.improved.join(' / ')}`,
-      ),
-    );
+  if (option.kind === 'MERGE' && option.improved.length === 0) {
+    // 改善が0件である旨は明示する（[M-INHERIT-MERGE]［UI要件］辞退の判断に用いる）。
+    outcome.append(element('span', 'improve none', strings('STR_INHERIT_NO_IMPROVE')));
+  }
+  // カードに現れない項目の改善は、名称を添えて残らず示す。
+  const hidden = option.improved.filter((key) => !VISIBLE_IMPROVE_KEYS.includes(key));
+  if (hidden.length > 0) {
+    outcome.append(element('span', 'improve', `他：${hidden.map((key) => PARAM_LABEL[key] ?? key).join(' / ')}`));
   }
   card.append(outcome);
 

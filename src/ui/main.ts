@@ -44,7 +44,6 @@ import {
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
-import { PARAM_LABEL } from './format.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
@@ -554,7 +553,8 @@ function inheritOptions(run: RunState, attendantId: string | null): InheritOptio
       atk: params.range > 0 ? params.atk : null,
       uses: preview.usesInitial,
       hpAdd: null,
-      improved: preview.kind === 'MERGE' ? preview.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)) : [],
+      // 改善項目はパラメータIDのまま渡し、画面側で当該の値を強調する。
+      improved: preview.kind === 'MERGE' ? preview.improved : [],
     };
   });
 }
