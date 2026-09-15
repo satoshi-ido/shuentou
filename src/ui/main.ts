@@ -228,7 +228,10 @@ const screenHandlers: ScreenHandlers = {
       attachClient(saved.run.current_scene_id);
       loop.speed = config.defaultPlaybackSpeed;
     }
-    const loaded = loadGame(serialized, ctx, { maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1) });
+    const loaded = loadGame(serialized, ctx, {
+      maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
+      watchDefault: config.watchDefault,
+    });
     if (!loaded.ok) {
       return;
     }

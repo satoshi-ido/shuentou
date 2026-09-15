@@ -335,3 +335,22 @@ describe('[I-PLAN-MILESTONE] M3 受け入れ線：同一操作列の再走で全
     );
   });
 });
+
+describe('[M-UI-CONFIG] 監視トグルの既定の再適用', () => {
+  it('バトル開始時セーブからの再開でも、その時点の既定を適用する', () => {
+    const { session, ctx, recorder } = setup();
+    startBattle(session, ctx, { watchDefault: 'ALL_OFF' });
+    const serialized = recorder.saves[0] ?? '';
+    const loaded = loadGame(serialized, setup().ctx, { watchDefault: 'BY_SYSTEM' });
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) {
+      return;
+    }
+    const state = loaded.session.data.run.battle_state;
+    const hero = state?.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE');
+    const martial = hero?.acts.find((action) => action.master_ref === 'ACT_SLASH_AR3');
+    const mind = hero?.acts.find((action) => action.master_ref === 'ACT_MIND_AR3');
+    expect(state?.watching[martial?.instance_id ?? '']).toMatchObject({ HIT_FRONT: true, HIT_BACK: true, EVADE: true, STUN: false });
+    expect(state?.watching[mind?.instance_id ?? '']).toMatchObject({ STUN: true, EVADE: true, HIT_FRONT: false });
+  });
+});

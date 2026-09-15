@@ -3,7 +3,8 @@
 import type { SaveData } from '../meta/types.js';
 import { cloneRun } from '../run/snapshot.js';
 import { createNewGame, SAVE_VERSION } from '../run/newgame.js';
-import { enterBattle, type AdvanceOptions, type BattleResult } from './battle.js';
+import { enterBattle, type BattleResult, type StartOptions } from './battle.js';
+import { applyWatchDefault } from '../watch.js';
 import { markPending, type GameContext, type GameSession } from './session.js';
 
 export function newGameSession(ctx: GameContext): GameSession {
@@ -22,7 +23,7 @@ export function peekSave(serialized: string): SaveData | null {
 }
 
 // ［データバージョン］不一致時はマイグレーションを行わずロードを拒否する。
-export function loadGame(serialized: string, ctx: GameContext, options: AdvanceOptions = {}): LoadResult {
+export function loadGame(serialized: string, ctx: GameContext, options: StartOptions = {}): LoadResult {
   const data = JSON.parse(serialized) as SaveData;
   if (data.save_version !== SAVE_VERSION) {
     return { ok: false, reason: 'VERSION_MISMATCH', save_version: data.save_version };
@@ -33,6 +34,11 @@ export function loadGame(serialized: string, ctx: GameContext, options: AdvanceO
   }
   // ［バトル中の保存を行わない］直近のバトル開始時セーブからの再開は ROLLBACK_BATTLE の保留を立てる。
   markPending(session, 'ROLLBACK_BATTLE');
+  // [M-UI-CONFIG]「監視トグルの既定」は端末ローカル設定でありセーブに含まれない。バトル中のセーブは
+  // 常にステップ0の生成直後（[M-META-SAVEDATA]）であるため、再開の時点で現在の設定を適用する。
+  if (options.watchDefault !== undefined && data.run.battle_state !== null) {
+    applyWatchDefault(data.run.battle_state, options.watchDefault);
+  }
   session.battle_start_run = cloneRun(data.run);
   return { ok: true, session, battle: enterBattle(session, ctx, options) };
 }
