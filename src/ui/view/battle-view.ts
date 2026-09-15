@@ -34,8 +34,11 @@ export interface ChipView {
 
 export interface RunningCardView {
   readonly name: string;
+  readonly phase: 'STARTUP' | 'RECOVERY';
   readonly stateLabel: '発生中' | '硬直中';
   readonly steps: string; // 経過 / 基準（残N）
+  readonly elapsed: number;
+  readonly required: number;
   readonly atk: number;
   readonly defense: number;
 }
@@ -46,10 +49,13 @@ export interface PlateView {
   readonly posIdx: number;
   readonly name: string;
   readonly roleName: string | null;
+  readonly isMaster: boolean;
   readonly hp: string;
   readonly vp: number;
   readonly pp: number;
   readonly ap: number;
+  readonly defense: number; // 実効防御力（[M-CALC-EFFECTIVE]）
+  readonly thought: number; // 思考中ステートの蓄積ステップ数
   readonly chips: readonly ChipView[];
   readonly running: RunningCardView | null;
 }
@@ -63,10 +69,16 @@ export interface WatchToggleView {
 
 export interface ActionCardView {
   readonly instanceId: string;
+  readonly unitId: string;
+  readonly side: Side;
   readonly name: string;
   readonly icon: SystemIcon | null;
   readonly rank: 0 | 1 | 2 | 3;
   readonly executable: boolean;
+  readonly running: boolean; // 実行中（発生中・硬直中の実行対象）
+  readonly sealed: boolean; // 封印蓄積値が 1.00 に達している
+  readonly isCopy: boolean; // ［写し］コピーで得たインスタンス
+  readonly thoughtProgress: number; // 思考蓄積の充足率（0〜100、必要思考0は100）
   readonly uses: string;
   readonly stepThought: number;
   readonly stepStartup: number;
@@ -78,9 +90,17 @@ export interface ActionCardView {
   readonly watch: readonly WatchToggleView[];
 }
 
+// [M-FIELD-GRID] 盤面の4マス。マスごとに、ユニットプレート・実行中カード・アクション一覧を縦に並べる。
+export interface BoardColumnView {
+  readonly posIdx: number;
+  readonly plate: PlateView | null; // 空きマスは Null
+  readonly cards: readonly ActionCardView[];
+}
+
 export interface BattleView {
   readonly step: number;
   readonly plates: readonly PlateView[];
+  readonly columns: readonly BoardColumnView[];
   readonly cards: readonly ActionCardView[];
   readonly cardsUnitId: string | null;
   readonly timeline: Timeline;
@@ -122,14 +142,16 @@ function runningOf(unit: Unit, actionName: (action: ActionInstance) => string): 
     return null;
   }
   const action = unit.acts.find((candidate) => candidate.instance_id === unit.last_act?.instance_id);
-  const steps =
-    unit.state === 'STARTUP'
-      ? formatSteps(unit.elapsed_startup, action === undefined ? 0 : effectiveStepStartup(unit, action))
-      : formatSteps(unit.elapsed_recovery, unit.applied_recovery);
+  const startup = unit.state === 'STARTUP';
+  const elapsed = startup ? unit.elapsed_startup : unit.elapsed_recovery;
+  const required = startup ? (action === undefined ? 0 : effectiveStepStartup(unit, action)) : unit.applied_recovery;
   return {
     name: action === undefined ? (unit.last_act?.class_id ?? '─') : actionName(action),
-    stateLabel: unit.state === 'STARTUP' ? '発生中' : '硬直中',
-    steps,
+    phase: startup ? 'STARTUP' : 'RECOVERY',
+    stateLabel: startup ? '発生中' : '硬直中',
+    steps: formatSteps(elapsed, required),
+    elapsed,
+    required,
     atk: action === undefined ? 0 : effectiveAtk(unit, action),
     defense: currentDefense(unit),
   };
@@ -148,10 +170,13 @@ function plateOf(unit: Unit, naming: UnitNaming): PlateView {
     posIdx: unit.pos_idx,
     name: naming.displayName(unit),
     roleName: naming.roleName(unit),
+    isMaster: unit.unit_kind === 'MASTER',
     hp: formatHp(unit.hp, unit.max_hp),
     vp: unit.vp,
     pp: unit.pp,
     ap: unit.ap,
+    defense: currentDefense(unit),
+    thought: unit.elapsed_thought,
     chips: chipsOf(unit),
     running: runningOf(unit, naming.actionName),
   };
@@ -167,31 +192,45 @@ function costsOf(unit: Unit, action: ActionInstance): { label: string; value: nu
   return entries.filter((entry) => entry.value !== 0); // ［数値書式］8 既定値の非描画
 }
 
+const SEAL_LIMIT_CENTI = 100;
+
 function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps, naming: UnitNaming): ActionCardView {
-  const evaluation = evaluateActionWatch(state, unit, action, deps);
   const rank = activationRank(state, unit, action);
   const martial = hasFlag(action.sys_flags, 'FLAG_MARTIAL');
+  const thought = effectiveStepThought(unit, action);
   return {
     instanceId: action.instance_id,
+    unitId: unit.unit_id,
+    side: unit.side,
     name: naming.actionName(action),
     icon: iconOf(action),
     rank,
-    executable: rank === 0,
+    executable: rank === 0 && unit.side === 'MINE',
+    running: unit.state !== 'THOUGHT' && unit.last_act?.instance_id === action.instance_id,
+    sealed: action.seal_accum >= SEAL_LIMIT_CENTI,
+    isCopy: action.is_copy,
+    thoughtProgress: thought === 0 ? 100 : Math.min(Math.round((unit.elapsed_thought * 100) / thought), 100),
     uses: formatUses(action.uses_left, action.uses_initial),
-    stepThought: effectiveStepThought(unit, action),
+    stepThought: thought,
     stepStartup: effectiveStepStartup(unit, action),
     stepRecovery: effectiveStepRecovery(unit, action),
     costs: costsOf(unit, action),
     range: martial ? effectiveRange(unit, action) : null,
     atk: martial ? effectiveAtk(unit, action) : null,
     seal: action.seal_accum === 0 ? null : formatCenti(action.seal_accum),
-    watch: WATCH_KINDS.map((kind) => ({
-      kind,
-      symbol: WATCH_SYMBOL[kind],
-      on: state.watching[action.instance_id]?.[kind] ?? false,
-      status: evaluation[kind].status,
-    })),
+    // [M-UI-WATCH] 監視トグルは自軍アクションに対して設ける。敵軍のカードは提示のみで切り替えを持たない。
+    watch: unit.side === 'MINE' ? watchTogglesOf(state, unit, action, deps) : [],
   };
+}
+
+function watchTogglesOf(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): WatchToggleView[] {
+  const evaluation = evaluateActionWatch(state, unit, action, deps);
+  return WATCH_KINDS.map((kind) => ({
+    kind,
+    symbol: WATCH_SYMBOL[kind],
+    on: state.watching[action.instance_id]?.[kind] ?? false,
+    status: evaluation[kind].status,
+  }));
 }
 
 export interface BattleViewOptions {
@@ -210,24 +249,34 @@ function mineUnits(state: BattleState): Unit[] {
 
 export function buildBattleView(options: BattleViewOptions): BattleView {
   const { state, deps, naming } = options;
-  const plates = state.units.filter((unit): unit is Unit => unit !== null).map((unit) => plateOf(unit, naming));
+  const units = state.units.filter((unit): unit is Unit => unit !== null);
+  const columns: BoardColumnView[] = [0, 1, 2, 3].map((posIdx) => {
+    const unit = units.find((candidate) => candidate.pos_idx === posIdx);
+    return {
+      posIdx,
+      plate: unit === undefined ? null : plateOf(unit, naming),
+      cards: unit === undefined ? [] : sortedActions(state, unit).map((action) => cardOf(state, unit, action, deps, naming)),
+    };
+  });
+  const plates = columns.flatMap((column) => (column.plate === null ? [] : [column.plate]));
   const mine = mineUnits(state);
   const cardsUnit = mine.find((unit) => unit.unit_id === options.cardsUnitId) ?? [...mine].sort((a, b) => b.pos_idx - a.pos_idx)[0];
-  const cards =
-    cardsUnit === undefined ? [] : sortedActions(state, cardsUnit).map((action) => cardOf(state, cardsUnit, action, deps, naming));
+  // 判定プレビューの対象は選択中のアクションを所持するユニット。未選択のときは注目自軍ユニットの実行中アクション。
+  const selectedUnit = units.find((unit) => unit.acts.some((action) => action.instance_id === options.selectedInstanceId)) ?? cardsUnit;
   const selected =
-    cardsUnit === undefined
+    selectedUnit === undefined
       ? undefined
-      : (cardsUnit.acts.find((action) => action.instance_id === options.selectedInstanceId) ??
-        cardsUnit.acts.find((action) => action.instance_id === cardsUnit.last_act?.instance_id && cardsUnit.state === 'STARTUP'));
+      : (selectedUnit.acts.find((action) => action.instance_id === options.selectedInstanceId) ??
+        selectedUnit.acts.find((action) => action.instance_id === selectedUnit.last_act?.instance_id && selectedUnit.state === 'STARTUP'));
   return {
     step: state.step,
     plates,
-    cards,
+    columns,
+    cards: cardsUnit === undefined ? [] : (columns.find((column) => column.posIdx === cardsUnit.pos_idx)?.cards ?? []),
     cardsUnitId: cardsUnit?.unit_id ?? null,
     timeline: simulateTimeline(state, timelineSpan(state), deps),
-    preview: cardsUnit === undefined || selected === undefined ? null : previewOf(state, cardsUnit, selected, deps),
+    preview: selectedUnit === undefined || selected === undefined ? null : previewOf(state, selectedUnit, selected, deps),
     pauseReason: state.pause_reason,
-    instructable: cards.some((card) => card.executable),
+    instructable: columns.some((column) => column.cards.some((card) => card.executable)),
   };
 }

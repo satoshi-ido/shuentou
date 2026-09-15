@@ -330,6 +330,11 @@ const battleHandlers: BattleScreenHandlers = {
     loop.speed = speed;
     render();
   },
+  // バトル画面からも共通の導線（取消・再走・辞典・設定）を開く（[M-UI-SCREENS]［重畳する要素］）。
+  onUndo: () => screenHandlers.onUndo(),
+  onRollbackBattle: () => screenHandlers.onRollbackBattle(),
+  onOpenConfig: () => screenHandlers.onOpenConfig(),
+  onOpenDictionary: () => screenHandlers.onOpenDictionary(),
 };
 
 function renderBattle(): HTMLElement | null {

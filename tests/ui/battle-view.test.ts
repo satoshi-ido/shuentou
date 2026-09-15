@@ -172,3 +172,38 @@ describe('[M-UI-HUD] ビューモデル', () => {
     expect(view.cards.map((card) => card.name)).toHaveLength(5);
   });
 });
+
+describe('[M-FIELD-GRID] 盤面カラムのビューモデル', () => {
+  it('4マスを並べ、空きマスはプレートもアクションも持たない', () => {
+    const { state } = duel();
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(view.columns.map((column) => column.posIdx)).toEqual([0, 1, 2, 3]);
+    expect(view.columns[0]).toMatchObject({ plate: null, cards: [] });
+    expect(view.columns[3]).toMatchObject({ plate: null, cards: [] });
+    expect(view.columns[1].plate?.side).toBe('MINE');
+    expect(view.columns[2].plate?.side).toBe('FOE');
+    expect(view.cards).toEqual(view.columns[1].cards); // 注目自軍ユニットの一覧は当該マスの一覧と同一
+  });
+
+  it('敵軍のカードは提示のみで、監視トグルも確定の対象も持たない', () => {
+    const { state } = duel();
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    const foe = view.columns[2].cards;
+    expect(foe.length).toBeGreaterThan(0);
+    expect(foe.every((card) => card.watch.length === 0)).toBe(true);
+    expect(foe.every((card) => !card.executable)).toBe(true);
+    expect(view.columns[1].cards.every((card) => card.watch.length === 5)).toBe(true);
+  });
+
+  it('実行中カードは経過・基準ステップ数を持ち、思考中は蓄積の充足率を示す', () => {
+    const { state, hero } = duel();
+    hero.elapsed_thought = 5;
+    const waiting = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(waiting.columns[1].plate).toMatchObject({ thought: 5, running: null });
+    expect(waiting.columns[1].cards.find((card) => card.name === 'MIND')?.thoughtProgress).toBe(25); // 5 / 20
+    setStartup(hero, 'HIT', 4);
+    const acting = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    expect(acting.columns[1].plate?.running).toMatchObject({ phase: 'STARTUP', elapsed: 4, required: 10, stateLabel: '発生中' });
+    expect(acting.columns[1].cards.find((card) => card.name === 'HIT')?.running).toBe(true);
+  });
+});
