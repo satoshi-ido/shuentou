@@ -39,12 +39,14 @@ export function allWatchFlags(value: boolean): WatchFlags {
   return { READY: value, STUN: value, HIT_FRONT: value, HIT_BACK: value, EVADE: value };
 }
 
-// [M-UI-WATCH]［既定の監視条件］武技は『前列命中』『後列命中』のみ、それ以外は『スタン』のみ ON。
+// [M-UI-WATCH]［既定の監視条件］『回避』は系統を問わず ON。これに加えて武技は『前列命中』
+// 『後列命中』を、それ以外は『スタン』を ON とする。
 export function defaultWatchFlags(action: ActionInstance): WatchFlags {
+  const base = { ...allWatchFlags(false), EVADE: true };
   if (hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
-    return { ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true };
+    return { ...base, HIT_FRONT: true, HIT_BACK: true };
   }
-  return { ...allWatchFlags(false), STUN: true };
+  return { ...base, STUN: true };
 }
 
 // [M-UI-CONFIG]「監視トグルの既定」の指定。BY_SYSTEM は［既定の監視条件］に従う。

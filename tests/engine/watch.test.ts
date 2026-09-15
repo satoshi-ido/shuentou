@@ -186,12 +186,12 @@ describe('[M-UI-WATCH] 充足判定', () => {
     placeUnit(state, { side: 'MINE', kind: 'CREATURE', pos: 0, maxHp: 10, acts: [MIND], counter: { instance_id_seq: 70 } });
     syncWatchKeys(state);
     expect(state.watching[removed]).toBeUndefined();
-    // ［既定の監視条件］心気は『スタン』のみ ON。watch_prev_met はエッジの基準なので全要素 False。
-    expect(state.watching.IID0070).toEqual({ ...allWatchFlags(false), STUN: true });
+    // ［既定の監視条件］心気は『スタン』と『回避』が ON。watch_prev_met はエッジの基準なので全要素 False。
+    expect(state.watching.IID0070).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
     expect(state.watch_prev_met.IID0070).toEqual(allWatchFlags(false));
   });
 
-  it('［既定の監視条件］武技は『前列命中』『後列命中』のみ、それ以外は『スタン』のみを ON で登録する', () => {
+  it('［既定の監視条件］『回避』は系統を問わず ON、武技は『前列命中』『後列命中』、それ以外は『スタン』を加える', () => {
     const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 100, step_startup: 5 });
     const { state, hero } = duel([HIT, MIND], [MIND]);
     syncWatchKeys(state);
@@ -199,8 +199,9 @@ describe('[M-UI-WATCH] 充足判定', () => {
       ...allWatchFlags(false),
       HIT_FRONT: true,
       HIT_BACK: true,
+      EVADE: true,
     });
-    expect(state.watching[actionOf(hero, 'ACT_MIND').instance_id]).toEqual({ ...allWatchFlags(false), STUN: true });
+    expect(state.watching[actionOf(hero, 'ACT_MIND').instance_id]).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
   });
 
   it('[M-UI-CONFIG]「監視トグルの既定」BY_SYSTEM は系統別、ALL_OFF / ALL_ON は5条件へ一律に適用する', () => {
@@ -213,8 +214,8 @@ describe('[M-UI-WATCH] 充足判定', () => {
     applyWatchDefault(state, 'ALL_OFF');
     expect(flagsOf('HERO_HIT')).toEqual(allWatchFlags(false));
     applyWatchDefault(state, 'BY_SYSTEM');
-    expect(flagsOf('HERO_HIT')).toEqual({ ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true });
-    expect(flagsOf('ACT_MIND')).toEqual({ ...allWatchFlags(false), STUN: true });
+    expect(flagsOf('HERO_HIT')).toEqual({ ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true, EVADE: true });
+    expect(flagsOf('ACT_MIND')).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
   });
 
   it('同時成立時はマスインデックス → アクション配列インデックス → 条件の順で並べる', () => {
