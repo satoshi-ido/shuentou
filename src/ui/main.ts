@@ -108,6 +108,7 @@ let client: AiDecisionClient | null = null;
 let overlay: OverlayKind = 'NONE';
 let dialog: ConfirmDialog | null = null;
 let selectedInstanceId: string | null = null;
+let focusedInstanceId: string | null = null; // 注目中のアクション（判定プレビューの対象）
 let battleResult: BattleResult = 'PAUSED';
 
 const ctx: GameContext = {
@@ -339,6 +340,7 @@ function leaveBattle(): void {
   client = null;
   battleResult = 'PAUSED';
   selectedInstanceId = null;
+  focusedInstanceId = null;
 }
 
 
@@ -361,6 +363,7 @@ const battleHandlers: BattleScreenHandlers = {
   },
   onCancel: () => {
     selectedInstanceId = null;
+    focusedInstanceId = null; // 右クリックは注目も解く
     render();
   },
   onToggleWatch: (instanceId, kind: WatchKind) => {
@@ -375,6 +378,10 @@ const battleHandlers: BattleScreenHandlers = {
   onSpeed: (speed) => {
     loop.speed = speed;
     render();
+  },
+  // 注目の記録のみ。提示は画面側がその場で描き替えるため再描画しない。
+  onFocus: (instanceId) => {
+    focusedInstanceId = instanceId;
   },
   // バトル画面からも共通の導線（取消・再走・中断・辞典・設定）を開く（[M-UI-SCREENS]［重畳する要素］）。
   onUndo: () => screenHandlers.onUndo(),
@@ -421,6 +428,7 @@ function renderBattle(): HTMLElement | null {
       view,
       pauseText,
       selectedInstanceId,
+      focusedInstanceId,
       speed: loop.speed,
       rewind: {
         count: meta.total_rewind_count,

@@ -25,6 +25,8 @@ export interface BattleScreenHandlers {
   readonly onToggleWatch: (instanceId: string, kind: WatchKind) => void;
   readonly onResume: () => void;
   readonly onSpeed: (speed: PlaybackSpeed) => void;
+  // 注目したアクション（ホバー）。再描画をまたいで提示を保つために記録する。
+  readonly onFocus: (instanceId: string | null) => void;
   readonly onUndo: () => void;
   readonly onRollbackBattle: () => void;
   readonly onOpenRollback: () => void;
@@ -372,15 +374,14 @@ function renderCard(card: ActionCardView, selected: boolean, handlers: BattleScr
     handlers.onSelect(card.instanceId);
   });
   // ホバーは注目のみを移し、判定プレビューと実行中カードの位置を当該アクションの見込みへ切り替える。
+  // 注目はカーソルが離れても解けず、次の注目または確定まで提示を保つ（ステップ進行で消えない）。
   box.addEventListener('mouseenter', () => focus.enter(card));
-  box.addEventListener('mouseleave', () => focus.leave());
   return box;
 }
 
 // 注目（ホバー）の移動。選択・確定とは独立に、提示だけを切り替える。
 interface CardFocus {
   readonly enter: (card: ActionCardView) => void;
-  readonly leave: () => void;
 }
 
 interface ColumnNodes {
@@ -585,6 +586,7 @@ export interface BattleScreenState {
   // [M-DATA-PAUSE-REASON] 解決済みの事由文言（文言マスタ由来）。停止していないときは空文字。
   readonly pauseText: string;
   readonly selectedInstanceId: string | null;
+  readonly focusedInstanceId: string | null;
   readonly speed: PlaybackSpeed;
   readonly rewind: RewindIndicator;
   // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
@@ -637,16 +639,23 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
   };
 
-  const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
+  const focusOn = (column: BoardColumnView, card: ActionCardView, notify: boolean): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
     fillPreview(inspector.prev, focus.preview);
-    const dock = docks[column.posIdx];
-    const plate = column.plate;
-    if (dock !== undefined && dock !== null && plate !== null && plate.running === null) {
-      dock.replaceChildren(dockPreviewContent(plate, card, focus.preview));
+    for (const other of view.columns) {
+      const dock = docks[other.posIdx];
+      const plate = other.plate;
+      if (dock === undefined || dock === null) {
+        continue;
+      }
+      const target = other.posIdx === column.posIdx && plate !== null && plate.running === null;
+      dock.replaceChildren(target && plate !== null ? dockPreviewContent(plate, card, focus.preview) : dockContent(plate));
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
+    if (notify) {
+      handlers.onFocus(card.instanceId); // 再描画をまたいで注目を保つ（歩進で提示が消えない）
+    }
   };
 
   const boardWrap = element('div', 'battle-board-wrap');
@@ -658,8 +667,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const board = element('div', 'board');
   for (const column of view.columns) {
     const nodes = renderColumn(column, screen.selectedInstanceId, handlers, {
-      enter: (card) => focusOn(column, card),
-      leave: () => restore(),
+      enter: (card) => focusOn(column, card, true),
     });
     docks[column.posIdx] = nodes.dock;
     stampBoxes[column.posIdx] = nodes.stamps;
@@ -672,7 +680,16 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   footer.append(inspector.root);
   footer.append(renderTimebar(screen, handlers));
   root.append(footer);
-  restore();
+
+  // 歩進や巻き戻しで画面を組み直しても、直前の注目を引き継いで提示を保つ。
+  // 対象が失われた場合（実行・消費など）に限り、選択中または実行中の提示へ戻す。
+  const focusedColumn = view.columns.find((column) => column.cards.some((card) => card.instanceId === screen.focusedInstanceId));
+  const focusedCard = focusedColumn?.cards.find((card) => card.instanceId === screen.focusedInstanceId);
+  if (focusedColumn !== undefined && focusedCard !== undefined) {
+    focusOn(focusedColumn, focusedCard, false);
+  } else {
+    restore();
+  }
 
   root.addEventListener('contextmenu', (event) => {
     event.preventDefault();
