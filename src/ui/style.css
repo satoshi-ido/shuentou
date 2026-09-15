@@ -1395,20 +1395,21 @@ button:focus-visible {
 }
 
 .inherit-metrics .st-flow { display: inline-flex; gap: 1px; border: 1px solid var(--line); padding: 0 4px; }
-.inherit-metrics .st-flow .arrow { color: var(--iron); font-style: normal; }
+.inherit-metrics .st-flow .arrow { font-style: normal; }
 
-/* [M-INHERIT-MERGE]［UI要件］統合で改善する値は、その値自体を強調して示す。 */
-.inherit-card .boost {
+/* 強調しない値はすべて同じ色に揃え、従者特性で強化される項目だけを際立たせる。 */
+.inherit-metrics span,
+.inherit-metrics .st-flow .arrow,
+.inherit-head .uses { color: var(--muted); }
+
+/* [M-DATA-INSTANTIATE]・[M-INHERIT-MERGE]［UI要件］従者特性で強化される値を強調する。 */
+.inherit-card .boost,
+.inherit-metrics .boost,
+.inherit-head .uses.boost {
   color: var(--ember);
   font-weight: 700;
   text-shadow: 0 0 10px rgba(255, 138, 43, 0.35);
 }
-.inherit-metrics .cst-hp { color: var(--hp); }
-.inherit-metrics .cst-vp { color: var(--vp); }
-.inherit-metrics .cst-pp { color: var(--pp); }
-.inherit-metrics .cst-ap { color: var(--ap); }
-.inherit-metrics .rng { color: #ffb27a; }
-.inherit-metrics .hp-add { color: var(--ember); font-weight: 700; }
 
 .inherit-outcome { display: flex; flex-wrap: wrap; gap: 2px 8px; font-size: 10.5px; min-width: 0; }
 .inherit-outcome .kind { color: var(--muted); white-space: nowrap; }
