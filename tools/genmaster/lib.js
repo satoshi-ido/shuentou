@@ -173,6 +173,8 @@ export function rootMartialRecord() {
   return {
     class_id: 'ACT_ROOT_MARTIAL',
     display_name: '終焉の太刀',
+    // [I-PLAN-TEXT]［プレースホルダの書式］効果説明は未執筆。補間キーを持たない。
+    description: placeholderText('ACT_ROOT_MARTIAL', []),
     base_uses: -1,
     inheritable: false,
     is_root: true,
@@ -185,6 +187,8 @@ function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, para
   return {
     class_id: classIdValue,
     display_name: displayName,
+    // [I-PLAN-TEXT]［プレースホルダの書式］効果説明は未執筆。補間キーを持たない。
+    description: placeholderText(classIdValue, []),
     base_uses: baseUsesCenti,
     inheritable,
     is_root: false,

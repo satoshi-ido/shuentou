@@ -6,6 +6,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR3": {
     "class_id": "ACT_GUARD_AR3",
     "display_name": "体勢（基本）",
+    "description": "[ACT_GUARD_AR3]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -46,6 +47,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR4": {
     "class_id": "ACT_GUARD_AR4",
     "display_name": "体勢（基本）",
+    "description": "[ACT_GUARD_AR4]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -86,6 +88,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR6": {
     "class_id": "ACT_GUARD_AR6",
     "display_name": "体勢（基本）",
+    "description": "[ACT_GUARD_AR6]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -126,6 +129,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR8": {
     "class_id": "ACT_GUARD_AR8",
     "display_name": "体勢（基本）",
+    "description": "[ACT_GUARD_AR8]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -166,6 +170,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR15": {
     "class_id": "ACT_HEAVY_AR15",
     "display_name": "武技（重撃）",
+    "description": "[ACT_HEAVY_AR15]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -206,6 +211,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR3": {
     "class_id": "ACT_HEAVY_AR3",
     "display_name": "武技（重撃）",
+    "description": "[ACT_HEAVY_AR3]",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -246,6 +252,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR4": {
     "class_id": "ACT_HEAVY_AR4",
     "display_name": "武技（重撃）",
+    "description": "[ACT_HEAVY_AR4]",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -286,6 +293,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR3": {
     "class_id": "ACT_MIND_AR3",
     "display_name": "心気（基本）",
+    "description": "[ACT_MIND_AR3]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -326,6 +334,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR4": {
     "class_id": "ACT_MIND_AR4",
     "display_name": "心気（基本）",
+    "description": "[ACT_MIND_AR4]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -366,6 +375,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR3": {
     "class_id": "ACT_MUSOU_AR3",
     "display_name": "心気（無想）",
+    "description": "[ACT_MUSOU_AR3]",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -406,6 +416,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR4": {
     "class_id": "ACT_MUSOU_AR4",
     "display_name": "心気（無想）",
+    "description": "[ACT_MUSOU_AR4]",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -446,6 +457,7 @@ export const ACTION_MASTERS = {
   "ACT_ROOT_MARTIAL": {
     "class_id": "ACT_ROOT_MARTIAL",
     "display_name": "終焉の太刀",
+    "description": "[ACT_ROOT_MARTIAL]",
     "base_uses": -1,
     "inheritable": false,
     "is_root": true,
@@ -486,6 +498,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR4": {
     "class_id": "ACT_RUSH_AR4",
     "display_name": "武技（急襲）",
+    "description": "[ACT_RUSH_AR4]",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -526,6 +539,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR12": {
     "class_id": "ACT_SLASH_AR12",
     "display_name": "武技（基本）",
+    "description": "[ACT_SLASH_AR12]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -566,6 +580,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR3": {
     "class_id": "ACT_SLASH_AR3",
     "display_name": "武技（基本）",
+    "description": "[ACT_SLASH_AR3]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -606,6 +621,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR4": {
     "class_id": "ACT_SLASH_AR4",
     "display_name": "武技（基本）",
+    "description": "[ACT_SLASH_AR4]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -646,6 +662,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR6": {
     "class_id": "ACT_SLASH_AR6",
     "display_name": "武技（基本）",
+    "description": "[ACT_SLASH_AR6]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -686,6 +703,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR8": {
     "class_id": "ACT_SLASH_AR8",
     "display_name": "武技（基本）",
+    "description": "[ACT_SLASH_AR8]",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,

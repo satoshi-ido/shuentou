@@ -584,6 +584,7 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
 interface Inspector {
   readonly root: HTMLElement;
   readonly name: HTMLElement; // 注目中のアクション名
+  readonly desc: HTMLElement; // [M-STATE-ACTIONMASTER] 効果説明
   readonly prev: HTMLElement; // 判定プレビューの本体（注目の移動に応じて描き替える）
 }
 
@@ -640,6 +641,8 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   title.append(document.createTextNode('判定'));
   const name = element('b', '');
   title.append(name);
+  const desc = element('span', 'ttl-desc');
+  title.append(desc);
   const prev = element('div', 'prev');
   title.append(prev); // 見出しと内容を1行に収める
   title.append(element('span', 'ttl-step num', `歩 ${view.step}`));
@@ -655,7 +658,7 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   box.append(why);
 
   strip.append(box);
-  return { root: strip, name, prev };
+  return { root: strip, name, desc, prev };
 }
 
 function fillGroups(prev: HTMLElement, groups: readonly PreviewGroup[]): void {
@@ -818,6 +821,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
   const restore = (): void => {
     inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
+    inspector.desc.textContent = selectedCard?.description ?? '';
     fillPreview(inspector.prev, view.preview);
     restoreBoard();
   };
@@ -825,6 +829,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
+    inspector.desc.textContent = card.description ?? '';
     if (focus.preview === null) {
       // 見込みを提示しない注目（敵軍の手札・実行できない自軍アクション）。
       // 判定欄にはアクションの詳細を、自軍に限り実行できない理由を添えて示す（[M-UI-HUD]［判定語彙］）。

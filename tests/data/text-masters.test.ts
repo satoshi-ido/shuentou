@@ -7,6 +7,7 @@ import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import { HELP_MASTERS } from '../../src/data/generated/help-masters.js';
 import { STRING_MASTERS } from '../../src/data/generated/string-masters.js';
 import type { AssetMasterRecord, ContextBundle, HelpMasterRecord, StringMasterRecord } from '../../src/data/types.js';
+import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { isPlaceholderText } from '../../src/ui/text.js';
 
 const strings: Readonly<Record<string, StringMasterRecord>> = STRING_MASTERS;
@@ -174,5 +175,16 @@ describe('[I-PLAN-TEXT] プレースホルダの残存件数', () => {
     // 現時点では全件が未執筆である（[I-PLAN-TEXT]［執筆時点］文言マスタ・解説マスタは M4）。
     expect(pendingStrings).toHaveLength(Object.keys(strings).length);
     expect(pendingHelps).toHaveLength(Object.keys(helps).length);
+  });
+});
+
+describe('[M-STATE-ACTIONMASTER] 効果説明', () => {
+  it('全アクションが効果説明を持ち、未執筆はプレースホルダ書式に従う（[I-PLAN-TEXT]）', () => {
+    const records = Object.values(ACTION_MASTERS);
+    expect(records.length).toBeGreaterThan(0);
+    for (const record of records) {
+      expect(record.description).toBeDefined();
+      expect(isPlaceholderText(record.class_id, record.description ?? '')).toBe(true);
+    }
   });
 });

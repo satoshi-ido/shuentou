@@ -173,6 +173,7 @@ const naming: UnitNaming = {
   displayName: (unit: Unit) => (unit.side === 'MINE' ? HERO_INIT_UNIT.display_name : (enemies[currentScene().enemy_id]?.display_name ?? '─')),
   roleName: (unit: Unit) => (unit.side === 'MINE' ? HERO_INIT_UNIT.role_name : (enemies[currentScene().enemy_id]?.role_name ?? null)),
   actionName: (action: ActionInstance) => actionName(action.master_ref),
+  actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
 };
 
 function openConfirm(baseId: string, rows: readonly string[], onConfirm: () => void): void {

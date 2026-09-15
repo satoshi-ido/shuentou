@@ -1021,6 +1021,17 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
+/* [M-STATE-ACTIONMASTER] 効果説明。1行で省略し、見出し行の高さを変えない。 */
+.ibox .ttl .ttl-desc {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
 .ibox .ttl .ttl-step {
   margin-left: auto;
   font-family: var(--font-mono);

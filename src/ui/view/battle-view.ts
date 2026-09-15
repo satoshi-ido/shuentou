@@ -83,6 +83,7 @@ export interface ActionCardView {
   readonly unitId: string;
   readonly side: Side;
   readonly name: string;
+  readonly description: string | null; // [M-STATE-ACTIONMASTER] 効果説明
   readonly icon: SystemIcon | null;
   readonly rank: 0 | 1 | 2 | 3;
   readonly executable: boolean;
@@ -178,6 +179,8 @@ export interface UnitNaming {
   readonly displayName: (unit: Unit) => string;
   readonly roleName: (unit: Unit) => string | null;
   readonly actionName: (action: ActionInstance) => string;
+  // [M-STATE-ACTIONMASTER] 効果説明（UI表示専用）。未執筆のレコードはプレースホルダ（[I-PLAN-TEXT]）。
+  readonly actionDescription?: (action: ActionInstance) => string | null;
 }
 
 function plateOf(unit: Unit, naming: UnitNaming): PlateView {
@@ -224,6 +227,7 @@ function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: St
     unitId: unit.unit_id,
     side: unit.side,
     name: naming.actionName(action),
+    description: naming.actionDescription?.(action) ?? null,
     icon: iconOf(action),
     rank,
     executable: rank === 0 && unit.side === 'MINE',
