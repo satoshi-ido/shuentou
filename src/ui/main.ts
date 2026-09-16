@@ -18,7 +18,7 @@ import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { executableActions } from '../engine/decision.js';
 import { inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
-import { canEnterTransition, canRefill, canSettleIntermission, refillCapacity, refillPool } from '../engine/progress/refill.js';
+import { canEnterTransition, canSettleIntermission } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
 import type { BattleCue } from '../engine/cue.js';
@@ -43,7 +43,7 @@ import {
   type ScreenHandlers,
 } from './dom/screens.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
-import { heroView, inheritOptions } from './view/intermission-view.js';
+import { heroView, inheritOptions, refillView } from './view/intermission-view.js';
 import { createStringTable, resolveHelp } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
@@ -582,19 +582,15 @@ function renderScreen(): HTMLElement {
     }
     case 'REFILL':
       return renderRefill(
-        {
-          slotCount: scene.attendant_capacity,
-          remainCount: refillCapacity(run, masters),
-          pool: refillPool(run, masters)
-            .filter((attendantId) => canRefill(run, masters, attendantId))
-            .map((attendantId) => ({
-              attendantId,
-              name: attendantName(ATTENDANT_MASTERS, attendantId),
-              epithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
-            })),
-          canSettle: canSettleIntermission(run, masters),
-        },
-        resolveString,
+        refillView(
+          run,
+          masters,
+          HERO_INIT_UNIT.display_name,
+          (attendantId) => attendantName(ATTENDANT_MASTERS, attendantId),
+          (attendantId) => attendantEpithet(ATTENDANT_MASTERS, attendantId),
+          (slotCount, remainCount) =>
+            strings.resolve('STR_REFILL_SHORT', { common: commonKeys(), bundles: { REFILL: { SlotCount: slotCount, RemainCount: remainCount } } }),
+        ),
         screenHandlers,
       );
     default:

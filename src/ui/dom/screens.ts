@@ -13,6 +13,7 @@ import type {
   IntermissionView,
   PartySlotView,
   PreBattleView,
+  RefillCandidateView,
   RefillView,
   TitleView,
 } from '../view/screen-view.js';
@@ -442,21 +443,139 @@ export function renderIntermission(
   return root;
 }
 
-export function renderRefill(view: RefillView, strings: (id: string) => string, handlers: ScreenHandlers): HTMLElement {
-  const root = screenRoot('refill', '従者補充');
-  root.append(element('p', 'refill-count num', `定員 ${view.slotCount} / 残り ${view.remainCount}`));
-  if (view.remainCount > 0 && view.pool.length === 0) {
-    root.append(element('p', 'notice', strings('STR_REFILL_SHORT')));
+// 壇に並ぶ1人分。状態（継続・空き枠・候補・迎え入れた）だけを担い、係数はカードが持つ。
+function stageFigure(kind: string, label: string, tag: string, attendantId?: string): HTMLElement {
+  const node = element('div', `rfig ${kind}`);
+  if (attendantId !== undefined) {
+    node.dataset.attendant = attendantId;
   }
-  const pool = element('div', 'refill-pool');
+  node.append(kind === 'slot' ? element('div', 'ghost') : figure('figure'));
+  node.append(element('div', 'rlabel', label));
+  node.append(element('div', 'rtag', tag));
+  return node;
+}
+
+// 補充候補1名分のカード。迎え入れ済みは選択中として示し、押せなくする。
+function refillCandidate(candidate: RefillCandidateView, enabled: boolean, onPick: () => void): HTMLElement {
+  const card = button(`cand${candidate.joined ? ' picked' : ''}`, '', onPick, candidate.joined || !enabled);
+  card.textContent = '';
+  card.dataset.attendant = candidate.attendantId;
+  card.append(element('span', 'mk', candidate.joined ? '迎え入れた' : ''));
+  card.append(element('div', 'nm', candidate.name));
+  card.append(element('div', 'ttl', `〈${candidate.epithet}〉`));
+  const coeffs = element('div', 'cf');
+  for (const coeff of candidate.coeffs) {
+    coeffs.append(element('span', coeff.gain ? 'cgain' : '', `${coeff.label} ${coeff.text}`));
+  }
+  card.append(coeffs);
+  return card;
+}
+
+// [M-PROG-REFILL] アクト移行の段。UIプロトタイプに倣い、見出し・壇・（移行の決済／補充候補）の順に並べる。
+export function renderRefill(view: RefillView, handlers: ScreenHandlers): HTMLElement {
+  const root = element('div', 'screen screen-refill rf');
+
+  const head = element('div', 'imhead');
+  head.append(element('h2', 'im-title', '従者の補充'));
+  head.append(element('span', 'sub', `アクト${view.fromAct} 突破 ─ 新たにアクト${view.toAct}へ同行する従者を選ぶ。`));
+  head.append(element('span', 'spacer'));
+  head.append(button('rbtn util', '辞典', handlers.onOpenDictionary));
+  head.append(button('rbtn util', '設定', handlers.onOpenConfig));
+  head.append(button('rbtn btn-undo', '⟲ 取消', handlers.onUndo));
+  head.append(button('primary', '補充を確定して進む', handlers.onSettleIntermission, !view.canSettle));
+  root.append(head);
+
+  // 壇：左に継続する生存従者・空きの遺芯枠・主人公、右に補充候補。操作の正はカード側にある。
+  const field = element('div', 'refill-field');
+  const stage = element('div', 'refill-stage');
+  const party = element('div', 'rstage-col');
+  for (const survivor of view.survivors) {
+    party.append(stageFigure('alive', survivor.name, '継続', survivor.attendantId));
+  }
+  for (let index = 0; index < view.remainCount; index += 1) {
+    party.append(stageFigure('slot', '遺芯（空）', '未装填'));
+  }
+  party.append(stageFigure('master', view.heroName, `HP ${view.heroHpBefore} → ${view.heroHpAfter}`));
+  stage.append(party);
+  stage.append(element('div', 'imdiv'));
+  const poolStage = element('div', 'rstage-col');
   for (const candidate of view.pool) {
-    pool.append(
-      button('refill', `${candidate.name}〈${candidate.epithet}〉`, () => handlers.onRefill(candidate.attendantId), view.remainCount <= 0),
+    poolStage.append(
+      stageFigure(
+        `dead${candidate.joined ? ' picked' : ''}`,
+        candidate.name,
+        candidate.joined ? '結ばれた' : '戦死',
+        candidate.attendantId,
+      ),
     );
   }
-  root.append(pool);
-  root.append(button('primary', '決済を確定', handlers.onSettleIntermission, !view.canSettle));
-  root.append(overlayBar(handlers));
+  if (view.pool.length === 0) {
+    poolStage.append(element('p', 'notice', '候補なし'));
+  }
+  stage.append(poolStage);
+  field.append(stage);
+  root.append(field);
+
+  const grid2 = element('div', 'refill-body');
+  const side = element('div', 'refill-side');
+  side.append(element('h3', 'refill-h3', '移行の決済'));
+  const rows = element('div', 'refill-rows');
+  const row = (key: string, value: string, change: boolean): void => {
+    const line = element('div', 'refill-row');
+    line.append(element('span', 'k', key));
+    line.append(element('span', `v num${change ? ' ch' : ''}`, value));
+    rows.append(line);
+  };
+  row('移行', `アクト${view.fromAct} → アクト${view.toAct}`, true);
+  row('従者定員', `${view.capacityBefore} → ${view.capacityAfter}`, true);
+  row('継続する生存従者', `${view.survivors.length} 名`, false);
+  row('補充可能数', `${view.filledCount} / ${view.slotCount}`, true);
+  row('全回復ボーナス', `${view.heroHpBefore} → ${view.heroHpAfter}`, true);
+  row('遺芯に迎えた従者', `${view.enshrinedBefore} → ${view.enshrinedAfter}`, false);
+  side.append(rows);
+
+  side.append(element('h3', 'refill-h3', '継続する生存従者'));
+  if (view.survivors.length === 0) {
+    // [M-PROG-NOATTENDANT] 同行従者0人でも移行は成立する。
+    side.append(element('p', 'notice', '継続する生存従者はいない'));
+  }
+  for (const survivor of view.survivors) {
+    const line = element('div', 'survivor');
+    line.append(element('span', 'nm', `${survivor.name}〈${survivor.epithet}〉`));
+    line.append(element('span', 'tag', '継続'));
+    side.append(line);
+  }
+  // 補充可能数を残したまま決済へ進もうとしていることを、先に知らせる。
+  if (view.shortText !== '') {
+    side.append(element('p', 'notice', view.shortText));
+  }
+  grid2.append(side);
+
+  const main = element('div', 'refill-main');
+  main.append(element('h3', 'refill-h3', '補充候補プール'));
+  const grid = element('div', 'cand-grid');
+  for (const candidate of view.pool) {
+    grid.append(refillCandidate(candidate, view.remainCount > 0, () => handlers.onRefill(candidate.attendantId)));
+  }
+  if (view.pool.length === 0) {
+    grid.append(element('p', 'notice', '補充候補は存在しない'));
+  }
+  main.append(grid);
+  grid2.append(main);
+  root.append(grid2);
+
+  // 壇とカードの相互強調（[M-UI-HUD]［注目の連動］と同じ手法）。壇は装飾であり、操作の正はカードにある。
+  const highlight = (attendantId: string | null): void => {
+    for (const node of root.querySelectorAll('.rfig, .cand')) {
+      const own = node instanceof HTMLElement ? (node.dataset.attendant ?? null) : null;
+      node.classList.toggle('hl', attendantId !== null && own === attendantId);
+    }
+  };
+  root.addEventListener('mousemove', (event) => {
+    const target = event.target instanceof Element ? event.target.closest('.cand, .rfig') : null;
+    highlight(target instanceof HTMLElement ? (target.dataset.attendant ?? null) : null);
+  });
+  root.addEventListener('mouseleave', () => highlight(null));
   return root;
 }
 

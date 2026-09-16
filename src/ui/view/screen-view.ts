@@ -146,10 +146,33 @@ export interface IntermissionView {
   readonly noticeText: string;
 }
 
+// 補充候補1名分。係数は従者の強みとして示す（[M-DATA-COEFFKEYS]）。
+export interface RefillCandidateView {
+  readonly attendantId: string;
+  readonly name: string;
+  readonly epithet: string;
+  readonly coeffs: readonly { readonly label: string; readonly text: string; readonly gain: boolean }[];
+  // 当該の移行で既に迎え入れたか（[M-PROG-REFILL] 補充は確定操作であり取り消しはアンドゥによる）。
+  readonly joined: boolean;
+}
+
 export interface RefillView {
-  readonly slotCount: number; // 当該アクトの従者定員
-  readonly remainCount: number; // 定員 − 選択済み人数
-  readonly pool: readonly { readonly attendantId: string; readonly name: string; readonly epithet: string }[];
+  readonly fromAct: number;
+  readonly toAct: number;
+  readonly capacityBefore: number; // 前アクトの従者定員
+  readonly capacityAfter: number; // 新アクトの従者定員
+  readonly survivors: readonly { readonly attendantId: string; readonly name: string; readonly epithet: string }[];
+  readonly slotCount: number; // 補充可能数（定員 − 継続する生存従者数）
+  readonly filledCount: number; // うち迎え入れた人数
+  readonly remainCount: number; // 残りの補充可能数
+  readonly heroName: string;
+  readonly heroHpBefore: number; // 全回復ボーナスの適用前（インターミッション開始時）
+  readonly heroHpAfter: number;
+  readonly enshrinedBefore: number; // [M-PROG-SACRIFICE] EnshrinedCount
+  readonly enshrinedAfter: number;
+  readonly pool: readonly RefillCandidateView[];
+  // 補充可能数を残している旨（STR_REFILL_SHORT）。残っていなければ空文字。
+  readonly shortText: string;
   readonly canSettle: boolean;
 }
 

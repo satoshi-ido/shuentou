@@ -1,9 +1,10 @@
 // [M-INHERIT-POOL] [M-INHERIT-MERGE]［UI要件］継承の段の提示内容。
 // 継承プールの各項目について、受け継ぐ前後の見込みを組む。純関数とし、描画層から独立させる。
 
-import { formatUses } from '../format.js';
+import { COEFF_LABEL, formatCenti, formatUses, isCoeffGain } from '../format.js';
 import { canInherit, inheritPool, previewInherit, type InheritPreview } from '../../engine/progress/inherit.js';
-import type { GameMasters } from '../../engine/run/masters.js';
+import { attendantOf, sceneByOrder, sceneOf, type GameMasters } from '../../engine/run/masters.js';
+import { canSettleIntermission, refillCapacity, refillPool } from '../../engine/progress/refill.js';
 import type { RunState } from '../../engine/run/state.js';
 import type { ActionParams } from '../../data/types.js';
 import {
@@ -12,6 +13,8 @@ import {
   type HeroActionView,
   type HeroView,
   type InheritOptionView,
+  type RefillCandidateView,
+  type RefillView,
 } from './screen-view.js';
 
 // 資質の名を解決する手段（アクションのクラスID → 表示名）。
@@ -142,4 +145,57 @@ export function inheritOptions(
         improved: preview.kind === 'MERGE' ? preview.improved : [],
       };
     });
+}
+
+// [M-PROG-REFILL] アクト移行の段（intermission_stage == TRANSITION）の提示内容。
+// 補充は確定操作であるため、迎え入れた従者は候補から外れる。移行の決済に示す前後の値は、
+// インターミッション開始時のスナップショット（[M-STATE-IMSNAPSHOT]）を「前」とする。
+export function refillView(
+  run: RunState,
+  masters: GameMasters,
+  heroName: string,
+  attendantName: (attendantId: string) => string,
+  attendantEpithet: (attendantId: string) => string,
+  shortText: (slotCount: number, remainCount: number) => string,
+): RefillView {
+  const next = sceneOf(masters, run.current_scene_id);
+  const previous = sceneByOrder(masters, next.order - 1);
+  const start = run.im_snapshots[run.im_snapshots.length - 1]?.state;
+  const startParty = (start?.party ?? run.party).map((slot) => slot.attendant_id);
+  const named = (attendantId: string): { attendantId: string; name: string; epithet: string } => ({
+    attendantId,
+    name: attendantName(attendantId),
+    epithet: attendantEpithet(attendantId),
+  });
+  const survivors = run.party.filter((slot) => startParty.includes(slot.attendant_id)).map((slot) => named(slot.attendant_id));
+  const remain = refillCapacity(run, masters);
+  const joined = run.party.filter((slot) => !startParty.includes(slot.attendant_id)).map((slot) => slot.attendant_id);
+  const candidate = (attendantId: string, isJoined: boolean): RefillCandidateView => {
+    const record = attendantOf(masters, attendantId);
+    const coeffs = Object.entries(record.coeffs).map(([key, centi]) => ({
+      label: COEFF_LABEL[key] ?? key,
+      text: `×${formatCenti(centi)}`,
+      gain: isCoeffGain(key, centi),
+    }));
+    return { ...named(attendantId), coeffs, joined: isJoined };
+  };
+  return {
+    fromAct: previous.act,
+    toAct: next.act,
+    capacityBefore: previous.attendant_capacity,
+    capacityAfter: next.attendant_capacity,
+    survivors,
+    slotCount: next.attendant_capacity - survivors.length,
+    filledCount: joined.length,
+    remainCount: remain,
+    heroName,
+    heroHpBefore: start?.hero_hp ?? run.hero_hp,
+    heroHpAfter: run.hero_max_hp,
+    enshrinedBefore: start?.enshrined_count ?? run.enshrined_count,
+    enshrinedAfter: run.enshrined_count,
+    // 迎え入れた従者を先に置き、残る候補を続ける。
+    pool: [...joined.map((id) => candidate(id, true)), ...refillPool(run, masters).map((id) => candidate(id, false))],
+    shortText: remain > 0 ? shortText(next.attendant_capacity - survivors.length, remain) : '',
+    canSettle: canSettleIntermission(run, masters),
+  };
 }

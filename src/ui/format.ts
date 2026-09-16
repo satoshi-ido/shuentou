@@ -43,6 +43,35 @@ export const PARAM_LABEL: Readonly<Record<string, string>> = {
   charge_pp: 'PP充填効率',
 };
 
+// [M-DATA-COEFFKEYS] 従者特性係数キーの表示名。乗算先のパラメータ名に合わせる。
+export const COEFF_LABEL: Readonly<Record<string, string>> = {
+  thRate: '必要思考',
+  stRate: '発生',
+  rcRate: '硬直',
+  costRate: 'コスト',
+  decayApRate: 'AP減衰率',
+  deployRate: '展開AP',
+  rangeRate: '射程',
+  atkRate: '攻撃力',
+  dmgRate: 'ダメージ',
+  gainVpRate: '加算VP',
+  chargePpRate: 'PP充填効率',
+  purifyRate: '浄化率',
+  stripRate: '剥離率',
+  giveBuffRate: '付与する強化',
+  giveDebuffRate: '付与する弱化',
+  usesRate: '使用回数',
+  hpAddRate: '最大HP加算',
+};
+
+// [M-DATA-COEFFKEYS]「向き」列。減少は 1.00 未満が、増加は 1.00 を超える値が改善である。
+const DECREASING_COEFFS: readonly string[] = ['thRate', 'stRate', 'rcRate', 'costRate', 'decayApRate'];
+
+// 係数が改善（従者の強み）であるか。
+export function isCoeffGain(key: string, centi: number): boolean {
+  return DECREASING_COEFFS.includes(key) ? centi < 100 : centi > 100;
+}
+
 // [M-CALC-EFFECTIVE] 減少型のパラメータ（符号の向きの決定に用いる）。
 const DECREASING_PARAMS: readonly string[] = [
   'step_thought',
