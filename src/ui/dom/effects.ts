@@ -4,6 +4,7 @@
 
 import type { BattleCue } from '../../engine/cue.js';
 import { hasFlag } from '../../engine/flags.js';
+import type { SysFlags } from '../../engine/types.js';
 import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
 
 // 盤面は4マス等幅の固定レイアウト（[M-UI-VIEWPORT]）。マス中央の論理座標を算出する。
@@ -13,7 +14,7 @@ const COLUMN_WIDTH = STAGE_WIDTH / COLUMNS;
 const FIELD_CENTER_Y = 230; // 予兆線（上段）の下、立ち絵のあたり
 const MAX_EFFECTS = 12; // 高速再生で積み上がらないよう上限を設ける
 
-function systemOf(cue: BattleCue): SystemIcon | null {
+function systemOf(cue: BattleCue & { readonly sysFlags: SysFlags }): SystemIcon | null {
   if (hasFlag(cue.sysFlags, 'FLAG_MARTIAL')) return 'MARTIAL';
   if (hasFlag(cue.sysFlags, 'FLAG_STANCE')) return 'STANCE';
   if (hasFlag(cue.sysFlags, 'FLAG_MIND')) return 'MIND';
@@ -38,6 +39,9 @@ export interface EffectView {
 
 // 契機1件に対応する演出。発動は系統別、武技の判定は命中・回避別に選ぶ。
 export function effectOf(cue: BattleCue): EffectView | null {
+  if (cue.kind === 'UNIT_DESTROY') {
+    return null; // 消滅は盤面の撤去そのもので示す（演出を重ねない）
+  }
   if (cue.kind === 'HIT') {
     return { className: 'fx fx-hit', glyph: '✹', posIdx: cue.posIdx };
   }

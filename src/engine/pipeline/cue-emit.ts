@@ -5,6 +5,23 @@ import type { CueSink } from '../cue.js';
 import type { ResolveOutcome } from '../resolve/order.js';
 import type { ActionInstance, BattleState, Unit } from '../types.js';
 
+// 消滅猶予状態のユニットID。遷移の検出は処理の前後の差分で行う。
+export function pendingDiscardIds(state: BattleState): string[] {
+  return state.units.filter((unit) => unit !== null && unit.state === 'PENDING_DISCARD').map((unit) => unit?.unit_id ?? '');
+}
+
+// UNIT_DESTROY：消滅猶予状態への遷移時。before は当該処理の前に既に遷移していたユニット。
+export function emitDestroyed(onCue: CueSink | undefined, state: BattleState, before: readonly string[]): void {
+  if (onCue === undefined) {
+    return;
+  }
+  for (const unit of state.units) {
+    if (unit !== null && unit.state === 'PENDING_DISCARD' && !before.includes(unit.unit_id)) {
+      onCue({ kind: 'UNIT_DESTROY', unitId: unit.unit_id, posIdx: unit.pos_idx });
+    }
+  }
+}
+
 // ACTION_TRIGGER：当該アクションの発動時（統合解決パイプラインの Step 1 直前・[M-RESOLVE-ORDER]）。
 export function emitTrigger(onCue: CueSink | undefined, unit: Unit, action: ActionInstance): void {
   onCue?.({

@@ -20,6 +20,7 @@ import { runP7Landing } from './p7-landing.js';
 import { runP8Decision } from './p8-decision.js';
 import { runStepEnd } from './stepend.js';
 import type { CueSink } from '../cue.js';
+import { emitDestroyed, pendingDiscardIds } from './cue-emit.js';
 
 export interface StepDeps {
   readonly createCreature: CreatureFactory;
@@ -37,9 +38,12 @@ export function runPreDecision(state: BattleState, deps: StepDeps): BattleOutcom
     return 'NONE';
   }
   const { firingUnitIds, defenseSnapshot } = runP1Freeze(state);
+  const destroyedBefore = pendingDiscardIds(state);
   runP2Apply(state, firingUnitIds, defenseSnapshot, deps);
   const recoveryCompleteIds = runP3Recovery(state);
   runP4Slip(state, recoveryCompleteIds);
+  // [M-DATA-AUDIO-CUE] UNIT_DESTROY は通常破棄（《処理5》）に先立ち、遷移の時点で通知する。
+  emitDestroyed(deps.onCue, state, destroyedBefore);
   const outcome = runP5Discard(state);
   if (outcome === 'NONE') {
     runP6Advance(state);

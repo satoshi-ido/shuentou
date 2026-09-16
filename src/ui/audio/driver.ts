@@ -25,25 +25,35 @@ export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
   | { readonly kind: 'SILENCE' };
 
+// 長い再生でも際限なく積み上がらないよう、記録は直近のみを残す。
+const MAX_EVENTS = 256;
+
 export class RecordingAudioDriver implements AudioDriver {
   readonly events: AudioEvent[] = [];
   private bgmVolume = 80;
   private seVolume = 80;
 
   playBgm(cue: AudioCue, assetId: string): void {
-    this.events.push({ kind: 'BGM', cue, assetId, volume: this.bgmVolume });
+    this.record({ kind: 'BGM', cue, assetId, volume: this.bgmVolume });
   }
 
   playSe(cue: AudioCue, assetId: string): void {
-    this.events.push({ kind: 'SE', cue, assetId, volume: this.seVolume });
+    this.record({ kind: 'SE', cue, assetId, volume: this.seVolume });
   }
 
   silence(): void {
-    this.events.push({ kind: 'SILENCE' });
+    this.record({ kind: 'SILENCE' });
   }
 
   setVolumes(bgm: number, se: number): void {
     this.bgmVolume = bgm;
     this.seVolume = se;
+  }
+
+  private record(event: AudioEvent): void {
+    this.events.push(event);
+    if (this.events.length > MAX_EVENTS) {
+      this.events.splice(0, this.events.length - MAX_EVENTS);
+    }
   }
 }

@@ -13,7 +13,7 @@ import {
 import { INFINITE_USES } from '../params.js';
 import { resolveAction } from '../resolve/order.js';
 import type { CueSink } from '../cue.js';
-import { emitMartialResult, emitTrigger } from './cue-emit.js';
+import { emitDestroyed, emitMartialResult, emitTrigger, pendingDiscardIds } from './cue-emit.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import type { ActionInstance, BattleState, LastActionSnapshot, Unit } from '../types.js';
 import { removeCreatures, type BattleOutcome } from './p5-discard.js';
@@ -86,6 +86,7 @@ export function runInstant(state: BattleState, unit: Unit, action: ActionInstanc
 
   // [M-DATA-AUDIO-CUE] ACTION_TRIGGER：統合解決パイプラインの Step 1 直前。
   emitTrigger(deps.onCue, unit, action);
+  const destroyedBefore = pendingDiscardIds(state);
 
   // #2 統合効果の即時適用。
   const resolveOutcome = resolveAction(state.units, unit, action, 'INSTANT', {
@@ -98,6 +99,7 @@ export function runInstant(state: BattleState, unit: Unit, action: ActionInstanc
 
   // [M-DATA-AUDIO-CUE] HIT / MISS：武技の命中判定の確定時。
   emitMartialResult(deps.onCue, state, unit, action, resolveOutcome);
+  emitDestroyed(deps.onCue, state, destroyedBefore);
 
   // #3 即時破棄・自動前進・勝敗判定。
   const outcomeAfterEffects = discardDeadAndCheckVictory(state);

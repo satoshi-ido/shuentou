@@ -3,6 +3,7 @@
 // 再生ループ（[M-UI-PLAYBACK]）の上で進行する。
 
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';
+import { ASSET_MASTERS } from '../data/generated/asset-masters.js';
 import { ATTENDANT_MASTERS } from '../data/generated/attendant-masters.js';
 import { BOOK_MASTERS } from '../data/generated/book-masters.js';
 import { ENEMY_MASTERS } from '../data/generated/enemy-masters.js';
@@ -28,6 +29,8 @@ import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
 import { EffectLayer } from './dom/effects.js';
+import { RecordingAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
+import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
   renderConfirmOverlay,
@@ -115,7 +118,20 @@ const effects = new EffectLayer(document.createElement('div'));
 stageElement.append(screenRoot, effects.root);
 
 // [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
-const battleDeps = { ...stepDeps, onCue: (cue: BattleCue): void => effects.play(cue) };
+// [M-DATA-AUDIO-CUE] 発火契機は演出と音響の双方へ配る（探索・未来予測では受け口を与えない）。
+// [I-PLAN-ASSETS] 音源を持たない空実装。音量設定の適用と cue の発火契機を本番と同じ経路で通す。
+const audio: AudioDriver = new RecordingAudioDriver();
+
+const battleDeps = {
+  ...stepDeps,
+  onCue: (cue: BattleCue): void => {
+    effects.play(cue);
+    const assetId = seAssetOf(cue, ASSET_MASTERS);
+    if (assetId !== null) {
+      audio.playSe(cue.kind, assetId);
+    }
+  },
+};
 
 let config: DisplayConfig = loadConfig(window.localStorage);
 let session: GameSession | null = null;
@@ -128,6 +144,31 @@ let battleResult: BattleResult = 'PAUSED';
 let notice = ''; // 一度だけ提示するシステム文言（履歴が空である旨など）
 let resultText = ''; // [M-PIPE-P5-DISCARD] 決着の提示。バトルを離れるまで残す。
 let firstSightHelpId: string | null = null; // [M-DATA-HELPMASTER] 初出自動提示の対象
+
+let currentBgm = ''; // 再生中の BGM 資産ID（同じ資産を鳴らし直さない）
+
+// SE を1件鳴らす。対応する資産がなければ何もしない。
+function playSe(cue: AudioCue): void {
+  const assetId = globalAssetOf(cue, ASSET_MASTERS);
+  if (assetId !== null) {
+    audio.playSe(cue, assetId);
+  }
+}
+
+// [M-DATA-AUDIO-CUE] BGM：バトル中は当該シーン、インターミッション中は共通の資産を鳴らす。
+function syncBgm(): void {
+  if (session === null) {
+    return;
+  }
+  const { run } = session.data;
+  const cue: AudioCue | null = run.phase === 'BATTLE' ? 'BATTLE' : run.phase === 'INTERMISSION' ? 'INTERMISSION' : null;
+  const assetId = cue === null ? null : bgmAssetOf(cue, run.current_scene_id, ASSET_MASTERS);
+  if (cue === null || assetId === null || assetId === currentBgm) {
+    return;
+  }
+  currentBgm = assetId;
+  audio.playBgm(cue, assetId);
+}
 let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者
 
 const ctx: GameContext = {
@@ -340,6 +381,7 @@ const screenHandlers: ScreenHandlers = {
     render();
   },
   onConfigChange: (next) => {
+    audio.setVolumes(next.bgmVolume, next.seVolume); // [M-UI-CONFIG] 音量設定の適用
     config = next;
     saveConfig(window.localStorage, config);
     render();
@@ -415,6 +457,7 @@ const screenHandlers: ScreenHandlers = {
       return;
     }
     notice = '';
+    playSe('UI_CANCEL'); // [M-DATA-AUDIO-CUE] UI_CANCEL：アンドゥ実行時
     undo(requireSession());
     client?.invalidate();
     focusedInstanceId = null;
@@ -473,6 +516,10 @@ function runAdvance(advance: () => BattleResult): BattleResult {
   const enemy = session === null ? undefined : enemies[scenes[session.data.run.current_scene_id]?.enemy_id ?? ''];
   const result = advance();
   battleResult = result;
+  // [M-DATA-AUDIO-CUE] WATCH_PAUSE：監視条件の立ち上がりエッジによる自動時間停止時。
+  if (session?.data.run.battle_state?.pause_reason?.code === 'WATCH_MET') {
+    playSe('WATCH_PAUSE');
+  }
   if (result === 'WIN' || result === 'LOSS') {
     const text = strings.resolve(result === 'WIN' ? 'STR_RESULT_WIN' : 'STR_RESULT_LOSE', {
       common: commonKeys(),
@@ -520,6 +567,7 @@ const battleHandlers: BattleScreenHandlers = {
     }
     selectedInstanceId = null;
     focusedInstanceId = null;
+    playSe('UI_CONFIRM'); // [M-DATA-AUDIO-CUE] UI_CONFIRM：指示確定時
     // 指示後の進行も再生速度に従う（確定だけで時間停止まで進めきらない）。
     runAdvance(() =>
       instruct(requireSession(), ctx, unit.unit_id, instanceId, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) }),
@@ -756,6 +804,7 @@ function renderOverlay(): HTMLElement | null {
 }
 
 function render(): void {
+  syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();
   screenRoot.append(renderScreen());

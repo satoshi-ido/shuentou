@@ -1,10 +1,10 @@
 // [M-DATA-AUDIO-CUE] 発火契機に対応する演出の選択。系統別の発動演出と、武技の命中・回避。
 
 import { describe, expect, it } from 'vitest';
-import type { BattleCue } from '../../src/engine/cue.js';
+import type { ActionCue, BattleCue } from '../../src/engine/cue.js';
 import { effectOf } from '../../src/ui/dom/effects.js';
 
-function cue(kind: BattleCue['kind'], flags: BattleCue['sysFlags'], posIdx = 2): BattleCue {
+function cue(kind: ActionCue['kind'], flags: ActionCue['sysFlags'], posIdx = 2): BattleCue {
   return { kind, unitId: 'U0000', posIdx, classId: 'ACT_TEST', sysFlags: flags };
 }
 

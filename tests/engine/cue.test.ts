@@ -2,7 +2,7 @@
 // HIT / MISS（[M-RESOLVE-MARTIAL]#3 命中判定の確定時）。
 
 import { describe, expect, it } from 'vitest';
-import type { BattleCue } from '../../src/engine/cue.js';
+import type { ActionCue, BattleCue } from '../../src/engine/cue.js';
 import { advanceStep } from '../../src/engine/pipeline/step.js';
 import { runInstant } from '../../src/engine/pipeline/instant.js';
 import type { Decision } from '../../src/engine/decision.js';
@@ -30,7 +30,7 @@ describe('[M-DATA-AUDIO-CUE] 発火契機の通知', () => {
     setStartup(hero, 'HERO_HIT', 1); // 次のステップで発動
     const { sink, cues } = collect();
     advanceStep(state, pass, { ...NO_SUMMON_DEPS, onCue: sink });
-    expect(cues.map((cue) => [cue.kind, cue.unitId, cue.classId])).toEqual([
+    expect(cues.map((cue) => [cue.kind, cue.unitId, (cue as ActionCue).classId])).toEqual([
       ['ACTION_TRIGGER', hero.unit_id, 'HERO_HIT'],
       ['HIT', enemy.unit_id, 'HERO_HIT'],
     ]);
@@ -54,7 +54,7 @@ describe('[M-DATA-AUDIO-CUE] 発火契機の通知', () => {
     const hero = findUnit(state, 'MINE');
     const { sink, cues } = collect();
     runInstant(state, hero, hero.acts[0], { ...NO_SUMMON_DEPS, onCue: sink });
-    expect(cues.map((cue) => [cue.kind, cue.classId])).toEqual([['ACTION_TRIGGER', 'HERO_MIND']]);
+    expect(cues.map((cue) => [cue.kind, (cue as ActionCue).classId])).toEqual([['ACTION_TRIGGER', 'HERO_MIND']]);
   });
 
   it('受け口を与えない展開では通知しない（探索・未来予測）', () => {
