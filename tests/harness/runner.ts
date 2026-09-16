@@ -31,7 +31,7 @@ import { inheritPool, type InheritTarget } from '../../src/engine/progress/inher
 import { deriveSysFlags } from '../../src/engine/flags.js';
 import { INFINITE_USES } from '../../src/engine/params.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
-import type { GameMasters } from '../../src/engine/run/masters.js';
+import { sceneByOrder, type GameMasters } from '../../src/engine/run/masters.js';
 import type { StepDeps } from '../../src/engine/pipeline/step.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
@@ -311,24 +311,34 @@ export function chooseMindRefill(pool: readonly InheritTarget[]): InheritTarget 
   return best?.target ?? null;
 }
 
+// [V-TEST-REFAI]［体力の維持］判定に用いる、直前にクリアしたシーン。継承プールの提示元と同じである。
+function clearedSceneOf(run: { current_scene_id: string }) {
+  const current = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
+  return sceneByOrder(MASTERS, current.order - 1);
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
   if (policy !== 'PASSIVE') {
-    // [V-TEST-REFAI]［リソース生成手段の維持］判定はインターミッション開始時に1度だけ行い、
-    // 読み替えは当該インターミッションの継承枠1件に限る。
+    // [V-TEST-REFAI]［体力の維持］［リソース生成手段の維持］いずれも判定はインターミッション開始時に
+    // 1度だけ行い、読み替えはそれぞれ当該インターミッションの継承枠1件に限る。体力が優先する。
+    let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
     let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
       const pool = inheritPool(run, MASTERS);
-      const refill = refillMind ? chooseMindRefill(pool) : null;
-      const target = refill ?? chooseInherit(pool, policy, turn);
+      const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
+      const refill = hp === null && refillMind ? chooseMindRefill(pool) : null;
+      const target = hp ?? refill ?? chooseInherit(pool, policy, turn);
       if (target === null) {
         continue;
       }
-      if (refill !== null) {
+      if (hp !== null) {
+        raiseHp = false;
+      } else if (refill !== null) {
         refillMind = false;
       }
       confirmInherit(session, ctx, member.attendant_id, target);
