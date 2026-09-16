@@ -194,3 +194,44 @@ export interface AssetMasterRecord {
   readonly cue: AudioCueKey | null; // slot が BGM・SE のとき非Null
   readonly path: string;
 }
+
+// [S-SCRIPT-TRIGGER] 発火トリガーの語彙。
+export type ScriptTrigger =
+  | 'SCENE_INTRO'
+  | 'SCENE_CLEAR'
+  | 'INTERMISSION_ENTER'
+  | 'SACRIFICE_CONFIRM'
+  | 'ACT_TRANSITION'
+  | 'ENDING'
+  | 'EPILOGUE'
+  | 'NEWGAME_INTRO';
+
+// [S-SCRIPT-DIRECTIVE] 演出指示の語彙。
+export type ScriptDirective =
+  | 'WAIT_INPUT'
+  | 'FADE_IN'
+  | 'FADE_OUT'
+  | 'SILENCE'
+  | 'CAMERA_CLOSEUP'
+  | 'PORTRAIT_ROLL'
+  | 'BLACKOUT_TO_1_01'
+  | 'ACT_TITLE_CARD';
+
+// [S-SCRIPT-SCHEMA]［行（lines の要素）］
+export interface ScriptLineRecord {
+  readonly speaker: string | null; // Null は地の文
+  readonly text: string;
+  readonly directives: readonly ScriptDirective[];
+}
+
+// [S-SCRIPT-SCHEMA] 脚本マスタのレコード。
+export interface ScriptMasterRecord {
+  readonly script_id: string; // 体系は [S-SCRIPT-ID]
+  readonly trigger: ScriptTrigger;
+  readonly anchor: string | null; // 型は [S-SCRIPT-TRIGGER] の対応表による
+  readonly order: number; // 同一の (trigger, anchor) 内の再生順
+  readonly branch_group: string | null;
+  readonly condition: string | null; // 文法は [S-SCRIPT-CONDITION]。Null は恒真
+  readonly replay_on_rollback: boolean;
+  readonly lines: readonly ScriptLineRecord[]; // 空配列を認めない
+}

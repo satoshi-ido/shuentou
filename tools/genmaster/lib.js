@@ -559,3 +559,48 @@ export function buildAssetRecords(assets) {
   }
   return result;
 }
+
+// [S-SCRIPT-SCHEMA] 脚本マスタ。本文未執筆のレコードは [I-PLAN-TEXT]［プレースホルダの書式］に従い、
+// lines を1行・speaker を Null・directives を WAIT_INPUT のみとする。
+// `SCRIPT_SCENE_<シーン番号>_INTRO` の31件はシーンマスタの入力から一様に展開する。
+export function buildScriptRecords(scripts, scenes) {
+  const result = {};
+  const add = (entry) => {
+    if (result[entry.script_id] !== undefined) {
+      throw new Error(`脚本IDの重複: ${entry.script_id}`);
+    }
+    const lines =
+      entry.lines ?? [{ speaker: null, text: placeholderText(entry.script_id, []), directives: ['WAIT_INPUT'] }];
+    if (lines.length === 0) {
+      throw new Error(`lines は空配列を認めない: ${entry.script_id}`);
+    }
+    result[entry.script_id] = {
+      script_id: entry.script_id,
+      trigger: entry.trigger,
+      anchor: entry.anchor,
+      order: entry.order,
+      branch_group: entry.branch_group,
+      condition: entry.condition,
+      replay_on_rollback: entry.replay_on_rollback,
+      lines: lines.map((line) => ({ speaker: line.speaker, text: line.text, directives: [...line.directives] })),
+    };
+  };
+
+  for (const scene of scenes) {
+    const number = scene.scene_id.replace(/^SCENE_/, '');
+    add({
+      script_id: `SCRIPT_SCENE_${number}_INTRO`,
+      trigger: 'SCENE_INTRO',
+      anchor: scene.scene_id,
+      // [S-ACT-TITLECARD]「SCRIPT_ACT_TITLE_1 の order は [S-SCENE-1-01] の開幕脚本より前に置く」。
+      order: scene.scene_id === 'SCENE_1_01' ? 2 : 1,
+      branch_group: null,
+      condition: null,
+      replay_on_rollback: true,
+    });
+  }
+  for (const entry of scripts) {
+    add(entry);
+  }
+  return result;
+}

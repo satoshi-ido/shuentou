@@ -15,7 +15,14 @@ import { HERO_INIT_ACTIONS } from '../../src/data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import { createCreatureFactory } from '../../src/engine/creature.js';
 import { executableActions, type DecisionProvider } from '../../src/engine/decision.js';
-import { instruct, resumeTime, startBattle, type BattleResult } from '../../src/engine/game/battle.js';
+import {
+  instruct,
+  resumeBattle,
+  resumeTime,
+  startBattle,
+  type AdvanceOptions,
+  type BattleResult,
+} from '../../src/engine/game/battle.js';
 import { confirmInherit, confirmRefill, enterTransition, settleIntermission } from '../../src/engine/game/intermission.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
@@ -127,40 +134,58 @@ export function decisionLimit(expectedLength: number | null): number {
   return expectedLength === null ? Number.MAX_SAFE_INTEGER : expectedLength + (expectedLength >> 1);
 }
 
+// ステップ境界ごとの観測点。[V-TEST-NONFUNC] D-09 の命中機会窓はここで採る。
+export type StepObserver = (state: BattleState) => void;
+
 // 時間停止中の1手。参照プレイヤーAI（[V-TEST-REFAI] depth 3 / node 10,000 / best_reply）が決める。
-function playOneOperation(session: GameSession, ctx: GameContext, policy: RefPolicy): BattleResult {
+function playOneOperation(
+  session: GameSession,
+  ctx: GameContext,
+  policy: RefPolicy,
+  options: AdvanceOptions,
+): BattleResult {
   const state = session.data.run.battle_state;
   if (state === null) {
     throw new Error('バトル中ではない');
   }
   if (policy === 'PASSIVE') {
-    return resumeTime(session, ctx); // 無操作型：常にパス
+    return resumeTime(session, ctx, options); // 無操作型：常にパス
   }
   const provider = createAiDecisionProvider(referenceProfile(), STEP_DEPS);
   for (const unit of instructableMine(state)) {
     const decision = provider(state, unit);
     if (decision.kind === 'ACT') {
-      return instruct(session, ctx, unit.unit_id, decision.instanceId);
+      return instruct(session, ctx, unit.unit_id, decision.instanceId, options);
     }
   }
-  return resumeTime(session, ctx);
+  return resumeTime(session, ctx, options);
 }
 
-// 1シーンを決着まで進める。決着上限を超えた時点で打ち切り、そのステップ数を返す。
-export function playScene(session: GameSession, ctx: GameContext, policy: RefPolicy): SceneOutcome {
+// 1シーンを決着まで進める。観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、
+// ステップ境界ごとに観測点を通す（実バトルと同じ進行経路のまま計測するため、別の駆動系を作らない）。
+export function playScene(
+  session: GameSession,
+  ctx: GameContext,
+  policy: RefPolicy,
+  observe?: StepObserver,
+): SceneOutcome {
   const sceneId = session.data.run.current_scene_id;
   const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
   const limit = decisionLimit(scene.expected_length);
+  const options: AdvanceOptions = observe === undefined ? {} : { maxSteps: 1 };
 
-  let result = startBattle(session, ctx);
+  let result = startBattle(session, ctx, options);
   let steps = 0;
-  while (result === 'PAUSED') {
+  while (result === 'PAUSED' || result === 'RUNNING') {
     const state = session.data.run.battle_state;
+    if (state !== null && observe !== undefined) {
+      observe(state);
+    }
     steps = state?.step ?? steps;
     if (steps > HARD_STEP_CAP) {
       return { scene_id: sceneId, result, steps, limit, within: false };
     }
-    result = playOneOperation(session, ctx, policy);
+    result = result === 'RUNNING' ? resumeBattle(session, ctx, options) : playOneOperation(session, ctx, policy, options);
     steps = session.data.run.battle_state?.step ?? steps;
   }
   return { scene_id: sceneId, result, steps, limit, within: (result === 'WIN' || result === 'LOSS') && steps <= limit };
@@ -245,7 +270,12 @@ export interface RunOutcome {
 }
 
 // 1-01 から、決着に失敗するか全シーンを抜けるまで通しプレイする。
-export function playRun(policy: RefPolicy, lastOrder = 30): RunOutcome {
+// observeFor はシーンごとに観測子を作る。D-09 は系列をシーン単位で持つため、1周分を1度に採れる。
+export function playRun(
+  policy: RefPolicy,
+  lastOrder = 30,
+  observeFor?: (sceneId: string) => StepObserver,
+): RunOutcome {
   let started: GameSession | null = null;
   const ctx = createHarnessContext(() => {
     if (started === null) {
@@ -258,7 +288,8 @@ export function playRun(policy: RefPolicy, lastOrder = 30): RunOutcome {
 
   const scenes: SceneOutcome[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
-    const outcome = playScene(session, ctx, policy);
+    const observe = observeFor?.(session.data.run.current_scene_id);
+    const outcome = playScene(session, ctx, policy, observe);
     scenes.push(outcome);
     if (outcome.result !== 'WIN') {
       return { scenes, completed: false };

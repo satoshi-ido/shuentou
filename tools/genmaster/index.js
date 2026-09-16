@@ -13,12 +13,14 @@ import { ASSETS } from './authoring/assets.js';
 import { HELPS } from './authoring/helps.js';
 import { STRINGS } from './authoring/strings.js';
 import { SCENES } from './authoring/scenes.js';
+import { SCRIPTS } from './authoring/scripts.js';
 import {
   buildAttendantRecords,
   buildAiProfileRecords,
   buildAssetRecords,
   buildBookRecord,
   buildHelpRecords,
+  buildScriptRecords,
   buildStringRecords,
   buildSceneRecords,
   formatArSuffix,
@@ -147,6 +149,12 @@ function main() {
   writeGenerated('string-masters.ts', serializeRecordMap('STRING_MASTERS', 'StringMasterRecord', buildStringRecords(STRINGS)));
   writeGenerated('help-masters.ts', serializeRecordMap('HELP_MASTERS', 'HelpMasterRecord', buildHelpRecords(HELPS)));
   writeGenerated('asset-masters.ts', serializeRecordMap('ASSET_MASTERS', 'AssetMasterRecord', buildAssetRecords(ASSETS)));
+
+  // [S-SCRIPT-SCHEMA]・[S-SCRIPT-RECORDS]。本文は [I-PLAN-TEXT] のプレースホルダ。
+  writeGenerated(
+    'script-masters.ts',
+    serializeRecordMap('SCRIPT_MASTERS', 'ScriptMasterRecord', buildScriptRecords(SCRIPTS, SCENES)),
+  );
 
   // [A-PROFILE-SCHEMA] AIプロファイルマスタ。
   writeGenerated(
