@@ -32,7 +32,7 @@ import type { GameMasters } from '../../src/engine/run/masters.js';
 import type { StepDeps } from '../../src/engine/pipeline/step.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
-import { buildEffectiveProfile, referenceProfile } from '../../src/ai/profile.js';
+import { buildEffectiveProfile, referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 
 export const MASTERS: GameMasters = {
   actions: ACTION_MASTERS,
@@ -147,6 +147,7 @@ function playOneOperation(
   ctx: GameContext,
   policy: RefPolicy,
   options: AdvanceOptions,
+  playerProfile: EffectiveProfile,
 ): BattleResult {
   const state = session.data.run.battle_state;
   if (state === null) {
@@ -155,7 +156,7 @@ function playOneOperation(
   if (policy === 'PASSIVE') {
     return resumeTime(session, ctx, options); // 無操作型：常にパス
   }
-  const provider = createAiDecisionProvider(referenceProfile(), STEP_DEPS);
+  const provider = createAiDecisionProvider(playerProfile, STEP_DEPS);
   for (const unit of instructableMine(state)) {
     const decision = provider(state, unit);
     if (decision.kind === 'ACT') {
@@ -172,6 +173,8 @@ export function playScene(
   ctx: GameContext,
   policy: RefPolicy,
   observe?: StepObserver,
+  // [V-TEST-REFAI]［重み摂動プロファイル群］測定時は摂動した重みを与える。省略時は無摂動。
+  playerProfile: EffectiveProfile = referenceProfile(),
 ): SceneOutcome {
   const sceneId = session.data.run.current_scene_id;
   const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
@@ -189,7 +192,10 @@ export function playScene(
     if (steps > HARD_STEP_CAP) {
       return { scene_id: sceneId, result, steps, limit, within: false };
     }
-    result = result === 'RUNNING' ? resumeBattle(session, ctx, options) : playOneOperation(session, ctx, policy, options);
+    result =
+      result === 'RUNNING'
+        ? resumeBattle(session, ctx, options)
+        : playOneOperation(session, ctx, policy, options, playerProfile);
     steps = session.data.run.battle_state?.step ?? steps;
   }
   return { scene_id: sceneId, result, steps, limit, within: (result === 'WIN' || result === 'LOSS') && steps <= limit };
@@ -279,6 +285,7 @@ export function playRun(
   policy: RefPolicy,
   lastOrder = 30,
   observeFor?: (sceneId: string) => StepObserver,
+  playerProfile: EffectiveProfile = referenceProfile(),
 ): RunOutcome {
   let started: GameSession | null = null;
   const ctx = createHarnessContext(() => {
@@ -293,7 +300,7 @@ export function playRun(
   const scenes: SceneOutcome[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const observe = observeFor?.(session.data.run.current_scene_id);
-    const outcome = playScene(session, ctx, policy, observe);
+    const outcome = playScene(session, ctx, policy, observe, playerProfile);
     scenes.push(outcome);
     if (outcome.result !== 'WIN') {
       return { scenes, completed: false };
