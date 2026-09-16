@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 import { FEATURE_KEYS, referenceProfile } from '../../src/ai/profile.js';
-import { measureWinRate, perturbationSet, winRateCenti } from './perturb.js';
+import { measureWinRate, perturbationSet, playSceneWithRetry, winRateCenti } from './perturb.js';
+import { createRun } from './runner.js';
 
 const set = perturbationSet();
 
@@ -81,5 +82,23 @@ describe('[V-TEST-REFAI] 目標勝率の実測', () => {
     expect(result.scene_id).toBe('SCENE_1_01');
     expect(result.trials).toBe(23);
     expect(result.win_rate).toBeGreaterThanOrEqual(95);
+  });
+});
+
+describe('[V-TEST-REFAI] 敗北時の再挑戦', () => {
+  it('勝利したシーンは再挑戦を要さない（attempts = 1・rewinds = 0）', () => {
+    const { session, ctx } = createRun();
+    const attempt = playSceneWithRetry(session, ctx, 'ATTACK');
+    expect(attempt.outcome.scene_id).toBe('SCENE_1_01');
+    expect(attempt.outcome.result).toBe('WIN');
+    expect(attempt.attempts).toBe(1);
+    expect(attempt.rewinds).toBe(0);
+    expect(attempt.profileId).toBe('BASE');
+    // 再挑戦していないため巻き戻しの保留は立たない（[M-META-PENDING]）。
+    expect(session.data.pending.rewind_pending).toBe(false);
+  });
+
+  it('再挑戦の上限は摂動群の件数に等しい', () => {
+    expect(perturbationSet()).toHaveLength(23);
   });
 });

@@ -166,23 +166,30 @@ function playOneOperation(
   return resumeTime(session, ctx, options);
 }
 
-// 1シーンを決着まで進める。観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、
-// ステップ境界ごとに観測点を通す（実バトルと同じ進行経路のまま計測するため、別の駆動系を作らない）。
-export function playScene(
+// 観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、ステップ境界ごとに観測点を通す
+// （実バトルと同じ進行経路のまま計測するため、別の駆動系を作らない）。
+export function advanceOptionsFor(observe?: StepObserver): AdvanceOptions {
+  return observe === undefined ? {} : { maxSteps: 1 };
+}
+
+// 開始済みのバトルを決着まで進める。開始手段（startBattle / rollbackBattle）は呼び出し側が与える。
+export function driveBattle(
   session: GameSession,
   ctx: GameContext,
   policy: RefPolicy,
+  playerProfile: EffectiveProfile,
+  initial: BattleResult,
   observe?: StepObserver,
-  // [V-TEST-REFAI]［重み摂動プロファイル群］測定時は摂動した重みを与える。省略時は無摂動。
-  playerProfile: EffectiveProfile = referenceProfile(),
 ): SceneOutcome {
   const sceneId = session.data.run.current_scene_id;
   const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
   const limit = decisionLimit(scene.expected_length);
-  const options: AdvanceOptions = observe === undefined ? {} : { maxSteps: 1 };
+  const options = advanceOptionsFor(observe);
 
-  let result = startBattle(session, ctx, options);
-  let steps = 0;
+  let result = initial;
+  // 開始手段の内部で決着した場合（時間停止が一度も成立しないまま敗北した等）も、
+  // 決着ステップを取り違えないよう現在値から数え始める。
+  let steps = session.data.run.battle_state?.step ?? 0;
   while (result === 'PAUSED' || result === 'RUNNING') {
     const state = session.data.run.battle_state;
     if (state !== null && observe !== undefined) {
@@ -199,6 +206,19 @@ export function playScene(
     steps = session.data.run.battle_state?.step ?? steps;
   }
   return { scene_id: sceneId, result, steps, limit, within: (result === 'WIN' || result === 'LOSS') && steps <= limit };
+}
+
+// 1シーンをバトル開始から決着まで進める。
+export function playScene(
+  session: GameSession,
+  ctx: GameContext,
+  policy: RefPolicy,
+  observe?: StepObserver,
+  // [V-TEST-REFAI]［重み摂動プロファイル群］測定時は摂動した重みを与える。省略時は無摂動。
+  playerProfile: EffectiveProfile = referenceProfile(),
+): SceneOutcome {
+  const started = startBattle(session, ctx, advanceOptionsFor(observe));
+  return driveBattle(session, ctx, policy, playerProfile, started, observe);
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
@@ -279,14 +299,8 @@ export interface RunOutcome {
   readonly completed: boolean;
 }
 
-// 1-01 から、決着に失敗するか全シーンを抜けるまで通しプレイする。
-// observeFor はシーンごとに観測子を作る。D-09 は系列をシーン単位で持つため、1周分を1度に採れる。
-export function playRun(
-  policy: RefPolicy,
-  lastOrder = 30,
-  observeFor?: (sceneId: string) => StepObserver,
-  playerProfile: EffectiveProfile = referenceProfile(),
-): RunOutcome {
+// 新規セッションと、そのセッションを引く文脈の組。
+export function createRun(): { session: GameSession; ctx: HarnessContext } {
   let started: GameSession | null = null;
   const ctx = createHarnessContext(() => {
     if (started === null) {
@@ -296,6 +310,18 @@ export function playRun(
   });
   const session = newGameSession(ctx);
   started = session;
+  return { session, ctx };
+}
+
+// 1-01 から、決着に失敗するか全シーンを抜けるまで通しプレイする。
+// observeFor はシーンごとに観測子を作る。D-09 は系列をシーン単位で持つため、1周分を1度に採れる。
+export function playRun(
+  policy: RefPolicy,
+  lastOrder = 30,
+  observeFor?: (sceneId: string) => StepObserver,
+  playerProfile: EffectiveProfile = referenceProfile(),
+): RunOutcome {
+  const { session, ctx } = createRun();
 
   const scenes: SceneOutcome[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
