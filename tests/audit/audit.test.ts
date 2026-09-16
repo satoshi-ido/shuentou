@@ -111,3 +111,31 @@ describe('[M-TMPL-ENEMY-FINAL] 5-10 武技（特殊）の基礎攻撃力', () =>
     expect(ACTION_MASTERS.ACT_SPEC_TERMINUS_VEIN.params.atk).toBeGreaterThanOrEqual(bound);
   });
 });
+
+describe('[M-GUARD-BREAKER]［火力の要求］', () => {
+  // 壁割り担当と要求基礎攻撃力は [M-GUARD-BREAKER] の表による。
+  const BREAKERS: readonly (readonly [string, number])[] = [
+    ['ACT_SPEC_BREAK_VOLG', 48],
+    ['ACT_SPEC_BREAK_ASHAL', 72],
+    ['ACT_SPEC_BREAK_ZEFAL', 110],
+    ['ACT_SPEC_BREAK_ZOL_VOD', 152],
+  ];
+
+  it('各担当が要求基礎攻撃力を満たす', () => {
+    for (const [classId, required] of BREAKERS) {
+      expect(ACTION_MASTERS[classId as keyof typeof ACTION_MASTERS].params.atk).toBeGreaterThanOrEqual(required);
+    }
+  });
+
+  it('HPダメージ係数が dmg_hp / atk = 0.38 / 3.46 を下回らない', () => {
+    for (const [classId] of BREAKERS) {
+      const params = ACTION_MASTERS[classId as keyof typeof ACTION_MASTERS].params;
+      // centi 同士で比較する。dmg_hp(centi) * 346 >= atk * 38 * 100
+      expect(params.dmg_hp * 346).toBeGreaterThanOrEqual(params.atk * 38 * 100);
+    }
+  });
+
+  it('[M-GUARD-REACH] 2-01 の担当は range = 3 を併せ持つ', () => {
+    expect(ACTION_MASTERS.ACT_SPEC_BREAK_VOLG.params.range).toBe(3);
+  });
+});

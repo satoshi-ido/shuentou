@@ -66,7 +66,8 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BREAK_VOLG',
         display_name: '腑分けの刃',
-        override: { atk: 48, range: 3 },
+        breaker: 48,
+        override: { range: 3 },
       },
     ],
   },
@@ -129,7 +130,7 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BREAK_ASHAL',
         display_name: '使徒の断罪',
-        override: { atk: 72 },
+        breaker: 72,
       },
       {
         // 特殊枠の残り1枠は [A-PROFILE-TABLE] PROFILE_SURGE の action_bonus（SUMMON）に合わせる。
@@ -268,7 +269,7 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BREAK_ZEFAL',
         display_name: '枢機卿の断罪',
-        override: { atk: 110 },
+        breaker: 110,
       },
       {
         // [A-BOOK-TABLE] B-04 ① のセレクタ {MIND, SPECIAL, 1.5} が指す自己バフの心気（特殊）。
@@ -462,7 +463,7 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BREAK_ZOL_VOD',
         display_name: '深核の顎',
-        override: { atk: 152 },
+        breaker: 152,
       },
       {
         // [A-BOOK-TABLE] B-05 ① のセレクタ {MIND, SPECIAL, 1.5}。PP充填を確保してから

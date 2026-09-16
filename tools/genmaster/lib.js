@@ -281,6 +281,14 @@ export function martialExtra(variantKey, arTenths, key) {
   }
 }
 
+// [M-GUARD-BREAKER]［火力の要求］壁割り担当の武技（特殊）が満たすべきHPダメージ係数の下限。
+// [M-BASE-AR-MARTIAL] が基本型に与える比 dmg_hp / atk = 0.38 / 3.46 を下回らない。centi で返す。
+export function breakerDmgHp(atk) {
+  // 「下回らない」を満たすため切り上げる。最近接への丸めでは比をわずかに割り込む。
+  const numerator = atk * 38 * 100;
+  return floorDiv(numerator + 346 - 1, 346);
+}
+
 // [M-TMPL-CREATURE-PRINCIPLE]［標準基準式］最大HP ≒ 1.86 * (ar_summon ^ 1.5)。
 export function creatureMaxHp(arSummonTenths) {
   return coeffTimesArPow1_5(186, arSummonTenths, false);

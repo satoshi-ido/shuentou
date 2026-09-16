@@ -6,6 +6,7 @@
 import { floorDiv } from '../../src/num/helpers.ts';
 import {
   blankParams,
+  breakerDmgHp,
   buildRecord,
   classId,
   componentParams,
@@ -203,6 +204,10 @@ function expandSpecialRow(row, level, summonIdOf) {
   let base = row.blank === true ? blankParams() : componentParams(row.base, arTenths, summonId);
   for (const key of row.extras ?? []) {
     base = { ...base, [key]: martialExtra(row.base, arTenths, key) };
+  }
+  if (row.breaker !== undefined) {
+    // [M-GUARD-BREAKER] 壁割り担当は要求基礎攻撃力と、それに見合うHPダメージ係数を併せ持つ。
+    base = { ...base, atk: row.breaker, dmg_hp: Math.max(base.dmg_hp, breakerDmgHp(row.breaker)) };
   }
   if (row.compose !== undefined) {
     // [M-BASE-AR-COMPOSITE] 内包する各コンポーネントのパラメータ基礎値を個別に取り込む。
