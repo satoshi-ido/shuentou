@@ -15,6 +15,7 @@ import {
 } from '../effective.js';
 import type { InterferePos } from '../../data/types.js';
 import { hasFlag } from '../flags.js';
+import { allocateInstanceId, type InstanceIdCounter } from '../instantiate.js';
 import type { ActionInstance, Side, Unit } from '../types.js';
 
 function opposingUnits(units: readonly (Unit | null)[], side: Side): Unit[] {
@@ -36,6 +37,7 @@ export interface InterferenceRequest {
 export interface MartialOutcome {
   readonly interferenceRequest: InterferenceRequest | null;
   readonly hitUnitIds: readonly string[]; // 命中した対象すべて（位置干渉の発火判定に用いる）
+  readonly missUnitIds: readonly string[]; // 射程内で回避した対象（[M-DATA-AUDIO-CUE] MISS の通知に用いる）
   readonly stunHitUnitIds: readonly string[]; // うち stun 付き技が命中した対象（[M-PIPE-P2-APPLY]#4）
 }
 
@@ -72,13 +74,8 @@ function deepEqualParams(a: ActionInstance['base_params'], b: ActionInstance['ba
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-let nextCopyInstanceIdSeq = 0;
-export function resetCopyInstanceIdSeqForTest(startAt = 0): void {
-  nextCopyInstanceIdSeq = startAt;
-}
-
 // [M-RESOLVE-MARTIAL]#5 コピー獲得。命中した対象1体分の直前アクション記憶からコピー枠を獲得する。
-function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit): void {
+function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit, counter: InstanceIdCounter): void {
   if (action.base_params.initial_copy_val === 0) {
     return;
   }
@@ -97,8 +94,7 @@ function acquireCopyFrom(actor: Unit, action: ActionInstance, target: Unit): voi
         : Math.max(existing.uses_left, memory.uses_left_before);
     return;
   }
-  const instanceId = `IIDC${String(nextCopyInstanceIdSeq).padStart(4, '0')}`;
-  nextCopyInstanceIdSeq += 1;
+  const instanceId = allocateInstanceId(counter); // [I-STATE-ID] コピー枠も IID 形式で BattleState の採番位置から採番する
   actor.acts.push({
     instance_id: instanceId,
     master_ref: memory.class_id,
@@ -117,12 +113,13 @@ export interface MartialContext {
   readonly units: readonly (Unit | null)[];
   readonly level: number;
   readonly defenseOf: (unit: Unit) => number;
+  readonly idCounter: InstanceIdCounter; // BattleState（instance_id_seq の正本）
 }
 
 // [M-RESOLVE-MARTIAL] Step 4 本体。
 export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionInstance): MartialOutcome {
   if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
-    return { interferenceRequest: null, hitUnitIds: [], stunHitUnitIds: [] };
+    return { interferenceRequest: null, hitUnitIds: [], missUnitIds: [], stunHitUnitIds: [] };
   }
   const effRange = effectiveRange(actor, action);
   const effAtk = effectiveAtk(actor, action);
@@ -131,11 +128,13 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
     .sort((a, b) => distance(actor.pos_idx, a.pos_idx) - distance(actor.pos_idx, b.pos_idx));
 
   const hitUnitIds: string[] = [];
+  const missUnitIds: string[] = [];
   const stunHitUnitIds: string[] = [];
   for (const target of targets) {
     const targetDefense = ctx.defenseOf(target);
     if (effAtk < targetDefense) {
-      continue; // 回避
+      missUnitIds.push(target.unit_id); // 回避
+      continue;
     }
     hitUnitIds.push(target.unit_id);
     if (action.base_params.stun) {
@@ -150,6 +149,11 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
     target.vp = Math.max(target.vp - dmgVp, 0);
     target.pp = Math.max(target.pp - dmgPp, 0);
     target.ap = Math.max(target.ap - dmgAp, 0);
+    // [M-CORE-GLOSSARY-TIME]「消滅猶予状態」：HPが0に達したユニットは通常破棄（[M-PIPE-P5-DISCARD]）まで
+    // マス占有を維持する。即時型アクションでは [M-PIPE-INSTANT]#3 の即時破棄が続けて撤去する。
+    if (target.hp <= 0) {
+      target.state = 'PENDING_DISCARD';
+    }
 
     applySeal(target, action.base_params.give_seal);
     for (const [id, value] of Object.entries(action.base_params.give_debuff)) {
@@ -160,11 +164,11 @@ export function resolveMartial(ctx: MartialContext, actor: Unit, action: ActionI
       target.slip = maxOverwrite(target.slip, action.base_params.give_slip);
     }
     applyStrip(target, action.base_params.strip_rate);
-    acquireCopyFrom(actor, action, target);
+    acquireCopyFrom(actor, action, target, ctx.idCounter);
   }
 
   const interferenceRequest = resolveInterferenceRequest(action, targets, hitUnitIds, actor.side);
-  return { interferenceRequest, hitUnitIds, stunHitUnitIds };
+  return { interferenceRequest, hitUnitIds, missUnitIds, stunHitUnitIds };
 }
 
 function resolveInterferenceRequest(

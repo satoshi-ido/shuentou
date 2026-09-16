@@ -6,7 +6,7 @@ import type { MetaCounters, RewindPending, SaveData } from '../meta/types.js';
 import { sceneByOrder, type GameMasters } from './masters.js';
 import type { RunState } from './state.js';
 
-export const SAVE_VERSION = 1; // [M-META-SAVEDATA]［データバージョン］・[I-STATE-SNAPSHOT]
+export const SAVE_VERSION = 3; // [M-META-SAVEDATA]［データバージョン］・[I-STATE-SNAPSHOT]
 const HERO_INIT_MAX_HP = 60; // [M-DATA-HERO-INIT]
 
 function allFalse(keys: readonly string[]): Record<string, boolean> {

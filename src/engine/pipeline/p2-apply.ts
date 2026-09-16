@@ -5,12 +5,15 @@ import { effectiveStepRecovery } from '../effective.js';
 import { applyInterference } from '../resolve/interfere.js';
 import type { InterferenceRequest } from '../resolve/martial.js';
 import { resolveAction } from '../resolve/order.js';
+import type { CueSink } from '../cue.js';
+import { emitMartialResult, emitTrigger } from './cue-emit.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import { applyStunInterruption } from '../resolve/stun.js';
 import type { ActionInstance, BattleState, Side, Unit } from '../types.js';
 
 export interface P2Deps {
   readonly createCreature: CreatureFactory;
+  readonly onCue?: CueSink; // [M-DATA-AUDIO-CUE] 発火契機の受け口
 }
 
 function findAction(unit: Unit, instanceId: string): ActionInstance | undefined {
@@ -41,13 +44,20 @@ export function runP2Apply(
     unit.state = 'RECOVERY';
     unit.elapsed_recovery = 0;
 
+    // [M-DATA-AUDIO-CUE] ACTION_TRIGGER：統合解決パイプラインの Step 1 直前。
+    emitTrigger(deps.onCue, unit, action);
+
     // 2-3. 通常効果の順次適用（凍結防御力を参照）。
     const outcome = resolveAction(state.units, unit, action, 'NORMAL', {
       createCreature: deps.createCreature,
       level: state.scene_level,
       defenseOf: (target) => defenseSnapshot[target.unit_id] ?? 0,
+      idCounter: state,
       appliedInterferenceSides: [], // NORMAL モードでは内部即時適用しないため未使用
     });
+
+    // [M-DATA-AUDIO-CUE] HIT / MISS：武技の命中判定の確定時。
+    emitMartialResult(deps.onCue, state, unit, action, outcome);
 
     for (const id of outcome.stunHitUnitIds) {
       if (!stunTargetIds.includes(id) && !firingUnitIds.includes(id)) {

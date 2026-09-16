@@ -2,7 +2,9 @@
 // [M-META-SAVEDATA] [I-STATE-JSON] [I-PLAN-MILESTONE]（M3 受け入れ線）
 
 import { describe, expect, it } from 'vitest';
-import { resumeTime, startBattle } from '../../src/engine/game/battle.js';
+import { instruct, resumeBattle, resumeTime, startBattle } from '../../src/engine/game/battle.js';
+import { executableActions } from '../../src/engine/decision.js';
+import type { Unit } from '../../src/engine/types.js';
 import {
   confirmInherit,
   confirmRefill,
@@ -11,7 +13,7 @@ import {
   settleIntermission,
 } from '../../src/engine/game/intermission.js';
 import { rollbackBattle, rollbackIntermission, undo } from '../../src/engine/game/rewind.js';
-import { loadGame, newGameSession } from '../../src/engine/game/save.js';
+import { loadGame, newGameSession, peekSave } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { createContext, playBattle, playOneOperation, scriptedFoe } from './game-fixtures.js';
 
@@ -170,12 +172,67 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     expect(loaded.session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'ROLLBACK_BATTLE' });
   });
 
-  it('save_version がビルドの期待値と異なる場合はロードを拒否する', () => {
+  it('現行の save_version は 3 であり、そのセーブはロードできる', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    data.save_version = 2;
-    expect(loadGame(JSON.stringify(data), ctx)).toEqual({ ok: false, reason: 'VERSION_MISMATCH', save_version: 2 });
+    expect(data.save_version).toBe(3);
+    expect(loadGame(JSON.stringify(data), ctx).ok).toBe(true);
+  });
+
+  // 1: 初期版。2: BattleState に監視トグル・停止事由・定跡の項目を加えた版（instance_id_seq の追加前）。
+  it.each([1, 2])('旧版 save_version %i のセーブはマイグレーションせずロードを拒否する', (oldVersion) => {
+    const { session, ctx, recorder } = setup();
+    startBattle(session, ctx);
+    const data = JSON.parse(recorder.saves[0] ?? '');
+    data.save_version = oldVersion;
+    expect(loadGame(JSON.stringify(data), ctx)).toEqual({ ok: false, reason: 'VERSION_MISMATCH', save_version: oldVersion });
+  });
+});
+
+describe('進行の防護', () => {
+  it('タイトルの読み取りはバトル中のセーブでも進行を伴わない', () => {
+    const { session, ctx, recorder } = setup();
+    startBattle(session, ctx);
+    const serialized = recorder.saves[0] ?? '';
+    const peeked = peekSave(serialized);
+    expect(peeked?.run.phase).toBe('BATTLE');
+    expect(JSON.stringify(peeked)).toBe(serialized); // 読み取りはステートを進めない
+    expect(peekSave(JSON.stringify({ ...JSON.parse(serialized), save_version: 2 }))).toBeNull();
+  });
+
+  it('時間停止にも決着にも到達しない進行は、際限なく回らず不整合として検出する', () => {
+    const { session, ctx } = setup();
+    // 決定主体が常にパスを返し、自軍にも実行可能手がない局面（[M-PIPE-PAUSE-TRIGGER] のいずれも成立しない）。
+    const passing: GameContext = { ...ctx, foeDecision: () => ({ kind: 'PASS' }) };
+    startBattle(session, passing, { maxSteps: 1 });
+    for (const unit of session.data.run.battle_state?.units ?? []) {
+      if (unit !== null) {
+        unit.acts = [];
+      }
+    }
+    expect(() => resumeBattle(session, passing)).toThrow(/ステップ進行した/);
+  });
+});
+
+describe('[M-PIPE-P8-DECISION] 指示の受け付け', () => {
+  it('時間停止していないステップ境界でも、実行可能な自軍アクションを確定できる', () => {
+    const { session, ctx } = setup();
+    let result = startBattle(session, ctx, { maxSteps: 1 });
+    const state = session.data.run.battle_state;
+    if (state === null) {
+      throw new Error('バトル中ではない');
+    }
+    const heroOf = (): Unit => state.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE')!;
+    while (executableActions(state, heroOf()).length === 0 && state.step < 400) {
+      result = resumeBattle(session, ctx, { maxSteps: 1 });
+    }
+    const hero = heroOf();
+    const action = executableActions(state, hero)[0];
+    expect(result).toBe('RUNNING'); // 再生中（時間停止事由は成立していない）
+    expect(state.pause_reason).toBeNull();
+    instruct(session, ctx, hero.unit_id, action.instance_id, { maxSteps: 1 });
+    expect(hero.last_act?.instance_id).toBe(action.instance_id);
   });
 });
 
@@ -276,5 +333,24 @@ describe('[I-PLAN-MILESTONE] M3 受け入れ線：同一操作列の再走で全
     expect(session.data.run.hero_acts.map((action) => action.instance_id)).toEqual(
       straight.session.data.run.hero_acts.map((action) => action.instance_id),
     );
+  });
+});
+
+describe('[M-UI-CONFIG] 監視トグルの既定の再適用', () => {
+  it('バトル開始時セーブからの再開でも、その時点の既定を適用する', () => {
+    const { session, ctx, recorder } = setup();
+    startBattle(session, ctx, { watchDefault: 'ALL_OFF' });
+    const serialized = recorder.saves[0] ?? '';
+    const loaded = loadGame(serialized, setup().ctx, { watchDefault: 'BY_SYSTEM' });
+    expect(loaded.ok).toBe(true);
+    if (!loaded.ok) {
+      return;
+    }
+    const state = loaded.session.data.run.battle_state;
+    const hero = state?.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE');
+    const martial = hero?.acts.find((action) => action.master_ref === 'ACT_SLASH_AR3');
+    const mind = hero?.acts.find((action) => action.master_ref === 'ACT_MIND_AR3');
+    expect(state?.watching[martial?.instance_id ?? '']).toMatchObject({ HIT_FRONT: true, HIT_BACK: true, EVADE: true, STUN: false });
+    expect(state?.watching[mind?.instance_id ?? '']).toMatchObject({ STUN: true, EVADE: true, HIT_FRONT: false });
   });
 });

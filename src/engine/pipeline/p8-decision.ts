@@ -1,13 +1,11 @@
 // [M-PIPE-P8-DECISION] [M-PIPE-P8-ORDER] 《処理8》時間停止・AI決定・即時決済・プレイヤー指示。
 //
-// M1（ヘッドレスエンジン）の範囲では、時間停止トリガー（[M-PIPE-PAUSE-TRIGGER]）のうち
-// UI監視トグル条件（#3）・手動停止（#4）は src/ui 層（M4）の責務であり本モジュールには含めない。
-// 決定論的なヘッドレス実行では「思考中ユニットに決定を問い合わせ、確定した効果を解決する」
-// という中核の手続きのみが検証対象であるため、停止・再開の可視的な演出はここでは扱わない。
+// 本モジュールは「思考中ユニットに決定を問い合わせ、確定した効果を解決する」中核の手続きを担う。
+// 時間停止トリガー（[M-PIPE-PAUSE-TRIGGER]）の判定と停止事由の記録は game/battle.ts が担う。
 // 敵軍AI（FOE側）を先に評価し、続いて自軍（MINE側）を評価する（[M-PIPE-P8-ORDER]の順序）。
 
 import { executableActions, isInstant, type DecisionProvider } from '../decision.js';
-import { effectiveCostAp, effectiveCostHp, effectiveCostPp, effectiveCostVp } from '../effective.js';
+import { effectiveCostAp, effectiveCostHp, effectiveCostPp, effectiveCostVp, effectiveStepStartup } from '../effective.js';
 import { INFINITE_USES } from '../params.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import type { ActionInstance, BattleState, LastActionSnapshot, Side, Unit } from '../types.js';
@@ -53,10 +51,33 @@ export function executeAction(state: BattleState, unit: Unit, action: ActionInst
   return 'NONE';
 }
 
+export interface ExecutedAction {
+  readonly unitId: string;
+  readonly instanceId: string;
+  readonly instant: boolean;
+  // 通常アクションの発生満了までの残ステップ数（即時型は 0）。[M-DATA-PAUSE-REASON]「RemainingSteps の意味」。
+  readonly remainingSteps: number;
+}
+
+// [I-ENV-WORKER] 決定待ちで中断した地点から再開するための、当該ステップ内の進行状態。
+export interface SideLoopState {
+  passed: string[];
+  acted: boolean;
+  firstExecuted: ExecutedAction | null;
+}
+
+export function newSideLoopState(): SideLoopState {
+  return { passed: [], acted: false, firstExecuted: null };
+}
+
 export interface DecisionLoopResult {
   readonly outcome: BattleOutcome;
+  // 決定が未応答のため中断したとき true。呼び出し側は同じ SideLoopState で再開する。
+  readonly awaiting: boolean;
   // [M-PIPE-PAUSE-TRIGGER]#2 の判定に用いる。1件以上のアクションを実行したとき true。
   readonly acted: boolean;
+  // [M-DATA-PAUSE-REASON]「同時成立時」：最初に実行されたアクション。
+  readonly firstExecuted: ExecutedAction | null;
 }
 
 // [M-PIPE-P8-ORDER]#1「評価・行動確定ループ」／#3「プレイヤー指示」を1本の手続きに統一する。
@@ -67,9 +88,9 @@ export function runSideDecisionLoop(
   side: Side,
   decisionFor: DecisionProvider,
   deps: P8Deps,
+  loop: SideLoopState = newSideLoopState(),
 ): DecisionLoopResult {
-  const passed: string[] = [];
-  let acted = false;
+  const passed = loop.passed;
   const maxIterations = 64;
   for (let i = 0; i < maxIterations; i += 1) {
     const candidate = sideUnits(state, side).find((unit) => unit.state === 'THOUGHT' && !passed.includes(unit.unit_id));
@@ -77,6 +98,14 @@ export function runSideDecisionLoop(
       break;
     }
     const decision = decisionFor(state, candidate);
+    if (decision.kind === 'AWAIT') {
+      return { outcome: 'NONE', acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: true };
+    }
+    if (decision.book !== undefined) {
+      state.book_index = decision.book.book_index;
+      state.book_aborted = decision.book.book_aborted;
+      state.book_wait_elapsed = decision.book.book_wait_elapsed;
+    }
     if (decision.kind === 'PASS') {
       passed.push(candidate.unit_id);
       continue;
@@ -86,15 +115,23 @@ export function runSideDecisionLoop(
       passed.push(candidate.unit_id);
       continue;
     }
-    acted = true;
+    loop.acted = true;
+    const instant = isInstant(action);
+    loop.firstExecuted ??= {
+      unitId: candidate.unit_id,
+      instanceId: action.instance_id,
+      instant,
+      remainingSteps: instant ? 0 : effectiveStepStartup(candidate, action),
+    };
     const outcome = executeAction(state, candidate, action, deps);
     if (outcome !== 'NONE') {
-      return { outcome, acted };
+      return { outcome, acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: false };
     }
   }
-  return { outcome: 'NONE', acted };
+  return { outcome: 'NONE', acted: loop.acted, firstExecuted: loop.firstExecuted, awaiting: false };
 }
 
+// ヘッドレス実行（探索・検証）用。決定主体は同期に応答する前提であり、AWAIT は扱わない。
 export function runP8Decision(state: BattleState, decisionFor: DecisionProvider, deps: P8Deps): BattleOutcome {
   const foe = runSideDecisionLoop(state, 'FOE', decisionFor, deps);
   if (foe.outcome !== 'NONE') {

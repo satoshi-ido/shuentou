@@ -51,6 +51,8 @@ export interface CreateBattleOptions {
   readonly heroActs: ActionInstance[];
   readonly enemyRecord: EnemyMasterRecord;
   readonly enemyActs: ActionInstance[];
+  // 主人公・敵マスターの実体化を終えた時点の採番位置（[M-STATE-RUNSTATE]［主人公ステートの正本］）。
+  readonly instanceIdSeq: number;
 }
 
 // [M-STATE-BATTLESTATE] 初期生成（ステップ0）。クリーチャーは不在。
@@ -60,7 +62,15 @@ export function createBattleState(options: CreateBattleOptions): BattleState {
     scene_level: options.sceneLevel,
     units: [null, null, null, null],
     unit_id_seq: 0,
+    instance_id_seq: options.instanceIdSeq,
     instant_used: {},
+    watching: {},
+    watch_prev_met: {},
+    pause_reason: null,
+    book_index: 0,
+    book_aborted: false,
+    book_wait_elapsed: null,
+    ai_reuse: {},
   };
   const heroHp = options.heroHp ?? options.heroMaxHp;
   state.units[1] = createUnit(allocateUnitId(state), 'MINE', 'MASTER', 1, options.heroMaxHp, heroHp, options.heroActs);

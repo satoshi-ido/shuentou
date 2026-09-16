@@ -5,6 +5,7 @@
 // このため探索の再帰（[src/ai/search.ts]）は runP8Decision を経由せず、本モジュールが提供する
 // 「次の思考中ユニットを1体返す」問い合わせと組み合わせて値を持つ再帰を組み立てる。
 
+import { executableActions } from '../engine/decision.js';
 import { runP1Freeze } from '../engine/pipeline/p1-freeze.js';
 import { runP2Apply, type P2Deps } from '../engine/pipeline/p2-apply.js';
 import { runP3Recovery } from '../engine/pipeline/p3-recovery.js';
@@ -38,9 +39,16 @@ export function runPreP8(state: BattleState, deps: PreP8Deps): BattleOutcome {
 // [M-PIPE-P8-ORDER] 敵軍（FOE）を先に、続いて自軍（MINE）を評価する順序で、
 // まだ決定を経ていない思考中ユニットを1体返す。joint_action=False の範囲では
 // 呼び出し側が「1体決定するたびに再度問い合わせる」ことで #1・#3 の逐次ループと同義になる。
-export function firstPendingUnit(state: BattleState): Unit | undefined {
+// [A-SEARCH-NODE] 決定点は「行動を確定できる瞬間」であるため、実行可能アクションを持たない
+// ユニットは対象としない。passedUnitIds は当該ステップ内でパスを採択したユニットであり、
+// [M-PIPE-P8-ORDER]#1「パス採択時：残る思考中ユニットの評価へ移行」に従い同ステップ内では再度問わない。
+export function firstPendingUnit(state: BattleState, passedUnitIds: readonly string[]): Unit | undefined {
   const candidates = state.units.filter(
-    (unit): unit is Unit => unit !== null && unit.state === 'THOUGHT',
+    (unit): unit is Unit =>
+      unit !== null &&
+      unit.state === 'THOUGHT' &&
+      !passedUnitIds.includes(unit.unit_id) &&
+      executableActions(state, unit).length > 0,
   );
   const foe = candidates.filter((unit) => unit.side === 'FOE').sort((a, b) => a.pos_idx - b.pos_idx);
   if (foe.length > 0) {
@@ -48,6 +56,21 @@ export function firstPendingUnit(state: BattleState): Unit | undefined {
   }
   const mine = candidates.filter((unit) => unit.side === 'MINE').sort((a, b) => a.pos_idx - b.pos_idx);
   return mine[0];
+}
+
+// 全生存ユニットが思考中で、思考の蓄積だけではいずれのアクションも実行可能にならない局面。
+// 新たな行動が入らない限りコスト・封印・使用回数は変化しないため、以後の進行で決定点は生じない。
+export function isStalled(state: BattleState): boolean {
+  return state.units.every((unit) => {
+    if (unit === null) {
+      return true;
+    }
+    if (unit.state !== 'THOUGHT') {
+      return false;
+    }
+    const matured: Unit = { ...unit, elapsed_thought: Number.MAX_SAFE_INTEGER };
+    return executableActions(state, matured).length === 0;
+  });
 }
 
 export { runStepEnd };

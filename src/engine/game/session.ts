@@ -2,6 +2,7 @@
 // セーブデータ1件を単位とする操作の共通手続き：確定操作の記録・保留の決済・オートセーブ。
 
 import type { DecisionProvider } from '../decision.js';
+import type { SideLoopState } from '../pipeline/p8-decision.js';
 import type { RewindPendingType, SaveData } from '../meta/types.js';
 import type { StepDeps } from '../pipeline/step.js';
 import type { GameMasters } from '../run/masters.js';
@@ -17,8 +18,16 @@ export interface GameContext {
   readonly persist: (serialized: string) => void;
 }
 
+// [I-ENV-WORKER] 決定待ちで中断した《処理8》の進行状態。応答後に同じ地点から再開する。
+export interface PendingStep {
+  preDone: boolean;
+  loop: SideLoopState;
+}
+
 export interface GameSession {
   data: SaveData;
+  // 決定待ちで中断しているとき非Null。時間停止中・決着後は常に Null。
+  pending_step?: PendingStep | null;
   // 直近のバトル開始時点のラン進行ステート。phase == BATTLE の間のみ非Null。
   // バトル開始時ロールバックの復帰先であり、同区間のオートセーブが保存するラン進行ステートでもある。
   battle_start_run: RunState | null;

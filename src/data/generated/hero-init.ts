@@ -7,3 +7,9 @@ export const HERO_INIT_ACTIONS = [
   "ACT_HEAVY_AR15",
   "ACT_ROOT_MARTIAL"
 ] as const satisfies readonly string[];
+
+export const HERO_INIT_UNIT = {
+  "display_name": "セイン",
+  "role_name": "マスター",
+  "max_hp": 60
+} as const;

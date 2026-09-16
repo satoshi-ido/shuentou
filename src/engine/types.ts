@@ -67,13 +67,51 @@ export interface Unit {
   applied_recovery: number;
 }
 
-// [M-STATE-BATTLESTATE]（M1範囲：進行・盤面のみ。UI監視系は M4 で追加する）
-// instance_id_seq は [M-STATE-RUNSTATE] が保持する採番カウンタであり、RunState 未実装の
-// M1 時点では BattleState に含めず、シーン開始処理の呼び出し側で管理する（[I-STATE-ID]）。
+// [M-UI-WATCH] 監視条件5種。キーの並びは同項「同時成立時の提示順序」③に一致させる。
+export const WATCH_KINDS = ['READY', 'STUN', 'HIT_FRONT', 'HIT_BACK', 'EVADE'] as const;
+export type WatchKind = (typeof WATCH_KINDS)[number];
+export type WatchFlags = Record<WatchKind, boolean>;
+
+// [M-DATA-PAUSE-REASON]［停止事由レコード］
+export type PauseReasonCode = 'STEP0_READY' | 'ENEMY_START' | 'ENEMY_IMMEDIATE' | 'WATCH_MET' | 'MANUAL_PAUSE';
+
+export interface PauseReason {
+  readonly code: PauseReasonCode;
+  readonly unit_id: string | null;
+  readonly instance_id: string | null;
+  readonly watch_kind: WatchKind | null;
+  readonly remaining_steps: number | null;
+}
+
+// [A-SEARCH-REUSE]［記録と適用］再探索抑制の記録。
+export interface ReuseRecord {
+  readonly hash: number; // 盤面ハッシュ（FNV-1a 32bit）
+  readonly until: number; // 惰性の期限ステップ
+  readonly executable: readonly string[]; // 実行可能アクションのインスタンスID昇順配列
+}
+
+// [A-BOOK-SEMANTICS] 定跡の進行状態。lookup の戻り値として更新後の値を返し、呼び出し側が BattleState へ反映する。
+export interface BookProgress {
+  readonly book_index: number;
+  readonly book_aborted: boolean;
+  readonly book_wait_elapsed: number | null;
+}
+
+// [M-STATE-BATTLESTATE]
+// instance_id_seq は phase == BATTLE の間のアクションインスタンスID採番カウンタの正本であり、バトル開始時に
+// RunState から引き継ぎ、バトルクリア共通決済で書き戻す（[M-STATE-RUNSTATE]［主人公ステートの正本］・[I-STATE-ID]）。
 export interface BattleState {
   step: number;
   scene_level: number;
   units: (Unit | null)[]; // 添字が pos_idx と一致（要素数4）
   unit_id_seq: number;
+  instance_id_seq: number;
   instant_used: Record<string, string[]>; // unit_id -> class_id の昇順配列
+  watching: Record<string, WatchFlags>; // アクションインスタンスID -> 監視ON/OFF
+  watch_prev_met: Record<string, WatchFlags>; // アクションインスタンスID -> 直前ステップの充足状態
+  pause_reason: PauseReason | null;
+  book_index: number;
+  book_aborted: boolean;
+  book_wait_elapsed: number | null;
+  ai_reuse: Record<string, ReuseRecord>;
 }

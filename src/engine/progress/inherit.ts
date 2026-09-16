@@ -194,6 +194,118 @@ export function canInherit(run: RunState, masters: GameMasters, attendantId: str
   return slot !== undefined && slot.inherit_state === 'UNUSED' && inPool(inheritPool(run, masters), target);
 }
 
+// [M-INHERIT-MERGE]［UI要件］継承対象の確定前に提示する見込み。ステートを変更しない。
+export type InheritPreview =
+  | {
+      readonly kind: 'MAX_HP';
+      readonly add: number;
+      readonly maxHpBefore: number;
+      readonly maxHpAfter: number;
+      readonly boosted: readonly string[];
+    }
+  | { readonly kind: 'VANISH'; readonly classId: string } // 実効初期使用回数0により消滅（継承権は消費）
+  | {
+      readonly kind: 'NEW_SLOT';
+      readonly classId: string;
+      readonly params: ActionParams;
+      readonly usesInitial: number;
+      // 従者特性係数により基礎値から改善した項目（[M-DATA-INSTANTIATE]・[M-DATA-COEFFKEYS]）。
+      readonly boosted: readonly string[];
+    }
+  | {
+      readonly kind: 'MERGE';
+      readonly classId: string;
+      readonly params: ActionParams; // 統合後の基礎値
+      readonly usesInitial: number; // 統合後の実効初期使用回数（最大値・合算しない）
+      readonly existingInstanceId: string; // 統合先のスロット（[M-INHERIT-MERGE] インスタンスIDを維持する）
+      readonly improved: readonly string[]; // 統合により改善された項目（0件は「改善なし」）
+      readonly boosted: readonly string[];
+    };
+
+// 統合により値が改善した項目を列挙する。回数の改善は 'uses' として扱う。
+function improvedKeys(existing: ActionInstance, merged: ActionParams, usesInitial: number): string[] {
+  const keys = Object.keys(merged) as (keyof ActionParams)[];
+  const improved = keys.filter((key) => {
+    if (key === 'give_buff' || key === 'give_debuff') {
+      return sortedDict(existing.base_params[key]) !== sortedDict(merged[key]);
+    }
+    return existing.base_params[key] !== merged[key];
+  });
+  const result = improved.map((key) => String(key));
+  if (usesInitial > existing.uses_initial) {
+    result.push('uses');
+  }
+  return result;
+}
+
+// 従者特性係数の適用で基礎値から改善した項目。減少型は小さく、増加型は大きくなったものを採る。
+function boostedKeys(base: ActionParams, scaled: ActionParams, baseUses: number, usesInitial: number): string[] {
+  const keys: string[] = [];
+  for (const key of DECREASING_MERGE) {
+    if ((scaled[key] as number) < (base[key] as number)) {
+      keys.push(String(key));
+    }
+  }
+  for (const key of INCREASING_MERGE) {
+    if (key === 'give_buff' || key === 'give_debuff') {
+      if (sortedDict(scaled[key]) !== sortedDict(base[key])) {
+        keys.push(String(key));
+      }
+      continue;
+    }
+    if ((scaled[key] as number) > (base[key] as number)) {
+      keys.push(String(key));
+    }
+  }
+  if (usesInitial > baseUses) {
+    keys.push('uses');
+  }
+  return keys;
+}
+
+export function previewInherit(
+  run: RunState,
+  masters: GameMasters,
+  attendantId: string,
+  target: InheritTarget,
+): InheritPreview {
+  const attendant = attendantOf(masters, attendantId);
+  if (target.kind === 'MAX_HP') {
+    const base = clearedScene(run, masters).hp_bonus_base ?? 0;
+    const add = scale(base, coeffOf(attendant, 'hpAddRate'));
+    return {
+      kind: 'MAX_HP',
+      add,
+      maxHpBefore: run.hero_max_hp,
+      maxHpAfter: run.hero_max_hp + add,
+      boosted: add > base ? ['hp_add'] : [],
+    };
+  }
+  const record = actionOf(masters, target.class_id);
+  const usesInitial = roundDiv(record.base_uses * coeffOf(attendant, 'usesRate'), CENTI * CENTI);
+  if (usesInitial === 0) {
+    return { kind: 'VANISH', classId: record.class_id };
+  }
+  const params = applyCoefficients(record.params, attendant);
+  const boosted = boostedKeys(record.params, params, roundDiv(record.base_uses, CENTI), usesInitial);
+  const existing = run.hero_acts.find(
+    (action) => action.master_ref === record.class_id && paramsEqual(action.merge_params, record.params),
+  );
+  if (existing === undefined) {
+    return { kind: 'NEW_SLOT', classId: record.class_id, params, usesInitial, boosted };
+  }
+  const merged = mergeParams(existing.base_params, params);
+  return {
+    kind: 'MERGE',
+    classId: record.class_id,
+    params: merged,
+    usesInitial: Math.max(existing.uses_initial, usesInitial),
+    existingInstanceId: existing.instance_id,
+    improved: improvedKeys(existing, merged, usesInitial),
+    boosted,
+  };
+}
+
 // [M-INHERIT-POOL]［継承・統合パイプライン］従者1名分を実行する。事前条件は canInherit。
 export function applyInherit(run: RunState, masters: GameMasters, attendantId: string, target: InheritTarget): void {
   const attendant = attendantOf(masters, attendantId);

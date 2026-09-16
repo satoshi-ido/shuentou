@@ -36,10 +36,12 @@ export function settleBattleClear(run: RunState, masters: GameMasters): void {
     action.seal_accum = 0;
   }
 
-  // [M-STATE-RUNSTATE]［主人公ステートの正本］BattleState から主人公3項目へ書き戻す。
+  // [M-STATE-RUNSTATE]［主人公ステートの正本］BattleState から主人公3項目およびインスタンスID採番カウンタを書き戻す。
+  // 破棄したコピーアクションに採番された値は再利用しない。
   run.hero_max_hp = hero.max_hp;
   run.hero_hp = hero.hp;
   run.hero_acts = acts;
+  run.instance_id_seq = run.battle_state?.instance_id_seq ?? run.instance_id_seq;
   run.battle_state = null;
   run.phase = 'INTERMISSION';
   run.current_scene_id = sceneByOrder(masters, cleared.order + 1).scene_id;

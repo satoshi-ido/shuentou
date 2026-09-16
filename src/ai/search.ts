@@ -4,17 +4,20 @@
 // [A-EVAL-FORM]）。[A-DIFF-CONFIG] で joint_action=False の範囲（1-01, max_depth 3）を対象とし、
 // 同時手（joint action）は扱わない。
 
-import type { Decision } from '../engine/decision.js';
+import { BOOK_MASTERS } from '../data/generated/book-masters.js';
+import type { BookMasterRecord } from '../data/types.js';
+import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
 import { applyMove } from './apply.js';
+import { lookupBook } from './book.js';
 import { cloneState } from './clone.js';
 import { INF, MATE_TH } from './constants.js';
 import { evaluate, mateScore } from './evaluate.js';
 import { generateMoves, moveBonusOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
-import { firstPendingUnit, runPreP8, runStepEnd } from './step-driver.js';
+import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
 
 export class NodeBudgetExceeded extends Error {}
 
@@ -52,22 +55,36 @@ function continueAfterMove(
   ctx: SearchCtx,
   depthRemaining: number,
   ply: number,
+  passedUnitIds: readonly string[],
 ): number {
   if (outcomeFromMove !== 'NONE') {
     return mateScore(outcomeFromMove, ply);
   }
-  return searchStep(state, ctx, depthRemaining, ply);
+  return searchStep(state, ctx, depthRemaining, ply, passedUnitIds);
 }
 
 // P1〜P7を経て、なお決定待ちのユニットがなければステップ境界を越えて進む。全ユニットが
 // STARTUP/RECOVERY中で誰も決定を持たない間は、スタックを消費しないループで前進を続ける
 // （[M-UI-TIMELINE]と同様、経過ステップ数は各アクションの必要発生・硬直で有限に収束する）。
-function searchStep(state: BattleState, ctx: SearchCtx, depthRemaining: number, ply: number): number {
+// 全ユニットが思考中で、思考の蓄積を待っても実行可能にならない場合は以後ステートが変化しないため、
+// 決定点に到達しない葉として評価する。
+function searchStep(
+  state: BattleState,
+  ctx: SearchCtx,
+  depthRemaining: number,
+  ply: number,
+  passedUnitIds: readonly string[],
+): number {
+  let passed = passedUnitIds;
   for (;;) {
-    const pending = firstPendingUnit(state);
+    const pending = firstPendingUnit(state, passed);
     if (pending !== undefined) {
-      return searchDecision(state, pending, ctx, depthRemaining, ply);
+      return searchDecision(state, pending, ctx, depthRemaining, ply, passed);
     }
+    if (isStalled(state)) {
+      return evaluate(state, ctx.prof, ply, ctx.deps);
+    }
+    passed = [];
     runStepEnd(state);
     const outcome = runPreP8(state, ctx.deps);
     if (outcome !== 'NONE') {
@@ -85,7 +102,14 @@ interface RankedMove {
 // unit の候補手をすべて探索し、(move, value) の対を [A-TIE-BREAK] の生成順を保って返す。
 // [A-TIE-BREAK]「根ノードはフルウィンドウで探索」に合わせ、兄弟手どうしの枝刈りは行わない
 // （自滅ポリシー適用のため全候補の確定スコアを保持する必要がある。[A-EVAL-MATE]）。
-function rankMoves(state: BattleState, unit: Unit, ctx: SearchCtx, depthRemaining: number, ply: number): RankedMove[] {
+function rankMoves(
+  state: BattleState,
+  unit: Unit,
+  ctx: SearchCtx,
+  depthRemaining: number,
+  ply: number,
+  passedUnitIds: readonly string[],
+): RankedMove[] {
   const moves = generateMoves(state, unit);
   const ranked: RankedMove[] = [];
   for (const move of moves) {
@@ -105,16 +129,28 @@ function rankMoves(state: BattleState, unit: Unit, ctx: SearchCtx, depthRemainin
     if (depthRemaining <= 1) {
       value = outcome !== 'NONE' ? mateScore(outcome, ply + 1) : evaluate(clone, ctx.prof, ply + 1, ctx.deps);
     } else {
-      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1);
+      const passedAfter = move.kind === 'PASS' ? [...passedUnitIds, unit.unit_id] : passedUnitIds;
+      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter);
     }
-    value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+    // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
+    // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
+    if (ply === 0) {
+      value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+    }
     ranked.push({ move, value, outcome });
   }
   return ranked;
 }
 
-function searchDecision(state: BattleState, unit: Unit, ctx: SearchCtx, depthRemaining: number, ply: number): number {
-  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply);
+function searchDecision(
+  state: BattleState,
+  unit: Unit,
+  ctx: SearchCtx,
+  depthRemaining: number,
+  ply: number,
+  passedUnitIds: readonly string[],
+): number {
+  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply, passedUnitIds);
   const maximizing = unit.side === 'FOE';
   let best = maximizing ? -INF : INF;
   for (const { value } of ranked) {
@@ -139,22 +175,48 @@ function isMasterSlipSuicide(unit: Unit, move: AiMove, outcome: BattleOutcome): 
 }
 
 export interface DecideActionResult {
-  readonly decision: Decision;
+  readonly decision: ResolvedDecision;
   readonly score: number;
   // [D-05] 決定点1回（反復深化の全深さを通じた累計）で消費したノード数。
   readonly nodesConsumed: number;
 }
 
+function bookOf(bookId: string): BookMasterRecord {
+  const book = (BOOK_MASTERS as Readonly<Record<string, BookMasterRecord>>)[bookId];
+  if (book === undefined) {
+    throw new Error(`未知の定跡ID: ${bookId}`);
+  }
+  return book;
+}
+
 // [A-SEARCH-ALGORITHM] decide_action(state, prof)。ノード予算は反復深化の全深さで共有する
 // （[A-CORE-DETERMINISM]#2）。state は変更しない（[A-CORE-DETERMINISM]#6 純関数）。
+// 1. 定跡参照：[A-BOOK-SEMANTICS]［適用範囲］により敵マスターの手のみを拘束する。HIT（定跡手・待機）は
+// 探索せず返し、BOOK_MISS は探索に委ねる。いずれも更新後の定跡進行状態を決定に添える。
 export function decideActionDetailed(
   state: BattleState,
   unit: Unit,
   prof: EffectiveProfile,
   deps: StepDeps,
 ): DecideActionResult {
+  if (prof.bookId !== null && unit.side === 'FOE' && unit.unit_kind === 'MASTER') {
+    const lookup = lookupBook(state, unit, bookOf(prof.bookId));
+    if (lookup.kind === 'MOVE') {
+      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
+    }
+    if (lookup.kind === 'PASS_MOVE') {
+      return { decision: { kind: 'PASS', book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
+    }
+    const searched = searchRoot(state, unit, prof, deps);
+    return { ...searched, decision: { ...searched.decision, book: lookup.progress, source: 'SEARCH' } };
+  }
+  const searched = searchRoot(state, unit, prof, deps);
+  return { ...searched, decision: { ...searched.decision, source: 'SEARCH' } };
+}
+
+function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): DecideActionResult {
   const budget: NodeBudget = { remaining: prof.nodeLimit };
-  let bestDecision: Decision = { kind: 'PASS' };
+  let bestDecision: ResolvedDecision = { kind: 'PASS' };
   let bestScore = 0;
   let completedAnyDepth = false;
 
@@ -162,7 +224,7 @@ export function decideActionDetailed(
     const ctx: SearchCtx = { prof, deps, budget };
     let ranked: RankedMove[];
     try {
-      ranked = rankMoves(state, unit, ctx, depth, 0);
+      ranked = rankMoves(state, unit, ctx, depth, 0, []);
     } catch (error) {
       if (error instanceof NodeBudgetExceeded) {
         break; // 直前深さの結果を採用して打ち切る
@@ -198,6 +260,6 @@ export function decideActionDetailed(
   return { decision: bestDecision, score: bestScore, nodesConsumed: prof.nodeLimit - Math.max(budget.remaining, 0) };
 }
 
-export function decideAction(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): Decision {
+export function decideAction(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): ResolvedDecision {
   return decideActionDetailed(state, unit, prof, deps).decision;
 }

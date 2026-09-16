@@ -173,6 +173,8 @@ export function rootMartialRecord() {
   return {
     class_id: 'ACT_ROOT_MARTIAL',
     display_name: '終焉の太刀',
+    // [I-PLAN-TEXT]［プレースホルダの書式］効果説明は未執筆。補間キーを持たない。
+    description: placeholderText('ACT_ROOT_MARTIAL', []),
     base_uses: -1,
     inheritable: false,
     is_root: true,
@@ -185,6 +187,8 @@ function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, para
   return {
     class_id: classIdValue,
     display_name: displayName,
+    // [I-PLAN-TEXT]［プレースホルダの書式］効果説明は未執筆。補間キーを持たない。
+    description: placeholderText(classIdValue, []),
     base_uses: baseUsesCenti,
     inheritable,
     is_root: false,
@@ -196,6 +200,50 @@ function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, para
 // [M-BASE-USES] 基本型の基礎使用回数。
 const USES_BASIC = 1000; // 10.00 回
 const USES_HEAVY = 300; // 3.00 回
+
+// [A-BOOK-SCHEMA]［テンプレートとレコードの関係］セレクタの照合に用いる構成テンプレートの1行。
+// arMultCenti は AR ≒ L * n の n（centi）。根源武技はテンプレート行ではないため含めない。
+function templateRow(component, variant, arMultCenti, classIdValue) {
+  return { component, variant, arMultCenti, classId: classIdValue };
+}
+
+// [M-TMPL-ENEMY-1-01] 祠守レフの構成テンプレート行。
+export function enemyLefTemplate(level) {
+  const arBase = level * 10;
+  const arDouble = level * 20;
+  return [
+    templateRow('MIND', 'BASIC', 100, classId('MIND', arBase)),
+    templateRow('MIND', 'MUSOU', 100, classId('MUSOU', arBase)),
+    templateRow('MARTIAL', 'BASIC', 100, classId('SLASH', arBase)),
+    templateRow('MARTIAL', 'BASIC', 200, classId('SLASH', arDouble)),
+    templateRow('MARTIAL', 'HEAVY', 100, classId('HEAVY', arBase)),
+    templateRow('STANCE', 'BASIC', 100, classId('GUARD', arBase)),
+    templateRow('STANCE', 'BASIC', 200, classId('GUARD', arDouble)),
+  ];
+}
+
+// [A-BOOK-SCHEMA] 人が書く定跡（セレクタ）を、参照元の敵マスターの構成テンプレートに照合して class_id へ展開する。
+// 照合結果が一意でない場合はオーサリングエラーとして棄却する。
+export function buildBookRecord(book, template) {
+  const steps = book.steps.map((step, index) => {
+    if (step.kind !== 'FIXED') {
+      throw new Error(`${book.book_id} #${index + 1}: FIXED 以外の定跡手は未対応`);
+    }
+    const { component, variant, ar_mult: arMult } = step.selector;
+    const arMultCenti = decimalStringToCenti(arMult);
+    const matches = template.filter(
+      (row) => row.component === component && row.variant === variant && row.arMultCenti === arMultCenti,
+    );
+    if (matches.length !== 1) {
+      throw new Error(`${book.book_id} #${index + 1}: セレクタの照合が一意でない（${matches.length}件）`);
+    }
+    return { kind: 'FIXED', class_id: matches[0].classId, resolver: null, resolved_by_system: null, can_wait: step.can_wait };
+  });
+  if (steps.length === 0) {
+    throw new Error(`${book.book_id}: steps は空配列を認めない`);
+  }
+  return { book_id: book.book_id, steps };
+}
 
 // [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-01]
 // 1-01 の敵マスター「祠守レフ」が生成する所持アクション一式。
@@ -214,6 +262,24 @@ export function generateEnemyLefActions(level) {
     rootMartialRecord(),
   ];
   return records;
+}
+
+// [M-TMPL-ENEMY-1-02] 辺境伯ドルンの構成テンプレート行。
+export function enemyDornTemplate(level) {
+  const arBase = level * 10;
+  const arDouble = level * 20;
+  const arTriple = level * 30;
+  return [
+    templateRow('MIND', 'BASIC', 100, classId('MIND', arBase)),
+    templateRow('MIND', 'MUSOU', 100, classId('MUSOU', arBase)),
+    templateRow('MARTIAL', 'BASIC', 100, classId('SLASH', arBase)),
+    templateRow('MARTIAL', 'BASIC', 200, classId('SLASH', arDouble)),
+    templateRow('MARTIAL', 'BASIC', 300, classId('SLASH', arTriple)),
+    templateRow('MARTIAL', 'RUSH', 100, classId('RUSH', arBase)),
+    templateRow('MARTIAL', 'HEAVY', 100, classId('HEAVY', arBase)),
+    templateRow('STANCE', 'BASIC', 100, classId('GUARD', arBase)),
+    templateRow('STANCE', 'BASIC', 200, classId('GUARD', arDouble)),
+  ];
 }
 
 // [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-02]
@@ -347,4 +413,108 @@ export function generateEnemyLef(level, maxHp) {
     },
     actions,
   };
+}
+
+// [A-PROFILE-SCHEMA] 人が書く入力をレコードへ写す。weight_mult は centi へ変換する。
+export function buildAiProfileRecords(profiles) {
+  const result = {};
+  for (const profile of profiles) {
+    const weightMult = {};
+    for (const key of Object.keys(profile.weight_mult).sort()) {
+      weightMult[key] = decimalStringToCenti(profile.weight_mult[key]);
+    }
+    const actionBonus = {};
+    for (const key of Object.keys(profile.action_bonus).sort()) {
+      actionBonus[key] = profile.action_bonus[key];
+    }
+    result[profile.profile_id] = {
+      profile_id: profile.profile_id,
+      display_name: profile.display_name,
+      weight_mult: weightMult,
+      action_bonus: actionBonus,
+      dynamic_weight: profile.dynamic_weight,
+    };
+  }
+  return result;
+}
+
+// [M-DATA-INTERP]［文脈束］各束が供給する代表的な補間キー。プレースホルダ本文の組み立てに用いる。
+const BUNDLE_KEYS = {
+  ACTION: ['ActionName'],
+  UNIT: ['UnitName'],
+  ATTENDANT: ['AttendantName'],
+  ENEMY: ['EnemyName'],
+  PAUSE: ['WatchLabel', 'RemainingSteps'],
+  SACRIFICE: ['PartyCountAfter'],
+  REFILL: ['SlotCount', 'RemainCount'],
+  HELP: ['HelpTitle', 'HelpBody'],
+};
+
+// [I-PLAN-TEXT]［プレースホルダの書式］レコードIDを角括弧で囲み、用いる補間キーを列挙する。
+export function placeholderText(recordId, keys) {
+  const interpolations = keys.map((key) => `{${key}}`);
+  return [`[${recordId}]`, ...interpolations].join(' ');
+}
+
+// [M-DATA-STRINGMASTER]［見出しとボタン名］基底の string_id に _HEAD / _BTN を後置する。
+export function buildStringRecords(strings) {
+  const result = {};
+  const add = (stringId, context, keys) => {
+    if (result[stringId] !== undefined) {
+      throw new Error(`文言IDの重複: ${stringId}`);
+    }
+    result[stringId] = { string_id: stringId, text: placeholderText(stringId, keys), context: [...context] };
+  };
+  for (const entry of strings) {
+    const context = [...entry.context].sort();
+    const keys = [...context.flatMap((bundle) => BUNDLE_KEYS[bundle] ?? []), ...(entry.keys ?? [])];
+    add(entry.string_id, context, keys);
+    if (entry.confirm === true) {
+      // 確認ダイアログは見出しと決定ボタン名を別レコードで持つ。いずれも共通キーのみで書く。
+      add(`${entry.string_id}_HEAD`, [], []);
+      add(`${entry.string_id}_BTN`, [], []);
+    }
+  }
+  return result;
+}
+
+// [M-DATA-HELPMASTER] order は同一 category 内での定義順に 1 から振る。
+export function buildHelpRecords(helps) {
+  const result = {};
+  const orders = {};
+  for (const entry of helps) {
+    if (result[entry.help_id] !== undefined) {
+      throw new Error(`解説IDの重複: ${entry.help_id}`);
+    }
+    orders[entry.category] = (orders[entry.category] ?? 0) + 1;
+    result[entry.help_id] = {
+      help_id: entry.help_id,
+      title: placeholderText(`${entry.help_id}_TITLE`, []),
+      body: placeholderText(entry.help_id, []),
+      unlock_key: entry.unlock_key,
+      category: entry.category,
+      order: orders[entry.category],
+    };
+  }
+  return result;
+}
+
+// [M-DATA-ASSETMASTER] 条件付必須（owner_id・cue）をオーサリング時に検査する。
+export function buildAssetRecords(assets) {
+  const result = {};
+  for (const entry of assets) {
+    if (result[entry.asset_id] !== undefined) {
+      throw new Error(`アセットIDの重複: ${entry.asset_id}`);
+    }
+    const ownerless = entry.owner_kind === 'HERO' || entry.owner_kind === 'GLOBAL';
+    if (ownerless !== (entry.owner_id === null)) {
+      throw new Error(`owner_id の条件付必須に反する: ${entry.asset_id}`);
+    }
+    const audio = entry.slot === 'BGM' || entry.slot === 'SE';
+    if (audio !== (entry.cue !== null)) {
+      throw new Error(`cue の条件付必須に反する: ${entry.asset_id}`);
+    }
+    result[entry.asset_id] = { ...entry };
+  }
+  return result;
 }

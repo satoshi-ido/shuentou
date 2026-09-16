@@ -102,6 +102,21 @@ export interface AttendantMasterRecord {
   readonly coeffs: Readonly<Partial<Record<CoeffKey, number>>>;
 }
 
+// [A-BOOK-SCHEMA] 定跡手（steps の要素）。
+export interface BookStepRecord {
+  readonly kind: 'FIXED' | 'DYNAMIC';
+  readonly class_id: string | null; // kind == FIXED のとき非 null
+  readonly resolver: 'MIRROR_FIRST_SYSTEM' | null; // kind == DYNAMIC のとき非 null
+  readonly resolved_by_system: Readonly<Record<string, string | null>> | null;
+  readonly can_wait: boolean;
+}
+
+// [A-BOOK-SCHEMA] 定跡マスタのレコード。
+export interface BookMasterRecord {
+  readonly book_id: string; // `B-NN`
+  readonly steps: readonly BookStepRecord[];
+}
+
 // [M-DATA-ENEMYMASTER]
 export interface EnemyMasterRecord {
   readonly enemy_id: string; // 体系は [M-DATA-ENEMYID]
@@ -113,4 +128,61 @@ export interface EnemyMasterRecord {
   readonly book_id: string | null; // `B-NN` 形式。省略時は定跡なし
   readonly fixed_cycle: readonly string[] | null; // ai_profile_id が null のときのみ非 null
   readonly audit_exempt: boolean;
+}
+
+// [A-PROFILE-SCHEMA] AIプロファイルマスタのレコード。weight_mult は centi（既定100）、
+// action_bonus は評価値と同じ固定小数。既定値と同値のエントリは置かない。
+export interface AiProfileRecord {
+  readonly profile_id: string; // 体系は [A-PROFILE-ID]
+  readonly display_name: string;
+  readonly weight_mult: Readonly<Record<string, number>>;
+  readonly action_bonus: Readonly<Record<string, number>>;
+  readonly dynamic_weight: 'MIRROR_STATS' | null;
+}
+
+// [M-DATA-INTERP]［文脈束］
+export type ContextBundle = 'ACTION' | 'UNIT' | 'ATTENDANT' | 'ENEMY' | 'PAUSE' | 'SACRIFICE' | 'REFILL' | 'HELP';
+
+// [M-DATA-STRINGMASTER]
+export interface StringMasterRecord {
+  readonly string_id: string; // STR_ を接頭とする
+  readonly text: string; // 補間記法は [M-DATA-INTERP]
+  readonly context: readonly ContextBundle[]; // 本文が用いる束のみを列挙する
+}
+
+// [M-DATA-HELPMASTER]
+export type HelpCategory = 'RESOURCE' | 'STEP' | 'ACTION' | 'PROGRESS' | 'UI';
+
+export interface HelpMasterRecord {
+  readonly help_id: string; // HELP_ を接頭とする
+  readonly title: string;
+  readonly body: string; // 実効値キーを認めない
+  readonly unlock_key: string | null; // 語彙は [M-DATA-UNLOCKKEYS]
+  readonly category: HelpCategory;
+  readonly order: number; // 同一 category 内の並び順
+}
+
+// [M-DATA-ASSETMASTER]
+export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTION' | 'SCENE' | 'SCRIPT' | 'GLOBAL';
+export type AssetSlot = 'PORTRAIT' | 'PLATE' | 'ICON' | 'BGM' | 'SE';
+// [M-DATA-AUDIO-CUE]
+export type AudioCueKey =
+  | 'BATTLE'
+  | 'INTERMISSION'
+  | 'SCRIPT'
+  | 'ACTION_TRIGGER'
+  | 'HIT'
+  | 'MISS'
+  | 'UNIT_DESTROY'
+  | 'WATCH_PAUSE'
+  | 'UI_CONFIRM'
+  | 'UI_CANCEL';
+
+export interface AssetMasterRecord {
+  readonly asset_id: string; // ASSET_ を接頭とする
+  readonly owner_kind: AssetOwnerKind;
+  readonly owner_id: string | null; // owner_kind が HERO・GLOBAL のとき Null
+  readonly slot: AssetSlot;
+  readonly cue: AudioCueKey | null; // slot が BGM・SE のとき非Null
+  readonly path: string;
 }

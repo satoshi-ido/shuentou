@@ -2,6 +2,7 @@
 
 import type {
   ActionMasterRecord,
+  BookMasterRecord,
   AttendantMasterRecord,
   EnemyMasterRecord,
   SceneMasterRecord,
@@ -11,6 +12,7 @@ export interface GameMasters {
   readonly actions: Readonly<Record<string, ActionMasterRecord>>;
   readonly enemies: Readonly<Record<string, EnemyMasterRecord>>;
   readonly scenes: Readonly<Record<string, SceneMasterRecord>>;
+  readonly books: Readonly<Record<string, BookMasterRecord>>;
   readonly attendants: Readonly<Record<string, AttendantMasterRecord>>;
   readonly heroInitActions: readonly string[];
   // 辞書型ステートの要素集合。[M-STATE-RUNSTATE] cross_unlocked は交差残響マスタの cross_id、
@@ -46,6 +48,10 @@ export function enemyOf(masters: GameMasters, enemyId: string): EnemyMasterRecor
 
 export function actionOf(masters: GameMasters, classId: string): ActionMasterRecord {
   return lookup(masters.actions, classId, 'アクションクラスID');
+}
+
+export function bookOf(masters: GameMasters, bookId: string): BookMasterRecord {
+  return lookup(masters.books, bookId, '定跡ID');
 }
 
 export function attendantOf(masters: GameMasters, attendantId: string): AttendantMasterRecord {
