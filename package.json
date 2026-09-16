@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "gen:master": "node tools/genmaster/index.js",
-    "id": "node tools/docindex/index.js"
+    "id": "node tools/docindex/index.js",
+    "audit": "node tools/audit/index.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

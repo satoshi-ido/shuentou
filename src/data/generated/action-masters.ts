@@ -10034,8 +10034,8 @@ export const ACTION_MASTERS = {
       "is_swap": false,
       "summon_id": null,
       "deploy_ap": 0,
-      "gain_vp": 0,
-      "charge_pp": 0,
+      "gain_vp": 9,
+      "charge_pp": 478,
       "purify_rate": 0,
       "give_buff": {
         "cost_pp": 33
@@ -10120,8 +10120,8 @@ export const ACTION_MASTERS = {
       "is_swap": false,
       "summon_id": null,
       "deploy_ap": 0,
-      "gain_vp": 0,
-      "charge_pp": 0,
+      "gain_vp": 11,
+      "charge_pp": 568,
       "purify_rate": 0,
       "give_buff": {
         "step_startup": 33
@@ -10163,8 +10163,8 @@ export const ACTION_MASTERS = {
       "is_swap": false,
       "summon_id": null,
       "deploy_ap": 0,
-      "gain_vp": 0,
-      "charge_pp": 0,
+      "gain_vp": 10,
+      "charge_pp": 519,
       "purify_rate": 0,
       "give_buff": {
         "step_thought": 33
@@ -10251,8 +10251,8 @@ export const ACTION_MASTERS = {
       "is_swap": false,
       "summon_id": null,
       "deploy_ap": 69,
-      "gain_vp": 0,
-      "charge_pp": 0,
+      "gain_vp": 12,
+      "charge_pp": 614,
       "purify_rate": 50,
       "give_buff": {
         "decay_ap": 33,

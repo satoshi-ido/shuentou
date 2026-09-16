@@ -222,6 +222,9 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BUFF_COST_PP_ROUD',
         display_name: '剣聖の見切り',
+        // 与バフ量は [M-RESOLVE-ORDER] Step 3（FLAG_MIND）で解決されるため、本アクションは心気を内包する
+        // 複合特殊アクションである（[M-BASE-AR-COMPOSITE]）。心気コンポーネントの基礎値を併せて取り込む。
+        compose: { from: 'MIND/BASIC', keys: ['gain_vp', 'charge_pp'] },
         override: { give_buff: { cost_pp: DEC } },
       },
     ],
@@ -297,6 +300,9 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN',
         display_name: '先駆けの号',
+        // 与バフ量は [M-RESOLVE-ORDER] Step 3（FLAG_MIND）で解決されるため、本アクションは心気を内包する
+        // 複合特殊アクションである（[M-BASE-AR-COMPOSITE]）。心気コンポーネントの基礎値を併せて取り込む。
+        compose: { from: 'MIND/BASIC', keys: ['gain_vp', 'charge_pp'] },
         override: { give_buff: { step_thought: DEC } },
       },
     ],
@@ -318,6 +324,9 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BUFF_STEP_STARTUP_OREIN',
         display_name: '囁く岩の報せ',
+        // 与バフ量は [M-RESOLVE-ORDER] Step 3（FLAG_MIND）で解決されるため、本アクションは心気を内包する
+        // 複合特殊アクションである（[M-BASE-AR-COMPOSITE]）。心気コンポーネントの基礎値を併せて取り込む。
+        compose: { from: 'MIND/BASIC', keys: ['gain_vp', 'charge_pp'] },
         override: { give_buff: { step_startup: DEC } },
       },
     ],
@@ -342,6 +351,9 @@ export const ENEMIES = [
         ar_mult: 400,
         class_id: 'ACT_SPEC_BUFF_WALL_SERG',
         display_name: '逆さの守り',
+        // 与バフ量は [M-RESOLVE-ORDER] Step 3（FLAG_MIND）で解決されるため、本アクションは心気を内包する
+        // 複合特殊アクションである（[M-BASE-AR-COMPOSITE]）。心気コンポーネントの基礎値を併せて取り込む。
+        compose: { from: 'MIND/BASIC', keys: ['gain_vp', 'charge_pp'] },
         override: { deploy_ap: 69, give_buff: { decay_ap: DEC, deploy_ap: INC } },
       },
     ],
