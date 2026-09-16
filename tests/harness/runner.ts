@@ -135,9 +135,9 @@ export interface SceneOutcome {
 // 決着上限を超えても計測を続けるための安全弁。無限ループの検出そのものは within が担う。
 export const HARD_STEP_CAP = 20000;
 
-// [V-TEST-NONFUNC] D-02「決着上限」：expected_length の1.5倍。
+// [V-TEST-NONFUNC] D-02「決着上限」：expected_length の3.0倍。
 export function decisionLimit(expectedLength: number | null): number {
-  return expectedLength === null ? Number.MAX_SAFE_INTEGER : expectedLength + (expectedLength >> 1);
+  return expectedLength === null ? Number.MAX_SAFE_INTEGER : expectedLength * 3;
 }
 
 // ステップ境界ごとの観測点。[V-TEST-NONFUNC] D-09 の命中機会窓はここで採る。

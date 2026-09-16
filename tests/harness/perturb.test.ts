@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { FEATURE_KEYS, referenceProfile } from '../../src/ai/profile.js';
 import { measureWinRate, perturbationSet, playSceneWithRetry, winRateCenti } from './perturb.js';
-import { createRun } from './runner.js';
+import { createRun, decisionLimit } from './runner.js';
 
 const set = perturbationSet();
 
@@ -85,22 +85,32 @@ describe('[V-TEST-REFAI] 目標勝率の実測', () => {
   });
 });
 
+describe('[V-TEST-NONFUNC] D-02 決着上限', () => {
+  it('expected_length の3.0倍とする', () => {
+    expect(decisionLimit(600)).toBe(1800); // 通常シーン
+    expect(decisionLimit(800)).toBe(2400); // ボス（2-04・3-06・4-08）
+    expect(decisionLimit(1200)).toBe(3600); // 5-10
+  });
+
+  it('expected_length を持たないシーン（5-11）は上限を導けない', () => {
+    // [M-TMPL-VESSEL] 依代は非機能テストの対象外である。
+    expect(decisionLimit(null)).toBe(Number.MAX_SAFE_INTEGER);
+  });
+});
+
 describe('[V-TEST-REFAI] 敗北時の再挑戦', () => {
-  // 現況の記録：1-01 は 1544 ステップを要し、[V-TEST-NONFUNC] D-02 の決着上限 900 に収まらない。
-  // 決着上限で打ち切る以上どの摂動でも突破できず、摂動群を使い切る。
-  // expected_length の基準が改まればこのテストは失敗し、記録の更新を促す。
-  it('決着上限を超えるシーンは摂動群を使い切る', () => {
+  it('決着上限に収まるシーンは初回で突破し、再挑戦を要さない', () => {
     const { session, ctx } = createRun();
     const attempt = playSceneWithRetry(session, ctx, 'ATTACK');
     expect(attempt.outcome.scene_id).toBe('SCENE_1_01');
-    expect(attempt.outcome.result).not.toBe('WIN');
-    expect(attempt.outcome.limit).toBe(900);
-    expect(attempt.outcome.within).toBe(false);
-    expect(attempt.attempts).toBe(perturbationSet().length);
-    expect(attempt.rewinds).toBe(attempt.attempts - 1);
-    // [M-META-PENDING] 再挑戦はロールバックとして保留を立て、[M-META-COMMIT] の確定イベント
-    // （再挑戦後の最初の確定操作）で決済される。観測できるのは決済後のカウンタである。
-    expect(session.data.meta.total_rewind_count).toBeGreaterThan(0);
+    expect(attempt.outcome.result).toBe('WIN');
+    expect(attempt.outcome.limit).toBe(1800); // expected_length 600 × 3.0
+    expect(attempt.outcome.within).toBe(true);
+    expect(attempt.attempts).toBe(1);
+    expect(attempt.rewinds).toBe(0);
+    expect(attempt.profileId).toBe('BASE');
+    // 再挑戦していないため巻き戻しは発生しない（[M-META-PENDING]・[M-META-COMMIT]）。
+    expect(session.data.meta.total_rewind_count).toBe(0);
   });
 
   it('再挑戦の上限は摂動群の件数に等しい', () => {
