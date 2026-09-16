@@ -130,6 +130,8 @@ export function playRunWithRetry(
   policy: RefPolicy,
   lastOrder = 30,
   observeFor?: (sceneId: string) => StepObserver,
+  // 長時間の測定のため、1シーン決着ごとに経過を報告する受け口を置く。
+  report?: (attempt: SceneAttempts) => void,
 ): RetryRunOutcome {
   const { session, ctx } = createRun();
   const scenes: SceneAttempts[] = [];
@@ -140,6 +142,7 @@ export function playRunWithRetry(
     const attempt = playSceneWithRetry(session, ctx, policy, observe);
     scenes.push(attempt);
     rewinds += attempt.rewinds;
+    report?.(attempt);
     if (attempt.outcome.result !== 'WIN') {
       return { scenes, completed: false, rewinds };
     }
