@@ -3,6 +3,7 @@
 import type {
   ActionMasterRecord,
   BookMasterRecord,
+  BreakerRecord,
   AttendantMasterRecord,
   CreatureMasterRecord,
   EnemyMasterRecord,
@@ -14,6 +15,8 @@ export interface GameMasters {
   readonly enemies: Readonly<Record<string, EnemyMasterRecord>>;
   readonly scenes: Readonly<Record<string, SceneMasterRecord>>;
   readonly books: Readonly<Record<string, BookMasterRecord>>;
+  // [M-INHERIT-POOL]［壁割り手段の常設］担当シーンの進行順で昇順。
+  readonly breakers: readonly BreakerRecord[];
   readonly creatures: Readonly<Record<string, CreatureMasterRecord>>;
   readonly attendants: Readonly<Record<string, AttendantMasterRecord>>;
   readonly heroInitActions: readonly string[];

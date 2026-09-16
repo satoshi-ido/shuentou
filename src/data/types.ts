@@ -138,6 +138,12 @@ export interface CreatureMasterRecord {
   readonly acts: readonly string[]; // 配列インデックス0は隊列交代（単体）で固定する
 }
 
+// [M-INHERIT-POOL]［壁割り手段の常設］[M-GUARD-BREAKER] の担当表。order は担当シーンの進行順。
+export interface BreakerRecord {
+  readonly class_id: string;
+  readonly order: number; // 担当シーンの [M-DATA-SCENEMASTER] order
+}
+
 // [A-PROFILE-SCHEMA] AIプロファイルマスタのレコード。weight_mult は centi（既定100）、
 // action_bonus は評価値と同じ固定小数。既定値と同値のエントリは置かない。
 export interface AiProfileRecord {

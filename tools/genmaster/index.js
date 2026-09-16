@@ -134,6 +134,22 @@ function main() {
   );
   writeGenerated('hero-init.ts', serializeHeroInit(heroInit.order));
 
+  // [M-INHERIT-POOL]［壁割り手段の常設］担当表は authoring の breaker 枠から導く。
+  const breakers = [];
+  for (const entry of ENEMIES) {
+    for (const special of entry.specials ?? []) {
+      if (special.breaker !== undefined) {
+        breakers.push({ class_id: special.class_id, order: sceneById(entry.scene_id).order });
+      }
+    }
+  }
+  breakers.sort((left, right) => left.order - right.order);
+  writeGenerated(
+    'breaker-masters.ts',
+    `import type { BreakerRecord } from '../types.js';\n\n` +
+      `export const BREAKERS = ${JSON.stringify(breakers, null, 2)} as const satisfies readonly BreakerRecord[];\n`,
+  );
+
   // [A-BOOK-SCHEMA] セレクタを参照元の敵マスターの構成テンプレートに照合して class_id へ展開する。
   const bookMasters = {};
   for (const book of BOOKS) {

@@ -2,6 +2,7 @@
 
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
+import { BREAKERS } from '../../src/data/generated/breaker-masters.js';
 import { BOOK_MASTERS } from '../../src/data/generated/book-masters.js';
 import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
@@ -18,6 +19,7 @@ export const MASTERS: GameMasters = {
   enemies: ENEMY_MASTERS,
   scenes: SCENE_MASTERS,
   books: BOOK_MASTERS,
+  breakers: BREAKERS,
   creatures: CREATURE_MASTERS,
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,

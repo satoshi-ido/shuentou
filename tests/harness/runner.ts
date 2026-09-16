@@ -8,6 +8,7 @@
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { AI_PROFILE_MASTERS } from '../../src/data/generated/ai-profile-masters.js';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
+import { BREAKERS } from '../../src/data/generated/breaker-masters.js';
 import { BOOK_MASTERS } from '../../src/data/generated/book-masters.js';
 import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
@@ -41,6 +42,7 @@ export const MASTERS: GameMasters = {
   enemies: ENEMY_MASTERS,
   scenes: SCENE_MASTERS,
   books: BOOK_MASTERS,
+  breakers: BREAKERS,
   creatures: CREATURE_MASTERS,
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
@@ -126,7 +128,7 @@ export interface SceneOutcome {
   readonly scene_id: string;
   readonly result: BattleResult;
   readonly steps: number; // 決着ステップ（打ち切り時は打ち切り位置）
-  readonly limit: number; // expected_length の1.5倍（[V-TEST-NONFUNC] D-02）
+  readonly limit: number; // expected_length の3.0倍（[V-TEST-NONFUNC] D-02）
   // D-02・D-08 の合否。「決着」は勝敗の確定であり、敗北も決着に数える（[V-TEST-REFAI] の目標勝率は
   // ボスで 40%・5-10 で 25% を見込むため、1試行の敗北は膠着の徴候ではない）。
   readonly within: boolean;
