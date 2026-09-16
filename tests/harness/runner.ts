@@ -237,7 +237,7 @@ export function playScene(
 function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: number): InheritTarget | null {
   const actions = pool.filter((target): target is { kind: 'ACTION'; class_id: string } => target.kind === 'ACTION');
   const maxHp = pool.find((target) => target.kind === 'MAX_HP') ?? null;
-  const paramOf = (target: { class_id: string }, key: 'atk' | 'dmg_hp' | 'deploy_ap') =>
+  const paramOf = (target: { class_id: string }, key: 'atk' | 'dmg_hp' | 'deploy_ap' | 'gain_vp') =>
     ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS].params[key];
   const flagged = (target: { class_id: string }, key: 'atk' | 'deploy_ap' | 'charge_pp') =>
     paramOf(target as { class_id: string }, key as 'atk' | 'deploy_ap') > 0;
@@ -262,14 +262,16 @@ function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: 
     return stances.reduce((best, target) => (paramOf(target, 'deploy_ap') > paramOf(best, 'deploy_ap') ? target : best));
   }
   // バランス型：武技・心気・体勢を循環選択する。
-  const cycle: Array<'atk' | 'charge_pp' | 'deploy_ap'> = ['atk', 'charge_pp', 'deploy_ap'];
+  // [V-TEST-REFAI]［循環選択における系統内の選択］選んだ系統の中では特性パラメータが最大の項目を選ぶ。
+  // 武技は基礎攻撃力、心気は加算VP、体勢は展開AP。
+  const cycle: Array<'atk' | 'gain_vp' | 'deploy_ap'> = ['atk', 'gain_vp', 'deploy_ap'];
   for (let offset = 0; offset < cycle.length; offset += 1) {
     const key = cycle[(turn + offset) % cycle.length];
-    const found = actions.find(
+    const candidates = actions.filter(
       (target) => ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS].params[key] > 0,
     );
-    if (found !== undefined) {
-      return found;
+    if (candidates.length > 0) {
+      return candidates.reduce((best, target) => (paramOf(target, key) > paramOf(best, key) ? target : best));
     }
   }
   return maxHp ?? actions[0] ?? null;
