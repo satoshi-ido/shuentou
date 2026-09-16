@@ -27,6 +27,8 @@ import { confirmInherit, confirmRefill, enterTransition, settleIntermission } fr
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
+import { deriveSysFlags } from '../../src/engine/flags.js';
+import { INFINITE_USES } from '../../src/engine/params.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
 import type { GameMasters } from '../../src/engine/run/masters.js';
 import type { StepDeps } from '../../src/engine/pipeline/step.js';
@@ -263,17 +265,59 @@ function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: 
   return maxHp ?? actions[0] ?? null;
 }
 
+// [V-TEST-REFAI]［リソース生成手段の維持］主人公が保持する FLAG_MIND のアクションの残り使用回数の合計。
+// 無限回数は枯渇しないため上限値として扱う。
+export function mindUsesLeft(run: { hero_acts: readonly { sys_flags: readonly string[]; uses_left: number }[] }): number {
+  let total = 0;
+  for (const action of run.hero_acts) {
+    if (!action.sys_flags.includes('FLAG_MIND')) {
+      continue;
+    }
+    if (action.uses_left === INFINITE_USES) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    total += action.uses_left;
+  }
+  return total;
+}
+
+// 継承プールの FLAG_MIND を持つ項目のうち加算VPが最大のもの（同値ならプールの走査順で最初のもの）。
+export function chooseMindRefill(pool: readonly InheritTarget[]): InheritTarget | null {
+  let best: { target: InheritTarget; gainVp: number } | null = null;
+  for (const target of pool) {
+    if (target.kind !== 'ACTION') {
+      continue;
+    }
+    const record = ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS];
+    if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
+      continue;
+    }
+    if (best === null || record.params.gain_vp > best.gainVp) {
+      best = { target, gainVp: record.params.gain_vp };
+    }
+  }
+  return best?.target ?? null;
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
   if (policy !== 'PASSIVE') {
+    // [V-TEST-REFAI]［リソース生成手段の維持］判定はインターミッション開始時に1度だけ行い、
+    // 読み替えは当該インターミッションの継承枠1件に限る。
+    let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
-      const target = chooseInherit(inheritPool(run, MASTERS), policy, turn);
+      const pool = inheritPool(run, MASTERS);
+      const refill = refillMind ? chooseMindRefill(pool) : null;
+      const target = refill ?? chooseInherit(pool, policy, turn);
       if (target === null) {
         continue;
+      }
+      if (refill !== null) {
+        refillMind = false;
       }
       confirmInherit(session, ctx, member.attendant_id, target);
     }
