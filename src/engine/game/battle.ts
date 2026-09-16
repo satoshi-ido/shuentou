@@ -212,6 +212,8 @@ export function startBattle(session: GameSession, ctx: GameContext, options: Sta
     enemyRecord: enemy,
     enemyActs,
     instanceIdSeq: run.instance_id_seq,
+    // [A-MIRROR-5-09]［決定論の担保］5-09 に限り、5-08 クリア時に記録した鏡像統計を固定する。
+    mirrorSnapshot: scene.scene_id === 'SCENE_5_09' ? run.mirror_stats : null,
   });
   if (options.watchDefault !== undefined) {
     applyWatchDefault(run.battle_state, options.watchDefault);

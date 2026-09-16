@@ -88,11 +88,15 @@ function createFoeDecision(currentSession: () => GameSession): DecisionProvider 
             scene,
             enemy,
             profile: AI_PROFILE_MASTERS[profileId as keyof typeof AI_PROFILE_MASTERS],
+            // [A-MIRROR-5-09] 5-09 はバトル開始時に固定した鏡像統計から重みを生成する。
+            mirrorStats: state.mirror_snapshot,
           }),
           STEP_DEPS,
         );
       }
-      cache[sceneId] = provider;
+      if (state.mirror_snapshot === null) {
+        cache[sceneId] = provider;
+      }
     }
     return provider(state, unit);
   };
