@@ -653,8 +653,12 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
 
   // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
   // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
-  const message = screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
-  const why = element('div', message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice');
+  // 決着の提示は停止事由より優先する（[M-PIPE-P5-DISCARD]）。
+  const message = screen.resultText !== '' ? screen.resultText : screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
+  const why = element(
+    'div',
+    screen.resultText !== '' ? 'why why-result' : message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice',
+  );
   why.setAttribute('role', 'status');
   why.append(element('span', 'dot'));
   why.append(element('span', 't', message));
@@ -744,6 +748,8 @@ export interface BattleScreenState {
   readonly pauseText: string;
   // 一度だけ提示するシステム文言（アンドゥ履歴が空である旨など）。提示がなければ空文字。
   readonly noticeText: string;
+  // [M-PIPE-P5-DISCARD] 決着した場合の勝敗の提示。決着していなければ空文字。
+  readonly resultText: string;
   readonly selectedInstanceId: string | null;
   readonly focusedInstanceId: string | null;
   readonly speed: PlaybackSpeed;

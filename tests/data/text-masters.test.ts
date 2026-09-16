@@ -3,6 +3,7 @@
 // プレースホルダはレコードの存在を満たすが本文の完成を意味しないため、残存件数を別に数える。
 
 import { describe, expect, it } from 'vitest';
+import mainSource from '../../src/ui/main.ts?raw';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import { HELP_MASTERS } from '../../src/data/generated/help-masters.js';
 import { STRING_MASTERS } from '../../src/data/generated/string-masters.js';
@@ -185,6 +186,35 @@ describe('[M-STATE-ACTIONMASTER] 効果説明', () => {
     for (const record of records) {
       expect(record.description).toBeDefined();
       expect(isPlaceholderText(record.class_id, record.description ?? '')).toBe(true);
+    }
+  });
+});
+
+// [M-DATA-STRINGMASTER]［束の供給義務］context が列挙する束は、解決の時点で供給されていなければならない。
+// 入口（src/ui/main.ts）が共通キーのみで解決している文言IDを走査し、束を要する文言が混じっていないか検査する。
+describe('[M-DATA-INTERP]［束の供給元］共通キーのみの解決', () => {
+  const source = mainSource;
+
+  it('resolveString に渡す文言は文脈束を要しない', () => {
+    const ids = [...source.matchAll(/resolveString\('(STR_[A-Z0-9_]+)'\)/g)].map((matched) => matched[1] ?? '');
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      expect(strings[id], id).toBeDefined();
+      expect(strings[id]?.context ?? [], id).toEqual([]);
+    }
+  });
+
+  it('確認ダイアログの見出しと決定ボタン名は文脈束を要しない（[M-DATA-STRINGS]［見出しとボタン名］）', () => {
+    const bases = [...source.matchAll(/openConfirm\(\s*'(STR_[A-Z0-9_]+)'/g)].map((matched) => matched[1] ?? '');
+    const conditional = [...source.matchAll(/\? '(STR_[A-Z0-9_]+)' : '(STR_[A-Z0-9_]+)'/g)].flatMap((matched) => [matched[1] ?? '', matched[2] ?? '']);
+    const ids = [...new Set([...bases, ...conditional])].filter((id) => id.startsWith('STR_CONFIRM_'));
+    expect(ids.length).toBeGreaterThan(0);
+    for (const id of ids) {
+      for (const suffix of ['_HEAD', '_BTN']) {
+        const record = strings[`${id}${suffix}`];
+        expect(record, `${id}${suffix}`).toBeDefined();
+        expect(record?.context ?? [], `${id}${suffix}`).toEqual([]);
+      }
     }
   });
 });

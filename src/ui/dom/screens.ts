@@ -212,7 +212,7 @@ function inheritOption(
         'span',
         option.improved.length === 0 ? 'improve none' : 'improve',
         option.improved.length === 0
-          ? strings('STR_INHERIT_NO_IMPROVE')
+          ? option.noImproveText
           : `（改善：${option.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)).join(' / ')}）`,
       ),
     );
@@ -549,6 +549,9 @@ export function renderRefill(view: RefillView, handlers: ScreenHandlers): HTMLEl
   if (view.shortText !== '') {
     side.append(element('p', 'notice', view.shortText));
   }
+  if (view.noticeText !== '') {
+    side.append(element('p', 'notice', view.noticeText));
+  }
   grid2.append(side);
 
   const main = element('div', 'refill-main');
@@ -593,6 +596,21 @@ const TEXT_SPEEDS: readonly TextSpeed[] = ['SLOW', 'NORMAL', 'FAST', 'INSTANT'];
 const PLAYBACK_SPEEDS: readonly PlaybackSpeed[] = ['PAUSE', 'X1', 'X2', 'X3'];
 
 // [M-UI-CONFIG] 表示・音響設定。端末ローカル設定であり、セーブデータに含めない。
+// [M-DATA-HELPMASTER] 解説の初出自動提示。読み終えたら閉じ、次の1件へ進む。
+export function renderFirstSightOverlay(
+  help: { readonly title: string; readonly body: string; readonly leadText: string },
+  handlers: ScreenHandlers,
+): HTMLElement {
+  const root = element('div', 'overlay overlay-first-sight');
+  root.append(element('p', 'first-sight-lead', help.leadText));
+  root.append(element('h2', 'overlay-title', help.title));
+  root.append(element('p', 'help-body', help.body));
+  const actions = element('div', 'confirm-actions');
+  actions.append(button('primary', '読み終えた', handlers.onCloseOverlay));
+  root.append(actions);
+  return root;
+}
+
 export function renderConfigOverlay(config: DisplayConfig, handlers: ScreenHandlers): HTMLElement {
   const root = element('div', 'overlay overlay-config');
   root.append(element('h2', 'overlay-title', '設定'));

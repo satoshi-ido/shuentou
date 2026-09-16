@@ -1159,6 +1159,11 @@ button:focus-visible {
 .why-idle { visibility: hidden; }
 
 /* 事由以外のシステム文言（提示は一度きり）。 */
+/* [M-PIPE-P5-DISCARD] 決着の提示。停止事由より強く示す。 */
+.why-result { border-color: var(--hp); background: rgba(210, 67, 79, 0.12); }
+.why-result .dot { background: var(--hp); box-shadow: 0 0 10px rgba(210, 67, 79, 0.8); }
+.why-result .t { color: var(--ink); font-weight: 700; }
+
 .why-notice { border-color: var(--iron); background: transparent; }
 .why-notice .dot { background: var(--muted); box-shadow: none; }
 .why-notice .t { color: var(--muted); }
@@ -1733,4 +1738,9 @@ button:disabled { opacity: 0.4; cursor: default; }
 .dict-body { font-size: 12px; color: var(--muted); }
 .confirm-body,
 .confirm-row { margin: 0; font-size: 12.5px; }
+
+/* [M-DATA-HELPMASTER] 解説の初出自動提示。 */
+.overlay-first-sight { border-color: var(--ember-dim); }
+.first-sight-lead { margin: 0; font-size: 11.5px; letter-spacing: 0.1em; color: var(--ember); }
+.help-body { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 .confirm-actions { display: flex; gap: 8px; margin-top: 6px; }

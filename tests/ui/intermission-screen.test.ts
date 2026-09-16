@@ -58,7 +58,7 @@ function intermission(): IntermissionView {
     selectedAttendantId: attendantId,
     hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),
     inheritDone: false,
-    pool: inheritOptions(run, MASTERS, attendantId, HERO_INIT_UNIT.display_name, actionName),
+    pool: inheritOptions(run, MASTERS, attendantId, HERO_INIT_UNIT.display_name, actionName, () => '改善なし'),
     canSettle: true,
     isActTransition: false,
     noAttendant: false,

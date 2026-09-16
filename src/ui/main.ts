@@ -17,7 +17,7 @@ import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } f
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
 import { executableActions } from '../engine/decision.js';
-import { inheritPool, type InheritTarget } from '../engine/progress/inherit.js';
+import { inheritPool, previewInherit, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canSettleIntermission } from '../engine/progress/refill.js';
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
@@ -33,6 +33,7 @@ import {
   renderConfirmOverlay,
   renderDictionaryOverlay,
   renderEnding,
+  renderFirstSightOverlay,
   renderIntermission,
   renderPreBattle,
   renderRefill,
@@ -42,9 +43,10 @@ import {
   type RollbackTarget,
   type ScreenHandlers,
 } from './dom/screens.js';
+import { PARAM_LABEL } from './format.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
 import { heroView, inheritOptions, refillView } from './view/intermission-view.js';
-import { createStringTable, resolveHelp } from './text.js';
+import { createStringTable, resolveHelp, type BundleValues } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
 import { pauseReasonText, unitBundleOf } from './view/pause-text.js';
 import {
@@ -124,6 +126,8 @@ let selectedInstanceId: string | null = null;
 let focusedInstanceId: string | null = null; // 注目中のアクション（判定プレビューの対象）
 let battleResult: BattleResult = 'PAUSED';
 let notice = ''; // 一度だけ提示するシステム文言（履歴が空である旨など）
+let resultText = ''; // [M-PIPE-P5-DISCARD] 決着の提示。バトルを離れるまで残す。
+let firstSightHelpId: string | null = null; // [M-DATA-HELPMASTER] 初出自動提示の対象
 let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者
 
 const ctx: GameContext = {
@@ -169,6 +173,41 @@ function commonKeys(): Record<string, string | number> {
 }
 
 const resolveString = (stringId: string): string => strings.resolve(stringId, { common: commonKeys() });
+
+// [M-DATA-STRINGS] 継承の結果。見込み（[M-INHERIT-POOL]［継承・統合パイプライン］）の種別で文言を選ぶ。
+function inheritDoneText(attendantId: string, target: InheritTarget): string {
+  const { run } = requireSession().data;
+  const preview = previewInherit(run, masters, attendantId, target);
+  const common = commonKeys();
+  if (preview.kind === 'MAX_HP') {
+    return strings.resolve('STR_INHERIT_HP_ADD', { common, bundles: { ATTENDANT: attendantBundle(attendantId, preview.add) } });
+  }
+  if (preview.kind === 'VANISH') {
+    return resolveString('STR_INHERIT_VANISH');
+  }
+  const label = actionName(preview.classId);
+  if (preview.kind === 'NEW_SLOT') {
+    return strings.resolve('STR_INHERIT_NEW_SLOT', { common, bundles: { ACTION: { ActionName: label } } });
+  }
+  // ［複数対象の提示］改善項目は1件の文言の中で読点で連ねる。
+  const improved = preview.improved.map((key) => PARAM_LABEL[key] ?? (key === 'uses' ? '使用回数' : key)).join('・');
+  return strings.resolve('STR_INHERIT_MERGED', {
+    common,
+    bundles: {
+      ACTION: { ActionName: label, ImprovedList: improved },
+      ATTENDANT: attendantBundle(attendantId),
+    },
+  });
+}
+
+// [M-DATA-INTERP] 従者1名分の文脈束。HpAdd は継承結果の提示でのみ意味を持つ。
+function attendantBundle(attendantId: string, hpAdd = 0): BundleValues {
+  return {
+    AttendantName: attendantName(ATTENDANT_MASTERS, attendantId),
+    AttendantEpithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
+    HpAdd: hpAdd,
+  };
+}
 const actionName = (classId: string): string => actions[classId]?.display_name ?? classId;
 
 const naming: UnitNaming = {
@@ -178,10 +217,15 @@ const naming: UnitNaming = {
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
 };
 
-function openConfirm(baseId: string, rows: readonly string[], onConfirm: () => void): void {
+function openConfirm(
+  baseId: string,
+  rows: readonly string[],
+  onConfirm: () => void,
+  bundles: Readonly<Record<string, BundleValues>> = {},
+): void {
   dialog = {
     headText: resolveString(`${baseId}_HEAD`),
-    bodyText: resolveString(baseId),
+    bodyText: strings.resolve(baseId, { common: commonKeys(), bundles }),
     rows,
     buttonText: resolveString(`${baseId}_BTN`),
     onConfirm: () => {
@@ -208,13 +252,27 @@ function attachClient(sceneId: string): void {
 function startScene(): void {
   const scene = currentScene();
   attachClient(scene.scene_id);
-  battleResult = startBattle(requireSession(), ctx, {
-    watchDefault: config.watchDefault,
-    maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
-  });
+  resultText = '';
+  runAdvance(() =>
+    startBattle(requireSession(), ctx, {
+      watchDefault: config.watchDefault,
+      maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
+    }),
+  );
   loop.speed = config.defaultPlaybackSpeed;
   loop.start();
   render();
+}
+
+// [M-DATA-HELPMASTER]［初出キー］未読の初出解説が残っていれば、次の1件を重ねて提示する。
+function presentFirstSight(): void {
+  if (session === null || session.data.run.phase !== 'PRE_BATTLE' || overlay !== 'NONE') {
+    return;
+  }
+  const { run, meta } = session.data;
+  const next = firstSightHelps(scenes[run.current_scene_id], helps, meta.help_seen)[0] ?? null;
+  firstSightHelpId = next;
+  overlay = next === null ? 'NONE' : 'FIRST_SIGHT';
 }
 
 const screenHandlers: ScreenHandlers = {
@@ -268,6 +326,15 @@ const screenHandlers: ScreenHandlers = {
     render();
   },
   onCloseOverlay: () => {
+    // ［既読の管理］初出の自動提示を読み終えた時点で既読とする。
+    if (overlay === 'FIRST_SIGHT' && firstSightHelpId !== null) {
+      requireSession().data.meta.help_seen[firstSightHelpId] = true;
+      firstSightHelpId = null;
+      overlay = 'NONE';
+      presentFirstSight();
+      render();
+      return;
+    }
     overlay = 'NONE';
     dialog = null;
     render();
@@ -277,14 +344,15 @@ const screenHandlers: ScreenHandlers = {
     saveConfig(window.localStorage, config);
     render();
   },
-  onShowHelp: (helpId) => {
-    // [M-DATA-HELPMASTER]［既読の管理］初出の自動提示で既読とする。辞典からの随時参照は書き換えない。
-    requireSession().data.meta.help_seen[helpId] = true;
+  onShowHelp: () => {
+    // [M-DATA-HELPMASTER]［随時参照］閲覧は既読状態を書き換えない。既読は初出の自動提示で立てる。
     overlay = 'DICTIONARY';
     render();
   },
   onStartBattle: () => startScene(),
   onInherit: (attendantId, target: InheritTarget) => {
+    // 結果の提示は継承の見込み（適用前）から組む（[M-DATA-STRINGS]）。
+    notice = inheritDoneText(attendantId, target);
     confirmInherit(requireSession(), ctx, attendantId, target);
     render();
   },
@@ -293,23 +361,20 @@ const screenHandlers: ScreenHandlers = {
     render();
   },
   onSacrifice: (attendantId) => {
-    const rows = [
-      strings.resolve('STR_CONFIRM_SACRIFICE', {
-        common: commonKeys(),
-        bundles: {
-          ATTENDANT: {
-            AttendantName: attendantName(ATTENDANT_MASTERS, attendantId),
-            AttendantEpithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
-            HpAdd: 0,
-          },
-          SACRIFICE: { PartyCountAfter: requireSession().data.run.party.length - 1 },
-        },
-      }),
-    ];
-    openConfirm('STR_CONFIRM_SACRIFICE', rows, () => {
-      confirmSacrifice(requireSession(), ctx, attendantId);
-      render();
-    });
+    const bundles = {
+      ATTENDANT: attendantBundle(attendantId),
+      SACRIFICE: { PartyCountAfter: requireSession().data.run.party.length - 1 },
+    };
+    openConfirm(
+      'STR_CONFIRM_SACRIFICE',
+      [],
+      () => {
+        confirmSacrifice(requireSession(), ctx, attendantId);
+        notice = strings.resolve('STR_SACRIFICE_DONE', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(attendantId) } });
+        render();
+      },
+      bundles,
+    );
   },
   onSettleIntermission: () => {
     const current = requireSession();
@@ -318,14 +383,28 @@ const screenHandlers: ScreenHandlers = {
       render();
       return;
     }
-    openConfirm('STR_CONFIRM_IM_COMMIT', [], () => {
+    // [M-INHERIT-POOL]［継承枠の失効］どの従者の枠が失効するかを明示した確認を1度だけ行う。
+    const forfeited = current.data.run.party.filter((slot) => slot.inherit_state === 'UNUSED');
+    const rows = forfeited.map((slot) =>
+      strings.resolve('STR_CONFIRM_FORFEIT_ROW', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(slot.attendant_id) } }),
+    );
+    openConfirm(forfeited.length === 0 ? 'STR_CONFIRM_IM_COMMIT' : 'STR_CONFIRM_FORFEIT', rows, () => {
       settleIntermission(requireSession(), ctx);
+      notice = resolveString('STR_IM_COMMIT_DONE');
       render();
     });
   },
+  // [M-PROG-REFILL] 補充の確定確認。対象は行として並べる（[M-DATA-STRINGS]［複数対象の提示］）。
   onRefill: (attendantId) => {
-    confirmRefill(requireSession(), ctx, attendantId);
-    render();
+    const row = strings.resolve('STR_CONFIRM_REFILL_ROW', {
+      common: commonKeys(),
+      bundles: { ATTENDANT: attendantBundle(attendantId) },
+    });
+    openConfirm('STR_CONFIRM_REFILL', [row], () => {
+      confirmRefill(requireSession(), ctx, attendantId);
+      notice = resolveString('STR_REFILL_DONE');
+      render();
+    });
   },
   // [M-REWIND-UNDO]［確認を挟まない］1クリックで即時に適用する。
   // 履歴が空の場合は適用せず、その旨を提示する（[M-STATE-HISTORY]）。
@@ -350,7 +429,7 @@ const screenHandlers: ScreenHandlers = {
     openConfirm('STR_CONFIRM_ROLLBACK_BATTLE', [], () => {
       client?.invalidate();
       // 再開は再生速度に従う（1回の呼び出しで時間停止まで進めきらない）。
-      battleResult = rollbackBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) });
+      runAdvance(() => rollbackBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) }));
       render();
     });
   },
@@ -381,10 +460,32 @@ function stepForward(maxSteps: number): void {
   const session = requireSession();
   const state = session.data.run.battle_state;
   const steps = Math.max(maxSteps, 1);
-  battleResult =
+  runAdvance(() =>
     state !== null && state.pause_reason !== null
       ? resumeTime(session, ctx, { maxSteps: steps })
-      : resumeBattle(session, ctx, { maxSteps: steps });
+      : resumeBattle(session, ctx, { maxSteps: steps }),
+  );
+}
+
+// バトルの進行を1回行う。決着した場合は勝敗を提示する（[M-PIPE-P5-DISCARD]・[M-DATA-STRINGS]）。
+// 勝利の決済では current_scene_id が次のシーンへ進むため、敵の名は進行の前に控える。
+function runAdvance(advance: () => BattleResult): BattleResult {
+  const enemy = session === null ? undefined : enemies[scenes[session.data.run.current_scene_id]?.enemy_id ?? ''];
+  const result = advance();
+  battleResult = result;
+  if (result === 'WIN' || result === 'LOSS') {
+    const text = strings.resolve(result === 'WIN' ? 'STR_RESULT_WIN' : 'STR_RESULT_LOSE', {
+      common: commonKeys(),
+      bundles: { ENEMY: { EnemyName: enemy?.display_name ?? '─', EnemyRoleName: enemy?.role_name ?? '─' } },
+    });
+    // 勝利は画面がインターミッションへ移るため一度だけの提示とし、敗北は盤面に残す。
+    if (result === 'WIN') {
+      notice = text;
+    } else {
+      resultText = text;
+    }
+  }
+  return result;
 }
 
 // 進行中のバトルから離れる：再生ループと探索ワーカーを止める。
@@ -393,6 +494,7 @@ function leaveBattle(): void {
   client?.dispose();
   client = null;
   battleResult = 'PAUSED';
+  resultText = '';
   selectedInstanceId = null;
   focusedInstanceId = null;
   effects.clear();
@@ -419,9 +521,9 @@ const battleHandlers: BattleScreenHandlers = {
     selectedInstanceId = null;
     focusedInstanceId = null;
     // 指示後の進行も再生速度に従う（確定だけで時間停止まで進めきらない）。
-    battleResult = instruct(requireSession(), ctx, unit.unit_id, instanceId, {
-      maxSteps: Math.max(stepsPerFrame(loop.speed), 1),
-    });
+    runAdvance(() =>
+      instruct(requireSession(), ctx, unit.unit_id, instanceId, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) }),
+    );
     render();
   },
   onCancel: () => {
@@ -497,6 +599,7 @@ function renderBattle(): HTMLElement | null {
       view,
       pauseText,
       noticeText: takeNotice(),
+      resultText,
       selectedInstanceId,
       focusedInstanceId,
       speed: loop.speed,
@@ -569,7 +672,9 @@ function renderScreen(): HTMLElement {
           hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),
           // 継承権を使い切った（または継承できる資質がない）時点で供犠を選べるようにする。
           inheritDone: run.party.every((slot) => slot.inherit_state !== 'UNUSED') || inheritPool(run, masters).length === 0,
-          pool: inheritOptions(run, masters, selected, HERO_INIT_UNIT.display_name, actionName),
+          pool: inheritOptions(run, masters, selected, HERO_INIT_UNIT.display_name, actionName, (label) =>
+            strings.resolve('STR_INHERIT_NO_IMPROVE', { common: commonKeys(), bundles: { ACTION: { ActionName: label } } }),
+          ),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
           noAttendant: run.party.length === 0,
@@ -590,6 +695,7 @@ function renderScreen(): HTMLElement {
           (attendantId) => attendantEpithet(ATTENDANT_MASTERS, attendantId),
           (slotCount, remainCount) =>
             strings.resolve('STR_REFILL_SHORT', { common: commonKeys(), bundles: { REFILL: { SlotCount: slotCount, RemainCount: remainCount } } }),
+          takeNotice(),
         ),
         screenHandlers,
       );
@@ -628,12 +734,29 @@ function renderOverlay(): HTMLElement | null {
       return renderRollbackOverlay(rollbackTargets(), resolveString, screenHandlers);
     case 'CONFIRM':
       return dialog === null ? null : renderConfirmOverlay(dialog, screenHandlers);
+    case 'FIRST_SIGHT': {
+      if (firstSightHelpId === null) {
+        return null;
+      }
+      const help = resolveHelp(helps[firstSightHelpId], commonKeys());
+      return renderFirstSightOverlay(
+        {
+          ...help,
+          leadText: strings.resolve('STR_HELP_FIRST_SIGHT', {
+            common: commonKeys(),
+            bundles: { HELP: { HelpTitle: help.title, HelpBody: help.body } },
+          }),
+        },
+        screenHandlers,
+      );
+    }
     default:
       return null;
   }
 }
 
 function render(): void {
+  presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();
   screenRoot.append(renderScreen());
   const overlayNode = renderOverlay();
@@ -650,7 +773,7 @@ const loop = new PlaybackLoop(
       return false;
     }
     if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING') {
-      battleResult = resumeBattle(session, ctx, { maxSteps: stepsPerFrame(speed) });
+      runAdvance(() => resumeBattle(requireSession(), ctx, { maxSteps: stepsPerFrame(speed) }));
       render();
     }
     return true;

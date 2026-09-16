@@ -56,6 +56,7 @@ function viewOf(run: RunState) {
     (attendantId) => attendantName(ATTENDANT_MASTERS, attendantId),
     (attendantId) => attendantEpithet(ATTENDANT_MASTERS, attendantId),
     (slotCount, remainCount) => `残り ${remainCount} / ${slotCount}`,
+    '',
   );
 }
 

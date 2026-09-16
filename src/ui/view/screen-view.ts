@@ -7,7 +7,7 @@ import type { SaveData } from '../../engine/meta/types.js';
 import type { RunState } from '../../engine/run/state.js';
 
 export type ScreenKind = 'TITLE' | 'PRE_BATTLE' | 'BATTLE' | 'INTERMISSION' | 'REFILL' | 'ENDING';
-export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM' | 'ROLLBACK';
+export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM' | 'ROLLBACK' | 'FIRST_SIGHT';
 
 // [M-UI-SCREENS] 画面は phase から定まる。従者補充は INTERMISSION のうちアクト移行の段（[M-PROG-REFILL]）。
 export function screenOf(run: RunState): ScreenKind {
@@ -99,6 +99,8 @@ export interface InheritOptionView {
   readonly boosted: readonly string[];
   // 統合による改善項目（パラメータID）。
   readonly improved: readonly string[];
+  // 改善が0件である旨（STR_INHERIT_NO_IMPROVE）。0件でなければ空文字。
+  readonly noImproveText: string;
   // [M-INHERIT-MERGE]［UI要件］受け継いだ後の主人公と、変化する所持アクション。
   readonly heroAfter: HeroView;
   readonly changedInstanceId: string | null;
@@ -173,6 +175,8 @@ export interface RefillView {
   readonly pool: readonly RefillCandidateView[];
   // 補充可能数を残している旨（STR_REFILL_SHORT）。残っていなければ空文字。
   readonly shortText: string;
+  // 一度だけ提示するシステム文言（補充の完了など）。提示がなければ空文字。
+  readonly noticeText: string;
   readonly canSettle: boolean;
 }
 

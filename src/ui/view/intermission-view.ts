@@ -89,6 +89,7 @@ export function inheritOptions(
   attendantId: string | null,
   heroName: string,
   actionName: ActionNaming,
+  noImproveText: (label: string) => string,
 ): InheritOptionView[] {
   if (attendantId === null) {
     return [];
@@ -100,7 +101,7 @@ export function inheritOptions(
       const preview = previewInherit(run, masters, attendantId, target);
       const label = target.kind === 'MAX_HP' ? '最大HP加算' : actionName(target.class_id);
       const after = heroAfterOf(base, preview, label);
-      const common = { target, label, heroAfter: after.hero, changedInstanceId: after.changedInstanceId };
+      const common = { target, label, heroAfter: after.hero, changedInstanceId: after.changedInstanceId, noImproveText: '' };
       if (preview.kind === 'MAX_HP') {
         return {
           ...common,
@@ -143,6 +144,7 @@ export function inheritOptions(
         // 係数による改善は当該の値を強調し、統合による改善は別に示す。値はパラメータIDのまま渡す。
         boosted: preview.boosted,
         improved: preview.kind === 'MERGE' ? preview.improved : [],
+        noImproveText: preview.kind === 'MERGE' && preview.improved.length === 0 ? noImproveText(label) : '',
       };
     });
 }
@@ -157,6 +159,7 @@ export function refillView(
   attendantName: (attendantId: string) => string,
   attendantEpithet: (attendantId: string) => string,
   shortText: (slotCount: number, remainCount: number) => string,
+  noticeText: string,
 ): RefillView {
   const next = sceneOf(masters, run.current_scene_id);
   const previous = sceneByOrder(masters, next.order - 1);
@@ -196,6 +199,7 @@ export function refillView(
     // 迎え入れた従者を先に置き、残る候補を続ける。
     pool: [...joined.map((id) => candidate(id, true)), ...refillPool(run, masters).map((id) => candidate(id, false))],
     shortText: remain > 0 ? shortText(next.attendant_capacity - survivors.length, remain) : '',
+    noticeText,
     canSettle: canSettleIntermission(run, masters),
   };
 }
