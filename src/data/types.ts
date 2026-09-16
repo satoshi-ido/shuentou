@@ -130,6 +130,14 @@ export interface EnemyMasterRecord {
   readonly audit_exempt: boolean;
 }
 
+// [M-DATA-CREATUREMASTER] 召喚によって実体化するクリーチャー1体分の定義データ。
+export interface CreatureMasterRecord {
+  readonly creature_id: string; // 体系は [M-DATA-CREATUREID]
+  readonly display_name: string;
+  readonly max_hp: number;
+  readonly acts: readonly string[]; // 配列インデックス0は隊列交代（単体）で固定する
+}
+
 // [A-PROFILE-SCHEMA] AIプロファイルマスタのレコード。weight_mult は centi（既定100）、
 // action_bonus は評価値と同じ固定小数。既定値と同値のエントリは置かない。
 export interface AiProfileRecord {

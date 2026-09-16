@@ -1,6 +1,17 @@
 // [I-PLAN-MASTERGEN] 生成結果から [V-NUM-PARAMS] の掲載値が導出できることを検証する。
 import { describe, expect, it } from 'vitest';
-import { generateEnemyLef, generateHeroInitActions } from '../../tools/genmaster/lib.js';
+import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
+import { generateHeroInitActions } from '../../tools/genmaster/lib.js';
+import { expandEnemyTemplate } from '../../tools/genmaster/templates.js';
+import { ENEMIES } from '../../tools/genmaster/authoring/enemies.js';
+
+function expandEnemy(enemyId: string, level: number) {
+  const entry = ENEMIES.find((record: { enemy_id: string }) => record.enemy_id === enemyId);
+  if (entry === undefined) {
+    throw new Error(`敵マスターIDが見つからない: ${enemyId}`);
+  }
+  return expandEnemyTemplate(entry, level, () => null);
+}
 
 function findAction(records: ReadonlyArray<{ class_id: string }>, classId: string) {
   const found = records.find((record) => record.class_id === classId);
@@ -22,7 +33,8 @@ function findAction(records: ReadonlyArray<{ class_id: string }>, classId: strin
 }
 
 describe('[V-NUM-PARAMS] 祠守レフ（L=3）', () => {
-  const { actions, record } = generateEnemyLef(3, 10);
+  const actions = expandEnemy('ENEMY_LEF', 3).records;
+  const record = ENEMY_MASTERS.ENEMY_LEF;
 
   it('武技（基本）AR3', () => {
     const action = findAction(actions, 'ACT_SLASH_AR3');

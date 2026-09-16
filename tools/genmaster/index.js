@@ -1,12 +1,13 @@
+#!/usr/bin/env node
 // [I-PLAN-MASTERGEN]
-// `pnpm gen:master` のエントリポイント。範囲は [I-PLAN-MASTERGEN]［M0 の範囲］および
-// [I-PLAN-MILESTONE]［M3 のマスタ範囲］に従う。
+// `pnpm gen:master` のエントリポイント。範囲は [I-PLAN-MILESTONE] M5（全30シーン＋終局5-11）。
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATTENDANTS } from './authoring/attendants.js';
 import { BOOKS } from './authoring/books.js';
+import { ENEMIES } from './authoring/enemies.js';
 import { AI_PROFILES } from './authoring/profiles.js';
 import { ASSETS } from './authoring/assets.js';
 import { HELPS } from './authoring/helps.js';
@@ -20,13 +21,11 @@ import {
   buildHelpRecords,
   buildStringRecords,
   buildSceneRecords,
-  enemyDornTemplate,
-  enemyLefTemplate,
-  generateEnemyDorn,
-  generateEnemyLef,
+  formatArSuffix,
   generateHeroInitActions,
   mergeActionRecords,
 } from './lib.js';
+import { expandCreature, expandEnemyTemplate } from './templates.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, '..', '..', 'src', 'data', 'generated');
@@ -74,17 +73,58 @@ function sceneById(sceneId) {
   return scene;
 }
 
+// [M-DATA-CREATUREID] 接頭辞 CREATURE_。召喚アクションの ar_summon 帯ごとに造形〈眷属〉を作り分け、
+// 同一レコードを複数の召喚アクションから参照する。
+function creatureIdOf(arSummonTenths) {
+  return `CREATURE_THRALL_${formatArSuffix(arSummonTenths)}`;
+}
+
 function main() {
-  // 敵マスター HP は [M-DATA-SCENES] の「敵マスター HP」列による。
-  const lef = generateEnemyLef(sceneById('SCENE_1_01').level, 10);
-  const dorn = generateEnemyDorn(sceneById('SCENE_1_02').level, 27);
+  const actionGroups = [];
+  const enemyMasters = {};
+  const creatureMasters = {};
+  const templatesByEnemy = {};
+  // 召喚アクションが参照する ar_summon 帯。決定論のため昇順の一意集合として扱う（[I-STATE-JSON]）。
+  const summonBands = [];
+
+  const summonIdOf = (arTenths) => {
+    if (!summonBands.includes(arTenths)) {
+      summonBands.push(arTenths);
+    }
+    return creatureIdOf(arTenths);
+  };
+
+  for (const entry of ENEMIES) {
+    const scene = sceneById(entry.scene_id);
+    const { rows, records, acts } = expandEnemyTemplate(entry, scene.level, summonIdOf);
+    actionGroups.push(records);
+    templatesByEnemy[entry.enemy_id] = rows;
+    enemyMasters[entry.enemy_id] = {
+      enemy_id: entry.enemy_id,
+      display_name: entry.display_name,
+      role_name: entry.role_name,
+      max_hp: entry.max_hp,
+      acts,
+      ai_profile_id: entry.ai_profile_id,
+      book_id: entry.book_id,
+      // [M-DATA-ENEMYMASTER] fixed_cycle は ai_profile_id が Null のときのみ非 Null。
+      fixed_cycle: entry.ai_profile_id === null ? acts : null,
+      audit_exempt: entry.audit_exempt ?? false,
+    };
+  }
+
+  for (const arTenths of [...summonBands].sort((left, right) => left - right)) {
+    const creature = expandCreature(creatureIdOf(arTenths), '眷属', arTenths);
+    creatureMasters[creature.record.creature_id] = creature.record;
+    actionGroups.push(creature.records);
+  }
+
   const heroInit = generateHeroInitActions();
+  actionGroups.push(heroInit.records);
 
-  const actionMasters = mergeActionRecords([lef.actions, dorn.actions, heroInit.records]);
-  const enemyMasters = { [lef.record.enemy_id]: lef.record, [dorn.record.enemy_id]: dorn.record };
-
-  writeGenerated('action-masters.ts', serializeRecordMap('ACTION_MASTERS', 'ActionMasterRecord', actionMasters));
+  writeGenerated('action-masters.ts', serializeRecordMap('ACTION_MASTERS', 'ActionMasterRecord', mergeActionRecords(actionGroups)));
   writeGenerated('enemy-masters.ts', serializeRecordMap('ENEMY_MASTERS', 'EnemyMasterRecord', enemyMasters));
+  writeGenerated('creature-masters.ts', serializeRecordMap('CREATURE_MASTERS', 'CreatureMasterRecord', creatureMasters));
   writeGenerated('scene-masters.ts', serializeRecordMap('SCENE_MASTERS', 'SceneMasterRecord', buildSceneRecords(SCENES)));
   writeGenerated(
     'attendant-masters.ts',
@@ -92,14 +132,10 @@ function main() {
   );
   writeGenerated('hero-init.ts', serializeHeroInit(heroInit.order));
 
-  // [A-BOOK-SCHEMA] 定跡マスタ。範囲は B-01（1-01 祠守レフ）・B-02（1-02 辺境伯ドルン）に限る。
-  const templates = {
-    ENEMY_LEF: enemyLefTemplate(sceneById('SCENE_1_01').level),
-    ENEMY_DORN: enemyDornTemplate(sceneById('SCENE_1_02').level),
-  };
+  // [A-BOOK-SCHEMA] セレクタを参照元の敵マスターの構成テンプレートに照合して class_id へ展開する。
   const bookMasters = {};
   for (const book of BOOKS) {
-    const template = templates[book.enemy_id];
+    const template = templatesByEnemy[book.enemy_id];
     if (template === undefined) {
       throw new Error(`定跡 ${book.book_id} の参照元テンプレートが未定義: ${book.enemy_id}`);
     }
@@ -107,12 +143,12 @@ function main() {
   }
   writeGenerated('book-masters.ts', serializeRecordMap('BOOK_MASTERS', 'BookMasterRecord', bookMasters));
 
-  // [A-PROFILE-SCHEMA] AIプロファイルマスタ。範囲は 1-01・1-02 の敵マスターが参照する2件に限る。
   // [M-DATA-STRINGMASTER]・[M-DATA-HELPMASTER]・[M-DATA-ASSETMASTER]。本文は [I-PLAN-TEXT] のプレースホルダ。
   writeGenerated('string-masters.ts', serializeRecordMap('STRING_MASTERS', 'StringMasterRecord', buildStringRecords(STRINGS)));
   writeGenerated('help-masters.ts', serializeRecordMap('HELP_MASTERS', 'HelpMasterRecord', buildHelpRecords(HELPS)));
   writeGenerated('asset-masters.ts', serializeRecordMap('ASSET_MASTERS', 'AssetMasterRecord', buildAssetRecords(ASSETS)));
 
+  // [A-PROFILE-SCHEMA] AIプロファイルマスタ。
   writeGenerated(
     'ai-profile-masters.ts',
     serializeRecordMap('AI_PROFILE_MASTERS', 'AiProfileRecord', buildAiProfileRecords(AI_PROFILES)),

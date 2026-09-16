@@ -136,6 +136,26 @@ function stance(arTenths) {
   return base;
 }
 
+// [M-STATE-ACTION]［静的パラメータ］の規定値そのもの。効果を持たない空振りアクションの下地に用いる
+// （[M-STATE-FLAGS-EXCEPTION] ACT_REMNANT・[M-TMPL-VESSEL]〈息を吹く〉）。
+export function blankParams() {
+  return defaultParams();
+}
+
+// [M-BASE-AR-SUMMON]（単体・瞬動基準）。ar_summon は既定で召喚アクション自身のARを引き継ぐ。
+function summon(arTenths, summonId) {
+  const base = defaultParams();
+  base.cost_vp = coeffTimesSqrt(115, arTenths, false);
+  base.step_thought = 0;
+  base.step_startup = 0;
+  base.step_recovery = 0;
+  base.def_efficiency = 100;
+  base.decay_ap = 0;
+  base.purify_rate = 0;
+  base.summon_id = summonId;
+  return base;
+}
+
 // [M-BASE-AR-MIND]（基本・無想）。与バフ量は該当特性を持つ技のみのため据え置く。
 function mind(kind, arTenths) {
   const base = defaultParams();
@@ -183,51 +203,165 @@ export function rootMartialRecord() {
   };
 }
 
-function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, params) {
+// [M-BASE-PRINCIPLE] 個別上書きのうち、レコード単位で効くもの。
+// [M-DATA-CLASSID]［予約クラスID］は [M-DATA-HERO-INIT] の基本型4件が「敵側の同AR値の行と
+// 同一レコードを共有する」と定めるため、主人公側の base_uses 上書きは共有レコードへ適用する
+// （ACT_HEAVY_AR15 は 武技（重撃）の基準 3回ではなく 10回。[M-DATA-HERO-INIT]［初期所持アクション］）。
+const RECORD_OVERRIDES = {
+  ACT_HEAVY_AR15: { base_uses: 1000 },
+};
+
+export function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, params, manualSysFlag = null) {
+  const recordOverride = RECORD_OVERRIDES[classIdValue] ?? {};
   return {
     class_id: classIdValue,
     display_name: displayName,
     // [I-PLAN-TEXT]［プレースホルダの書式］効果説明は未執筆。補間キーを持たない。
     description: placeholderText(classIdValue, []),
-    base_uses: baseUsesCenti,
+    base_uses: recordOverride.base_uses ?? baseUsesCenti,
     inheritable,
+    is_root: false,
+    manual_sys_flag: manualSysFlag,
+    params,
+  };
+}
+
+// [M-BASE-USES] 基礎使用回数。
+export const USES_BASIC = 1000; // 10.00 回
+export const USES_HEAVY = 300; // 3.00 回
+export const USES_SPECIAL = 100; // 1.00 回（特殊アクション）
+
+// 構成テンプレートの1行（`<コンポーネント>/<変種>`）に対応する基準式を引く。
+// [M-BASE-AR] 配下の各基準式はここ1箇所からのみ呼び出す。
+export function componentParams(variantKey, arTenths, summonId) {
+  switch (variantKey) {
+    case 'MIND/BASIC':
+      return mind('basic', arTenths);
+    case 'MIND/MUSOU':
+      return mind('musou', arTenths);
+    case 'MARTIAL/BASIC':
+      return martial('basic', arTenths);
+    case 'MARTIAL/RUSH':
+      return martial('rush', arTenths);
+    case 'MARTIAL/HEAVY':
+      return martial('heavy', arTenths);
+    case 'STANCE/BASIC':
+      return stance(arTenths);
+    case 'SUMMON/BASIC':
+      return summon(arTenths, summonId);
+    default:
+      throw new Error(`未知の構成テンプレート行: ${variantKey}`);
+  }
+}
+
+// [M-BASE-AR-MARTIAL]［追加パラメータ］APダメージ係数（全種共通）：dmg_ap ≒ 9.24 * sqrt(AR)。
+export function dmgApBase(arTenths) {
+  return coeffTimesSqrt(924, arTenths, true);
+}
+
+// [M-BASE-AR-MARTIAL]［追加パラメータ（該当特性を持つ技のみ）］
+// 基本・急襲と重撃で係数が異なる項は variantKey から引き分ける。いずれも centi で返す。
+export function martialExtra(variantKey, arTenths, key) {
+  const heavy = variantKey === 'MARTIAL/HEAVY';
+  switch (key) {
+    case 'dmg_vp':
+      return coeffTimesSqrt(heavy ? 231 : 115, arTenths, true);
+    case 'dmg_pp':
+      return coeffTimesSqrt(heavy ? 133 : 67, arTenths, true);
+    case 'dmg_ap':
+      return dmgApBase(arTenths);
+    case 'give_slip':
+      return coeffTimesSqrt(heavy ? 38 : 19, arTenths, true);
+    case 'initial_copy_val':
+    case 'give_seal':
+      // 初期コピー値／与封印量：基本・急襲 3.00、重撃 12.00（AR に依存しない）。
+      return heavy ? 1200 : 300;
+    default:
+      throw new Error(`未知の追加パラメータ: ${key}`);
+  }
+}
+
+// [M-TMPL-CREATURE-PRINCIPLE]［標準基準式］最大HP ≒ 1.86 * (ar_summon ^ 1.5)。
+export function creatureMaxHp(arSummonTenths) {
+  return coeffTimesArPow1_5(186, arSummonTenths, false);
+}
+
+// [M-BASE-AR-SYSTEM] 隊列交代（単体）。全ユニットが共有するシステム共通アクション。
+export function swapSingleRecord() {
+  const params = defaultParams();
+  params.is_swap = true;
+  params.target_scope = 'SELF';
+  params.def_efficiency = 100;
+  params.decay_ap = 0;
+  params.purify_rate = 0;
+  return {
+    class_id: 'ACT_SWAP_SINGLE',
+    display_name: '隊列交代',
+    description: placeholderText('ACT_SWAP_SINGLE', []),
+    base_uses: -1,
+    inheritable: false,
     is_root: false,
     manual_sys_flag: null,
     params,
   };
 }
 
-// [M-BASE-USES] 基本型の基礎使用回数。
-const USES_BASIC = 1000; // 10.00 回
-const USES_HEAVY = 300; // 3.00 回
 
-// [A-BOOK-SCHEMA]［テンプレートとレコードの関係］セレクタの照合に用いる構成テンプレートの1行。
-// arMultCenti は AR ≒ L * n の n（centi）。根源武技はテンプレート行ではないため含めない。
-function templateRow(component, variant, arMultCenti, classIdValue) {
-  return { component, variant, arMultCenti, classId: classIdValue };
+
+// [M-STATE-FLAGS] 系統フラグの自動確定。監査・定跡の解決辞書の双方が同じ判定を用いる。
+function hasSystemFlag(params, flag) {
+  switch (flag) {
+    case 'MIND':
+      return params.gain_vp > 0 || params.charge_pp > 0 || Object.keys(params.give_buff).length > 0;
+    case 'MARTIAL':
+      return params.range > 0;
+    case 'STANCE':
+      return params.deploy_ap > 0;
+    case 'SUMMON':
+      return params.summon_id !== null;
+    default:
+      throw new Error(`未知の系統: ${flag}`);
+  }
 }
 
-// [M-TMPL-ENEMY-1-01] 祠守レフの構成テンプレート行。
-export function enemyLefTemplate(level) {
-  const arBase = level * 10;
-  const arDouble = level * 20;
-  return [
-    templateRow('MIND', 'BASIC', 100, classId('MIND', arBase)),
-    templateRow('MIND', 'MUSOU', 100, classId('MUSOU', arBase)),
-    templateRow('MARTIAL', 'BASIC', 100, classId('SLASH', arBase)),
-    templateRow('MARTIAL', 'BASIC', 200, classId('SLASH', arDouble)),
-    templateRow('MARTIAL', 'HEAVY', 100, classId('HEAVY', arBase)),
-    templateRow('STANCE', 'BASIC', 100, classId('GUARD', arBase)),
-    templateRow('STANCE', 'BASIC', 200, classId('GUARD', arDouble)),
-  ];
+// [A-BOOK-SCHEMA]［テンプレートとレコードの関係］MIRROR_FIRST_SYSTEM の解決辞書。
+// 当該系統フラグを持つ所持アクションのうち、構成テンプレート上の ar_mult が最大の行に対応するクラスID。
+// 最大値が並ぶ場合は所持アクション配列インデックス昇順の最初のもの（[A-CORE-DETERMINISM]#4）。
+function buildMirrorDictionary(template) {
+  const dictionary = { NONE: null };
+  for (const flag of ['MIND', 'MARTIAL', 'STANCE', 'SUMMON']) {
+    let best = null;
+    for (const row of template) {
+      if (!hasSystemFlag(row.record.params, flag)) {
+        continue;
+      }
+      if (best === null || row.arMultCenti > best.arMultCenti) {
+        best = row;
+      }
+    }
+    dictionary[flag] = best === null ? null : best.classId;
+  }
+  return dictionary;
 }
 
 // [A-BOOK-SCHEMA] 人が書く定跡（セレクタ）を、参照元の敵マスターの構成テンプレートに照合して class_id へ展開する。
 // 照合結果が一意でない場合はオーサリングエラーとして棄却する。
 export function buildBookRecord(book, template) {
   const steps = book.steps.map((step, index) => {
+    if (step.kind === 'DYNAMIC') {
+      if (step.resolver !== 'MIRROR_FIRST_SYSTEM') {
+        throw new Error(`${book.book_id} #${index + 1}: 未知のリゾルバ: ${step.resolver}`);
+      }
+      return {
+        kind: 'DYNAMIC',
+        class_id: null,
+        resolver: step.resolver,
+        resolved_by_system: buildMirrorDictionary(template),
+        can_wait: step.can_wait,
+      };
+    }
     if (step.kind !== 'FIXED') {
-      throw new Error(`${book.book_id} #${index + 1}: FIXED 以外の定跡手は未対応`);
+      throw new Error(`${book.book_id} #${index + 1}: 未知の定跡手の種別: ${step.kind}`);
     }
     const { component, variant, ar_mult: arMult } = step.selector;
     const arMultCenti = decimalStringToCenti(arMult);
@@ -245,83 +379,9 @@ export function buildBookRecord(book, template) {
   return { book_id: book.book_id, steps };
 }
 
-// [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-01]
-// 1-01 の敵マスター「祠守レフ」が生成する所持アクション一式。
-export function generateEnemyLefActions(level) {
-  const arBase = level * 10; // AR ≒ L * 1.0
-  const arDouble = level * 20; // AR ≒ L * 2.0（[M-TMPL-ENEMY-1-01] 追加枠）
 
-  const records = [
-    buildRecord(classId('MIND', arBase), '心気（基本）', USES_BASIC, true, mind('basic', arBase)),
-    buildRecord(classId('MUSOU', arBase), '心気（無想）', USES_HEAVY, true, mind('musou', arBase)),
-    buildRecord(classId('SLASH', arBase), '武技（基本）', USES_BASIC, true, martial('basic', arBase)),
-    buildRecord(classId('SLASH', arDouble), '武技（基本）', USES_BASIC, true, martial('basic', arDouble)),
-    buildRecord(classId('HEAVY', arBase), '武技（重撃）', USES_HEAVY, true, martial('heavy', arBase)),
-    buildRecord(classId('GUARD', arBase), '体勢（基本）', USES_BASIC, true, stance(arBase)),
-    buildRecord(classId('GUARD', arDouble), '体勢（基本）', USES_BASIC, true, stance(arDouble)),
-    rootMartialRecord(),
-  ];
-  return records;
-}
 
-// [M-TMPL-ENEMY-1-02] 辺境伯ドルンの構成テンプレート行。
-export function enemyDornTemplate(level) {
-  const arBase = level * 10;
-  const arDouble = level * 20;
-  const arTriple = level * 30;
-  return [
-    templateRow('MIND', 'BASIC', 100, classId('MIND', arBase)),
-    templateRow('MIND', 'MUSOU', 100, classId('MUSOU', arBase)),
-    templateRow('MARTIAL', 'BASIC', 100, classId('SLASH', arBase)),
-    templateRow('MARTIAL', 'BASIC', 200, classId('SLASH', arDouble)),
-    templateRow('MARTIAL', 'BASIC', 300, classId('SLASH', arTriple)),
-    templateRow('MARTIAL', 'RUSH', 100, classId('RUSH', arBase)),
-    templateRow('MARTIAL', 'HEAVY', 100, classId('HEAVY', arBase)),
-    templateRow('STANCE', 'BASIC', 100, classId('GUARD', arBase)),
-    templateRow('STANCE', 'BASIC', 200, classId('GUARD', arDouble)),
-  ];
-}
 
-// [M-TMPL-ENEMY-PRINCIPLE]・[M-TMPL-ENEMY-1-02]
-// 1-02 の敵マスター「辺境伯ドルン」が生成する所持アクション一式。追加枠は同変種の基本型の直後に置く。
-export function generateEnemyDornActions(level) {
-  const arBase = level * 10; // AR ≒ L * 1.0
-  const arDouble = level * 20; // AR ≒ L * 2.0
-  const arTriple = level * 30; // AR ≒ L * 3.0
-
-  return [
-    buildRecord(classId('MIND', arBase), '心気（基本）', USES_BASIC, true, mind('basic', arBase)),
-    buildRecord(classId('MUSOU', arBase), '心気（無想）', USES_HEAVY, true, mind('musou', arBase)),
-    buildRecord(classId('SLASH', arBase), '武技（基本）', USES_BASIC, true, martial('basic', arBase)),
-    buildRecord(classId('SLASH', arDouble), '武技（基本）', USES_BASIC, true, martial('basic', arDouble)),
-    buildRecord(classId('SLASH', arTriple), '武技（基本）', USES_BASIC, true, martial('basic', arTriple)),
-    buildRecord(classId('RUSH', arBase), '武技（急襲）', USES_HEAVY, true, martial('rush', arBase)),
-    buildRecord(classId('HEAVY', arBase), '武技（重撃）', USES_HEAVY, true, martial('heavy', arBase)),
-    buildRecord(classId('GUARD', arBase), '体勢（基本）', USES_BASIC, true, stance(arBase)),
-    buildRecord(classId('GUARD', arDouble), '体勢（基本）', USES_BASIC, true, stance(arDouble)),
-    rootMartialRecord(),
-  ];
-}
-
-// [M-DATA-ENEMYMASTER] 1-02 敵マスター「辺境伯ドルン」（[S-ENEMY-1-02]）。
-export function generateEnemyDorn(level, maxHp) {
-  const actions = generateEnemyDornActions(level);
-  return {
-    record: {
-      enemy_id: 'ENEMY_DORN',
-      display_name: 'ドルン',
-      role_name: '辺境伯',
-      max_hp: maxHp,
-      // [A-BOOK-TABLE] B-02・[A-PROFILE-TABLE] PROFILE_ASSAULT
-      acts: actions.map((action) => action.class_id),
-      ai_profile_id: 'PROFILE_ASSAULT',
-      book_id: 'B-02',
-      fixed_cycle: null,
-      audit_exempt: false,
-    },
-    actions,
-  };
-}
 
 // [M-DATA-SCENEMASTER] 人が書く入力（authoring/scenes.js）をレコードへ写す。値の算出を伴わない。
 export function buildSceneRecords(scenes) {
@@ -395,25 +455,6 @@ export function mergeActionRecords(recordGroups) {
   return merged;
 }
 
-// [M-DATA-ENEMYMASTER] 1-01 敵マスター「祠守レフ」。
-export function generateEnemyLef(level, maxHp) {
-  const actions = generateEnemyLefActions(level);
-  return {
-    record: {
-      enemy_id: 'ENEMY_LEF',
-      display_name: 'レフ',
-      role_name: '祠守',
-      max_hp: maxHp,
-      // [A-BOOK-TABLE] B-01・[A-PROFILE-TABLE] PROFILE_FRENZY
-      acts: actions.map((action) => action.class_id),
-      ai_profile_id: 'PROFILE_FRENZY',
-      book_id: 'B-01',
-      fixed_cycle: null,
-      audit_exempt: false,
-    },
-    actions,
-  };
-}
 
 // [A-PROFILE-SCHEMA] 人が書く入力をレコードへ写す。weight_mult は centi へ変換する。
 export function buildAiProfileRecords(profiles) {
