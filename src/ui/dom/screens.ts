@@ -229,6 +229,44 @@ function inheritOption(
   return card;
 }
 
+// [M-PROG-SACRIFICE] 供犠の提示。全員の継承を終えた後、資質一覧に代えて左欄へ置く。
+// 1回のインターミッションにつき1回までであるため、実行済みならその旨を示して押せなくする。
+function sacrificeContent(
+  view: IntermissionView,
+  selected: PartySlotView | undefined,
+  handlers: ScreenHandlers,
+): HTMLElement {
+  const sac = element('div', 'sac');
+  sac.append(element('h3', '', '⚠ 供犠（くぎ）'));
+  sac.append(
+    element('p', '', `同行従者1名を消滅させ、${view.hero.name}の現在HPを最新の最大HPまで全回復する。消滅した枠はアクトが移るまで空き枠のままとなる。`),
+  );
+  const rows = element('div', 'imrows');
+  const hp = element('div', 'imrow');
+  hp.append(element('span', 'k', '現在HP回復'));
+  hp.append(element('span', 'v ch num', `${view.hero.hp} → ${view.hero.maxHp}`));
+  rows.append(hp);
+  const party = element('div', 'imrow');
+  party.append(element('span', 'k', '同行従者数'));
+  party.append(element('span', 'v ch num', `${view.slots.length} → ${Math.max(view.slots.length - 1, 0)}`));
+  rows.append(party);
+  sac.append(rows);
+  sac.append(
+    button(
+      'sacbtn',
+      selected === undefined ? '壇の従者を選ぶ' : `${selected.name}を捧げる`,
+      () => (selected === undefined ? undefined : handlers.onSacrifice(selected.attendantId)),
+      selected === undefined || !selected.canSacrifice,
+    ),
+  );
+  if (view.slots.length === 0) {
+    sac.append(element('p', 'notice', '同行従者がいないため供犠を行えない'));
+  } else if (selected !== undefined && !selected.canSacrifice) {
+    sac.append(element('p', 'notice', 'このインターミッションでは供犠を済ませている'));
+  }
+  return sac;
+}
+
 // [M-INHERIT-POOL] 継承の段。UIプロトタイプに倣い、見出し・目的表示・従者の壇・2欄の順に並べる。
 const INHERIT_STATE_LABEL: Readonly<Record<PartySlotView['inheritState'], string>> = {
   UNUSED: '継承枠あり',
@@ -309,24 +347,29 @@ export function renderIntermission(
   const grid = element('div', 'imgrid');
   const selected = view.slots.find((slot) => slot.attendantId === view.selectedAttendantId);
 
-  const poolColumn = element('div', 'imcol');
-  poolColumn.append(
-    element('h3', '', selected === undefined ? '継承できる資質' : `継承できる資質 ─ ${selected.name}を介して受け継ぐ場合`),
-  );
-  const pool = element('div', 'pool');
-  const canInheritNow = selected !== undefined && selected.inheritState === 'UNUSED';
-  view.pool.forEach((option, index) => {
-    pool.append(
-      inheritOption(option, index, canInheritNow, strings, () =>
-        selected === undefined ? undefined : handlers.onInherit(selected.attendantId, option.target),
-      ),
+  // [M-INHERIT-POOL] [M-PROG-SACRIFICE] 左欄は継承の段では資質一覧、全員の継承を終えた後は供犠とする。
+  const leftColumn = element('div', 'imcol');
+  const pool = view.inheritDone ? null : element('div', 'pool');
+  if (pool === null) {
+    leftColumn.append(sacrificeContent(view, selected, handlers));
+  } else {
+    leftColumn.append(
+      element('h3', '', selected === undefined ? '継承できる資質' : `継承できる資質 ─ ${selected.name}を介して受け継ぐ場合`),
     );
-  });
-  if (view.pool.length === 0) {
-    pool.append(element('p', 'notice', '継承できる資質がない'));
+    const canInheritNow = selected !== undefined && selected.inheritState === 'UNUSED';
+    view.pool.forEach((option, index) => {
+      pool.append(
+        inheritOption(option, index, canInheritNow, strings, () =>
+          selected === undefined ? undefined : handlers.onInherit(selected.attendantId, option.target),
+        ),
+      );
+    });
+    if (view.pool.length === 0) {
+      pool.append(element('p', 'notice', '継承できる資質がない'));
+    }
+    leftColumn.append(pool);
   }
-  poolColumn.append(pool);
-  grid.append(poolColumn);
+  grid.append(leftColumn);
 
   const heroColumn = element('div', 'imcol');
   const heroHead = element('h3', '', `${view.hero.name}の現状`);
@@ -370,21 +413,6 @@ export function renderIntermission(
   }
   heroBody.append(heroActs);
 
-  // [M-PROG-SACRIFICE] 供犠は継承を終えてから選ぶ。1回のインターミッションにつき1回まで。
-  if (view.inheritDone) {
-    const sac = element('div', 'sac');
-    sac.append(element('h3', '', '⚠ 供犠'));
-    sac.append(element('p', '', '同行従者1名を消滅させ、主人公の現在HPを最大HPまで回復する。'));
-    sac.append(
-      button(
-        'sacbtn',
-        selected === undefined ? '壇の従者を選ぶ' : `${selected.name}を捧げる`,
-        () => (selected === undefined ? undefined : handlers.onSacrifice(selected.attendantId)),
-        selected === undefined || !selected.canSacrifice,
-      ),
-    );
-    heroColumn.append(sac);
-  }
   if (view.noticeText !== '') {
     heroColumn.append(element('p', 'notice', view.noticeText));
   }
@@ -405,12 +433,12 @@ export function renderIntermission(
       ...heroBodyContent(option === null ? view.hero : option.heroAfter, option?.changedInstanceId ?? null),
     );
   };
-  pool.addEventListener('mousemove', (event) => {
+  pool?.addEventListener('mousemove', (event) => {
     const target = event.target instanceof Element ? event.target.closest('.inherit-card') : null;
     const index = target instanceof HTMLElement ? Number(target.dataset.index ?? '-1') : -1;
     showHero(view.pool[index] ?? null);
   });
-  pool.addEventListener('mouseleave', () => showHero(null));
+  pool?.addEventListener('mouseleave', () => showHero(null));
   return root;
 }
 

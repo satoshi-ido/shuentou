@@ -1470,11 +1470,17 @@ button:focus-visible {
 .imrow.changed .v { color: var(--ember); font-weight: 700; }
 
 /* [M-PROG-SACRIFICE] 供犠。取り返しのつかない決済であることを配色で示す。 */
+/* [M-PROG-SACRIFICE] 継承を終えた後、資質一覧に代えて左欄へ置く。欄の幅いっぱいには広げない。 */
 .sac {
   border: 1px solid #7a353d;
   background: #180d11;
-  padding: 10px;
+  padding: 12px 14px;
+  max-width: 420px;
 }
+
+.sac .imrows { margin-bottom: 10px; }
+.sac .imrow .v.ch { color: var(--ember); font-weight: 700; }
+.sac .notice { margin: 8px 0 0; }
 
 .sac h3 { color: #e2626d; margin: 0 0 6px; font-size: 12.5px; letter-spacing: 0.08em; }
 .sac p { font-size: 11.5px; color: #c4bcb2; margin: 0 0 8px; line-height: 1.5; }

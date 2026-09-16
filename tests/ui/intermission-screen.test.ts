@@ -66,6 +66,29 @@ function intermission(): IntermissionView {
   };
 }
 
+describe('[M-PROG-SACRIFICE] 供犠の提示', () => {
+  it('継承を終える前は左欄が資質一覧であり、供犠は現れない', async () => {
+    const { renderIntermission } = await import('../../src/ui/dom/screens.js');
+    const root = renderIntermission(intermission(), (id) => id, actionName, handlers) as unknown as FakeElement;
+    expect(root.find('pool')).not.toBeNull();
+    expect(root.find('sac')).toBeNull();
+  });
+
+  it('全従者の継承を終えると左欄が供犠に変わり、資質一覧は消える', async () => {
+    const { renderIntermission } = await import('../../src/ui/dom/screens.js');
+    const view = { ...intermission(), inheritDone: true };
+    const root = renderIntermission(view, (id) => id, actionName, handlers) as unknown as FakeElement;
+    expect(root.find('pool')).toBeNull();
+    const sac = root.find('sac');
+    expect(sac).not.toBeNull();
+    // 供犠は左欄（1欄目）に置く。右欄は主人公の現状のまま。
+    expect(root.findAll('imcol')[0]?.find('sac')).not.toBeNull();
+    expect(root.find('hero-body')).not.toBeNull();
+    expect(sac?.text()).toContain(`${view.hero.hp} → ${view.hero.maxHp}`);
+    expect(sac?.text()).toContain(`${view.slots.length} → ${view.slots.length - 1}`);
+  });
+});
+
 describe('[M-INHERIT-MERGE]［UI要件］継承の段の提示', () => {
   it('統合の資質に注目すると、右欄の統合先が受け継いだ後の使用回数へ変わる', async () => {
     const { renderIntermission } = await import('../../src/ui/dom/screens.js');
