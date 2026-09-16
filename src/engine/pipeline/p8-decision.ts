@@ -9,6 +9,7 @@ import { effectiveCostAp, effectiveCostHp, effectiveCostPp, effectiveCostVp, eff
 import { INFINITE_USES } from '../params.js';
 import type { CreatureFactory } from '../resolve/summon.js';
 import type { ActionInstance, BattleState, LastActionSnapshot, Side, Unit } from '../types.js';
+import { countExecution } from '../mirror.js';
 import { runInstant } from './instant.js';
 import type { BattleOutcome } from './p5-discard.js';
 
@@ -44,6 +45,10 @@ function sideUnits(state: BattleState, side: Side): Unit[] {
 
 // [M-PIPE-P8-ORDER]#1・#3 採択された実行可能アクションを実行ルーティングに渡す。
 export function executeAction(state: BattleState, unit: Unit, action: ActionInstance, deps: P8Deps): BattleOutcome {
+  // [M-META-MIRRORSTATS] 計上対象は主人公マスターの実行確定に限る（first_system の規定に揃える）。
+  if (unit.side === 'MINE' && unit.unit_kind === 'MASTER') {
+    countExecution(state.mirror_tally, action);
+  }
   if (isInstant(action)) {
     return runInstant(state, unit, action, deps);
   }
