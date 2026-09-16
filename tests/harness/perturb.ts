@@ -10,6 +10,7 @@ import {
   playIntermission,
   playRun,
   playScene,
+  HARD_STEP_CAP,
   type RefPolicy,
   type SceneOutcome,
   type StepObserver,
@@ -70,7 +71,8 @@ export function measureWinRate(policy: RefPolicy, lastOrder: number): WinRateRes
   const losses: string[] = [];
   const set = perturbationSet();
   for (const entry of set) {
-    const run = playRun(policy, lastOrder, undefined, entry.profile);
+    // 勝利数を数える測定であり、決着上限で打ち切ると勝敗が観測できないため安全弁まで進める。
+    const run = playRun(policy, lastOrder, undefined, entry.profile, HARD_STEP_CAP);
     const final = run.scenes[run.scenes.length - 1];
     if (final === undefined) {
       throw new Error('到達したシーンがない');
@@ -104,7 +106,9 @@ export function playSceneWithRetry(
   const ladder = perturbationSet();
   let outcome = playScene(session, ctx, policy, observe, ladder[0].profile);
   for (let attempt = 1; attempt < ladder.length; attempt += 1) {
-    if (outcome.result !== 'LOSS') {
+    // 突破できたシーンのみ再挑戦を打ち切る。敗北のほか、決着上限での打ち切り（[V-TEST-NONFUNC] D-02）も
+    // 「当該シーンを突破していない」状態であり、次の摂動を試す対象である。
+    if (outcome.result === 'WIN') {
       return { outcome, attempts: attempt, rewinds: attempt - 1, profileId: ladder[attempt - 1].id };
     }
     const resumed = rollbackBattle(session, ctx, advanceOptionsFor(observe));

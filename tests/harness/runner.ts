@@ -182,11 +182,18 @@ export function driveBattle(
   playerProfile: EffectiveProfile,
   initial: BattleResult,
   observe?: StepObserver,
+  // 打ち切り歩数の上書き。既定は [V-TEST-NONFUNC] D-02 の決着上限であり、勝敗そのものを数える
+  // 測定（[V-TEST-REFAI] の win_rate）は決着まで進める必要があるため安全弁を渡す。
+  abortAt?: number,
 ): SceneOutcome {
   const sceneId = session.data.run.current_scene_id;
   const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
   const limit = decisionLimit(scene.expected_length);
   const options = advanceOptionsFor(observe);
+  // [V-TEST-NONFUNC] D-02 の決着上限で打ち切る。上限を越えた戦闘はその時点で D-02 に不合格が
+  // 確定しており、以降を進めても判定は変わらない。expected_length を持たないシーン（5-11）は
+  // D-02 の対象外（[M-TMPL-VESSEL]）であり上限を導けないため、安全弁のみを用いる。
+  const abortStep = abortAt ?? (scene.expected_length === null ? HARD_STEP_CAP : limit);
 
   let result = initial;
   // 開始手段の内部で決着した場合（時間停止が一度も成立しないまま敗北した等）も、
@@ -198,7 +205,7 @@ export function driveBattle(
       observe(state);
     }
     steps = state?.step ?? steps;
-    if (steps > HARD_STEP_CAP) {
+    if (steps > abortStep) {
       return { scene_id: sceneId, result, steps, limit, within: false };
     }
     result =
@@ -218,9 +225,10 @@ export function playScene(
   observe?: StepObserver,
   // [V-TEST-REFAI]［重み摂動プロファイル群］測定時は摂動した重みを与える。省略時は無摂動。
   playerProfile: EffectiveProfile = referenceProfile(),
+  abortAt?: number,
 ): SceneOutcome {
   const started = startBattle(session, ctx, advanceOptionsFor(observe));
-  return driveBattle(session, ctx, policy, playerProfile, started, observe);
+  return driveBattle(session, ctx, policy, playerProfile, started, observe, abortAt);
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
@@ -364,13 +372,14 @@ export function playRun(
   lastOrder = 30,
   observeFor?: (sceneId: string) => StepObserver,
   playerProfile: EffectiveProfile = referenceProfile(),
+  abortAt?: number,
 ): RunOutcome {
   const { session, ctx } = createRun();
 
   const scenes: SceneOutcome[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const observe = observeFor?.(session.data.run.current_scene_id);
-    const outcome = playScene(session, ctx, policy, observe, playerProfile);
+    const outcome = playScene(session, ctx, policy, observe, playerProfile, abortAt);
     scenes.push(outcome);
     if (outcome.result !== 'WIN') {
       return { scenes, completed: false };
