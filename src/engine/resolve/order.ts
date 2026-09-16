@@ -6,13 +6,13 @@
 //            Step 1〜5 解決後に陣営ごと一括で適用する（[M-PIPE-P2-APPLY]#3-4）。呼び出し側が担う。
 
 import { applyInterference } from './interfere.js';
-import type { InstanceIdCounter } from '../instantiate.js';
+
 import type { InterferenceRequest, MartialContext } from './martial.js';
 import { resolveMartial } from './martial.js';
 import { resolveMind } from './mind.js';
 import { resolveStance } from './stance.js';
 import { applyStunInterruption } from './stun.js';
-import type { CreatureFactory } from './summon.js';
+import type { CreatureFactory, IdCounters } from './summon.js';
 import { resolveSummon } from './summon.js';
 import { resolveSwap } from './swap.js';
 import type { ActionInstance, Side, Unit } from '../types.js';
@@ -23,7 +23,7 @@ export interface ResolveDeps {
   readonly createCreature: CreatureFactory;
   readonly level: number;
   readonly defenseOf: (unit: Unit) => number;
-  readonly idCounter: InstanceIdCounter;
+  readonly idCounter: IdCounters;
   readonly appliedInterferenceSides: Side[]; // 呼び出し側（ステップ単位）で共有・可変
 }
 
@@ -41,7 +41,7 @@ export function resolveAction(
   mode: ResolveMode,
   deps: ResolveDeps,
 ): ResolveOutcome {
-  resolveSummon(units, actor, action, deps.createCreature); // Step 1
+  resolveSummon(units, actor, action, deps.createCreature, deps.idCounter); // Step 1
 
   if (mode === 'INSTANT') {
     resolveSwap(units, actor, action); // Step 2（即時型のみ）

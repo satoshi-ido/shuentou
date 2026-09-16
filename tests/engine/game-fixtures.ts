@@ -1,8 +1,9 @@
-// M3 の進行・巻き戻し・セーブ検証用の共通フィクスチャ。マスタは [I-PLAN-MILESTONE]［M3 のマスタ範囲］の生成物。
+// 進行・巻き戻し・セーブ検証用の共通フィクスチャ。マスタは全30シーン分の生成物（[I-PLAN-MILESTONE] M5）。
 
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
 import { BOOK_MASTERS } from '../../src/data/generated/book-masters.js';
+import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
 import { HERO_INIT_ACTIONS } from '../../src/data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
@@ -17,6 +18,7 @@ export const MASTERS: GameMasters = {
   enemies: ENEMY_MASTERS,
   scenes: SCENE_MASTERS,
   books: BOOK_MASTERS,
+  creatures: CREATURE_MASTERS,
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
   crossIds: [],

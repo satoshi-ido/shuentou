@@ -2,19 +2,22 @@
 // 探索器・評価器（[A-DESIGN-LAYERS] Layer 3・Layer 2）をこのスレッドで実行する。
 
 import { AI_PROFILE_MASTERS } from '../data/generated/ai-profile-masters.js';
+import { CREATURE_MASTERS } from '../data/generated/creature-masters.js';
+import { ACTION_MASTERS } from '../data/generated/action-masters.js';
 import { ENEMY_MASTERS } from '../data/generated/enemy-masters.js';
 import { SCENE_MASTERS } from '../data/generated/scene-masters.js';
 import type { AiProfileRecord, EnemyMasterRecord, SceneMasterRecord } from '../data/types.js';
 import type { AiDecisionRequest, AiDecisionResponse } from '../engine/ai-request.js';
+import { createCreatureFactory } from '../engine/creature.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
 import { buildEffectiveProfile, type EffectiveProfile } from '../ai/profile.js';
 import { decideActionDetailed } from '../ai/search.js';
 
+// [M-RESOLVE-SUMMON] 探索中の召喚もマスタから実体化する。joint_action のシーン（[A-DIFF-CONFIG]）は
+// クリーチャーの手を含めて評価するため、探索木の内部でもクリーチャーを生成できなければならない。
 const deps: StepDeps = {
-  createCreature: () => {
-    throw new Error('クリーチャーマスタは未投入である');
-  },
+  createCreature: createCreatureFactory({ creatures: CREATURE_MASTERS, actions: ACTION_MASTERS }),
 };
 
 // [A-PROFILE-RESOLVE] 構築のタイミングはバトル開始時であり、以降マスタを再参照しない。

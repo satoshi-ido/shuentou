@@ -12,7 +12,7 @@ export function allocateUnitId(state: Pick<BattleState, 'unit_id_seq'>): string 
   return id;
 }
 
-function createUnit(
+export function createUnit(
   unitId: string,
   side: Side,
   unitKind: UnitKind,

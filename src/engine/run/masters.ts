@@ -4,6 +4,7 @@ import type {
   ActionMasterRecord,
   BookMasterRecord,
   AttendantMasterRecord,
+  CreatureMasterRecord,
   EnemyMasterRecord,
   SceneMasterRecord,
 } from '../../data/types.js';
@@ -13,6 +14,7 @@ export interface GameMasters {
   readonly enemies: Readonly<Record<string, EnemyMasterRecord>>;
   readonly scenes: Readonly<Record<string, SceneMasterRecord>>;
   readonly books: Readonly<Record<string, BookMasterRecord>>;
+  readonly creatures: Readonly<Record<string, CreatureMasterRecord>>;
   readonly attendants: Readonly<Record<string, AttendantMasterRecord>>;
   readonly heroInitActions: readonly string[];
   // 辞書型ステートの要素集合。[M-STATE-RUNSTATE] cross_unlocked は交差残響マスタの cross_id、
