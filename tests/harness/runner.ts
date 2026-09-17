@@ -214,7 +214,10 @@ export function driveBattle(
       result === 'RUNNING'
         ? resumeBattle(session, ctx, options)
         : playOneOperation(session, ctx, policy, options, playerProfile);
-    steps = session.data.run.battle_state?.step ?? steps;
+    // 勝利時はバトルクリア共通決済（[M-PROG-CLEAR]）が run.battle_state を破棄する。進行は同じ
+    // BattleState を更新し続けるため、呼び出し前に保持した参照から決着ステップを読む（破棄後の
+    // run.battle_state を引くと、時間停止を挟まず決着した区間が数えられず、最後の停止位置になる）。
+    steps = state?.step ?? steps;
   }
   return { scene_id: sceneId, result, steps, limit, within: (result === 'WIN' || result === 'LOSS') && steps <= limit };
 }
