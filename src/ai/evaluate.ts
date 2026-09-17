@@ -95,32 +95,35 @@ function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfil
 // deps（CreatureFactory）は [A-EVAL-REFIMPL]「Layer 1が提供すべき純関数」を実際に
 // 呼び出すための配線であり、M1の他モジュール（[M-PIPE-P8-DECISION] 等）と同様に注入する。
 export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number, deps: StepDeps): number {
-  // 特徴量（x_tempo・x_board 等）とTTKの攻撃側・防御側は、決定点そのものの状態（state）を
-  // 用いる。静止探索は [A-EVAL-TTK]「着弾予測時点」の防御力・距離を求めるための補助トレースに
-  // すぎず、その延長状態自体を「評価対象の局面」にしてはならない（延長でSTARTUP/RECOVERYが
-  // 完了し、tempo等が実勢と異なる値になってしまう）。このため quiesce には独立したクローンを渡す。
-  const foeMaster = masterOf(state, 'FOE');
-  const mineMaster = masterOf(state, 'MINE');
-  if (foeMaster === undefined) {
+  if (masterOf(state, 'FOE') === undefined) {
     return -MATE;
   }
-  if (mineMaster === undefined) {
+  if (masterOf(state, 'MINE') === undefined) {
     return MATE;
   }
 
-  // [A-SEARCH-QUIESCE] 葉は静止局面まで進めてから評価する。延長中に決着した局面は決着項で評価する
-  // （着弾済みの致命打をトレースの欠落として「命中不能」と扱わないため）。
-  const { trace, outcome } = runQuiescence(cloneState(state), deps);
+  // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
+  // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
+  // 延長中に決着した局面は決着項で評価する（ply は葉ノードの値）。state は変更しない。
+  const quiet = cloneState(state);
+  const { trace, outcome } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
     return mateScore(outcome, ply);
   }
-  const tp = ttk(mineMaster, foeMaster, { trace, level: state.scene_level });
-  const te = ttk(foeMaster, mineMaster, { trace, level: state.scene_level });
+  const foeMaster = masterOf(quiet, 'FOE');
+  const mineMaster = masterOf(quiet, 'MINE');
+  if (foeMaster === undefined || mineMaster === undefined) {
+    throw new Error('静止探索が決着を返さずにマスターが消滅した');
+  }
+  // 延長したステップ数 q。トレースは葉ノードを添字0として記録されている。
+  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1 };
+  const tp = ttk(mineMaster, foeMaster, inputs);
+  const te = ttk(foeMaster, mineMaster, inputs);
   const phiCenti = 100 - floorDiv(foeMaster.hp * 100, Math.max(foeMaster.max_hp, 1));
 
   let total = 0;
   for (const key of prof.evalMask) {
-    const x = featureValue(state, key, prof, tp, te);
+    const x = featureValue(quiet, key, prof, tp, te);
     const weight = BASE_WEIGHTS[key];
     const mult = signedRoundDiv(weightMultOf(prof, key) * phaseMultiplierCenti(key, phiCenti), 100);
     const effectiveWeight = signedRoundDiv(weight * mult, 100);

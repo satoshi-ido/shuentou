@@ -76,10 +76,12 @@ function rowAfter(classIdOrPass: string): Row {
       ? ({ kind: 'PASS' } as const)
       : ({ kind: 'ACT', action: enemy.acts.find((a) => a.master_ref === classIdOrPass)! } as const);
   applyMove(state, enemy, move, deps);
-  const { trace } = runQuiescence(cloneState(state), deps);
-  const inputs = { trace, level: state.scene_level };
-  const tp = ttk(findUnit(state, 'MINE'), findUnit(state, 'FOE'), inputs);
-  const te = ttk(findUnit(state, 'FOE'), findUnit(state, 'MINE'), inputs);
+  // [A-SEARCH-QUIESCE]［評価対象］TTK は静止局面で求め、延長ステップ数 q を加えて本局面基準へ換算する。
+  const quiet = cloneState(state);
+  const { trace } = runQuiescence(quiet, deps);
+  const inputs = { trace, level: state.scene_level, offset: trace.length - 1 };
+  const tp = ttk(findUnit(quiet, 'MINE'), findUnit(quiet, 'FOE'), inputs);
+  const te = ttk(findUnit(quiet, 'FOE'), findUnit(quiet, 'MINE'), inputs);
   const x = xSurvival(tp, te, SCALE);
   const survival = signedRoundDiv(W_SURVIVAL * x, SCALE);
   return {
@@ -92,9 +94,9 @@ function rowAfter(classIdOrPass: string): Row {
 
 describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
   it.each([
-    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 999, tp: 787, xSurvivalMilli: -119, total: -477 } },
-    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 999, tp: 875, xSurvivalMilli: -66, total: -266 } },
-    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 787, tp: 681, xSurvivalMilli: -72, total: -289 } },
+    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 970, tp: 498, xSurvivalMilli: -321, total: -1285 } },
+    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 970, tp: 681, xSurvivalMilli: -175, total: -699 } },
+    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 843, tp: 673, xSurvivalMilli: -112, total: -449 } },
     { move: 'PASS', label: 'パス', expected: { te: 607, tp: 437, xSurvivalMilli: -163, total: -1452 } },
   ])('$label', ({ move, expected }) => {
     expect(rowAfter(move)).toEqual(expected);
@@ -111,8 +113,8 @@ describe('[V-TEST-POSITIONS] T-18 パスへの負のボーナスと妨害モデ�
     return decision.kind === 'PASS' ? 'PASS' : enemy.acts.find((a) => a.instance_id === decision.instanceId)!.master_ref;
   }
 
-  it('T-18: 生存項のみの比較（PASS −800 を加味）では体勢AR6を選ぶ', () => {
-    expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_GUARD_AR6');
+  it('T-18: 生存項のみの比較（PASS −800 を加味）では武技（重撃）AR3を選ぶ', () => {
+    expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_HEAVY_AR3');
   });
 
   it('T-18: 1-01 の実効プロファイルによる探索では非パス手（武技（重撃）AR3）を選ぶ', () => {

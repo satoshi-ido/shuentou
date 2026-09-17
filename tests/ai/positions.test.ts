@@ -325,8 +325,10 @@ describe('[V-TEST-POSITIONS] T-14 リソース補充の加算', () => {
   ])('T-14: $name', ({ pp, enemyHp, expected }) => {
     const { state, hero, enemy } = duel([HIT, CHARGE], [MIND], 60, enemyHp);
     hero.pp = pp;
+    // 双方とも思考中の局面であり、静止探索は延長しない（q = 0）。
     const { trace } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
-    const value = ttk(hero, enemy, { trace, level: state.scene_level });
+    expect(trace).toHaveLength(1);
+    const value = ttk(hero, enemy, { trace, level: state.scene_level, offset: 0 });
     const requiredHits = Math.ceil(enemyHp / 30);
     const naiveVolley = 20 + 10 + (requiredHits - 1) * HIT_CYCLE;
     expect(value).toBe(expected);

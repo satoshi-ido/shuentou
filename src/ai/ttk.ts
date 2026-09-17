@@ -222,12 +222,15 @@ function payShot(res: PlanResources, costHp: number, costVp: number, costPp: num
 export interface TtkInputs {
   readonly trace: QuiesceTrace;
   readonly level: number;
+  // [A-SEARCH-QUIESCE]［評価対象］延長したステップ数 q。攻撃計画は静止局面を 0 とし、トレースは
+  // 葉ノードを添字0として記録するため、計画上のステップ t は添字 q + t で参照する。
+  readonly offset: number;
 }
 
 // 着弾予測時点（[A-EVAL-TTK]［トレース参照時点］）に target へ命中し、射程内にあるか。
 function hitsAt(inputs: TtkInputs, shooter: Unit, action: ActionInstance, target: Unit, landing: number): boolean {
-  const targetSample = sampleAt(inputs.trace, landing, target.unit_id);
-  const shooterSample = sampleAt(inputs.trace, landing, shooter.unit_id);
+  const targetSample = sampleAt(inputs.trace, inputs.offset + landing, target.unit_id);
+  const shooterSample = sampleAt(inputs.trace, inputs.offset + landing, shooter.unit_id);
   if (targetSample === undefined || shooterSample === undefined) {
     return false;
   }
@@ -257,7 +260,8 @@ export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): num
 }
 
 // TTK(atk_side -> def_side) を、攻撃側マスターの全武技の攻撃計画の最小値として求める。
-// 有効HP(d) は対象マスターのHPのみ（[A-EVAL-TTK]）。
+// 有効HP(d) は対象マスターのHPのみ（[A-EVAL-TTK]）。返り値は葉ノード基準であり、静止局面を基準とする
+// 最終着弾ステップに q を加えてからクランプする（[A-EVAL-TTK]「同着の非対称性」）。
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
   const tDeny = denyTime(defenderMaster, attacker, inputs);
   let best = TTK_MAX;
@@ -279,7 +283,7 @@ export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): nu
     if (plan === null) {
       continue;
     }
-    best = Math.min(best, Math.min(Math.max(plan.finalLanding, 1), TTK_MAX));
+    best = Math.min(best, Math.min(Math.max(inputs.offset + plan.finalLanding, 1), TTK_MAX));
   }
   return best;
 }
