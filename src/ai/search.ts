@@ -15,7 +15,7 @@ import { lookupBook } from './book.js';
 import { cloneState } from './clone.js';
 import { INF, MATE_TH } from './constants.js';
 import { evaluate, mateScore } from './evaluate.js';
-import { generateMoves, moveBonusOf, type AiMove } from './movegen.js';
+import { generateMoves, moveBonusOf, reswapPenaltyOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
 import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
 
@@ -135,7 +135,9 @@ function rankMoves(
     // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
     // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
     if (ply === 0) {
-      value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+      // [A-PROFILE-BONUS] 再交代の減点も根の手の選好として同じく加算する。
+      const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(state, unit, move);
+      value += unit.side === 'FOE' ? bonus : -bonus;
     }
     ranked.push({ move, value, outcome });
   }

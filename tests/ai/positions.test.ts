@@ -7,6 +7,8 @@ import { describe, expect, it } from 'vitest';
 import type { ActionMasterRecord } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { runPreDecision } from '../../src/engine/pipeline/step.js';
+import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
+import { applyMove } from '../../src/ai/apply.js';
 import { cloneState } from '../../src/ai/clone.js';
 import { evaluate, quiescenceMateScore } from '../../src/ai/evaluate.js';
 import { MATE_TH } from '../../src/ai/constants.js';
@@ -262,6 +264,34 @@ describe('[V-TEST-POSITIONS] T-22/T-23 斥けによる射程外化と両マス�
   ])('T-23: $name（後列が空きマス）', ({ elapsed, pushStartup }) => {
     const { state, enemy } = position({ withCreature: false, elapsed, pushStartup });
     expect(chosenClassId(state, enemy)).not.toBe('FOE_PUSH');
+  });
+});
+
+describe('[A-PROFILE-BONUS] 再交代による往復の抑止', () => {
+  // 前列のクリーチャーが直前のステップに隊列交代で前へ出て、敵マスターを後列へ下げた。主人公の射程1の
+  // 武技が発生中で前列へ迫り、配置は敵にとって望ましい。ここで再び交代すると、次のステップに戻す往復で
+  // パスの減点を回避できる（2-01 の実測で生じた往復）。往復で失うものがなく再交代とパスが同点となる局面でも、
+  // 再交代の減点はパスより1大きいため、往復は選ばれない。
+  const CREATURE_WAIT = makeAction('CR_WAIT', { gain_vp: 1, step_thought: 500 });
+  const SWAP = makeAction('CR_SWAP', { is_swap: true, step_startup: 0, step_recovery: 0 });
+
+  it.each([
+    { name: '残り発生50', elapsed: 10 },
+    { name: '残り発生40', elapsed: 20 },
+    { name: '残り発生55', elapsed: 5 },
+  ])('直前に交代したクリーチャーは往復せずパスする：$name', ({ elapsed }) => {
+    // 主人公の武技は敵マスターを一撃で倒す威力を持ち、クリーチャーが前列に立つ配置が明確に望ましい。
+    const HIT = martialAction('HERO_HIT', { atk: 30, dmg_hp: 10000, step_startup: 60, step_recovery: 10 });
+    const FOE_SLOW = martialAction('FOE_SLOW', { atk: 10, dmg_hp: 300, step_thought: 100, step_startup: 10, step_recovery: 10 });
+    const { state, hero, enemy } = duel([HIT, MIND], [FOE_SLOW]);
+    const creature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 3, maxHp: 30, acts: [SWAP, CREATURE_WAIT], counter: { instance_id_seq: 50 } });
+    // 直前のステップ：クリーチャー（後列）が隊列交代で前列へ出る。
+    applyMove(state, creature, { kind: 'ACT', action: creature.acts.find((a) => a.master_ref === 'CR_SWAP')! }, NO_SUMMON_DEPS);
+    runStepEnd(state);
+    expect(creature.pos_idx).toBe(2);
+    expect(enemy.pos_idx).toBe(3);
+    setStartup(hero, 'HERO_HIT', elapsed);
+    expect(chosenClassId(state, creature)).toBe('PASS');
   });
 });
 

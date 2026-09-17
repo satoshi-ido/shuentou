@@ -5,7 +5,10 @@
 // [A-PROFILE-BONUS] アクション種別ボーナスのタグ判定もここに置く。
 
 import { executableActions, isInstant } from '../engine/decision.js';
+import { hasFlag } from '../engine/flags.js';
+import { partnerOf } from '../engine/resolve/partner.js';
 import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
+import { RESWAP_PENALTY, RESWAP_WINDOW_STEPS } from './constants.js';
 import { actionBonusOf, type ActionTag, type EffectiveProfile } from './profile.js';
 
 export type AiMove = { readonly kind: 'PASS' } | { readonly kind: 'ACT'; readonly action: ActionInstance };
@@ -67,4 +70,28 @@ export function moveBonusOf(move: AiMove, prof: EffectiveProfile): number {
     total += actionBonusOf(prof, tag);
   }
   return total;
+}
+
+// 隊列交代で思考中へ着地してから RESWAP_WINDOW_STEPS 未満のユニット。
+function swappedRecently(unit: Unit | null): boolean {
+  return (
+    unit !== null &&
+    unit.state === 'THOUGHT' &&
+    unit.last_act !== null &&
+    hasFlag(unit.last_act.sys_flags, 'FLAG_SWAP') &&
+    unit.elapsed_thought < RESWAP_WINDOW_STEPS
+  );
+}
+
+// [A-PROFILE-BONUS] 再交代：直前のステップで交代した組（実行者または相方）による隊列交代。交代と戻しの
+// 2手は局面を変えずにパスの減点を回避できるため、パスの既定減点より1大きい減点を課す（同点ではパスを選ぶ）。
+export function isReswap(state: BattleState, unit: Unit, move: AiMove): boolean {
+  if (move.kind !== 'ACT' || !hasFlag(move.action.sys_flags, 'FLAG_SWAP')) {
+    return false;
+  }
+  return swappedRecently(unit) || swappedRecently(partnerOf(state.units, unit));
+}
+
+export function reswapPenaltyOf(state: BattleState, unit: Unit, move: AiMove): number {
+  return isReswap(state, unit, move) ? RESWAP_PENALTY : 0;
 }
