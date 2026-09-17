@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { removeCreatures, runP5Discard } from '../../src/engine/pipeline/p5-discard.js';
+import { advanceStep } from '../../src/engine/pipeline/step.js';
 import { rollbackBattle, rollbackIntermission, rollbackOrders } from '../../src/engine/game/rewind.js';
 import { resumeTime, startBattle, type BattleResult } from '../../src/engine/game/battle.js';
 import { newGameSession } from '../../src/engine/game/save.js';
@@ -13,7 +14,7 @@ import { executableActions, type Decision } from '../../src/engine/decision.js';
 import { createCreatureFactory } from '../../src/engine/creature.js';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
-import { createDuel, findUnit, makeAction, martialAction } from '../ai/fixtures.js';
+import { createDuel, findUnit, makeAction, martialAction, NO_SUMMON_DEPS, setStartup } from '../ai/fixtures.js';
 
 // 1-01 の敵マスターは基本型の所持回数では主人公の最大HPを削り切れないため、敗北の局面は
 // マスター根源武技（[M-BASE-AR-SYSTEM]・思考550・dmg_hp 999.00）で作る。主人公側は心気を
@@ -68,6 +69,27 @@ describe('[M-PIPE-P5-DISCARD] 勝敗判定', () => {
     findUnit(state, 'MINE').state = 'PENDING_DISCARD';
     findUnit(state, 'FOE').state = 'PENDING_DISCARD';
     expect(runP5Discard(state)).toBe('LOSS');
+  });
+
+  // [M-PIPE-P2-APPLY]#3 相打ち：同ステップに発動した武技で先にHPが0に達したユニットは、自身の発動による
+  // 硬直遷移で消滅猶予状態を失わず、同ステップの《処理5》で破棄される。
+  it('同ステップの発動で倒された発動ユニットも破棄する（主人公の一方的な撃破）', () => {
+    const KILL = martialAction('HERO_KILL', { atk: 10, dmg_hp: 30000, step_startup: 5, step_recovery: 5 });
+    const POKE = martialAction('FOE_POKE', { atk: 10, dmg_hp: 100, step_startup: 5, step_recovery: 5 });
+    const state = createDuel({ heroMaxHp: 60, heroActs: [KILL], enemyMaxHp: 60, enemyActs: [POKE] });
+    setStartup(findUnit(state, 'MINE'), 'HERO_KILL', 5);
+    setStartup(findUnit(state, 'FOE'), 'FOE_POKE', 5);
+    state.step = 10;
+    expect(advanceStep(state, () => ({ kind: 'PASS' }), NO_SUMMON_DEPS).outcome).toBe('WIN');
+  });
+
+  it('同ステップの発動で両軍マスターが倒れた相打ちは敗北とする', () => {
+    const KILL = martialAction('KILL', { atk: 10, dmg_hp: 30000, step_startup: 5, step_recovery: 5 });
+    const state = createDuel({ heroMaxHp: 60, heroActs: [KILL], enemyMaxHp: 60, enemyActs: [KILL] });
+    setStartup(findUnit(state, 'MINE'), 'KILL', 5);
+    setStartup(findUnit(state, 'FOE'), 'KILL', 5);
+    state.step = 10;
+    expect(advanceStep(state, () => ({ kind: 'PASS' }), NO_SUMMON_DEPS).outcome).toBe('LOSS');
   });
 
   it('勝敗決定時は残存クリーチャーを物理撤去する', () => {

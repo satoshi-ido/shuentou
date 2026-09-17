@@ -39,10 +39,13 @@ export function runP2Apply(
       continue;
     }
 
-    // 1. 硬直遷移。
-    unit.applied_recovery = effectiveStepRecovery(unit, action);
-    unit.state = 'RECOVERY';
-    unit.elapsed_recovery = 0;
+    // 1. 硬直遷移。同ステップで先に適用された武技によりHPが0に達したユニットは消滅猶予状態を保つ
+    // （[M-CORE-GLOSSARY-TIME]・[M-PIPE-P5-DISCARD]）。発動したアクションは相打ちとして成立させる（#3）。
+    if (unit.state !== 'PENDING_DISCARD') {
+      unit.applied_recovery = effectiveStepRecovery(unit, action);
+      unit.state = 'RECOVERY';
+      unit.elapsed_recovery = 0;
+    }
 
     // [M-DATA-AUDIO-CUE] ACTION_TRIGGER：統合解決パイプラインの Step 1 直前。
     emitTrigger(deps.onCue, unit, action);
