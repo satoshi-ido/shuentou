@@ -12,7 +12,7 @@ import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Side, Unit } from '../engine/types.js';
 import { floorDiv } from '../num/helpers.js';
 import { cloneState } from './clone.js';
-import { MATE } from './constants.js';
+import { MATE, QMATE } from './constants.js';
 import { clamp, signedRoundDiv } from './fixed.js';
 import {
   xBoard,
@@ -40,6 +40,15 @@ export function mateScore(outcome: BattleOutcome, ply: number): number {
     return -MATE + ply; // 敵マスター消滅かつプレイヤー生存
   }
   return MATE - ply; // プレイヤーマスター消滅かつ敵マスター生存（同時消滅も同一式で扱う。上部注記）
+}
+
+// [A-EVAL-MATE]「静止探索中の決着」。延長中は相手の新規行動を仮定しないため確定した詰みではなく、
+// 絶対値を MATE_TH 未満に保って早期打ち切り・自滅ポリシーの対象から外す。q は決着までの延長ステップ数。
+export function quiescenceMateScore(outcome: BattleOutcome, ply: number, q: number): number {
+  if (outcome === 'WIN') {
+    return -QMATE + ply + q;
+  }
+  return QMATE - ply - q;
 }
 
 function masterOf(state: BattleState, side: Side): Unit | undefined {
@@ -104,11 +113,11 @@ export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number
 
   // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
   // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
-  // 延長中に決着した局面は決着項で評価する（ply は葉ノードの値）。state は変更しない。
+  // 延長中に決着した局面は「静止探索中の決着」のスコアで評価する（ply は葉ノードの値）。state は変更しない。
   const quiet = cloneState(state);
   const { trace, outcome } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
-    return mateScore(outcome, ply);
+    return quiescenceMateScore(outcome, ply, trace.length - 1);
   }
   const foeMaster = masterOf(quiet, 'FOE');
   const mineMaster = masterOf(quiet, 'MINE');

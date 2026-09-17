@@ -8,7 +8,9 @@ import type { ActionMasterRecord } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { runPreDecision } from '../../src/engine/pipeline/step.js';
 import { cloneState } from '../../src/ai/clone.js';
-import { evaluate } from '../../src/ai/evaluate.js';
+import { evaluate, quiescenceMateScore } from '../../src/ai/evaluate.js';
+import { MATE_TH } from '../../src/ai/constants.js';
+import { decideActionDetailed } from '../../src/ai/search.js';
 import { referenceProfile } from '../../src/ai/profile.js';
 import { runQuiescence } from '../../src/ai/quiesce.js';
 import { ttk } from '../../src/ai/ttk.js';
@@ -260,6 +262,30 @@ describe('[V-TEST-POSITIONS] T-22/T-23 斥けによる射程外化と両マス�
   ])('T-23: $name（後列が空きマス）', ({ elapsed, pushStartup }) => {
     const { state, enemy } = position({ withCreature: false, elapsed, pushStartup });
     expect(chosenClassId(state, enemy)).not.toBe('FOE_PUSH');
+  });
+});
+
+describe('[A-EVAL-MATE] 静止探索中の決着', () => {
+  // 致死の武技が発生中にあり、相手が新規行動をとらなければ延長中に着弾して決着する。
+  const LETHAL = martialAction('FOE_LETHAL', { atk: 10, dmg_hp: 5000, step_startup: 50, step_recovery: 10 });
+  const HERO_WAIT = makeAction('HERO_WAIT', { gain_vp: 1, step_thought: 1000 });
+
+  it('延長中の決着は MATE_TH 未満のスコアで評価し、延長ステップ数を加味する', () => {
+    const { state, enemy } = duel([HERO_WAIT], [LETHAL]);
+    setStartup(enemy, 'FOE_LETHAL', 40);
+    const { trace, outcome } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
+    expect(outcome).toBe('LOSS');
+    const value = evaluate(state, referenceProfile(), 2, NO_SUMMON_DEPS);
+    expect(value).toBe(quiescenceMateScore('LOSS', 2, trace.length - 1));
+    expect(Math.abs(value)).toBeLessThan(MATE_TH);
+  });
+
+  it('相手が着弾前に体勢で防げる大技を詰みとみなさず、反復深化を打ち切らない', () => {
+    // 主人公は発生5の体勢（AP50・防御効率2.00）で、発生50の大技の着弾前に防御力100を得られる。
+    const HERO_GUARD = makeAction('HERO_GUARD', { deploy_ap: 50, def_efficiency: 200, step_startup: 5, step_recovery: 100 });
+    const { state, enemy } = duel([HERO_GUARD], [LETHAL, MIND]);
+    const { score } = decideActionDetailed(state, enemy, referenceProfile(), NO_SUMMON_DEPS);
+    expect(Math.abs(score)).toBeLessThan(MATE_TH);
   });
 });
 

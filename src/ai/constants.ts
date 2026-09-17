@@ -6,6 +6,7 @@ export const SCALE = 1024;
 export const MATE = 100000;
 export const SIMUL_PEN = 1000; // Δ（両軍マスター同時撃破の減点）
 export const MATE_TH = MATE - 10000;
+export const QMATE = MATE_TH - 1; // [A-EVAL-MATE]「静止探索中の決着」のスコア基準
 export const INF = MATE + SCALE;
 export const TTK_MAX = 999;
 export const TIE_BONUS = 16; // SCALE // 64
