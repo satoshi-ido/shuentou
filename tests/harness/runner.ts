@@ -351,7 +351,8 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
   if (isActTransition(run, MASTERS)) {
     enterTransition(session, ctx);
     const preference = PARTY_PREFERENCE[policy];
-    while (run.party.length < refillCapacity(run, MASTERS)) {
+    // refillCapacity は残り補充可能数（定員 − 現在の人数）であり、現在の人数と比べない。
+    while (refillCapacity(run, MASTERS) > 0) {
       const pool = refillPool(run, MASTERS);
       if (pool.length === 0) {
         break;
