@@ -1,7 +1,7 @@
-// [V-TEST-REFAI]［重み摂動プロファイル群］勝率の測定に用いる23件のプロファイル。
+// [V-TEST-REFAI]［重み摂動プロファイル群］勝率の測定に用いる21件のプロファイル。
 // 乱数を用いない列挙であり、同一の操作列を与えれば同一の結果を返す（[A-CORE-DETERMINISM]#1）。
 
-import { FEATURE_KEYS, referenceProfile, type EffectiveProfile, type FeatureKey } from '../../src/ai/profile.js';
+import { referenceProfile, type EffectiveProfile, type FeatureKey } from '../../src/ai/profile.js';
 import { roundDiv } from '../../src/num/helpers.js';
 import {
   advanceOptionsFor,
@@ -29,11 +29,12 @@ export interface PerturbedProfile {
   readonly profile: EffectiveProfile;
 }
 
+// ［構成］参照プレイヤーAIの評価項（[V-TEST-REFAI]「評価項」の10項）のうち1項のみを摂動する。
 // ［順序］無摂動を先頭に置き、以降は特徴量キーの昇順、各キーにつき ×0.80・×1.20 の順とする。
 export function perturbationSet(): PerturbedProfile[] {
   const base = referenceProfile();
   const result: PerturbedProfile[] = [{ id: 'BASE', key: null, multCenti: 100, profile: base }];
-  for (const key of [...FEATURE_KEYS].sort()) {
+  for (const key of [...base.evalMask].sort()) {
     for (const multCenti of [DOWN, UP]) {
       result.push({
         id: `${key}_${multCenti}`,

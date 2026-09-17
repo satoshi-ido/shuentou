@@ -1,4 +1,4 @@
-// [V-TEST-REFAI]［重み摂動プロファイル群］23件の構成と、勝率の算出。
+// [V-TEST-REFAI]［重み摂動プロファイル群］21件の構成と、勝率の算出。
 
 import { describe, expect, it } from 'vitest';
 import { FEATURE_KEYS, referenceProfile } from '../../src/ai/profile.js';
@@ -8,15 +8,15 @@ import { createRun, decisionLimit } from './runner.js';
 const set = perturbationSet();
 
 describe('[V-TEST-REFAI]［重み摂動プロファイル群］構成', () => {
-  it('11項 × ±20% の22件と無摂動の1件からなる', () => {
-    expect(FEATURE_KEYS).toHaveLength(11);
-    expect(set).toHaveLength(23);
+  it('評価項10項 × ±20% の20件と無摂動の1件からなる', () => {
+    expect(referenceProfile().evalMask).toHaveLength(10);
+    expect(set).toHaveLength(21);
     expect(set.filter((entry) => entry.key === null)).toHaveLength(1);
   });
 
   it('［順序］無摂動を先頭に置き、以降はキー昇順・×0.80 → ×1.20 とする', () => {
     expect(set[0].id).toBe('BASE');
-    const expected = [...FEATURE_KEYS].sort().flatMap((key) => [`${key}_80`, `${key}_120`]);
+    const expected = [...referenceProfile().evalMask].sort().flatMap((key) => [`${key}_80`, `${key}_120`]);
     expect(set.slice(1).map((entry) => entry.id)).toEqual(expected);
   });
 
@@ -40,31 +40,36 @@ describe('[V-TEST-REFAI]［重み摂動プロファイル群］構成', () => {
     for (const entry of set) {
       expect(entry.profile.maxDepth).toBe(base.maxDepth); // depth 3
       expect(entry.profile.nodeLimit).toBe(base.nodeLimit); // node 10,000
-      expect(entry.profile.evalMask).toEqual(base.evalMask); // 全11項
+      expect(entry.profile.evalMask).toEqual(base.evalMask); // impatience を除く10項
       expect(entry.profile.actionBonus).toEqual(base.actionBonus);
     }
   });
 
-  it('参照プレイヤーAIは全11項を評価するため、23件はいずれも相異なる', () => {
+  it('摂動する項はいずれも評価項に含まれるため、21件はいずれも相異なる', () => {
     const signatures = set.map((entry) => JSON.stringify(entry.profile.weightMult));
-    expect(new Set(signatures).size).toBe(23);
-    for (const entry of set) {
-      for (const key of FEATURE_KEYS) {
-        expect(entry.profile.evalMask).toContain(key);
-      }
+    expect(new Set(signatures).size).toBe(21);
+    for (const entry of set.slice(1)) {
+      expect(entry.profile.evalMask).toContain(entry.key);
     }
+  });
+
+  it('[V-TEST-REFAI]「評価項」参照プレイヤーAIは impatience を評価しない', () => {
+    const mask = referenceProfile().evalMask;
+    expect(mask).not.toContain('impatience');
+    expect([...FEATURE_KEYS].filter((key) => !mask.includes(key))).toEqual(['impatience']);
+    expect(set.some((entry) => entry.key === 'impatience')).toBe(false);
   });
 });
 
 describe('[V-TEST-BUILD-METRICS] win_rate', () => {
   it('勝利数 ÷ 試行数を centi で返す', () => {
-    expect(winRateCenti(23, 23)).toBe(100);
-    expect(winRateCenti(0, 23)).toBe(0);
-    expect(winRateCenti(12, 23)).toBe(52); // round(1200/23) = 52
+    expect(winRateCenti(21, 21)).toBe(100);
+    expect(winRateCenti(0, 21)).toBe(0);
+    expect(winRateCenti(11, 21)).toBe(52); // round(1100/21) = 52
   });
 
-  it('分母は方針固定のとき23である', () => {
-    expect(set).toHaveLength(23);
+  it('分母は方針固定のとき21である', () => {
+    expect(set).toHaveLength(21);
     expect(winRateCenti(set.length, set.length)).toBe(100);
   });
 
@@ -74,13 +79,13 @@ describe('[V-TEST-BUILD-METRICS] win_rate', () => {
 });
 
 describe('[V-TEST-REFAI] 目標勝率の実測', () => {
-  // 23試行ぶんの通しプレイを要するため実行時間は長い。[I-ENV-TOOLING]［CI］は実時刻に依存しない
+  // 21試行ぶんの通しプレイを要するため実行時間は長い。[I-ENV-TOOLING]［CI］は実時刻に依存しない
   // 検査として打ち切りを設けないため、ここではチュートリアル帯の1件だけを判定に用いる。
-  // 通常シーン以降の帯（および4方針×23件＝92試行）は、通しプレイが全30シーンへ到達したのちに広げる。
+  // 通常シーン以降の帯（および4方針×21件＝84試行）は、通しプレイが全30シーンへ到達したのちに広げる。
   it('チュートリアル（1-01）のバランス型は 95%以上', () => {
     const result = measureWinRate('BALANCE', 1);
     expect(result.scene_id).toBe('SCENE_1_01');
-    expect(result.trials).toBe(23);
+    expect(result.trials).toBe(21);
     expect(result.win_rate).toBeGreaterThanOrEqual(95);
   });
 });
@@ -114,6 +119,6 @@ describe('[V-TEST-REFAI] 敗北時の再挑戦', () => {
   });
 
   it('再挑戦の上限は摂動群の件数に等しい', () => {
-    expect(perturbationSet()).toHaveLength(23);
+    expect(perturbationSet()).toHaveLength(21);
   });
 });

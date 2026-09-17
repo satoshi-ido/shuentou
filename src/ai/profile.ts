@@ -90,8 +90,9 @@ export function defaultProfile(): EffectiveProfile {
   };
 }
 
-// [V-TEST-REFAI] 探索深度固定 depth 3 / node 10,000。参照プレイヤーAIは全11項を評価する
+// [V-TEST-REFAI] 探索深度固定 depth 3 / node 10,000。参照プレイヤーAIは impatience を除く10項を評価する
 // （プレイヤー側は難易度カーブ検証のための均一な基準であり、シーン別のeval_maskを適用しない）。
+// x_impatience は常に敵側の減点であり、符号を反転して用いると長期化が参照プレイヤーAIの得になるため除く。
 export function referenceProfile(): EffectiveProfile {
   return {
     profileId: 'REFAI',
@@ -101,7 +102,7 @@ export function referenceProfile(): EffectiveProfile {
     nodeLimit: 10000,
     jointAction: false,
     deferredDecision: false,
-    evalMask: ['board', 'copy', 'debuff', 'impatience', 'pp', 'position', 'seal', 'slip', 'survival', 'tempo', 'vp'],
+    evalMask: ['board', 'copy', 'debuff', 'pp', 'position', 'seal', 'slip', 'survival', 'tempo', 'vp'],
     inertiaSteps: 0,
     expectedLength: 600,
     bookId: null,

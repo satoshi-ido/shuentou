@@ -1,7 +1,7 @@
 // [V-TEST-POSITIONS] 局面テストスイート（EPD方式）。各評価項につき3局面を置く。
 // 局面は実データに依存しない最小構成で組み、検証対象の特徴量・境界だけを直接指定する。
 // T-12 は 1-01 の実データによる局面（tests/ai/positions-1-01.test.ts）、T-18 の TTK 実数値は tests/ai/step157-ttk.test.ts にある。
-// 手の選択は参照プレイヤーAIと同じ全11項のプロファイル（[V-TEST-REFAI]）で判定する。
+// 手の選択は参照プレイヤーAIと同じ、impatience を除く10項のプロファイル（[V-TEST-REFAI]）で判定する。
 
 import { describe, expect, it } from 'vitest';
 import type { ActionMasterRecord } from '../../src/data/types.js';
