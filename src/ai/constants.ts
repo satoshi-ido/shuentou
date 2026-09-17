@@ -15,8 +15,8 @@ export const BONUS_DEFAULT_PASS = -400; // [A-PROFILE-BONUS]
 // [A-PROFILE-BONUS] 再交代の判定窓。隊列交代で思考中へ着地してからの経過思考がこれ未満の組を「直前の
 // ステップで交代した組」とみなす（瞬動の実行者は次の決定点で経過思考1となるため、2で直前のステップを捉える）。
 export const RESWAP_WINDOW_STEPS = 2;
-// [A-PROFILE-BONUS] 再交代の減点。パスとの同点を必ずパスへ倒すため、パスの既定減点より1大きくする。
-export const RESWAP_PENALTY = BONUS_DEFAULT_PASS - 1;
+// [A-PROFILE-BONUS] 再交代の減点。パスの既定減点と同じ値とする。
+export const RESWAP_PENALTY = BONUS_DEFAULT_PASS;
 
 // [A-EVAL-REFIMPL]「系統フラグのビット割当」。[M-STATE-FLAGS] のフラグ名で直接扱うため
 // 本実装ではビット値そのものは使用しないが、参照用に残す。

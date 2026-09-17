@@ -57,11 +57,11 @@ describe('[A-PROFILE-BONUS] 再交代の判定', () => {
     return { state, master, creature, swapOf };
   }
 
-  it('直前のステップで交代した実行者の隊列交代は再交代とし、パスの既定減点より1大きい減点を課す', () => {
+  it('直前のステップで交代した実行者の隊列交代は再交代とし、パスと同じ減点を課す', () => {
     const { state, creature, swapOf } = afterSwap(1);
     expect(creature.elapsed_thought).toBe(1);
     expect(isReswap(state, creature, swapOf(creature))).toBe(true);
-    expect(RESWAP_PENALTY).toBe(BONUS_DEFAULT_PASS - 1);
+    expect(RESWAP_PENALTY).toBe(BONUS_DEFAULT_PASS);
     expect(reswapPenaltyOf(state, creature, swapOf(creature))).toBe(RESWAP_PENALTY);
   });
 

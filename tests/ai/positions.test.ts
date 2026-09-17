@@ -270,8 +270,7 @@ describe('[V-TEST-POSITIONS] T-22/T-23 斥けによる射程外化と両マス�
 describe('[A-PROFILE-BONUS] 再交代による往復の抑止', () => {
   // 前列のクリーチャーが直前のステップに隊列交代で前へ出て、敵マスターを後列へ下げた。主人公の射程1の
   // 武技が発生中で前列へ迫り、配置は敵にとって望ましい。ここで再び交代すると、次のステップに戻す往復で
-  // パスの減点を回避できる（2-01 の実測で生じた往復）。往復で失うものがなく再交代とパスが同点となる局面でも、
-  // 再交代の減点はパスより1大きいため、往復は選ばれない。
+  // パスの減点を回避できる（2-01 の実測で生じた往復）。再交代にはパスと同じ減点が課され、往復は選ばれない。
   const CREATURE_WAIT = makeAction('CR_WAIT', { gain_vp: 1, step_thought: 500 });
   const SWAP = makeAction('CR_SWAP', { is_swap: true, step_startup: 0, step_recovery: 0 });
 

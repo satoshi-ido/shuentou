@@ -84,7 +84,7 @@ function swappedRecently(unit: Unit | null): boolean {
 }
 
 // [A-PROFILE-BONUS] 再交代：直前のステップで交代した組（実行者または相方）による隊列交代。交代と戻しの
-// 2手は局面を変えずにパスの減点を回避できるため、パスの既定減点より1大きい減点を課す（同点ではパスを選ぶ）。
+// 2手は局面を変えずにパスの減点を回避できるため、パスと同じ減点を課す（同点は [A-TIE-BREAK] の生成順による）。
 export function isReswap(state: BattleState, unit: Unit, move: AiMove): boolean {
   if (move.kind !== 'ACT' || !hasFlag(move.action.sys_flags, 'FLAG_SWAP')) {
     return false;
