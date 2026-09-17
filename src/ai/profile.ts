@@ -71,6 +71,8 @@ export interface EffectiveProfile {
   readonly inertiaSteps: number;
   readonly expectedLength: number;
   readonly bookId: string | null;
+  // [A-SEARCH-MOVEGEN] 待機手を候補に含めるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  readonly waitMoves: boolean;
 }
 
 // [A-DIFF-CONFIG] 1-01 の設定値。M5（全30シーン投入）までの既定プロファイルとして用いる。
@@ -87,6 +89,7 @@ export function defaultProfile(): EffectiveProfile {
     inertiaSteps: 30,
     expectedLength: 600,
     bookId: null,
+    waitMoves: false,
   };
 }
 
@@ -106,6 +109,7 @@ export function referenceProfile(): EffectiveProfile {
     inertiaSteps: 0,
     expectedLength: 600,
     bookId: null,
+    waitMoves: true, // [V-TEST-REFAI]「待機手」
   };
 }
 
@@ -217,5 +221,6 @@ export function buildEffectiveProfile({ scene, enemy, profile, mirrorStats }: Pr
     inertiaSteps: requireValue(scene.inertia_steps, '惰性ステップ数', scene.scene_id),
     expectedLength: requireValue(scene.expected_length, '想定戦闘長', scene.scene_id),
     bookId: enemy.book_id ?? null, // 手順5
+    waitMoves: false, // [A-SEARCH-MOVEGEN] 敵軍AIの探索では待機手を生成しない
   };
 }

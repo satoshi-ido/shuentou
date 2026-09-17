@@ -6,8 +6,8 @@ import type { Unit } from '../../src/engine/types.js';
 import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import { applyMove } from '../../src/ai/apply.js';
 import { BONUS_DEFAULT_PASS, RESWAP_PENALTY } from '../../src/ai/constants.js';
-import { generateMoves, isReswap, reswapPenaltyOf, type AiMove } from '../../src/ai/movegen.js';
-import { createDuel, makeAction, moveUnit, NO_SUMMON_DEPS, placeUnit } from './fixtures.js';
+import { generateMoves, isReswap, reswapPenaltyOf, tagsOf, type AiMove } from '../../src/ai/movegen.js';
+import { createDuel, makeAction, martialAction, moveUnit, NO_SUMMON_DEPS, placeUnit } from './fixtures.js';
 
 function findUnit(state: ReturnType<typeof createDuel>, side: 'MINE' | 'FOE'): Unit {
   const unit = state.units.find((u) => u !== null && u.side === side) ?? null;
@@ -83,5 +83,45 @@ describe('[A-PROFILE-BONUS] 再交代の判定', () => {
     const wait: AiMove = { kind: 'ACT', action: creature.acts.find((a) => a.master_ref === 'ACT_WAIT')! };
     expect(isReswap(state, creature, wait)).toBe(false);
     expect(isReswap(state, creature, { kind: 'PASS' })).toBe(false);
+  });
+});
+
+describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
+  const READY = martialAction('ACT_READY', { atk: 10, step_thought: 0, step_startup: 5 });
+  const WAITABLE = martialAction('ACT_WAITABLE', { atk: 40, step_thought: 20, step_startup: 5 });
+  const COSTLY = martialAction('ACT_COSTLY', { atk: 40, cost_pp: 9, step_thought: 20, step_startup: 5 });
+  const MIND_SLOW = makeAction('ACT_MIND_SLOW', { gain_vp: 1, step_thought: 20, step_startup: 5 });
+
+  function hero(acts: Parameters<typeof createDuel>[0]['heroActs']) {
+    const state = createDuel({ heroMaxHp: 10, heroActs: acts, enemyMaxHp: 10, enemyActs: [MIND_SLOW] });
+    return { state, unit: findUnit(state, 'MINE') };
+  }
+  const labels = (moves: readonly AiMove[]) => moves.map((m) => (m.kind === 'PASS' ? 'PASS' : `${m.kind}:${m.action.master_ref}`));
+
+  it('必要思考のみが未充足の武技について、通常の候補の後・パスの前に待機手を置く', () => {
+    const { state, unit } = hero([WAITABLE, READY]);
+    expect(labels(generateMoves(state, unit, true))).toEqual(['ACT:ACT_READY', 'WAIT:ACT_WAITABLE', 'PASS']);
+  });
+
+  it('プロファイルが待機手を含めない場合は生成しない', () => {
+    const { state, unit } = hero([WAITABLE, READY]);
+    expect(labels(generateMoves(state, unit, false))).toEqual(['ACT:ACT_READY', 'PASS']);
+    expect(labels(generateMoves(state, unit))).toEqual(['ACT:ACT_READY', 'PASS']);
+  });
+
+  it('コストが未充足の武技、武技以外、マスター根源武技は待機手としない', () => {
+    const { state, unit } = hero([COSTLY, MIND_SLOW]);
+    unit.pp = 0;
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+    const root = createDuel({ heroMaxHp: 10, heroActs: [], enemyMaxHp: 10, enemyActs: [MIND_SLOW] });
+    const rootUnit = findUnit(root, 'MINE');
+    rootUnit.acts = [{ ...unit.acts[0], instance_id: 'IID_ROOT', master_ref: 'ACT_ROOT_MARTIAL', base_params: { ...unit.acts[0].base_params, cost_pp: 0, step_thought: 550 } }];
+    expect(labels(generateMoves(root, rootUnit, true))).toEqual(['PASS']);
+  });
+
+  it('待機手のボーナスはパスと同じ既定値・上書きに従う', () => {
+    const { state, unit } = hero([WAITABLE]);
+    const wait = generateMoves(state, unit, true).find((m) => m.kind === 'WAIT')!;
+    expect(tagsOf(wait)).toEqual(['PASS']);
   });
 });

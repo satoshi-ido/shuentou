@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { AI_PROFILE_MASTERS } from '../../src/data/generated/ai-profile-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
-import { buildEffectiveProfile } from '../../src/ai/profile.js';
+import { buildEffectiveProfile, defaultProfile, referenceProfile } from '../../src/ai/profile.js';
 
 describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
   it('1-01：敵マスタ→AIプロファイル→シーンマスタ→定跡の順に合成する', () => {
@@ -25,6 +25,7 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       inertiaSteps: 30,
       expectedLength: 600,
       bookId: 'B-01',
+      waitMoves: false,
     });
   });
 
@@ -59,5 +60,18 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
         profile: AI_PROFILE_MASTERS.PROFILE_ASSAULT,
       }),
     ).toThrow('一致しない');
+  });
+});
+
+describe('[A-SEARCH-MOVEGEN] 待機手を含めるプロファイル', () => {
+  it('参照プレイヤーAIに限り待機手を含め、敵軍AIの実効プロファイルと既定プロファイルは含めない', () => {
+    expect(referenceProfile().waitMoves).toBe(true);
+    expect(defaultProfile().waitMoves).toBe(false);
+    const built = buildEffectiveProfile({
+      scene: SCENE_MASTERS.SCENE_1_01,
+      enemy: ENEMY_MASTERS.ENEMY_LEF,
+      profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
+    });
+    expect(built.waitMoves).toBe(false);
   });
 });
