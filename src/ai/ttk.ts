@@ -22,9 +22,10 @@ import {
   effectiveStepThought,
 } from '../engine/effective.js';
 import { hasFlag } from '../engine/flags.js';
+import { defenseFromApAndEfficiency } from '../engine/calc.js';
 import { INFINITE_USES } from '../engine/params.js';
 import type { ActionInstance, Unit } from '../engine/types.js';
-import { floorDiv, roundDiv } from '../num/helpers.js';
+import { roundDiv } from '../num/helpers.js';
 import { PURIFY_ITER_MAX, TIE_BONUS, TTK_MAX } from './constants.js';
 import { signedRoundDiv } from './fixed.js';
 import { sampleAt, type QuiesceTrace } from './quiesce.js';
@@ -32,13 +33,6 @@ import { sampleAt, type QuiesceTrace } from './quiesce.js';
 const SEAL_LIMIT_CENTI = 100;
 // 攻撃計画のサイクル数の上限。これを超える計画は TTK_MAX（決着不能）として扱う。
 const PLAN_CYCLE_LIMIT = 64;
-
-function ceilDiv(a: number, b: number): number {
-  if (a <= 0) {
-    return 0;
-  }
-  return floorDiv(a + b - 1, b);
-}
 
 function fullCycle(unit: Unit, action: ActionInstance): number {
   return effectiveStepThought(unit, action) + effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action);
@@ -209,6 +203,197 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
   return null;
 }
 
+// [A-EVAL-TTK]［射撃アクション］射撃を1アクションに固定せず、累積HPダメージが有効HPに達するまで
+// 射撃列を構成する。act の残り使用回数が尽きた後は代替武技へ引き継ぐ。資源・時間・妨害補正は引き継ぐ。
+interface PlanState {
+  hp: number;
+  vp: number;
+  pp: number;
+  ap: number;
+  uses: Record<string, number>;
+}
+
+function usesOf(res: PlanState, action: ActionInstance): number {
+  const value = res.uses[action.instance_id];
+  return value === undefined ? action.uses_left : value;
+}
+
+function spendUse(res: PlanState, action: ActionInstance): void {
+  const value = usesOf(res, action);
+  if (value !== INFINITE_USES) {
+    res.uses[action.instance_id] = value - 1;
+  }
+}
+
+// [A-EVAL-TTK]［射撃アクション］残り有効HPを削るのに要する時間が最小のものを整数比較で選ぶ
+// （同値は所持アクション配列インデックス昇順）。
+function pickSubstitute(
+  attacker: Unit,
+  inputs: TtkInputs,
+  res: PlanState,
+  excluded: readonly string[],
+  remaining: number,
+): ActionInstance | null {
+  let best: ActionInstance | null = null;
+  let bestDamage = 0;
+  let bestCycle = 1;
+  for (const candidate of attacker.acts) {
+    if (!hasFlag(candidate.sys_flags, 'FLAG_MARTIAL') || excluded.includes(candidate.instance_id)) {
+      continue;
+    }
+    if (usesOf(res, candidate) === 0 || candidate.seal_accum >= SEAL_LIMIT_CENTI) {
+      continue;
+    }
+    const damage = levelHpDamage(effectiveDmgHpCenti(attacker, candidate), inputs.level);
+    if (damage <= 0) {
+      continue;
+    }
+    const cycle = Math.max(fullCycle(attacker, candidate), 1);
+    const useful = Math.min(damage, remaining);
+    if (best === null || useful * bestCycle > bestDamage * cycle) {
+      best = candidate;
+      bestDamage = useful;
+      bestCycle = cycle;
+    }
+  }
+  return best;
+}
+
+function buildPlan(
+  attacker: Unit,
+  act: ActionInstance,
+  defender: Unit,
+  inputs: TtkInputs,
+  tDeny: number,
+): AttackPlan | null {
+  const res: PlanState = { hp: attacker.hp, vp: attacker.vp, pp: attacker.pp, ap: attacker.ap, uses: {} };
+  const purify = shortestCycleAction(attacker, 'FLAG_PURIFY');
+  let purifyLeft = 0;
+  if (act.seal_accum >= SEAL_LIMIT_CENTI) {
+    if (purify === null) {
+      return null;
+    }
+    purifyLeft = sealBreakCount(act.seal_accum, purify.base_params.purify_rate);
+    if (purifyLeft > PURIFY_ITER_MAX) {
+      return null;
+    }
+  }
+  const mind = shortestCycleAction(attacker, 'FLAG_MIND');
+  const stance = shortestCycleAction(attacker, 'FLAG_STANCE');
+
+  let remaining = defender.hp;
+  let t = residualBeforeThought(attacker);
+  let carriedThought = attacker.state === 'THOUGHT' ? attacker.elapsed_thought : 0;
+  let denyPending = tDeny < TTK_MAX;
+  let firstLanding = -1;
+  const excluded: string[] = [];
+  const checked: string[] = [];
+
+  for (let cycle = 0; cycle < PLAN_CYCLE_LIMIT; cycle += 1) {
+    // ［射撃アクション］act の計画上の残り使用回数がある限り act、尽きたら代替武技。
+    const shot =
+      usesOf(res, act) !== 0 && !excluded.includes(act.instance_id)
+        ? act
+        : pickSubstitute(attacker, inputs, res, excluded, remaining);
+    if (shot === null) {
+      return null;
+    }
+    const costHp = effectiveCostHp(attacker, shot);
+    const costVp = effectiveCostVp(attacker, shot);
+    const costPp = effectiveCostPp(attacker, shot);
+    const costAp = effectiveCostAp(attacker, shot);
+    if (costHp > 0 && res.hp - costHp <= 0) {
+      excluded.push(shot.instance_id); // HPコストは補充できない（[M-PIPE-SUICIDE]）
+      continue;
+    }
+
+    let kind: CycleKind;
+    let cycleAction: ActionInstance;
+    if (purifyLeft > 0 && purify !== null) {
+      kind = 'PURIFY';
+      cycleAction = purify;
+    } else if (res.vp < costVp || res.pp < costPp) {
+      if (mind === null) {
+        return null;
+      }
+      kind = 'REFILL_MIND';
+      cycleAction = mind;
+    } else if (res.ap < costAp) {
+      if (stance === null || effectiveDeployAp(attacker, stance) < costAp) {
+        return null;
+      }
+      kind = 'REFILL_STANCE';
+      cycleAction = stance;
+    } else {
+      kind = 'SHOT';
+      cycleAction = shot;
+    }
+
+    const thought = Math.max(effectiveStepThought(attacker, cycleAction) - carriedThought, 0);
+    const startupStart = t + thought;
+    const fire = startupStart + effectiveStepStartup(attacker, cycleAction);
+    const end = fire + effectiveStepRecovery(attacker, cycleAction);
+
+    // ［除外条件］各アクションにつき初弾の着弾予測時点で1度だけ命中・射程を判定する。
+    if (kind === 'SHOT' && !checked.includes(shot.instance_id)) {
+      checked.push(shot.instance_id);
+      if (!hitsAt(inputs, attacker, shot, defender, fire, shot.instance_id !== act.instance_id)) {
+        excluded.push(shot.instance_id);
+        continue;
+      }
+    }
+
+    if (denyPending && tDeny >= t && tDeny < fire) {
+      denyPending = false;
+      if (tDeny < startupStart) {
+        t = tDeny;
+        carriedThought = 0;
+        continue;
+      }
+      if (kind === 'SHOT') {
+        res.hp -= costHp;
+        res.vp = Math.max(res.vp - costVp, 0);
+        res.pp = Math.max(res.pp - costPp, 0);
+        res.ap = Math.max(res.ap - costAp, 0);
+        spendUse(res, shot);
+      }
+      t = end;
+      carriedThought = 0;
+      continue;
+    }
+
+    carriedThought = 0;
+    if (kind === 'PURIFY') {
+      purifyLeft -= 1;
+    } else if (kind === 'REFILL_MIND') {
+      const beforeVp = res.vp;
+      const beforePp = res.pp;
+      res.vp += effectiveGainVp(attacker, cycleAction);
+      res.pp = Math.max(res.pp, roundDiv(res.vp * effectiveChargePpCenti(attacker, cycleAction), 100));
+      if (res.vp === beforeVp && res.pp === beforePp) {
+        return null;
+      }
+    } else if (kind === 'REFILL_STANCE') {
+      res.ap = effectiveDeployAp(attacker, cycleAction);
+    } else {
+      res.hp -= costHp;
+      res.vp = Math.max(res.vp - costVp, 0);
+      res.pp = Math.max(res.pp - costPp, 0);
+      res.ap = Math.max(res.ap - costAp, 0);
+      spendUse(res, shot);
+      remaining -= levelHpDamage(effectiveDmgHpCenti(attacker, shot), inputs.level);
+      if (firstLanding < 0) {
+        firstLanding = fire;
+      }
+      if (remaining <= 0) {
+        return { firstLanding, finalLanding: fire };
+      }
+    }
+    t = end;
+  }
+  return null;
+}
+
 function payShot(res: PlanResources, costHp: number, costVp: number, costPp: number, costAp: number): void {
   res.hp -= costHp;
   res.vp = Math.max(res.vp - costVp, 0);
@@ -227,14 +412,64 @@ export interface TtkInputs {
   readonly offset: number;
 }
 
+// [A-EVAL-TTK]［代替武技に対する防御側の体勢］防御側が最大展開APの体勢を1度だけ張るものとし、
+// その完了以降の着弾予測時点では、トレース由来の防御力と想定体勢による防御力の大きい方を用いる。
+// 想定体勢は実効展開APが最大のもの（同値は所持アクション配列インデックス昇順）で、実効消費コストを
+// 防御側の現在値で満たせるものに限る。減衰（[M-CALC-DECAY]）は織り込まない。
+function projectedGuard(target: Unit): { readonly at: number; readonly defense: number } | null {
+  let best: ActionInstance | null = null;
+  let bestAp = 0;
+  for (const candidate of target.acts) {
+    if (!hasFlag(candidate.sys_flags, 'FLAG_STANCE')) {
+      continue;
+    }
+    if (
+      effectiveCostVp(target, candidate) > target.vp ||
+      effectiveCostPp(target, candidate) > target.pp ||
+      effectiveCostAp(target, candidate) > target.ap ||
+      effectiveCostHp(target, candidate) >= target.hp
+    ) {
+      continue;
+    }
+    const ap = effectiveDeployAp(target, candidate);
+    if (ap > bestAp) {
+      best = candidate;
+      bestAp = ap;
+    }
+  }
+  if (best === null) {
+    return null;
+  }
+  const at =
+    residualBeforeThought(target) +
+    Math.max(effectiveStepThought(target, best) - (target.state === 'THOUGHT' ? target.elapsed_thought : 0), 0) +
+    effectiveStepStartup(target, best);
+  return { at, defense: defenseFromApAndEfficiency(bestAp, 100) };
+}
+
 // 着弾予測時点（[A-EVAL-TTK]［トレース参照時点］）に target へ命中し、射程内にあるか。
-function hitsAt(inputs: TtkInputs, shooter: Unit, action: ActionInstance, target: Unit, landing: number): boolean {
+function hitsAt(
+  inputs: TtkInputs,
+  shooter: Unit,
+  action: ActionInstance,
+  target: Unit,
+  landing: number,
+  substitute = false,
+): boolean {
   const targetSample = sampleAt(inputs.trace, inputs.offset + landing, target.unit_id);
   const shooterSample = sampleAt(inputs.trace, inputs.offset + landing, shooter.unit_id);
   if (targetSample === undefined || shooterSample === undefined) {
     return false;
   }
-  if (effectiveAtk(shooter, action) < targetSample.defense) {
+  let defense = targetSample.defense;
+  // ［代替武技に対する防御側の体勢］代替武技による射撃に限り、防御側の想定体勢を織り込む。
+  if (substitute) {
+    const guard = projectedGuard(target);
+    if (guard !== null && landing >= guard.at) {
+      defense = Math.max(defense, guard.defense);
+    }
+  }
+  if (effectiveAtk(shooter, action) < defense) {
     return false;
   }
   return Math.abs(shooterSample.pos - targetSample.pos) <= effectiveRange(shooter, action);
@@ -273,13 +508,10 @@ export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): nu
     if (damage <= 0) {
       continue; // 実効HPダメージ0
     }
-    const requiredHits = ceilDiv(defenderMaster.hp, damage);
     // ［除外条件］命中・射程は妨害補正を含まない計画の初弾着弾時点で判定する。
-    const undisturbed = buildAttackPlan(attacker, action, requiredHits, TTK_MAX);
-    if (undisturbed === null || !hitsAt(inputs, attacker, action, defenderMaster, undisturbed.firstLanding)) {
-      continue;
-    }
-    const plan = buildAttackPlan(attacker, action, requiredHits, tDeny);
+    // ［射撃アクション］単独計画で削り切れない場合も、代替武技へ引き継ぐ計画として構成する。
+    // 命中・射程は各アクションの初弾着弾時点で判定する（buildPlan 内）。
+    const plan = buildPlan(attacker, action, defenderMaster, inputs, tDeny);
     if (plan === null) {
       continue;
     }
