@@ -12,6 +12,8 @@ export const TTK_MAX = 999;
 export const TIE_BONUS = 16; // SCALE // 64
 export const PURIFY_ITER_MAX = 8;
 export const BONUS_DEFAULT_PASS = -400; // [A-PROFILE-BONUS]
+// [V-TEST-REFAI]「体勢への減点」参照プレイヤーAIのアクション種別ボーナス。
+export const BONUS_REFAI_STANCE = -1000;
 // [A-PROFILE-BONUS] 再交代の判定窓。隊列交代で思考中へ着地してからの経過思考がこれ未満の組を「直前の
 // ステップで交代した組」とみなす（瞬動の実行者は次の決定点で経過思考1となるため、2で直前のステップを捉える）。
 export const RESWAP_WINDOW_STEPS = 2;

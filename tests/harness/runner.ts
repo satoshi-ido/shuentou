@@ -24,7 +24,7 @@ import {
   type AdvanceOptions,
   type BattleResult,
 } from '../../src/engine/game/battle.js';
-import { confirmInherit, confirmRefill, enterTransition, settleIntermission } from '../../src/engine/game/intermission.js';
+import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../../src/engine/game/intermission.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
@@ -314,6 +314,24 @@ export function chooseMindRefill(pool: readonly InheritTarget[]): InheritTarget 
   return best?.target ?? null;
 }
 
+// [V-TEST-REFAI]［供犠の実行］対象は同行従者のうち従者01（リナ）以外を従者ID降順に並べた先頭。
+// リナのみのときは供犠しない（同行従者0人では継承・供犠が行えない：[M-PROG-NOATTENDANT]）。
+const FIXED_ATTENDANT_ID = 'ATTENDANT_01';
+
+export function sacrificeTarget(run: { party: readonly { attendant_id: string }[] }): string | null {
+  const victims = run.party
+    .map((member) => member.attendant_id)
+    .filter((attendantId) => attendantId !== FIXED_ATTENDANT_ID)
+    .sort()
+    .reverse();
+  return victims[0] ?? null;
+}
+
+// [V-TEST-REFAI]［供犠の実行］判定：現在HP × 8 < 最大HP。
+export function needsSacrifice(run: { hero_hp: number; hero_max_hp: number }): boolean {
+  return run.hero_hp * 8 < run.hero_max_hp;
+}
+
 // [V-TEST-REFAI]［体力の維持］判定に用いる、直前にクリアしたシーン。継承プールの提示元と同じである。
 function clearedSceneOf(run: { current_scene_id: string }) {
   const current = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
@@ -345,6 +363,15 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         refillMind = false;
       }
       confirmInherit(session, ctx, member.attendant_id, target);
+    }
+  }
+
+  // [V-TEST-REFAI]［供犠の実行］継承をすべて終えた後に1度だけ判定する。アクト最終シーンのクリア後は
+  // アクト移行で全回復するため行わない（[M-PROG-REFILL]）。
+  if (policy !== 'PASSIVE' && !isActTransition(run, MASTERS) && needsSacrifice(run)) {
+    const victim = sacrificeTarget(run);
+    if (victim !== null) {
+      confirmSacrifice(session, ctx, victim);
     }
   }
 

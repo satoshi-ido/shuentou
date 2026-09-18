@@ -353,14 +353,17 @@ describe('[A-SEARCH-MOVEGEN] 待機手による決め手の選択', () => {
     return { state, hero };
   }
 
+  // 待機手の有無だけを比べるため、[V-TEST-REFAI]「体勢への減点」を外したプロファイルで判定する。
+  const noStancePenalty = { ...referenceProfile(), actionBonus: {} };
+
   it('待機手を含めない探索では、時間停止の瞬間に実行可能な体勢を選ぶ', () => {
     const { state, hero } = position();
-    expect(chosenClassId(state, hero, { ...referenceProfile(), waitMoves: false })).toBe('HERO_GUARD');
+    expect(chosenClassId(state, hero, { ...noStancePenalty, waitMoves: false })).toBe('HERO_GUARD');
   });
 
-  it('参照プレイヤーAIは決め手を待つ（決定はパスとして返る）', () => {
+  it('待機手を含める探索では決め手を待つ（決定はパスとして返る）', () => {
     const { state, hero } = position();
-    expect(chosenClassId(state, hero)).toBe('PASS');
+    expect(chosenClassId(state, hero, noStancePenalty)).toBe('PASS');
   });
 });
 
