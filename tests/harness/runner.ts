@@ -332,6 +332,23 @@ export function needsSacrifice(run: { hero_hp: number; hero_max_hp: number }): b
   return run.hero_hp * 8 < run.hero_max_hp;
 }
 
+// [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーンであり、
+// 現在HPが最大HP未満であるとき、閾値に依らず供犠する。インターミッションの時点で
+// current_scene_id は次に挑むシーンを指す。
+export function needsBossSacrifice(run: {
+  current_scene_id: string;
+  hero_hp: number;
+  hero_max_hp: number;
+}): boolean {
+  const next = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
+  if (next === undefined) {
+    return false;
+  }
+  const afterNext = sceneByOrder(MASTERS, next.order + 1);
+  const isActFinal = afterNext === undefined || afterNext.act !== next.act;
+  return isActFinal && run.hero_hp < run.hero_max_hp;
+}
+
 // [V-TEST-REFAI]［体力の維持］判定に用いる、直前にクリアしたシーン。継承プールの提示元と同じである。
 function clearedSceneOf(run: { current_scene_id: string }) {
   const current = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
@@ -368,7 +385,12 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
 
   // [V-TEST-REFAI]［供犠の実行］継承をすべて終えた後に1度だけ判定する。アクト最終シーンのクリア後は
   // アクト移行で全回復するため行わない（[M-PROG-REFILL]）。
-  if (policy !== 'PASSIVE' && !isActTransition(run, MASTERS) && needsSacrifice(run)) {
+  // 「ボス前の供犠」は閾値に依らず発動する。
+  if (
+    policy !== 'PASSIVE' &&
+    !isActTransition(run, MASTERS) &&
+    (needsSacrifice(run) || needsBossSacrifice(run))
+  ) {
     const victim = sacrificeTarget(run);
     if (victim !== null) {
       confirmSacrifice(session, ctx, victim);

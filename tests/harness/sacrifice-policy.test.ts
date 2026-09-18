@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
 import { referenceProfile } from '../../src/ai/profile.js';
-import { needsSacrifice, sacrificeTarget } from './runner.js';
+import { needsBossSacrifice, needsSacrifice, sacrificeTarget } from './runner.js';
 
 const party = (...ids: readonly string[]) => ({ party: ids.map((attendant_id) => ({ attendant_id })) });
 
@@ -27,6 +27,20 @@ describe('[V-TEST-REFAI]［供犠の実行］判定', () => {
   it('閾値以上のときは供犠しない', () => {
     expect(needsSacrifice({ hero_hp: 45, hero_max_hp: 284 })).toBe(false); // 1/4 で誤って発動した水準
     expect(needsSacrifice({ hero_hp: 284, hero_max_hp: 284 })).toBe(false);
+  });
+});
+
+describe('[V-TEST-REFAI]［供犠の実行］「ボス前の供犠」', () => {
+  it('次に挑むシーンがアクトの最終シーンであり、満タンでないとき供犠する', () => {
+    // 2-04・3-06 はそれぞれアクト2・3の最終シーンである（[A-DIFF-CONFIG]）。
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_2_04', hero_hp: 92, hero_max_hp: 284 })).toBe(true);
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_3_06', hero_hp: 163, hero_max_hp: 284 })).toBe(true);
+  });
+
+  it('満タンのとき、およびアクト最終シーン以外のときは供犠しない', () => {
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_3_06', hero_hp: 284, hero_max_hp: 284 })).toBe(false);
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_3_05', hero_hp: 163, hero_max_hp: 284 })).toBe(false);
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_2_03', hero_hp: 92, hero_max_hp: 284 })).toBe(false);
   });
 });
 
