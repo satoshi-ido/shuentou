@@ -23,7 +23,7 @@ export const SCENE_MASTERS = {
       "board"
     ],
     "inertia_steps": 30,
-    "expected_length": 600
+    "expected_length": 800
   },
   "SCENE_1_02": {
     "scene_id": "SCENE_1_02",

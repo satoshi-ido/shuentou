@@ -17,7 +17,7 @@ import { applyMove } from './apply.js';
 import { lookupBook } from './book.js';
 import { cloneState } from './clone.js';
 import { INF, MATE_TH, TTK_MAX } from './constants.js';
-import { evaluate, mateScore, quiescenceMateScore } from './evaluate.js';
+import { evaluateLeafPosition, mateScore, quiescenceMateScore } from './evaluate.js';
 import { generateMoves, moveBonusOf, reswapPenaltyOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
 import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
@@ -34,6 +34,8 @@ interface SearchCtx {
   readonly prof: EffectiveProfile;
   readonly deps: StepDeps;
   readonly budget: NodeBudget;
+  // [A-SEARCH-QUIESCE]［決着の確認］確認の延長の内側であるか。入れ子の確認を行わないために持つ。
+  readonly verified?: boolean;
 }
 
 function consumeNode(budget: NodeBudget): void {
@@ -99,7 +101,15 @@ function fireWaits(state: BattleState, waits: WaitCommitments, deps: StepDeps): 
 }
 
 // ［葉での扱い］約定が残っていれば、新規行動を入れずに（発射の確定のみ行い）進めてから評価する。
-function evaluateLeaf(state: BattleState, waits: WaitCommitments, ctx: SearchCtx, ply: number): number {
+// extendable は [A-SEARCH-QUIESCE]［決着の確認］の対象となる葉（手を適用して到達した葉）であるか。
+function evaluateLeaf(
+  state: BattleState,
+  waits: WaitCommitments,
+  ctx: SearchCtx,
+  ply: number,
+  passed: readonly string[] = [],
+  extendable = false,
+): number {
   let pending = waits;
   for (let steps = 0; Object.keys(pending).length > 0; steps += 1) {
     const fired = fireWaits(state, pending, ctx.deps);
@@ -116,7 +126,13 @@ function evaluateLeaf(state: BattleState, waits: WaitCommitments, ctx: SearchCtx
       return quiescenceMateScore(outcome, ply, steps + 1);
     }
   }
-  return evaluate(state, ctx.prof, ply, ctx.deps);
+  const leaf = evaluateLeafPosition(state, ctx.prof, ply, ctx.deps);
+  // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、決定点1つ分だけ
+  // 延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
+  if (extendable && leaf.refutableSettlement && ctx.verified !== true) {
+    return searchStep(cloneState(state), { ...ctx, verified: true }, 1, ply, passed, waits);
+  }
+  return leaf.value;
 }
 
 // [A-SEARCH-NODE]「子ノードへの遷移」の続き。手を適用後、次の決定点または詰みまで進める。
@@ -209,10 +225,13 @@ function rankMoves(
     // [A-SEARCH-NODE]［待機手の約定］待機手は約定を記録し、同ステップ内のパスと同様に扱う。
     const waitsAfter = move.kind === 'WAIT' ? { ...waits, [unit.unit_id]: move.action.instance_id } : waits;
     let value: number;
+    const passedAfter = move.kind === 'ACT' ? passedUnitIds : [...passedUnitIds, unit.unit_id];
     if (depthRemaining <= 1) {
-      value = outcome !== 'NONE' ? mateScore(outcome, ply + 1) : evaluateLeaf(clone, waitsAfter, ctx, ply + 1);
+      value =
+        outcome !== 'NONE'
+          ? mateScore(outcome, ply + 1)
+          : evaluateLeaf(clone, waitsAfter, ctx, ply + 1, passedAfter, true);
     } else {
-      const passedAfter = move.kind === 'ACT' ? passedUnitIds : [...passedUnitIds, unit.unit_id];
       value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter, waitsAfter);
     }
     // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、

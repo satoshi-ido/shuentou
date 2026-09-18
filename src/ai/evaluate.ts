@@ -104,20 +104,39 @@ function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfil
 // deps（CreatureFactory）は [A-EVAL-REFIMPL]「Layer 1が提供すべき純関数」を実際に
 // 呼び出すための配線であり、M1の他モジュール（[M-PIPE-P8-DECISION] 等）と同様に注入する。
 export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number, deps: StepDeps): number {
+  return evaluateLeafPosition(state, prof, ply, deps).value;
+}
+
+// [A-SEARCH-QUIESCE]［評価対象］［決着の確認］葉ノードの評価値と、その値が「敗れる側に決定点が
+// 現れた決着」であるか（確認の延長の対象であるか）を返す。
+export interface LeafEvaluation {
+  readonly value: number;
+  readonly refutableSettlement: boolean;
+}
+
+export function evaluateLeafPosition(
+  state: BattleState,
+  prof: EffectiveProfile,
+  ply: number,
+  deps: StepDeps,
+): LeafEvaluation {
   if (masterOf(state, 'FOE') === undefined) {
-    return -MATE;
+    return { value: -MATE, refutableSettlement: false };
   }
   if (masterOf(state, 'MINE') === undefined) {
-    return MATE;
+    return { value: MATE, refutableSettlement: false };
   }
 
   // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
   // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
   // 延長中に決着した局面は「静止探索中の決着」のスコアで評価する（ply は葉ノードの値）。state は変更しない。
   const quiet = cloneState(state);
-  const { trace, outcome } = runQuiescence(quiet, deps);
+  const { trace, outcome, decided } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
-    return quiescenceMateScore(outcome, ply, trace.length - 1);
+    // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、呼び出し側が
+    // 決定点1つ分の延長で確認する。
+    const loser = outcome === 'WIN' ? 'FOE' : 'MINE';
+    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableSettlement: decided[loser] };
   }
   const foeMaster = masterOf(quiet, 'FOE');
   const mineMaster = masterOf(quiet, 'MINE');
@@ -138,5 +157,5 @@ export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number
     const effectiveWeight = signedRoundDiv(weight * mult, 100);
     total += signedRoundDiv(effectiveWeight * x, SCALE);
   }
-  return clamp(total, INT32_MIN, INT32_MAX);
+  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableSettlement: false };
 }

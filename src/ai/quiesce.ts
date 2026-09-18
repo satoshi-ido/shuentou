@@ -3,7 +3,7 @@
 // `advance_one_step(no_new_actions=true)` を、既存の [M-PIPE-MAIN] advanceStep に
 // 常にPASSを返す DecisionProvider を渡す形でそのまま再利用する。
 
-import type { DecisionProvider } from '../engine/decision.js';
+import { executableActions, type DecisionProvider } from '../engine/decision.js';
 import { decayAp } from '../engine/calc.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveDecayApRateCenti, effectiveStepStartup } from '../engine/effective.js';
@@ -32,6 +32,8 @@ export type QuiesceTrace = readonly QuiesceFrame[];
 export interface QuiesceResult {
   readonly trace: QuiesceTrace;
   readonly outcome: BattleOutcome;
+  // [A-SEARCH-QUIESCE]［決着の確認］延長中に決定点が現れた陣営。決着を確認の対象とするかの判定に用いる。
+  readonly decided: { MINE: boolean; FOE: boolean };
 }
 
 const alwaysPass: DecisionProvider = () => ({ kind: 'PASS' });
@@ -99,10 +101,25 @@ function computeQMaxSteps(state: BattleState): number {
   return maxResidual + 1;
 }
 
+// [A-SEARCH-QUIESCE]［決着の確認］延長の各時点で決定点（[A-SEARCH-NODE]：思考中かつ実行可能な
+// 候補アクションを持つ生存ユニット）を持つ陣営を記録する。
+function markDecisionPoints(state: BattleState, decided: { MINE: boolean; FOE: boolean }): void {
+  for (const unit of state.units) {
+    if (unit === null || unit.state !== 'THOUGHT') {
+      continue;
+    }
+    if (executableActions(state, unit).length > 0) {
+      decided[unit.side] = true;
+    }
+  }
+}
+
 // state を破壊的に静止局面まで進める（呼び出し側がクローンを渡す前提）。t=0（延長前の現局面）を
 // 先頭フレームとして含む。
 export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult {
   const trace: QuiesceFrame[] = [snapshotFrame(state)];
+  const decided = { MINE: false, FOE: false };
+  markDecisionPoints(state, decided);
   const qMaxSteps = computeQMaxSteps(state);
   for (let i = 0; i < qMaxSteps; i += 1) {
     if (isQuiescentState(state)) {
@@ -111,11 +128,12 @@ export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult
     const { outcome } = advanceStep(state, alwaysPass, deps);
     trace.push(snapshotFrame(state));
     if (outcome !== 'NONE') {
-      return { trace, outcome };
+      return { trace, outcome, decided };
     }
+    markDecisionPoints(state, decided);
   }
   trace[trace.length - 1] = tailFrame(state, trace.length - 1);
-  return { trace, outcome: 'NONE' };
+  return { trace, outcome: 'NONE', decided };
 }
 
 // t が末尾を超える場合は末尾値を適用する。末尾で硬直中のユニットは、硬直満了の添字以降を

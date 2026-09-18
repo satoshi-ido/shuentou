@@ -109,7 +109,7 @@ describe('[V-TEST-REFAI] 敗北時の再挑戦', () => {
     const attempt = playSceneWithRetry(session, ctx, 'ATTACK');
     expect(attempt.outcome.scene_id).toBe('SCENE_1_01');
     expect(attempt.outcome.result).toBe('WIN');
-    expect(attempt.outcome.limit).toBe(1800); // expected_length 600 × 3.0
+    expect(attempt.outcome.limit).toBe(2400); // 1-01 の expected_length 800 × 3.0（[A-DIFF-CONFIG]）
     expect(attempt.outcome.within).toBe(true);
     expect(attempt.attempts).toBe(1);
     expect(attempt.rewinds).toBe(0);

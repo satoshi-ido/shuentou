@@ -33,7 +33,7 @@ export const SCENES = [
     deferred_decision: false,
     eval_mask: MASK_1_01,
     inertia_steps: 30,
-    expected_length: 600,
+    expected_length: 800,
   },
   {
     scene_id: 'SCENE_1_02',
