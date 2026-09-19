@@ -361,6 +361,13 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
   if (policy !== 'PASSIVE') {
     // [V-TEST-REFAI]［体力の維持］［リソース生成手段の維持］いずれも判定はインターミッション開始時に
     // 1度だけ行い、読み替えはそれぞれ当該インターミッションの継承枠1件に限る。体力が優先する。
+    // [V-TEST-REFAI]［射程の維持］射程2以上の武技（マスター根源武技を除く）を保持しないとき、
+    // その回の継承枠1件に限り、プールの射程2以上の武技のうち基礎攻撃力が最大のものを選ぶ。
+    let needRange =
+      !run.hero_acts.some((act) => {
+        const master = ACTION_MASTERS[act.master_ref as keyof typeof ACTION_MASTERS];
+        return master !== undefined && !master.is_root && master.params.range >= 2 && master.params.atk > 0;
+      });
     let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
     let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
@@ -370,7 +377,22 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       const pool = inheritPool(run, MASTERS);
       const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
       const refill = hp === null && refillMind ? chooseMindRefill(pool) : null;
-      const target = hp ?? refill ?? chooseInherit(pool, policy, turn);
+      const ranged =
+        hp === null && refill === null && needRange
+          ? (pool
+              .filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION')
+              .filter((entry) => {
+                const master = ACTION_MASTERS[entry.class_id as keyof typeof ACTION_MASTERS];
+                return master !== undefined && !master.is_root && master.params.range >= 2 && master.params.atk > 0;
+              })
+              .reduce<{ kind: 'ACTION'; class_id: string } | null>((best, entry) => {
+                if (best === null) return entry;
+                const a = ACTION_MASTERS[entry.class_id as keyof typeof ACTION_MASTERS].params.atk;
+                const b = ACTION_MASTERS[best.class_id as keyof typeof ACTION_MASTERS].params.atk;
+                return a > b ? entry : best;
+              }, null) ?? null)
+          : null;
+      const target = hp ?? refill ?? ranged ?? chooseInherit(pool, policy, turn);
       if (target === null) {
         continue;
       }
@@ -378,6 +400,8 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         raiseHp = false;
       } else if (refill !== null) {
         refillMind = false;
+      } else if (ranged !== null) {
+        needRange = false;
       }
       confirmInherit(session, ctx, member.attendant_id, target);
     }
