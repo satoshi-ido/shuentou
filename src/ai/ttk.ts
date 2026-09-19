@@ -227,36 +227,47 @@ function spendUse(res: PlanState, action: ActionInstance): void {
 
 // [A-EVAL-TTK]［射撃アクション］残り有効HPを削るのに要する時間が最小のものを整数比較で選ぶ
 // （同値は所持アクション配列インデックス昇順）。
+interface Candidate {
+  readonly action: ActionInstance;
+  readonly damage: number;
+  readonly cycle: number;
+}
+
+// 代替武技の候補。打点とフルサイクルは局面ごとに一度だけ確定する（計画の構成では変わらない）。
+function substituteCandidates(attacker: Unit, inputs: TtkInputs): Candidate[] {
+  const candidates: Candidate[] = [];
+  for (const action of attacker.acts) {
+    if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || action.seal_accum >= SEAL_LIMIT_CENTI) {
+      continue;
+    }
+    const damage = levelHpDamage(effectiveDmgHpCenti(attacker, action), inputs.level);
+    if (damage <= 0) {
+      continue;
+    }
+    candidates.push({ action, damage, cycle: Math.max(fullCycle(attacker, action), 1) });
+  }
+  return candidates;
+}
+
 function pickSubstitute(
-  attacker: Unit,
-  inputs: TtkInputs,
+  candidates: readonly Candidate[],
   res: PlanState,
   excluded: readonly string[],
   remaining: number,
 ): ActionInstance | null {
-  let best: ActionInstance | null = null;
-  let bestDamage = 0;
-  let bestCycle = 1;
-  for (const candidate of attacker.acts) {
-    if (!hasFlag(candidate.sys_flags, 'FLAG_MARTIAL') || excluded.includes(candidate.instance_id)) {
+  let best: Candidate | null = null;
+  let bestUseful = 0;
+  for (const candidate of candidates) {
+    if (excluded.includes(candidate.action.instance_id) || usesOf(res, candidate.action) === 0) {
       continue;
     }
-    if (usesOf(res, candidate) === 0 || candidate.seal_accum >= SEAL_LIMIT_CENTI) {
-      continue;
-    }
-    const damage = levelHpDamage(effectiveDmgHpCenti(attacker, candidate), inputs.level);
-    if (damage <= 0) {
-      continue;
-    }
-    const cycle = Math.max(fullCycle(attacker, candidate), 1);
-    const useful = Math.min(damage, remaining);
-    if (best === null || useful * bestCycle > bestDamage * cycle) {
+    const useful = Math.min(candidate.damage, remaining);
+    if (best === null || useful * best.cycle > bestUseful * candidate.cycle) {
       best = candidate;
-      bestDamage = useful;
-      bestCycle = cycle;
+      bestUseful = useful;
     }
   }
-  return best;
+  return best === null ? null : best.action;
 }
 
 function buildPlan(
@@ -281,6 +292,18 @@ function buildPlan(
   const mind = shortestCycleAction(attacker, 'FLAG_MIND');
   const stance = shortestCycleAction(attacker, 'FLAG_STANCE');
 
+  const damageOf = (action: ActionInstance): number =>
+    levelHpDamage(effectiveDmgHpCenti(attacker, action), inputs.level);
+  const actDamage = damageOf(act);
+  // 代替武技の候補は、実際に必要になった時点で一度だけ組み立てる。
+  let candidateCache: Candidate[] | null = null;
+  const candidatesOf = (): Candidate[] => {
+    if (candidateCache === null) {
+      candidateCache = substituteCandidates(attacker, inputs);
+    }
+    return candidateCache;
+  };
+
   let remaining = defender.hp;
   let t = residualBeforeThought(attacker);
   let carriedThought = attacker.state === 'THOUGHT' ? attacker.elapsed_thought : 0;
@@ -294,7 +317,7 @@ function buildPlan(
     const shot =
       usesOf(res, act) !== 0 && !excluded.includes(act.instance_id)
         ? act
-        : pickSubstitute(attacker, inputs, res, excluded, remaining);
+        : pickSubstitute(candidatesOf(), res, excluded, remaining);
     if (shot === null) {
       return null;
     }
@@ -381,7 +404,7 @@ function buildPlan(
       res.pp = Math.max(res.pp - costPp, 0);
       res.ap = Math.max(res.ap - costAp, 0);
       spendUse(res, shot);
-      remaining -= levelHpDamage(effectiveDmgHpCenti(attacker, shot), inputs.level);
+      remaining -= shot.instance_id === act.instance_id ? actDamage : damageOf(shot);
       if (firstLanding < 0) {
         firstLanding = fire;
       }
