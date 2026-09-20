@@ -114,12 +114,26 @@ export interface LeafEvaluation {
   readonly refutableSettlement: boolean;
 }
 
+// [V-TEST-NONFUNC]［測定の打ち切り］通しプレイの測定は、1試行1シーンあたりの E(state) の
+// 呼び出し回数で打ち切りを判定する。決定論的な量であり（[A-CORE-DETERMINISM]#1）、実時間に
+// 依らず同一の入力に対して同一の値を返す。
+let evalCalls = 0;
+
+export function evalCallCount(): number {
+  return evalCalls;
+}
+
+export function resetEvalCallCount(): void {
+  evalCalls = 0;
+}
+
 export function evaluateLeafPosition(
   state: BattleState,
   prof: EffectiveProfile,
   ply: number,
   deps: StepDeps,
 ): LeafEvaluation {
+  evalCalls += 1;
   if (masterOf(state, 'FOE') === undefined) {
     return { value: -MATE, refutableSettlement: false };
   }

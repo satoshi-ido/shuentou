@@ -25,6 +25,7 @@ import {
   type BattleResult,
 } from '../../src/engine/game/battle.js';
 import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../../src/engine/game/intermission.js';
+import { evalCallCount, resetEvalCallCount } from '../../src/ai/evaluate.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
@@ -132,7 +133,13 @@ export interface SceneOutcome {
   // D-02・D-08 の合否。「決着」は勝敗の確定であり、敗北も決着に数える（[V-TEST-REFAI] の目標勝率は
   // ボスで 40%・5-10 で 25% を見込むため、1試行の敗北は膠着の徴候ではない）。
   readonly within: boolean;
+  // [V-TEST-NONFUNC]［測定の打ち切り］false は「測定不能」。勝敗を記録せず、D-02・D-08 の合否判定
+  // および win_rate の分母から除く。決着上限の超過（within === false）とは区別する。
+  readonly measured: boolean;
 }
+
+// [V-TEST-NONFUNC]［測定の打ち切り］1試行1シーンあたりの E(state) 呼び出し回数の上限。
+export const EVAL_CALL_LIMIT = 1_000_000;
 
 // 決着上限を超えても計測を続けるための安全弁。無限ループの検出そのものは within が担う。
 export const HARD_STEP_CAP = 20000;
@@ -187,6 +194,8 @@ export function driveBattle(
   // 打ち切り歩数の上書き。既定は [V-TEST-NONFUNC] D-02 の決着上限であり、勝敗そのものを数える
   // 測定（[V-TEST-REFAI] の win_rate）は決着まで進める必要があるため安全弁を渡す。
   abortAt?: number,
+  // [V-TEST-NONFUNC]［測定の打ち切り］E(state) 呼び出し回数の上限。既定は EVAL_CALL_LIMIT。
+  evalLimit: number = EVAL_CALL_LIMIT,
 ): SceneOutcome {
   const sceneId = session.data.run.current_scene_id;
   const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
@@ -198,6 +207,8 @@ export function driveBattle(
   const abortStep = abortAt ?? (scene.expected_length === null ? HARD_STEP_CAP : limit);
 
   let result = initial;
+  // [V-TEST-NONFUNC]［測定の打ち切り］シーンごとに計数を始める。
+  resetEvalCallCount();
   // 開始手段の内部で決着した場合（時間停止が一度も成立しないまま敗北した等）も、
   // 決着ステップを取り違えないよう現在値から数え始める。
   let steps = session.data.run.battle_state?.step ?? 0;
@@ -208,7 +219,11 @@ export function driveBattle(
     }
     steps = state?.step ?? steps;
     if (steps > abortStep) {
-      return { scene_id: sceneId, result, steps, limit, within: false };
+      return { scene_id: sceneId, result, steps, limit, within: false, measured: true };
+    }
+    if (evalCallCount() > evalLimit) {
+      // 測定不能。勝敗を確定させずに打ち切る（[V-TEST-NONFUNC]［測定の打ち切り］）。
+      return { scene_id: sceneId, result, steps, limit, within: false, measured: false };
     }
     result =
       result === 'RUNNING'
@@ -219,7 +234,14 @@ export function driveBattle(
     // run.battle_state を引くと、時間停止を挟まず決着した区間が数えられず、最後の停止位置になる）。
     steps = state?.step ?? steps;
   }
-  return { scene_id: sceneId, result, steps, limit, within: (result === 'WIN' || result === 'LOSS') && steps <= limit };
+  return {
+    scene_id: sceneId,
+    result,
+    steps,
+    limit,
+    within: (result === 'WIN' || result === 'LOSS') && steps <= limit,
+    measured: true,
+  };
 }
 
 // 1シーンをバトル開始から決着まで進める。
@@ -231,9 +253,10 @@ export function playScene(
   // [V-TEST-REFAI]［重み摂動プロファイル群］測定時は摂動した重みを与える。省略時は無摂動。
   playerProfile: EffectiveProfile = referenceProfile(),
   abortAt?: number,
+  evalLimit?: number,
 ): SceneOutcome {
   const started = startBattle(session, ctx, advanceOptionsFor(observe));
-  return driveBattle(session, ctx, policy, playerProfile, started, observe, abortAt);
+  return driveBattle(session, ctx, policy, playerProfile, started, observe, abortAt, evalLimit);
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
@@ -464,15 +487,17 @@ export function playRun(
   observeFor?: (sceneId: string) => StepObserver,
   playerProfile: EffectiveProfile = referenceProfile(),
   abortAt?: number,
+  evalLimit?: number,
 ): RunOutcome {
   const { session, ctx } = createRun();
 
   const scenes: SceneOutcome[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const observe = observeFor?.(session.data.run.current_scene_id);
-    const outcome = playScene(session, ctx, policy, observe, playerProfile, abortAt);
+    const outcome = playScene(session, ctx, policy, observe, playerProfile, abortAt, evalLimit);
     scenes.push(outcome);
-    if (outcome.result !== 'WIN') {
+    // [V-TEST-NONFUNC]［測定の打ち切り］測定不能となった試行は以降のシーンを未測定とする。
+    if (!outcome.measured || outcome.result !== 'WIN') {
       return { scenes, completed: false };
     }
     if (turn + 1 >= lastOrder) {

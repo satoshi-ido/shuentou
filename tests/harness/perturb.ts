@@ -71,6 +71,8 @@ export function measureWinRate(policy: RefPolicy, lastOrder: number): WinRateRes
   let wins = 0;
   const losses: string[] = [];
   const set = perturbationSet();
+  // [V-TEST-NONFUNC]［測定の打ち切り］測定不能となった試行は分母から除く。
+  let unmeasured = 0;
   for (const entry of set) {
     // 勝利数を数える測定であり、決着上限で打ち切ると勝敗が観測できないため安全弁まで進める。
     const run = playRun(policy, lastOrder, undefined, entry.profile, HARD_STEP_CAP);
@@ -79,13 +81,18 @@ export function measureWinRate(policy: RefPolicy, lastOrder: number): WinRateRes
       throw new Error('到達したシーンがない');
     }
     sceneId = final.scene_id;
+    if (!final.measured) {
+      unmeasured += 1;
+      continue;
+    }
     if (final.result === 'WIN' && run.scenes.length === lastOrder) {
       wins += 1;
     } else {
       losses.push(entry.id);
     }
   }
-  return { scene_id: sceneId, wins, trials: set.length, win_rate: winRateCenti(wins, set.length), losses };
+  const trials = set.length - unmeasured;
+  return { scene_id: sceneId, wins, trials, win_rate: winRateCenti(wins, trials), losses };
 }
 
 export interface SceneAttempts {
