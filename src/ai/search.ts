@@ -53,9 +53,14 @@ function findUnitById(state: BattleState, unitId: string): Unit {
   return unit;
 }
 
-// [A-SEARCH-NODE]［待機手の約定］ユニットID → 待機するアクションのインスタンスID。枝ごとに複製して受け渡し、
-// 探索中の局面（BattleState）には持たせない。
-type WaitCommitments = Readonly<Record<string, string>>;
+// [A-SEARCH-NODE]［待機手の約定］ユニットID → 待機するアクションのインスタンスIDと、約定を記録した
+// 時点のステップ。枝ごとに複製して受け渡し、探索中の局面（BattleState）には持たせない。
+// ステップは［解消］の期限（記録から TTK_MAX ステップ）の判定に用いる。
+interface WaitCommitment {
+  readonly instanceId: string;
+  readonly since: number;
+}
+type WaitCommitments = Readonly<Record<string, WaitCommitment>>;
 
 const FRONT_IDX_OF_OPPONENT: Readonly<Record<string, number>> = { MINE: 2, FOE: 1 }; // [M-FIELD-GRID]
 
@@ -82,13 +87,20 @@ interface FireResult {
 
 // ［発射］［解消］配置マス idx 昇順に約定を判定する。発射の確定は深さに数えない。
 function fireWaits(state: BattleState, waits: WaitCommitments, deps: StepDeps): FireResult {
-  const remaining: Record<string, string> = {};
+  const remaining: Record<string, WaitCommitment> = {};
   const units = state.units.filter((unit): unit is Unit => unit !== null && waits[unit.unit_id] !== undefined);
   for (const unit of units.sort((a, b) => a.pos_idx - b.pos_idx)) {
-    const instanceId = waits[unit.unit_id];
+    const commitment = waits[unit.unit_id];
+    // ［解消］記録から TTK_MAX ステップを経過した約定は解消し、以後は通常の決定点として扱う。
+    // 発射条件は相手の配置・防御力・距離に依存し、成立しないまま推移する局面では発射も対象の消滅も
+    // 起こらないため、期限がないと決定点が現れないまま自動進行が終わらない。
+    if (state.step - commitment.since >= TTK_MAX) {
+      continue;
+    }
+    const instanceId = commitment.instanceId;
     const verdict = readyToFire(state, unit, instanceId);
     if (verdict === 'WAIT') {
-      remaining[unit.unit_id] = instanceId;
+      remaining[unit.unit_id] = commitment;
     } else if (verdict === 'FIRE') {
       const action = unit.acts.find((candidate) => candidate.instance_id === instanceId)!;
       const outcome = applyMove(state, unit, { kind: 'ACT', action }, deps);
@@ -234,7 +246,10 @@ function rankMoves(
         : { kind: move.kind, action: clonedUnit.acts.find((a) => a.instance_id === move.action.instance_id)! };
     const outcome = applyMove(clone, clonedUnit, clonedMove, ctx.deps);
     // [A-SEARCH-NODE]［待機手の約定］待機手は約定を記録し、同ステップ内のパスと同様に扱う。
-    const waitsAfter = move.kind === 'WAIT' ? { ...waits, [unit.unit_id]: move.action.instance_id } : waits;
+    const waitsAfter =
+      move.kind === 'WAIT'
+        ? { ...waits, [unit.unit_id]: { instanceId: move.action.instance_id, since: clone.step } }
+        : waits;
     let value: number;
     const passedAfter = move.kind === 'ACT' ? passedUnitIds : [...passedUnitIds, unit.unit_id];
     if (depthRemaining <= 1) {
