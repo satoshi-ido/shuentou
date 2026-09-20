@@ -34,6 +34,79 @@ const SEAL_LIMIT_CENTI = 100;
 // 攻撃計画のサイクル数の上限。これを超える計画は TTK_MAX（決着不能）として扱う。
 const PLAN_CYCLE_LIMIT = 64;
 
+// アクションの実効値は、計画の構成中は変化しない（計画は局所の資源だけを更新する）。
+// 局面ごとに一度だけ確定して表に持ち、サイクルごとの再計算をやめる。
+interface ActionMetrics {
+  readonly thought: number;
+  readonly startup: number;
+  readonly recovery: number;
+  readonly cycle: number;
+  readonly costHp: number;
+  readonly costVp: number;
+  readonly costPp: number;
+  readonly costAp: number;
+  readonly deployAp: number;
+  readonly gainVp: number;
+  readonly chargePp: number;
+  readonly damage: number;
+  readonly martial: boolean;
+}
+
+export interface PlanContext {
+  readonly unit: Unit;
+  readonly metrics: Readonly<Record<string, ActionMetrics>>;
+  readonly purify: ActionInstance | null;
+  readonly mind: ActionInstance | null;
+  readonly stance: ActionInstance | null;
+}
+
+function metricsOf(unit: Unit, action: ActionInstance, level: number): ActionMetrics {
+  const thought = effectiveStepThought(unit, action);
+  const startup = effectiveStepStartup(unit, action);
+  const recovery = effectiveStepRecovery(unit, action);
+  return {
+    thought,
+    startup,
+    recovery,
+    cycle: thought + startup + recovery,
+    costHp: effectiveCostHp(unit, action),
+    costVp: effectiveCostVp(unit, action),
+    costPp: effectiveCostPp(unit, action),
+    costAp: effectiveCostAp(unit, action),
+    deployAp: effectiveDeployAp(unit, action),
+    gainVp: effectiveGainVp(unit, action),
+    chargePp: effectiveChargePpCenti(unit, action),
+    damage: levelHpDamage(effectiveDmgHpCenti(unit, action), level),
+    martial: hasFlag(action.sys_flags, 'FLAG_MARTIAL'),
+  };
+}
+
+// 系統ごとの補充アクション（フルサイクル最短、同値は所持アクション配列インデックス昇順）も併せて確定する。
+export function planContext(unit: Unit, level: number): PlanContext {
+  const metrics: Record<string, ActionMetrics> = {};
+  let purify: ActionInstance | null = null;
+  let mind: ActionInstance | null = null;
+  let stance: ActionInstance | null = null;
+  for (const action of unit.acts) {
+    const m = metricsOf(unit, action, level);
+    metrics[action.instance_id] = m;
+    if (hasFlag(action.sys_flags, 'FLAG_PURIFY') && (purify === null || m.cycle < metrics[purify.instance_id].cycle)) {
+      purify = action;
+    }
+    if (hasFlag(action.sys_flags, 'FLAG_MIND') && (mind === null || m.cycle < metrics[mind.instance_id].cycle)) {
+      mind = action;
+    }
+    if (hasFlag(action.sys_flags, 'FLAG_STANCE') && (stance === null || m.cycle < metrics[stance.instance_id].cycle)) {
+      stance = action;
+    }
+  }
+  return { unit, metrics, purify, mind, stance };
+}
+
+function metric(ctx: PlanContext, action: ActionInstance): ActionMetrics {
+  return ctx.metrics[action.instance_id];
+}
+
 function fullCycle(unit: Unit, action: ActionInstance): number {
   return effectiveStepThought(unit, action) + effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action);
 }
@@ -234,17 +307,14 @@ interface Candidate {
 }
 
 // 代替武技の候補。打点とフルサイクルは局面ごとに一度だけ確定する（計画の構成では変わらない）。
-function substituteCandidates(attacker: Unit, inputs: TtkInputs): Candidate[] {
+function substituteCandidates(ctx: PlanContext): Candidate[] {
   const candidates: Candidate[] = [];
-  for (const action of attacker.acts) {
-    if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || action.seal_accum >= SEAL_LIMIT_CENTI) {
+  for (const action of ctx.unit.acts) {
+    const m = metric(ctx, action);
+    if (!m.martial || action.seal_accum >= SEAL_LIMIT_CENTI || m.damage <= 0) {
       continue;
     }
-    const damage = levelHpDamage(effectiveDmgHpCenti(attacker, action), inputs.level);
-    if (damage <= 0) {
-      continue;
-    }
-    candidates.push({ action, damage, cycle: Math.max(fullCycle(attacker, action), 1) });
+    candidates.push({ action, damage: m.damage, cycle: Math.max(m.cycle, 1) });
   }
   return candidates;
 }
@@ -271,14 +341,15 @@ function pickSubstitute(
 }
 
 function buildPlan(
-  attacker: Unit,
+  ctx: PlanContext,
   act: ActionInstance,
   defender: Unit,
   inputs: TtkInputs,
   tDeny: number,
 ): AttackPlan | null {
+  const attacker = ctx.unit;
   const res: PlanState = { hp: attacker.hp, vp: attacker.vp, pp: attacker.pp, ap: attacker.ap, uses: {} };
-  const purify = shortestCycleAction(attacker, 'FLAG_PURIFY');
+  const purify = ctx.purify;
   let purifyLeft = 0;
   if (act.seal_accum >= SEAL_LIMIT_CENTI) {
     if (purify === null) {
@@ -289,17 +360,14 @@ function buildPlan(
       return null;
     }
   }
-  const mind = shortestCycleAction(attacker, 'FLAG_MIND');
-  const stance = shortestCycleAction(attacker, 'FLAG_STANCE');
+  const mind = ctx.mind;
+  const stance = ctx.stance;
 
-  const damageOf = (action: ActionInstance): number =>
-    levelHpDamage(effectiveDmgHpCenti(attacker, action), inputs.level);
-  const actDamage = damageOf(act);
   // 代替武技の候補は、実際に必要になった時点で一度だけ組み立てる。
   let candidateCache: Candidate[] | null = null;
   const candidatesOf = (): Candidate[] => {
     if (candidateCache === null) {
-      candidateCache = substituteCandidates(attacker, inputs);
+      candidateCache = substituteCandidates(ctx);
     }
     return candidateCache;
   };
@@ -321,10 +389,11 @@ function buildPlan(
     if (shot === null) {
       return null;
     }
-    const costHp = effectiveCostHp(attacker, shot);
-    const costVp = effectiveCostVp(attacker, shot);
-    const costPp = effectiveCostPp(attacker, shot);
-    const costAp = effectiveCostAp(attacker, shot);
+    const shotMetrics = metric(ctx, shot);
+    const costHp = shotMetrics.costHp;
+    const costVp = shotMetrics.costVp;
+    const costPp = shotMetrics.costPp;
+    const costAp = shotMetrics.costAp;
     if (costHp > 0 && res.hp - costHp <= 0) {
       excluded.push(shot.instance_id); // HPコストは補充できない（[M-PIPE-SUICIDE]）
       continue;
@@ -342,7 +411,7 @@ function buildPlan(
       kind = 'REFILL_MIND';
       cycleAction = mind;
     } else if (res.ap < costAp) {
-      if (stance === null || effectiveDeployAp(attacker, stance) < costAp) {
+      if (stance === null || metric(ctx, stance).deployAp < costAp) {
         return null;
       }
       kind = 'REFILL_STANCE';
@@ -352,10 +421,11 @@ function buildPlan(
       cycleAction = shot;
     }
 
-    const thought = Math.max(effectiveStepThought(attacker, cycleAction) - carriedThought, 0);
+    const cycleMetrics = kind === 'SHOT' ? shotMetrics : metric(ctx, cycleAction);
+    const thought = Math.max(cycleMetrics.thought - carriedThought, 0);
     const startupStart = t + thought;
-    const fire = startupStart + effectiveStepStartup(attacker, cycleAction);
-    const end = fire + effectiveStepRecovery(attacker, cycleAction);
+    const fire = startupStart + cycleMetrics.startup;
+    const end = fire + cycleMetrics.recovery;
 
     // ［除外条件］各アクションにつき初弾の着弾予測時点で1度だけ命中・射程を判定する。
     if (kind === 'SHOT' && !checked.includes(shot.instance_id)) {
@@ -391,20 +461,20 @@ function buildPlan(
     } else if (kind === 'REFILL_MIND') {
       const beforeVp = res.vp;
       const beforePp = res.pp;
-      res.vp += effectiveGainVp(attacker, cycleAction);
-      res.pp = Math.max(res.pp, roundDiv(res.vp * effectiveChargePpCenti(attacker, cycleAction), 100));
+      res.vp += cycleMetrics.gainVp;
+      res.pp = Math.max(res.pp, roundDiv(res.vp * cycleMetrics.chargePp, 100));
       if (res.vp === beforeVp && res.pp === beforePp) {
         return null;
       }
     } else if (kind === 'REFILL_STANCE') {
-      res.ap = effectiveDeployAp(attacker, cycleAction);
+      res.ap = cycleMetrics.deployAp;
     } else {
       res.hp -= costHp;
       res.vp = Math.max(res.vp - costVp, 0);
       res.pp = Math.max(res.pp - costPp, 0);
       res.ap = Math.max(res.ap - costAp, 0);
       spendUse(res, shot);
-      remaining -= shot.instance_id === act.instance_id ? actDamage : damageOf(shot);
+      remaining -= shotMetrics.damage;
       if (firstLanding < 0) {
         firstLanding = fire;
       }
@@ -522,19 +592,20 @@ export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): num
 // 最終着弾ステップに q を加えてからクランプする（[A-EVAL-TTK]「同着の非対称性」）。
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
   const tDeny = denyTime(defenderMaster, attacker, inputs);
+  const ctx = planContext(attacker, inputs.level);
   let best = TTK_MAX;
   for (const action of attacker.acts) {
-    if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
+    const m = metric(ctx, action);
+    if (!m.martial) {
       continue;
     }
-    const damage = levelHpDamage(effectiveDmgHpCenti(attacker, action), inputs.level);
-    if (damage <= 0) {
+    if (m.damage <= 0) {
       continue; // 実効HPダメージ0
     }
     // ［除外条件］命中・射程は妨害補正を含まない計画の初弾着弾時点で判定する。
     // ［射撃アクション］単独計画で削り切れない場合も、代替武技へ引き継ぐ計画として構成する。
     // 命中・射程は各アクションの初弾着弾時点で判定する（buildPlan 内）。
-    const plan = buildPlan(attacker, action, defenderMaster, inputs, tDeny);
+    const plan = buildPlan(ctx, action, defenderMaster, inputs, tDeny);
     if (plan === null) {
       continue;
     }
