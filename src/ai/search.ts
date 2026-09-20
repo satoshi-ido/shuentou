@@ -144,11 +144,13 @@ function continueAfterMove(
   ply: number,
   passedUnitIds: readonly string[],
   waits: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
   if (outcomeFromMove !== 'NONE') {
     return mateScore(outcomeFromMove, ply);
   }
-  return searchStep(state, ctx, depthRemaining, ply, passedUnitIds, waits);
+  return searchStep(state, ctx, depthRemaining, ply, passedUnitIds, waits, alpha, beta);
 }
 
 // P1〜P7を経て、なお決定待ちのユニットがなければステップ境界を越えて進む。全ユニットが
@@ -163,6 +165,8 @@ function searchStep(
   ply: number,
   passedUnitIds: readonly string[],
   waitsIn: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
   let passed = passedUnitIds;
   let waits = waitsIn;
@@ -175,7 +179,7 @@ function searchStep(
     waits = fired.waits;
     const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)]);
     if (pending !== undefined) {
-      return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits);
+      return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits, alpha, beta);
     }
     if (isStalled(state)) {
       return evaluateLeaf(state, waits, ctx, ply);
@@ -206,9 +210,16 @@ function rankMoves(
   ply: number,
   passedUnitIds: readonly string[],
   waits: WaitCommitments,
+  alphaIn = -INF,
+  betaIn = INF,
 ): RankedMove[] {
   const moves = generateMoves(state, unit, ctx.prof.waitMoves);
   const ranked: RankedMove[] = [];
+  // [A-SEARCH-ALGORITHM] αβ。根ノードは全候補の確定スコアを保持する必要があるため枝刈りしない
+  // （[A-TIE-BREAK]「根ノードはフルウィンドウで探索」・自滅ポリシーの適用のため）。
+  const maximizing = unit.side === 'FOE';
+  let alpha = alphaIn;
+  let beta = betaIn;
   for (const move of moves) {
     consumeNode(ctx.budget);
     const clone = cloneState(state);
@@ -232,7 +243,7 @@ function rankMoves(
           ? mateScore(outcome, ply + 1)
           : evaluateLeaf(clone, waitsAfter, ctx, ply + 1, passedAfter, true);
     } else {
-      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter, waitsAfter);
+      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter, waitsAfter, alpha, beta);
     }
     // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
     // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
@@ -242,6 +253,18 @@ function rankMoves(
       value += unit.side === 'FOE' ? bonus : -bonus;
     }
     ranked.push({ move, value, outcome });
+    if (ply > 0) {
+      if (maximizing) {
+        if (value > alpha) {
+          alpha = value;
+        }
+      } else if (value < beta) {
+        beta = value;
+      }
+      if (alpha >= beta) {
+        break; // 窓が閉じた。以降の兄弟手は親の選択を変えない
+      }
+    }
   }
   return ranked;
 }
@@ -254,8 +277,10 @@ function searchDecision(
   ply: number,
   passedUnitIds: readonly string[],
   waits: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
-  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply, passedUnitIds, waits);
+  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply, passedUnitIds, waits, alpha, beta);
   const maximizing = unit.side === 'FOE';
   let best = maximizing ? -INF : INF;
   for (const { value } of ranked) {
