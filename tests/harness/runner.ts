@@ -167,14 +167,21 @@ function playOneOperation(
   if (policy === 'PASSIVE') {
     return resumeTime(session, ctx, options); // 無操作型：常にパス
   }
+  // [V-TEST-REFAI]［決定点］参照プレイヤーAIは敵軍AIと同じく、行動を確定できるステップごとに決定する。
+  // 次のステップに手動停止（[M-PIPE-PAUSE-TRIGGER]#4）を要求し、停止条件の成立を待たずに決定点を得る。
+  const next: AdvanceOptions = { ...options, stopAtStep: state.step + 1 };
   const provider = createAiDecisionProvider(playerProfile, STEP_DEPS);
   for (const unit of instructableMine(state)) {
+    // 実行可能なアクションが無い間はパスしか選べないため、探索を行わない。
+    if (executableActions(state, unit).length === 0) {
+      continue;
+    }
     const decision = provider(state, unit);
     if (decision.kind === 'ACT') {
-      return instruct(session, ctx, unit.unit_id, decision.instanceId, options);
+      return instruct(session, ctx, unit.unit_id, decision.instanceId, next);
     }
   }
-  return resumeTime(session, ctx, options);
+  return resumeTime(session, ctx, next);
 }
 
 // 観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、ステップ境界ごとに観測点を通す
@@ -227,7 +234,8 @@ export function driveBattle(
     }
     result =
       result === 'RUNNING'
-        ? resumeBattle(session, ctx, options)
+        ? // 観測時の1歩進行（maxSteps）から再開する場合も、同じステップの手動停止要求を引き継ぐ。
+          resumeBattle(session, ctx, policy === 'PASSIVE' || state === null ? options : { ...options, stopAtStep: state.step })
         : playOneOperation(session, ctx, policy, options, playerProfile);
     // 勝利時はバトルクリア共通決済（[M-PROG-CLEAR]）が run.battle_state を破棄する。進行は同じ
     // BattleState を更新し続けるため、呼び出し前に保持した参照から決着ステップを読む（破棄後の
