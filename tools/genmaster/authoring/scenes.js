@@ -51,7 +51,8 @@ export const SCENES = [
     deferred_decision: false,
     eval_mask: MASK_1_02,
     inertia_steps: 30,
-    expected_length: 600,
+    // [A-DIFF-CONFIG] 1-01〜2-01 は壁割りが重撃AR15 に限られるため 800 の例外区間。
+    expected_length: 800,
   },
   {
     scene_id: 'SCENE_2_01',
@@ -69,7 +70,8 @@ export const SCENES = [
     deferred_decision: false,
     eval_mask: MASK_2_01,
     inertia_steps: 15,
-    expected_length: 600,
+    // [A-DIFF-CONFIG] 1-01〜2-01 は壁割りが重撃AR15 に限られるため 800 の例外区間。
+    expected_length: 800,
   },
   {
     scene_id: 'SCENE_2_02',
