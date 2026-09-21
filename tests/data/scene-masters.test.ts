@@ -12,7 +12,7 @@ const scenes: Readonly<Record<string, SceneMasterRecord>> = SCENE_MASTERS;
 // 基準値以外を持つシーン（[A-DIFF-CONFIG] の表と※注記）。
 const EXCEPTIONS: Readonly<Record<string, number | null>> = {
   SCENE_1_01: 800,
-  SCENE_1_02: 800,
+  SCENE_1_02: 1000,
   SCENE_2_01: 800,
   SCENE_2_04: 800,
   SCENE_3_06: 800,

@@ -48,7 +48,7 @@ export const SCENE_MASTERS = {
       "position"
     ],
     "inertia_steps": 30,
-    "expected_length": 800
+    "expected_length": 1000
   },
   "SCENE_2_01": {
     "scene_id": "SCENE_2_01",
