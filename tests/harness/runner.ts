@@ -350,6 +350,13 @@ function isSustainedRanged(record: ActionRecord): boolean {
   );
 }
 
+// [V-TEST-REFAI]［役割充足による選択］最大HP加算を最後に継承してから経過したインターミッション数（周回ごと）。
+const HP_GAIN_SINCE = new WeakMap<object, number>();
+
+// 最大HP加算の途絶とみなすインターミッション数（暫定値）。2では体力の役割が他の役割の枠を奪い 4-07 で
+// 14件が敗北し、3では 4-04 の敗北が解消する（摂動21件、1-01〜4-08）。
+export const ROLE_HP_STALE_INTERMISSIONS = 3;
+
 export function chooseByRole(
   run: {
     current_scene_id: string;
@@ -358,10 +365,12 @@ export function chooseByRole(
   },
   pool: readonly InheritTarget[],
   hpBonusBase: number,
+  // 直近 ROLE_HP_STALE_INTERMISSIONS 回のインターミッションで最大HP加算を継承していないとき真。
+  hpStale = false,
 ): InheritTarget | null {
   const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
-  // 1. 体力
-  if (run.hero_max_hp < hpBonusBase) {
+  // 1. 体力：最大HPが hp_bonus_base を下回るとき、または最大HPの加算が長く途絶えているとき。
+  if (run.hero_max_hp < hpBonusBase || hpStale) {
     const hp = pool.find((entry) => entry.kind === 'MAX_HP');
     if (hp !== undefined) {
       return hp;
@@ -484,17 +493,23 @@ function clearedSceneOf(run: { current_scene_id: string }) {
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
   if (policy === 'BALANCE') {
+    // [V-TEST-REFAI]［役割充足による選択］体力の役割は、最大HP加算の途絶が続くときにも未充足とする。
+    const since = HP_GAIN_SINCE.get(run) ?? 0;
+    let hpGained = false;
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
       const pool = inheritPool(run, MASTERS);
-      const target =
-        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0) ?? chooseInherit(pool, policy, turn);
+      const stale: boolean = !hpGained && since >= ROLE_HP_STALE_INTERMISSIONS;
+      const target: InheritTarget | null =
+        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn);
       if (target !== null) {
         confirmInherit(session, ctx, member.attendant_id, target);
+        hpGained = hpGained || target.kind === 'MAX_HP';
       }
     }
+    HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
   } else if (policy !== 'PASSIVE') {
     // [V-TEST-REFAI]［体力の維持］［リソース生成手段の維持］いずれも判定はインターミッション開始時に
     // 1度だけ行い、読み替えはそれぞれ当該インターミッションの継承枠1件に限る。体力が優先する。

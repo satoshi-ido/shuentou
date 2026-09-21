@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { InheritTarget } from '../../src/engine/progress/inherit.js';
-import { breakerForScene, chooseByRole } from './runner.js';
+import { breakerForScene, chooseByRole, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const held = (masterRef: string, usesLeft: number, sysFlags: string[] = []) => ({
@@ -23,6 +23,17 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
     const run = { current_scene_id: 'SCENE_3_02', hero_max_hp: 200, hero_acts: [MIND_FULL] };
     const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), { kind: 'MAX_HP' }];
     expect(chooseByRole(run, pool, 212)).toEqual({ kind: 'MAX_HP' });
+  });
+
+  it('最大HPが hp_bonus_base 以上でも、最大HP加算の途絶が続くときは最大HP加算を選ぶ', () => {
+    const run = { current_scene_id: 'SCENE_3_02', hero_max_hp: 284, hero_acts: [MIND_FULL] };
+    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), { kind: 'MAX_HP' }];
+    expect(chooseByRole(run, pool, 212, true)).toEqual({ kind: 'MAX_HP' });
+    expect(chooseByRole(run, pool, 212, false)).toEqual(action('ACT_SPEC_BREAK_ASHAL'));
+  });
+
+  it('途絶とみなすのは直近3回のインターミッションで最大HP加算がないとき', () => {
+    expect(ROLE_HP_STALE_INTERMISSIONS).toBe(3);
   });
 
   it('担当の残り使用回数が2未満なら壁割りを選ぶ', () => {
