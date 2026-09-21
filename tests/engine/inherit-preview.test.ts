@@ -71,3 +71,23 @@ describe('[M-DATA-INSTANTIATE] 従者特性係数による改善', () => {
     }
   });
 });
+// [M-BASE-USES]「0.15回（残滓）」は、継承経路で従者01リナの usesRate ×4.50 を乗じたときにのみ
+// 1 回となる閾値として定める（0.675→1）。他の従者（×3.00）では 0.45→0 となり消滅する。
+// 本検査は [M-END-SACRAMENT-PARAMS]#1・#2 の分岐がこの閾値に依存するため置く。
+describe('[M-BASE-USES] 0.15回（残滓）の閾値', () => {
+  const remnant = { kind: 'ACTION', class_id: 'ACT_REMNANT' } as const;
+
+  it('リナ（usesRate ×4.50）では実効初期使用回数1となる', () => {
+    const run = intermissionRun();
+    const preview = previewInherit(run, MASTERS, 'ATTENDANT_01', remnant);
+    expect(preview.kind).toBe('NEW_SLOT');
+    if (preview.kind === 'NEW_SLOT') {
+      expect(preview.usesInitial).toBe(1);
+    }
+  });
+
+  it('他の従者（usesRate ×3.00）では消滅する', () => {
+    const run = intermissionRun();
+    expect(previewInherit(run, MASTERS, 'ATTENDANT_02', remnant).kind).toBe('VANISH');
+  });
+});
