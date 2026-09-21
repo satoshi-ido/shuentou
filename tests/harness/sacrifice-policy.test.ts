@@ -19,13 +19,13 @@ describe('[V-TEST-REFAI]［供犠の実行］対象の選択', () => {
 });
 
 describe('[V-TEST-REFAI]［供犠の実行］判定', () => {
-  it('現在HP × 8 < 最大HP のとき供犠する', () => {
-    expect(needsSacrifice({ hero_hp: 35, hero_max_hp: 284 })).toBe(true); // 3-05 クリア後の実測値
-    expect(needsSacrifice({ hero_hp: 7, hero_max_hp: 284 })).toBe(true); // 3-04 クリア後の実測値
+  it('現在HP × 3 < 最大HP のとき供犠する', () => {
+    expect(needsSacrifice({ hero_hp: 79, hero_max_hp: 284 })).toBe(true); // 4-01 クリア後の実測値
+    expect(needsSacrifice({ hero_hp: 94, hero_max_hp: 284 })).toBe(true); // 境界の直下（94 × 3 = 282）
   });
 
   it('閾値以上のときは供犠しない', () => {
-    expect(needsSacrifice({ hero_hp: 45, hero_max_hp: 284 })).toBe(false); // 1/4 で誤って発動した水準
+    expect(needsSacrifice({ hero_hp: 95, hero_max_hp: 284 })).toBe(false); // 95 × 3 = 285
     expect(needsSacrifice({ hero_hp: 284, hero_max_hp: 284 })).toBe(false);
   });
 });

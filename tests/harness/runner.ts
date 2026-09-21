@@ -303,6 +303,100 @@ function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: 
   return maxHp ?? actions[0] ?? null;
 }
 
+// [V-TEST-REFAI]［役割充足による選択］バランス型の継承枠ごとに、未充足の役割を順に満たす。
+// 役割は枠ごとに、直前の枠の継承を反映した手持ちで判定する。すべて充足していれば循環選択に従う。
+const ROLE_BREAKER_USES = 2;
+const ROLE_RANGED_USES = 3;
+const ROLE_MIND_USES = 5;
+const BREAKER_IDS: readonly string[] = BREAKERS.map((breaker) => breaker.class_id);
+
+type ActionRecord = (typeof ACTION_MASTERS)[keyof typeof ACTION_MASTERS];
+
+function recordOf(classId: string): ActionRecord | undefined {
+  return ACTION_MASTERS[classId as keyof typeof ACTION_MASTERS];
+}
+
+function hasUses(usesLeft: number, required: number): boolean {
+  return usesLeft === INFINITE_USES || usesLeft >= required;
+}
+
+// [M-GUARD-BREAKER] 次に挑むシーンのカバー区間を担当する壁割りのクラスID。
+export function breakerForScene(sceneId: string): string | null {
+  const scene = SCENE_MASTERS[sceneId as keyof typeof SCENE_MASTERS];
+  if (scene === undefined) {
+    return null;
+  }
+  let best: { class_id: string; order: number } | null = null;
+  for (const breaker of BREAKERS) {
+    if (breaker.order < scene.order && (best === null || breaker.order > best.order)) {
+      best = breaker;
+    }
+  }
+  return best?.class_id ?? null;
+}
+
+// 反復射程：射程2以上の武技のうち、マスター根源武技と壁割り担当を除くもの。
+function isSustainedRanged(record: ActionRecord): boolean {
+  return (
+    !record.is_root && !BREAKER_IDS.includes(record.class_id) && record.params.range >= 2 && record.params.atk > 0
+  );
+}
+
+export function chooseByRole(
+  run: {
+    current_scene_id: string;
+    hero_max_hp: number;
+    hero_acts: readonly { master_ref: string; uses_left: number; sys_flags: readonly string[] }[];
+  },
+  pool: readonly InheritTarget[],
+  hpBonusBase: number,
+): InheritTarget | null {
+  const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
+  // 1. 体力
+  if (run.hero_max_hp < hpBonusBase) {
+    const hp = pool.find((entry) => entry.kind === 'MAX_HP');
+    if (hp !== undefined) {
+      return hp;
+    }
+  }
+  // 2. 壁割り
+  const breakerId = breakerForScene(run.current_scene_id);
+  if (
+    breakerId !== null &&
+    !run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, ROLE_BREAKER_USES))
+  ) {
+    const breaker = actions.find((entry) => entry.class_id === breakerId);
+    if (breaker !== undefined) {
+      return breaker;
+    }
+  }
+  // 3. 反復射程
+  const holdsRanged = run.hero_acts.some((act) => {
+    const record = recordOf(act.master_ref);
+    return record !== undefined && isSustainedRanged(record) && hasUses(act.uses_left, ROLE_RANGED_USES);
+  });
+  if (!holdsRanged) {
+    let best: { entry: { kind: 'ACTION'; class_id: string }; atk: number } | null = null;
+    for (const entry of actions) {
+      const record = recordOf(entry.class_id);
+      if (record !== undefined && isSustainedRanged(record) && (best === null || record.params.atk > best.atk)) {
+        best = { entry, atk: record.params.atk };
+      }
+    }
+    if (best !== null) {
+      return best.entry;
+    }
+  }
+  // 4. 心気
+  if (mindUsesLeft(run) < ROLE_MIND_USES) {
+    const mind = chooseMindRefill(pool);
+    if (mind !== null) {
+      return mind;
+    }
+  }
+  return null;
+}
+
 // [V-TEST-REFAI]［リソース生成手段の維持］主人公が保持する FLAG_MIND のアクションの残り使用回数の合計。
 // 無限回数は枯渇しないため上限値として扱う。
 export function mindUsesLeft(run: { hero_acts: readonly { sys_flags: readonly string[]; uses_left: number }[] }): number {
@@ -350,9 +444,9 @@ export function sacrificeTarget(run: { party: readonly { attendant_id: string }[
   return victims[0] ?? null;
 }
 
-// [V-TEST-REFAI]［供犠の実行］判定：現在HP × 8 < 最大HP。
+// [V-TEST-REFAI]［供犠の実行］判定：現在HP × 3 < 最大HP。
 export function needsSacrifice(run: { hero_hp: number; hero_max_hp: number }): boolean {
-  return run.hero_hp * 8 < run.hero_max_hp;
+  return run.hero_hp * 3 < run.hero_max_hp;
 }
 
 // [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーンであり、
@@ -381,7 +475,19 @@ function clearedSceneOf(run: { current_scene_id: string }) {
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
-  if (policy !== 'PASSIVE') {
+  if (policy === 'BALANCE') {
+    for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
+      if (member.inherit_state !== 'UNUSED') {
+        continue;
+      }
+      const pool = inheritPool(run, MASTERS);
+      const target =
+        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0) ?? chooseInherit(pool, policy, turn);
+      if (target !== null) {
+        confirmInherit(session, ctx, member.attendant_id, target);
+      }
+    }
+  } else if (policy !== 'PASSIVE') {
     // [V-TEST-REFAI]［体力の維持］［リソース生成手段の維持］いずれも判定はインターミッション開始時に
     // 1度だけ行い、読み替えはそれぞれ当該インターミッションの継承枠1件に限る。体力が優先する。
     // [V-TEST-REFAI]［射程の維持］射程2以上の武技（マスター根源武技を除く）を保持しないとき、
