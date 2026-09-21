@@ -138,4 +138,25 @@ describe('[M-GUARD-BREAKER]［火力の要求］', () => {
   it('[M-GUARD-REACH] 2-01 の担当は range = 3 を併せ持つ', () => {
     expect(ACTION_MASTERS.ACT_SPEC_BREAK_VOLG.params.range).toBe(3);
   });
+
+  // [M-GUARD-BREAKER]［到達の要求］壁を割れる手そのものが遮蔽越しに敵マスターへ届くこと。
+  it('D-07 全シーンで worst_distance <= breaker_range が成立する', () => {
+    for (const row of result.rows as { scene_id: string; worst_distance: number; breaker_range: number }[]) {
+      expect(row.breaker_range).toBeGreaterThanOrEqual(row.worst_distance);
+    }
+  });
+
+  it('D-07 担当の射程が worst_distance を下回るとき違反を検出する', () => {
+    const record = ACTION_MASTERS.ACT_SPEC_BREAK_ASHAL;
+    const doctored = {
+      ...ACTION_MASTERS,
+      ACT_SPEC_BREAK_ASHAL: { ...record, params: { ...record.params, range: 1 } },
+    } as unknown as typeof ACTION_MASTERS;
+    const doctoredResult = audit({
+      actions: doctored,
+      enemies: ENEMY_MASTERS,
+      scenes: SCENE_MASTERS,
+    }) as { fails: string[] };
+    expect(doctoredResult.fails.some((fail) => fail.includes('breaker_range'))).toBe(true);
+  });
 });

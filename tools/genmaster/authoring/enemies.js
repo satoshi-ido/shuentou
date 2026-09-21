@@ -131,6 +131,8 @@ export const ENEMIES = [
         class_id: 'ACT_SPEC_BREAK_ASHAL',
         display_name: '使徒の断罪',
         breaker: 72,
+        // [M-GUARD-BREAKER]［到達の要求］カバー区間の worst_distance（2）を満たす射程。
+        override: { range: 3 },
       },
       {
         // 特殊枠の残り1枠は [A-PROFILE-TABLE] PROFILE_SURGE の action_bonus（SUMMON）に合わせる。
@@ -270,6 +272,8 @@ export const ENEMIES = [
         class_id: 'ACT_SPEC_BREAK_ZEFAL',
         display_name: '枢機卿の断罪',
         breaker: 110,
+        // [M-GUARD-BREAKER]［到達の要求］カバー区間の worst_distance（2）を満たす射程。
+        override: { range: 3 },
       },
       {
         // [A-BOOK-TABLE] B-04 ① のセレクタ {MIND, SPECIAL, 1.5} が指す自己バフの心気（特殊）。
@@ -464,6 +468,8 @@ export const ENEMIES = [
         class_id: 'ACT_SPEC_BREAK_ZOL_VOD',
         display_name: '深核の顎',
         breaker: 152,
+        // [M-GUARD-BREAKER]［到達の要求］カバー区間の worst_distance（2）を満たす射程。
+        override: { range: 3 },
       },
       {
         // [A-BOOK-TABLE] B-05 ① のセレクタ {MIND, SPECIAL, 1.5}。PP充填を確保してから

@@ -6,6 +6,7 @@
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.ts';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.ts';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.ts';
+import { BREAKERS } from '../../src/data/generated/breaker-masters.ts';
 import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../../src/data/generated/hero-init.ts';
 import { deriveSysFlags } from '../../src/engine/flags.ts';
 import { instantiateAction } from '../../src/engine/instantiate.ts';
@@ -121,6 +122,21 @@ export function wallOf(scene) {
   return wall;
 }
 
+// [V-AUDIT-SYMBOLS] breaker_range(N)：シーン N のカバー区間を担当する壁割り（[M-GUARD-BREAKER]）の
+// range 基礎値。担当が主人公初期キットの区間（1-01〜2-01）は武技（重撃）AR15 の射程を用いる。
+const INITIAL_BREAKER_ID = 'ACT_HEAVY_AR15';
+
+export function breakerRange(scene, masters = { actions: ACTION_MASTERS }) {
+  let best = null;
+  for (const breaker of BREAKERS) {
+    if (breaker.order < scene.order && (best === null || breaker.order > best.order)) {
+      best = breaker;
+    }
+  }
+  const classId = best === null ? INITIAL_BREAKER_ID : best.class_id;
+  return masters.actions[classId].params.range;
+}
+
 // [V-AUDIT-SYMBOLS] pool_max_atk(N)：has_martial かつ is_root == False の atk 基礎値の最大値。
 export function poolMaxAtk(pool) {
   let best = 0;
@@ -267,6 +283,7 @@ export function audit(masters = { actions: ACTION_MASTERS, enemies: ENEMY_MASTER
       pool_max_atk: best,
       max_range: maxRange(pool, masters),
       worst_distance: worstDistance(scene, pool),
+      breaker_range: breakerRange(scene, masters),
       first_hit_open: firstHit(pool, 0),
       first_hit_wall: firstHit(pool, wall),
       effective_wall: effectiveWall(scene, wall),
@@ -293,6 +310,12 @@ export function audit(masters = { actions: ACTION_MASTERS, enemies: ENEMY_MASTER
     if (scene.enemy_interfere || index > 0) {
       if (row.worst_distance > row.max_range) {
         fails.push(`D-07 ${scene.scene_id}: worst_distance ${row.worst_distance} > max_range ${row.max_range}`);
+      }
+      // 第2式：壁割り担当そのものが遮蔽越しに届くこと（[M-GUARD-BREAKER]［到達の要求］）。
+      if (row.worst_distance > row.breaker_range) {
+        fails.push(
+          `D-07 ${scene.scene_id}: worst_distance ${row.worst_distance} > breaker_range ${row.breaker_range}`,
+        );
       }
     }
   }
