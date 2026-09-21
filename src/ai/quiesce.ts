@@ -9,7 +9,8 @@ import { currentDefense } from '../engine/defense.js';
 import { effectiveDecayApRateCenti, effectiveStepStartup } from '../engine/effective.js';
 import { advanceStep, type StepDeps } from '../engine/pipeline/step.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
-import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
+import type { ActionInstance, BattleState, Side, Unit } from '../engine/types.js';
+import { cloneState } from './clone.js';
 
 // [A-SEARCH-QUIESCE]「トレースの記録内容」。APTrace（現在AP・実効防御力）と PosTrace（現在位置）
 // を同一ステップ添字で対応づけて1構造にまとめる（[A-EVAL-TTK] は両者を組で参照するため）。
@@ -34,6 +35,15 @@ export interface QuiesceResult {
   readonly outcome: BattleOutcome;
   // [A-SEARCH-QUIESCE]［決着の確認］延長中に決定点が現れた陣営。決着を確認の対象とするかの判定に用いる。
   readonly decided: { MINE: boolean; FOE: boolean };
+  // [A-SEARCH-QUIESCE]［延長中の決定点］陣営ごとに、そのマスターが初めて決定点を持った添字と、その時点の
+  // 両陣営のマスター。持たなかった陣営は null。[A-EVAL-TTK]［延長中の決定点からの計画］が用いる。
+  readonly firstDecision: Readonly<Record<Side, FirstDecision | null>>;
+}
+
+export interface FirstDecision {
+  readonly index: number;
+  readonly mine: Unit;
+  readonly foe: Unit;
 }
 
 const alwaysPass: DecisionProvider = () => ({ kind: 'PASS' });
@@ -114,12 +124,37 @@ function markDecisionPoints(state: BattleState, decided: { MINE: boolean; FOE: b
   }
 }
 
+function masterOf(state: BattleState, side: Side): Unit | undefined {
+  return state.units.find((unit): unit is Unit => unit !== null && unit.side === side && unit.unit_kind === 'MASTER');
+}
+
+// [A-SEARCH-QUIESCE]［延長中の決定点］マスターが初めて決定点を持った陣営について、添字と両マスターを記録する。
+function markFirstDecision(state: BattleState, index: number, first: Record<Side, FirstDecision | null>): void {
+  for (const side of ['MINE', 'FOE'] as const) {
+    if (first[side] !== null) {
+      continue;
+    }
+    const master = masterOf(state, side);
+    if (master === undefined || master.state !== 'THOUGHT' || executableActions(state, master).length === 0) {
+      continue;
+    }
+    const mine = masterOf(state, 'MINE');
+    const foe = masterOf(state, 'FOE');
+    if (mine === undefined || foe === undefined) {
+      continue;
+    }
+    first[side] = { index, mine: cloneState(mine), foe: cloneState(foe) };
+  }
+}
+
 // state を破壊的に静止局面まで進める（呼び出し側がクローンを渡す前提）。t=0（延長前の現局面）を
 // 先頭フレームとして含む。
 export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult {
   const trace: QuiesceFrame[] = [snapshotFrame(state)];
   const decided = { MINE: false, FOE: false };
+  const firstDecision: Record<Side, FirstDecision | null> = { MINE: null, FOE: null };
   markDecisionPoints(state, decided);
+  markFirstDecision(state, 0, firstDecision);
   const qMaxSteps = computeQMaxSteps(state);
   for (let i = 0; i < qMaxSteps; i += 1) {
     if (isQuiescentState(state)) {
@@ -128,12 +163,13 @@ export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult
     const { outcome } = advanceStep(state, alwaysPass, deps);
     trace.push(snapshotFrame(state));
     if (outcome !== 'NONE') {
-      return { trace, outcome, decided };
+      return { trace, outcome, decided, firstDecision };
     }
     markDecisionPoints(state, decided);
+    markFirstDecision(state, trace.length - 1, firstDecision);
   }
   trace[trace.length - 1] = tailFrame(state, trace.length - 1);
-  return { trace, outcome: 'NONE', decided };
+  return { trace, outcome: 'NONE', decided, firstDecision };
 }
 
 // t が末尾を超える場合は末尾値を適用する。末尾で硬直中のユニットは、硬直満了の添字以降を
