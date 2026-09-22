@@ -1,5 +1,6 @@
 // [I-PLAN-MASTERGEN]［人が書く入力］従者マスタ（[M-DATA-ATTENDANTMASTER]）。
-// 範囲は [I-PLAN-MILESTONE]［M3 のマスタ範囲］（join_act が 1 または 2）に従う。値の正本は [M-DATA-ATTENDANTS]。
+// 範囲は [I-PLAN-MILESTONE] M5（全15名）。値の正本は [M-DATA-ATTENDANTS]、
+// 二つ名は [S-RETAINER-01]〜[S-RETAINER-15] の見出しによる。
 // 係数は小数表記の文字列で書き、生成器が centi へ変換する。
 
 export const ATTENDANTS = [
@@ -26,5 +27,101 @@ export const ATTENDANTS = [
     join_act: 2,
     is_fixed: false,
     coeffs: { costRate: '0.67', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_04',
+    display_name: 'カイ',
+    epithet: '風脚',
+    join_act: 3,
+    is_fixed: false,
+    coeffs: { rcRate: '0.67', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_05',
+    display_name: 'セルヴィス',
+    epithet: '読み手',
+    join_act: 3,
+    is_fixed: false,
+    coeffs: { thRate: '0.67', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_06',
+    display_name: 'トト',
+    epithet: '駆けの子',
+    join_act: 3,
+    is_fixed: false,
+    coeffs: { stRate: '0.67', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_07',
+    display_name: 'バルデス',
+    epithet: '不動',
+    join_act: 4,
+    is_fixed: false,
+    coeffs: { decayApRate: '0.67', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_08',
+    display_name: 'ユナ',
+    epithet: '環守の巫女',
+    join_act: 4,
+    is_fixed: false,
+    coeffs: { gainVpRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_09',
+    display_name: 'オルフェ',
+    epithet: '充ちの器',
+    join_act: 4,
+    is_fixed: false,
+    coeffs: { chargePpRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_10',
+    display_name: 'シグルド',
+    epithet: '遠矢',
+    join_act: 4,
+    is_fixed: false,
+    coeffs: { rangeRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_11',
+    display_name: 'ダリウス',
+    epithet: '剛の腕',
+    join_act: 5,
+    is_fixed: false,
+    coeffs: { atkRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_12',
+    display_name: 'メイア',
+    epithet: '盾の聖女',
+    join_act: 5,
+    is_fixed: false,
+    coeffs: { deployRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_13',
+    display_name: 'ザイル',
+    epithet: '呪炎',
+    join_act: 5,
+    is_fixed: false,
+    coeffs: { dmgRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_14',
+    display_name: 'クレア',
+    epithet: '白刃の審問官',
+    join_act: 5,
+    is_fixed: false,
+    coeffs: { purifyRate: '1.50', stripRate: '1.50', usesRate: '3.00' },
+  },
+  {
+    attendant_id: 'ATTENDANT_15',
+    display_name: 'マルディス',
+    epithet: '賜りの王弟',
+    join_act: 5,
+    is_fixed: false,
+    coeffs: { giveBuffRate: '1.50', giveDebuffRate: '1.50', usesRate: '3.00' },
   },
 ];

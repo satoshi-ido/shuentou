@@ -58,9 +58,14 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
     const session = newGameSession(ctx);
     expect(startBattle(session, ctx)).toBe('PAUSED');
     const state = session.data.run.battle_state!;
-    expect(state.step).toBeGreaterThanOrEqual(147);
+    // [V-NUM-OPENING] ステップ147に心気（基本）が実行可能となり、敵はこれを発生させる。時間停止はその
+    // 開始事由（ENEMY_START）で成立し、敵はHPコスト2を支払い済みである。
+    expect(state.step).toBe(147);
+    expect(state.pause_reason?.code).toBe('ENEMY_START');
+    const enemy = findUnit(state, 'FOE');
+    expect(enemy.last_act?.class_id).toBe('ACT_MIND_AR3');
     expect(findUnit(state, 'MINE').hp).toBe(60);
-    expect(findUnit(state, 'FOE').hp).toBe(10);
+    expect(enemy.hp).toBe(8);
   });
 });
 
@@ -109,16 +114,18 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の意図（壁不変条件の実�
   // 武技AR15を撃つ計画は同局面の生存項（[A-EVAL-TTK]）の主軸として検証する。
   it('T-19: TTK(主→敵) は壁AP23を割れない武技AR3・AR6を除外し、心気でPP5を確保する武技AR15を主軸とする', { timeout: 300_000 }, () => {
     const { state } = play((s) => s.step >= 185 && findUnit(s, 'MINE').elapsed_thought >= 42, 400);
-    const hero = findUnit(state, 'MINE');
-    const enemy = findUnit(state, 'FOE');
-    const { trace } = runQuiescence(structuredClone(state), NO_SUMMON_DEPS);
+    // [A-SEARCH-QUIESCE]［評価対象］生存項は静止局面で求める。
+    const quiet = structuredClone(state);
+    const { trace } = runQuiescence(quiet, NO_SUMMON_DEPS);
+    const hero = findUnit(quiet, 'MINE');
+    const enemy = findUnit(quiet, 'FOE');
     const withOnly = (classIds: readonly string[]): Unit => ({ ...hero, acts: hero.acts.filter((a) => classIds.includes(a.master_ref)) });
-    const inputs = { trace, level: state.scene_level };
+    const inputs = { trace, level: state.scene_level, offset: trace.length - 1 };
     expect(ttk(withOnly(['ACT_SLASH_AR3', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
     expect(ttk(withOnly(['ACT_SLASH_AR6', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
     const heavy = ttk(withOnly(['ACT_HEAVY_AR15', 'ACT_MIND_AR3']), enemy, inputs);
     expect(heavy).toBeLessThan(TTK_MAX);
     expect(ttk(hero, enemy, inputs)).toBe(heavy);
-    expect(createReferenceDecisionProvider(NO_SUMMON_DEPS)(state, hero).kind).toBe('PASS');
+    expect(createReferenceDecisionProvider(NO_SUMMON_DEPS)(state, findUnit(state, 'MINE')).kind).toBe('PASS');
   });
 });

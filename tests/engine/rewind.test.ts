@@ -172,16 +172,16 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     expect(loaded.session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'ROLLBACK_BATTLE' });
   });
 
-  it('現行の save_version は 3 であり、そのセーブはロードできる', () => {
+  it('現行の save_version は 4 であり、そのセーブはロードできる', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    expect(data.save_version).toBe(3);
+    expect(data.save_version).toBe(4);
     expect(loadGame(JSON.stringify(data), ctx).ok).toBe(true);
   });
 
   // 1: 初期版。2: BattleState に監視トグル・停止事由・定跡の項目を加えた版（instance_id_seq の追加前）。
-  it.each([1, 2])('旧版 save_version %i のセーブはマイグレーションせずロードを拒否する', (oldVersion) => {
+  it.each([1, 2, 3])('旧版 save_version %i のセーブはマイグレーションせずロードを拒否する', (oldVersion) => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');

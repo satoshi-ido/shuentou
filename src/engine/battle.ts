@@ -3,6 +3,8 @@
 
 import type { EnemyMasterRecord } from '../data/types.js';
 import { createZeroParamMap } from './params.js';
+import { createMirrorStats } from './mirror.js';
+import type { MirrorStats } from './run/state.js';
 import type { ActionInstance, BattleState, Side, Unit, UnitKind } from './types.js';
 
 // [I-STATE-ID] U + 4桁ゼロ詰め連番。採番位置は [M-STATE-BATTLESTATE] の unit_id_seq が保持する。
@@ -12,7 +14,7 @@ export function allocateUnitId(state: Pick<BattleState, 'unit_id_seq'>): string 
   return id;
 }
 
-function createUnit(
+export function createUnit(
   unitId: string,
   side: Side,
   unitKind: UnitKind,
@@ -53,6 +55,8 @@ export interface CreateBattleOptions {
   readonly enemyActs: ActionInstance[];
   // 主人公・敵マスターの実体化を終えた時点の採番位置（[M-STATE-RUNSTATE]［主人公ステートの正本］）。
   readonly instanceIdSeq: number;
+  // [A-MIRROR-5-09] 5-09 に限り、5-08 クリア時に記録した鏡像統計を固定して渡す。
+  readonly mirrorSnapshot?: MirrorStats | null;
 }
 
 // [M-STATE-BATTLESTATE] 初期生成（ステップ0）。クリーチャーは不在。
@@ -71,6 +75,8 @@ export function createBattleState(options: CreateBattleOptions): BattleState {
     book_aborted: false,
     book_wait_elapsed: null,
     ai_reuse: {},
+    mirror_tally: createMirrorStats(),
+    mirror_snapshot: options.mirrorSnapshot ?? null,
   };
   const heroHp = options.heroHp ?? options.heroMaxHp;
   state.units[1] = createUnit(allocateUnitId(state), 'MINE', 'MASTER', 1, options.heroMaxHp, heroHp, options.heroActs);

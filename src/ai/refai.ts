@@ -14,6 +14,11 @@ import type { StepDeps } from '../engine/pipeline/step.js';
 import { createAiDecisionProvider } from './decision.js';
 import { referenceProfile } from './profile.js';
 
+// [V-TEST-REFAI]［役割充足による選択］最大HP加算の途絶とみなすインターミッション数（暫定値）。2では体力の
+// 役割が他の役割の枠を奪い 4-07 で14件が敗北し、3では 4-04 の敗北が解消する（摂動21件、1-01〜4-08）。
+// [M-GUARD-LETHAL] の最低配分率 1 / (本値 + 1) を定める（体力の役割は4回に1回以上の最大HP加算を保証する）。
+export const ROLE_HP_STALE_INTERMISSIONS = 3;
+
 // 「無操作型」：常にパス。敵AIの単独完走時間の計測に用いる。
 export const passiveDecisionProvider: DecisionProvider = () => ({ kind: 'PASS' });
 

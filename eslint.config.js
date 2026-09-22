@@ -11,7 +11,7 @@ const LAYOUT_ZONES = {
   'src/ai': ['src/num', 'src/data', 'src/engine'],
   'src/worker': ['src/ai', 'src/engine', 'src/data'],
   'src/ui': ['src/num', 'src/data', 'src/engine'],
-  'tools/audit': ['src/num', 'src/data', 'src/engine'],
+  'tools/audit': ['src/num', 'src/data', 'src/engine', 'src/ai'],
   'tools/genmaster': ['src/num', 'src/data'],
   'tools/docindex': [],
 };
@@ -102,7 +102,7 @@ export default tseslint.config(
   {
     files: ['tools/**/*.{ts,js}', '*.config.js'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly' },
+      globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
     },
   },
   {

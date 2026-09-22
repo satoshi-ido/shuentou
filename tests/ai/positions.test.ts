@@ -1,14 +1,18 @@
 // [V-TEST-POSITIONS] 局面テストスイート（EPD方式）。各評価項につき3局面を置く。
 // 局面は実データに依存しない最小構成で組み、検証対象の特徴量・境界だけを直接指定する。
 // T-12 は 1-01 の実データによる局面（tests/ai/positions-1-01.test.ts）、T-18 の TTK 実数値は tests/ai/step157-ttk.test.ts にある。
-// 手の選択は参照プレイヤーAIと同じ全11項のプロファイル（[V-TEST-REFAI]）で判定する。
+// 手の選択は参照プレイヤーAIと同じ、impatience を除く10項のプロファイル（[V-TEST-REFAI]）で判定する。
 
 import { describe, expect, it } from 'vitest';
 import type { ActionMasterRecord } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { runPreDecision } from '../../src/engine/pipeline/step.js';
+import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
+import { applyMove } from '../../src/ai/apply.js';
 import { cloneState } from '../../src/ai/clone.js';
-import { evaluate } from '../../src/ai/evaluate.js';
+import { evaluate, quiescenceMateScore } from '../../src/ai/evaluate.js';
+import { MATE_TH } from '../../src/ai/constants.js';
+import { decideActionDetailed, readyToFire } from '../../src/ai/search.js';
 import { referenceProfile } from '../../src/ai/profile.js';
 import { runQuiescence } from '../../src/ai/quiesce.js';
 import { ttk } from '../../src/ai/ttk.js';
@@ -263,6 +267,130 @@ describe('[V-TEST-POSITIONS] T-22/T-23 斥けによる射程外化と両マス�
   });
 });
 
+describe('[A-PROFILE-BONUS] 再交代による往復の抑止', () => {
+  // 前列のクリーチャーが直前のステップに隊列交代で前へ出て、敵マスターを後列へ下げた。主人公の射程1の
+  // 武技が発生中で前列へ迫り、配置は敵にとって望ましい。ここで再び交代すると、次のステップに戻す往復で
+  // パスの減点を回避できる（2-01 の実測で生じた往復）。再交代にはパスと同じ減点が課され、往復は選ばれない。
+  const CREATURE_WAIT = makeAction('CR_WAIT', { gain_vp: 1, step_thought: 500 });
+  const SWAP = makeAction('CR_SWAP', { is_swap: true, step_startup: 0, step_recovery: 0 });
+
+  it.each([
+    { name: '残り発生50', elapsed: 10 },
+    { name: '残り発生40', elapsed: 20 },
+    { name: '残り発生55', elapsed: 5 },
+  ])('直前に交代したクリーチャーは往復せずパスする：$name', ({ elapsed }) => {
+    // 主人公の武技は敵マスターを一撃で倒す威力を持ち、クリーチャーが前列に立つ配置が明確に望ましい。
+    const HIT = martialAction('HERO_HIT', { atk: 30, dmg_hp: 10000, step_startup: 60, step_recovery: 10 });
+    const FOE_SLOW = martialAction('FOE_SLOW', { atk: 10, dmg_hp: 300, step_thought: 100, step_startup: 10, step_recovery: 10 });
+    const { state, hero, enemy } = duel([HIT, MIND], [FOE_SLOW]);
+    const creature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 3, maxHp: 30, acts: [SWAP, CREATURE_WAIT], counter: { instance_id_seq: 50 } });
+    // 直前のステップ：クリーチャー（後列）が隊列交代で前列へ出る。
+    applyMove(state, creature, { kind: 'ACT', action: creature.acts.find((a) => a.master_ref === 'CR_SWAP')! }, NO_SUMMON_DEPS);
+    runStepEnd(state);
+    expect(creature.pos_idx).toBe(2);
+    expect(enemy.pos_idx).toBe(3);
+    setStartup(hero, 'HERO_HIT', elapsed);
+    expect(chosenClassId(state, creature)).toBe('PASS');
+  });
+});
+
+describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
+  const BREAK = martialAction('HERO_BREAK', { atk: 40, dmg_hp: 5000, step_thought: 17, step_startup: 9, step_recovery: 30 });
+  const CREATURE_IDLE = makeAction('CR_IDLE', { gain_vp: 1, step_thought: 500 });
+
+  function position(options: { readonly creatureFront: boolean; readonly masterAp: number; readonly elapsed: number }) {
+    const { state, hero, enemy } = duel([BREAK], [MIND]);
+    if (options.creatureFront) {
+      moveUnit(state, enemy, 3);
+      placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 2, maxHp: 30, acts: [CREATURE_IDLE], counter: { instance_id_seq: 50 } });
+    }
+    enemy.ap = options.masterAp;
+    hero.elapsed_thought = options.elapsed;
+    return { state, hero, breakId: hero.acts[0].instance_id };
+  }
+
+  it('前列がクリーチャーのときは、実行可能でも発射しない', () => {
+    const { state, hero, breakId } = position({ creatureFront: true, masterAp: 0, elapsed: 17 });
+    expect(readyToFire(state, hero, breakId)).toBe('WAIT');
+  });
+
+  it('前列のマスターの防御力が実効攻撃力を上回るときは発射しない', () => {
+    const { state, hero, breakId } = position({ creatureFront: false, masterAp: 41, elapsed: 17 });
+    expect(readyToFire(state, hero, breakId)).toBe('WAIT');
+  });
+
+  it('必要思考が未充足のときは発射しない', () => {
+    const { state, hero, breakId } = position({ creatureFront: false, masterAp: 0, elapsed: 16 });
+    expect(readyToFire(state, hero, breakId)).toBe('WAIT');
+  });
+
+  it('実行可能で、射程内の前列のマスターに命中するときに発射する', () => {
+    const { state, hero, breakId } = position({ creatureFront: false, masterAp: 40, elapsed: 17 });
+    expect(readyToFire(state, hero, breakId)).toBe('FIRE');
+  });
+
+  it('アクションインスタンスが存在しない約定は解消する', () => {
+    const { state, hero } = position({ creatureFront: false, masterAp: 0, elapsed: 17 });
+    expect(readyToFire(state, hero, 'IID_MISSING')).toBe('DROP');
+  });
+});
+
+describe('[A-SEARCH-MOVEGEN] 待機手による決め手の選択', () => {
+  // 主人公はHP2。必要思考0の体勢と、必要思考17の決め手（敵マスターの壁を貫き一撃で倒す）を持つ。敵マスターもHP2で、
+  // 必要思考24の武技が主人公を倒す。待機手がなければ時間停止の瞬間に実行可能な体勢しか候補になく、決め手は候補に現れない。
+  const GUARD = makeAction('HERO_GUARD', { deploy_ap: 30, def_efficiency: 200, cost_pp: 3, step_startup: 24, step_recovery: 72 });
+  const BREAK = martialAction('HERO_BREAK', { atk: 72, dmg_hp: 5000, cost_pp: 12, step_thought: 17, step_startup: 9, step_recovery: 30 });
+  const FOE_SLASH = martialAction('FOE_SLASH', { atk: 15, dmg_hp: 5000, stun: true, cost_pp: 3, step_thought: 24, step_startup: 8, step_recovery: 30 });
+
+  function position() {
+    const { state, hero, enemy } = duel([GUARD, BREAK], [FOE_SLASH], 60, 60);
+    hero.hp = 2;
+    hero.pp = 16;
+    hero.vp = 14;
+    enemy.hp = 2;
+    enemy.pp = 3;
+    enemy.ap = 20;
+    return { state, hero };
+  }
+
+  // 待機手の有無だけを比べるため、[V-TEST-REFAI]「体勢への減点」を外したプロファイルで判定する。
+  const noStancePenalty = { ...referenceProfile(), actionBonus: {} };
+
+  it('待機手を含めない探索では、時間停止の瞬間に実行可能な体勢を選ぶ', () => {
+    const { state, hero } = position();
+    expect(chosenClassId(state, hero, { ...noStancePenalty, waitMoves: false })).toBe('HERO_GUARD');
+  });
+
+  it('待機手を含める探索では決め手を待つ（決定はパスとして返る）', () => {
+    const { state, hero } = position();
+    expect(chosenClassId(state, hero, noStancePenalty)).toBe('PASS');
+  });
+});
+
+describe('[A-EVAL-MATE] 静止探索中の決着', () => {
+  // 致死の武技が発生中にあり、相手が新規行動をとらなければ延長中に着弾して決着する。
+  const LETHAL = martialAction('FOE_LETHAL', { atk: 10, dmg_hp: 5000, step_startup: 50, step_recovery: 10 });
+  const HERO_WAIT = makeAction('HERO_WAIT', { gain_vp: 1, step_thought: 1000 });
+
+  it('延長中の決着は MATE_TH 未満のスコアで評価し、延長ステップ数を加味する', () => {
+    const { state, enemy } = duel([HERO_WAIT], [LETHAL]);
+    setStartup(enemy, 'FOE_LETHAL', 40);
+    const { trace, outcome } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
+    expect(outcome).toBe('LOSS');
+    const value = evaluate(state, referenceProfile(), 2, NO_SUMMON_DEPS);
+    expect(value).toBe(quiescenceMateScore('LOSS', 2, trace.length - 1));
+    expect(Math.abs(value)).toBeLessThan(MATE_TH);
+  });
+
+  it('相手が着弾前に体勢で防げる大技を詰みとみなさず、反復深化を打ち切らない', () => {
+    // 主人公は発生5の体勢（AP50・防御効率2.00）で、発生50の大技の着弾前に防御力100を得られる。
+    const HERO_GUARD = makeAction('HERO_GUARD', { deploy_ap: 50, def_efficiency: 200, step_startup: 5, step_recovery: 100 });
+    const { state, enemy } = duel([HERO_GUARD], [LETHAL, MIND]);
+    const { score } = decideActionDetailed(state, enemy, referenceProfile(), NO_SUMMON_DEPS);
+    expect(Math.abs(score)).toBeLessThan(MATE_TH);
+  });
+});
+
 describe('[V-TEST-POSITIONS] T-04/T-05 自滅ポリシーの MATE_TH 判定', () => {
   // 瞬動の武技は [M-PIPE-INSTANT]#3 の勝敗判定を経てから #4 のスリップ決済に進む。敵は致死量の
   // 被スリップ量を抱えており、主人公を倒しきれなければ自身のスリップ決済で消滅する。
@@ -325,8 +453,10 @@ describe('[V-TEST-POSITIONS] T-14 リソース補充の加算', () => {
   ])('T-14: $name', ({ pp, enemyHp, expected }) => {
     const { state, hero, enemy } = duel([HIT, CHARGE], [MIND], 60, enemyHp);
     hero.pp = pp;
+    // 双方とも思考中の局面であり、静止探索は延長しない（q = 0）。
     const { trace } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
-    const value = ttk(hero, enemy, { trace, level: state.scene_level });
+    expect(trace).toHaveLength(1);
+    const value = ttk(hero, enemy, { trace, level: state.scene_level, offset: 0 });
     const requiredHits = Math.ceil(enemyHp / 30);
     const naiveVolley = 20 + 10 + (requiredHits - 1) * HIT_CYCLE;
     expect(value).toBe(expected);

@@ -37,7 +37,8 @@ function confirmNormalAction(unit: Unit, action: ActionInstance): void {
 
 // state.units 内の unit（クローン後の対応個体）を対象に mv を適用する。PASS は無処理。
 export function applyMove(state: BattleState, unit: Unit, move: AiMove, deps: ApplyMoveDeps): BattleOutcome {
-  if (move.kind === 'PASS') {
+  // [A-SEARCH-NODE]［待機手の約定］待機手は適用した時点では状態を変えない（約定は探索器が保持する）。
+  if (move.kind === 'PASS' || move.kind === 'WAIT') {
     return 'NONE';
   }
   if (isInstant(move.action)) {

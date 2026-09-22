@@ -174,6 +174,18 @@ export function inheritPool(run: RunState, masters: GameMasters): InheritTarget[
     seen.push(classId);
     pool.push({ kind: 'ACTION', class_id: classId });
   }
+  // [M-INHERIT-POOL]［壁割り手段の常設］担当シーンのクリア以降、カバー区間の各インターミッションで
+  // 継承プールへ加える。カバー区間は次の担当が登場するシーンまでであり（[M-GUARD-BREAKER]）、
+  // 直前バトルの敵マスターが当該アクションを所持するかを問わない。
+  for (let index = 0; index < masters.breakers.length; index += 1) {
+    const breaker = masters.breakers[index];
+    const next = masters.breakers[index + 1];
+    const covers = scene.order >= breaker.order && (next === undefined || scene.order < next.order);
+    if (covers && !seen.includes(breaker.class_id)) {
+      seen.push(breaker.class_id);
+      pool.push({ kind: 'ACTION', class_id: breaker.class_id });
+    }
+  }
   if (scene.hp_bonus_base !== null) {
     pool.push({ kind: 'MAX_HP' });
   }

@@ -12,7 +12,7 @@ import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Side, Unit } from '../engine/types.js';
 import { floorDiv } from '../num/helpers.js';
 import { cloneState } from './clone.js';
-import { MATE } from './constants.js';
+import { MATE, QMATE } from './constants.js';
 import { clamp, signedRoundDiv } from './fixed.js';
 import {
   xBoard,
@@ -40,6 +40,15 @@ export function mateScore(outcome: BattleOutcome, ply: number): number {
     return -MATE + ply; // 敵マスター消滅かつプレイヤー生存
   }
   return MATE - ply; // プレイヤーマスター消滅かつ敵マスター生存（同時消滅も同一式で扱う。上部注記）
+}
+
+// [A-EVAL-MATE]「静止探索中の決着」。延長中は相手の新規行動を仮定しないため確定した詰みではなく、
+// 絶対値を MATE_TH 未満に保って早期打ち切り・自滅ポリシーの対象から外す。q は決着までの延長ステップ数。
+export function quiescenceMateScore(outcome: BattleOutcome, ply: number, q: number): number {
+  if (outcome === 'WIN') {
+    return -QMATE + ply + q;
+  }
+  return QMATE - ply - q;
 }
 
 function masterOf(state: BattleState, side: Side): Unit | undefined {
@@ -95,36 +104,81 @@ function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfil
 // deps（CreatureFactory）は [A-EVAL-REFIMPL]「Layer 1が提供すべき純関数」を実際に
 // 呼び出すための配線であり、M1の他モジュール（[M-PIPE-P8-DECISION] 等）と同様に注入する。
 export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number, deps: StepDeps): number {
-  // 特徴量（x_tempo・x_board 等）とTTKの攻撃側・防御側は、決定点そのものの状態（state）を
-  // 用いる。静止探索は [A-EVAL-TTK]「着弾予測時点」の防御力・距離を求めるための補助トレースに
-  // すぎず、その延長状態自体を「評価対象の局面」にしてはならない（延長でSTARTUP/RECOVERYが
-  // 完了し、tempo等が実勢と異なる値になってしまう）。このため quiesce には独立したクローンを渡す。
-  const foeMaster = masterOf(state, 'FOE');
-  const mineMaster = masterOf(state, 'MINE');
-  if (foeMaster === undefined) {
-    return -MATE;
+  return evaluateLeafPosition(state, prof, ply, deps).value;
+}
+
+// [A-SEARCH-QUIESCE]［評価対象］［決着の確認］葉ノードの評価値と、その値が「敗れる側に決定点が
+// 現れた決着」であるか（確認の延長の対象であるか）を返す。
+export interface LeafEvaluation {
+  readonly value: number;
+  readonly refutableSettlement: boolean;
+}
+
+// [V-TEST-NONFUNC]［測定の打ち切り］通しプレイの測定は、1試行1シーンあたりの E(state) の
+// 呼び出し回数で打ち切りを判定する。決定論的な量であり（[A-CORE-DETERMINISM]#1）、実時間に
+// 依らず同一の入力に対して同一の値を返す。
+let evalCalls = 0;
+
+export function evalCallCount(): number {
+  return evalCalls;
+}
+
+export function resetEvalCallCount(): void {
+  evalCalls = 0;
+}
+
+export function evaluateLeafPosition(
+  state: BattleState,
+  prof: EffectiveProfile,
+  ply: number,
+  deps: StepDeps,
+): LeafEvaluation {
+  evalCalls += 1;
+  if (masterOf(state, 'FOE') === undefined) {
+    return { value: -MATE, refutableSettlement: false };
   }
-  if (mineMaster === undefined) {
-    return MATE;
+  if (masterOf(state, 'MINE') === undefined) {
+    return { value: MATE, refutableSettlement: false };
   }
 
-  // [A-SEARCH-QUIESCE] 葉は静止局面まで進めてから評価する。延長中に決着した局面は決着項で評価する
-  // （着弾済みの致命打をトレースの欠落として「命中不能」と扱わないため）。
-  const { trace, outcome } = runQuiescence(cloneState(state), deps);
+  // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
+  // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
+  // 延長中に決着した局面は「静止探索中の決着」のスコアで評価する（ply は葉ノードの値）。state は変更しない。
+  const quiet = cloneState(state);
+  const { trace, outcome, decided, firstDecision } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
-    return mateScore(outcome, ply);
+    // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、呼び出し側が
+    // 決定点1つ分の延長で確認する。
+    const loser = outcome === 'WIN' ? 'FOE' : 'MINE';
+    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableSettlement: decided[loser] };
   }
-  const tp = ttk(mineMaster, foeMaster, { trace, level: state.scene_level });
-  const te = ttk(foeMaster, mineMaster, { trace, level: state.scene_level });
+  const foeMaster = masterOf(quiet, 'FOE');
+  const mineMaster = masterOf(quiet, 'MINE');
+  if (foeMaster === undefined || mineMaster === undefined) {
+    throw new Error('静止探索が決着を返さずにマスターが消滅した');
+  }
+  // 延長したステップ数 q。トレースは葉ノードを添字0として記録されている。
+  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1 };
+  // [A-EVAL-TTK]［延長中の決定点からの計画］延長中に決定点を持った陣営は、その時点からの計画と比べて小さい方を採る。
+  let tp = ttk(mineMaster, foeMaster, inputs);
+  let te = ttk(foeMaster, mineMaster, inputs);
+  const mineFirst = firstDecision.MINE;
+  if (mineFirst !== null && mineFirst.index < inputs.offset) {
+    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index }));
+  }
+  const foeFirst = firstDecision.FOE;
+  if (foeFirst !== null && foeFirst.index < inputs.offset) {
+    te = Math.min(te, ttk(foeFirst.foe, foeFirst.mine, { ...inputs, offset: foeFirst.index }));
+  }
   const phiCenti = 100 - floorDiv(foeMaster.hp * 100, Math.max(foeMaster.max_hp, 1));
 
   let total = 0;
   for (const key of prof.evalMask) {
-    const x = featureValue(state, key, prof, tp, te);
+    const x = featureValue(quiet, key, prof, tp, te);
     const weight = BASE_WEIGHTS[key];
     const mult = signedRoundDiv(weightMultOf(prof, key) * phaseMultiplierCenti(key, phiCenti), 100);
     const effectiveWeight = signedRoundDiv(weight * mult, 100);
     total += signedRoundDiv(effectiveWeight * x, SCALE);
   }
-  return clamp(total, INT32_MIN, INT32_MAX);
+  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableSettlement: false };
 }

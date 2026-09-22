@@ -4,13 +4,21 @@
 // M2範囲（1-01, max_depth 3）では単一ユニットの決定点のみを扱うため対象外とする。
 // [A-PROFILE-BONUS] アクション種別ボーナスのタグ判定もここに置く。
 
+import { ACTION_MASTERS } from '../data/generated/action-masters.js';
 import { executableActions, isInstant } from '../engine/decision.js';
+import { hasFlag } from '../engine/flags.js';
+import { partnerOf } from '../engine/resolve/partner.js';
 import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
+import { RESWAP_PENALTY, RESWAP_WINDOW_STEPS } from './constants.js';
 import { actionBonusOf, type ActionTag, type EffectiveProfile } from './profile.js';
 
-export type AiMove = { readonly kind: 'PASS' } | { readonly kind: 'ACT'; readonly action: ActionInstance };
+// WAIT は待機手（[A-SEARCH-MOVEGEN]）。適用・約定・発射は [A-SEARCH-NODE]［待機手の約定］に従い、探索器が扱う。
+export type AiMove =
+  | { readonly kind: 'PASS' }
+  | { readonly kind: 'ACT'; readonly action: ActionInstance }
+  | { readonly kind: 'WAIT'; readonly action: ActionInstance };
 
-// [A-TIE-BREAK] 優先度1：瞬動(0) → 即発(1) → 通常(2)。パスは別枠で末尾に置く。
+// [A-TIE-BREAK] 優先度1：瞬動(0) → 即発(1) → 通常(2)。待機手・パスは別枠でこの順に末尾へ置く。
 function categoryRank(action: ActionInstance): number {
   if (isInstant(action)) {
     return action.base_params.step_recovery === 0 ? 0 : 1;
@@ -18,20 +26,44 @@ function categoryRank(action: ActionInstance): number {
   return 2;
 }
 
+function isRootAction(action: ActionInstance): boolean {
+  return (ACTION_MASTERS as Readonly<Record<string, { readonly is_root: boolean }>>)[action.master_ref]?.is_root === true;
+}
+
+// [A-SEARCH-MOVEGEN]「待機手」必要思考のみが未充足の武技（マスター根源武技を除く）。所持アクション配列の順。
+function waitableActions(state: BattleState, unit: Unit, executable: readonly ActionInstance[]): ActionInstance[] {
+  const matured: Unit = { ...unit, elapsed_thought: Number.MAX_SAFE_INTEGER };
+  const whenMatured = executableActions(state, matured).map((action) => action.instance_id);
+  return unit.acts.filter(
+    (action) =>
+      hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
+      !isRootAction(action) &&
+      !executable.includes(action) &&
+      whenMatured.includes(action.instance_id),
+  );
+}
+
 // [A-SEARCH-MOVEGEN] 常に「パス」を1候補として含める。実行可能アクションの列は
 // executableActions（[M-PIPE-SUICIDE] を含む実行可否判定）をそのまま用いる。
-export function generateMoves(state: BattleState, unit: Unit): readonly AiMove[] {
+// waitMoves は実効プロファイルの waitMoves（参照プレイヤーAIに限り真）。
+export function generateMoves(state: BattleState, unit: Unit, waitMoves = false): readonly AiMove[] {
   const actions = executableActions(state, unit);
   // Array#sort は安定ソート（ES2019+）であるため、同ランク内は元の配列インデックス順を保つ。
   const sorted = [...actions].sort((a, b) => categoryRank(a) - categoryRank(b));
   const moves: AiMove[] = sorted.map((action) => ({ kind: 'ACT', action }));
+  if (waitMoves) {
+    for (const action of waitableActions(state, unit, actions)) {
+      moves.push({ kind: 'WAIT', action });
+    }
+  }
   moves.push({ kind: 'PASS' });
   return moves;
 }
 
 // [A-PROFILE-BONUS] 手のタグ判定。
 export function tagsOf(move: AiMove): readonly ActionTag[] {
-  if (move.kind === 'PASS') {
+  // [A-PROFILE-BONUS] WAIT は PASS と同じ既定値を用い、PASS の上書きに従う。
+  if (move.kind === 'PASS' || move.kind === 'WAIT') {
     return ['PASS'];
   }
   const params = move.action.base_params;
@@ -67,4 +99,28 @@ export function moveBonusOf(move: AiMove, prof: EffectiveProfile): number {
     total += actionBonusOf(prof, tag);
   }
   return total;
+}
+
+// 隊列交代で思考中へ着地してから RESWAP_WINDOW_STEPS 未満のユニット。
+function swappedRecently(unit: Unit | null): boolean {
+  return (
+    unit !== null &&
+    unit.state === 'THOUGHT' &&
+    unit.last_act !== null &&
+    hasFlag(unit.last_act.sys_flags, 'FLAG_SWAP') &&
+    unit.elapsed_thought < RESWAP_WINDOW_STEPS
+  );
+}
+
+// [A-PROFILE-BONUS] 再交代：直前のステップで交代した組（実行者または相方）による隊列交代。交代と戻しの
+// 2手は局面を変えずにパスの減点を回避できるため、パスと同じ減点を課す（同点は [A-TIE-BREAK] の生成順による）。
+export function isReswap(state: BattleState, unit: Unit, move: AiMove): boolean {
+  if (move.kind !== 'ACT' || !hasFlag(move.action.sys_flags, 'FLAG_SWAP')) {
+    return false;
+  }
+  return swappedRecently(unit) || swappedRecently(partnerOf(state.units, unit));
+}
+
+export function reswapPenaltyOf(state: BattleState, unit: Unit, move: AiMove): number {
+  return isReswap(state, unit, move) ? RESWAP_PENALTY : 0;
 }

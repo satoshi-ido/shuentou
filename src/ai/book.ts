@@ -1,8 +1,8 @@
 // [A-BOOK-SEMANTICS] 定跡手のセマンティクス：lookup の状態遷移・恒久ブロック判定・定跡手の解決。
 // lookup は引数のステートを変更せず、更新後の定跡進行状態を戻り値に含める。
-// DYNAMIC（MIRROR_FIRST_SYSTEM）の解決は鏡像統計（[M-META-MIRRORSTATS]）を要するため、5-09 の投入時に追加する。
+// DYNAMIC（MIRROR_FIRST_SYSTEM）は、バトル開始時に固定した鏡像統計（[A-MIRROR-5-09]）を辞書の鍵に用いる。
 
-import type { BookMasterRecord } from '../data/types.js';
+import type { BookMasterRecord, BookStepRecord } from '../data/types.js';
 import { executableActions } from '../engine/decision.js';
 import { effectiveCostAp, effectiveCostPp } from '../engine/effective.js';
 import { hasFlag } from '../engine/flags.js';
@@ -22,6 +22,23 @@ function miss(state: BattleState, aborted: boolean): BookLookup {
 // [A-BOOK-SEMANTICS]［定跡手の解決］所持アクション配列を先頭から走査し、class_id が一致する最初の要素。
 function resolveFixed(unit: Unit, classId: string): ActionInstance | undefined {
   return unit.acts.find((action) => action.master_ref === classId);
+}
+
+// [A-BOOK-SEMANTICS]［定跡手の解決］・［MIRROR_FIRST_SYSTEM リゾルバ］当該手が指すクラスID。
+// DYNAMIC は mirror_stats.first_system を鍵として resolved_by_system を引く。参照する統計は
+// バトル開始時のスナップショットであり、探索中に変化しない（[A-MIRROR-5-09]）。
+function resolveClassId(state: BattleState, book: BookMasterRecord, step: BookStepRecord): string | null {
+  if (step.kind === 'FIXED') {
+    if (step.class_id === null) {
+      throw new Error(`FIXED の定跡手にクラスIDがない: ${book.book_id} #${state.book_index + 1}`);
+    }
+    return step.class_id;
+  }
+  if (step.resolver !== 'MIRROR_FIRST_SYSTEM' || step.resolved_by_system === null) {
+    throw new Error(`未対応の定跡手: ${book.book_id} #${state.book_index + 1} ${step.kind}`);
+  }
+  const system = state.mirror_snapshot?.first_system ?? 'NONE';
+  return step.resolved_by_system[system] ?? null;
 }
 
 // [A-BOOK-SEMANTICS]「is_permanently_blocked の判定条件」。
@@ -44,10 +61,13 @@ export function lookupBook(state: BattleState, unit: Unit, book: BookMasterRecor
     return { kind: 'BOOK_MISS', progress: { book_index: state.book_index, book_aborted: state.book_aborted, book_wait_elapsed: null } };
   }
   const step = book.steps[state.book_index];
-  if (step.kind !== 'FIXED' || step.class_id === null) {
-    throw new Error(`未対応の定跡手: ${book.book_id} #${state.book_index + 1} ${step.kind}`);
+  const classId = resolveClassId(state, book, step);
+  if (classId === null) {
+    // ［MIRROR_FIRST_SYSTEM リゾルバ］辞書引きの結果が Null（first_system == NONE）のときは
+    // 初手から探索に委ねる。定跡そのものは破棄しない。
+    return miss(state, state.book_aborted);
   }
-  const action = resolveFixed(unit, step.class_id);
+  const action = resolveFixed(unit, classId);
   if (action === undefined) {
     return miss(state, true); // ［定跡手の解決］3.
   }

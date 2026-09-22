@@ -5,6 +5,9 @@ import { sceneByOrder, sceneOf, type GameMasters } from '../run/masters.js';
 import { toImSnapshot } from '../run/snapshot.js';
 import type { RunState } from '../run/state.js';
 
+// [M-META-MIRRORSTATS]［確定タイミング］シーン5-08のバトルクリア決済時に確定する。
+const MIRROR_SCENE = 'SCENE_5_08';
+
 const FINAL_ORDER = 31; // [M-STATE-IMSNAPSHOT] order == 31 のスナップショットは記録しない
 
 function heroUnit(run: RunState): Unit {
@@ -42,6 +45,11 @@ export function settleBattleClear(run: RunState, masters: GameMasters): void {
   run.hero_hp = hero.hp;
   run.hero_acts = acts;
   run.instance_id_seq = run.battle_state?.instance_id_seq ?? run.instance_id_seq;
+  // [M-META-MIRRORSTATS] 5-08 のクリアで当該バトルの集計を確定する。5-08 以前へ遡行した場合は
+  // 履歴ごと巻き戻るため、再クリア時に改めて確定する。
+  if (cleared.scene_id === MIRROR_SCENE && run.battle_state !== null) {
+    run.mirror_stats = run.battle_state.mirror_tally;
+  }
   run.battle_state = null;
   run.phase = 'INTERMISSION';
   run.current_scene_id = sceneByOrder(masters, cleared.order + 1).scene_id;

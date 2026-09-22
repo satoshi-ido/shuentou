@@ -13,7 +13,9 @@ import { lookupBook } from '../../src/ai/book.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { defaultProfile } from '../../src/ai/profile.js';
 import { decideActionDetailed } from '../../src/ai/search.js';
-import { enemyLefTemplate, buildBookRecord } from '../../tools/genmaster/lib.js';
+import { buildBookRecord } from '../../tools/genmaster/lib.js';
+import { expandEnemyTemplate } from '../../tools/genmaster/templates.js';
+import { ENEMIES } from '../../tools/genmaster/authoring/enemies.js';
 import { createDuel, findUnit, makeAction, martialAction, NO_SUMMON_DEPS } from './fixtures.js';
 
 const MIND = makeAction('FOE_MIND', { gain_vp: 3, charge_pp: 100, step_thought: 20, step_startup: 5, step_recovery: 5 });
@@ -106,7 +108,8 @@ describe('[A-BOOK-SCHEMA] セレクタの展開', () => {
   });
 
   it('照合結果が一意でないセレクタはオーサリングエラーとして棄却する', () => {
-    const template = enemyLefTemplate(3);
+    const lef = ENEMIES.find((entry) => entry.enemy_id === 'ENEMY_LEF');
+    const template = expandEnemyTemplate(lef, 3, () => null).rows;
     const ambiguous = { book_id: 'B-99', steps: [{ kind: 'FIXED', selector: { component: 'STANCE', variant: 'BASIC', ar_mult: '3.00' }, can_wait: true }] };
     expect(() => buildBookRecord(ambiguous, template)).toThrow('一意でない');
   });

@@ -10,12 +10,15 @@ import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
+import { isActionExecutable } from '../engine/decision.js';
+import { currentDefense } from '../engine/defense.js';
+import { effectiveAtk, effectiveRange } from '../engine/effective.js';
 import { applyMove } from './apply.js';
 import { lookupBook } from './book.js';
 import { cloneState } from './clone.js';
-import { INF, MATE_TH } from './constants.js';
-import { evaluate, mateScore } from './evaluate.js';
-import { generateMoves, moveBonusOf, type AiMove } from './movegen.js';
+import { INF, MATE_TH, TTK_MAX } from './constants.js';
+import { evaluateLeafPosition, mateScore, quiescenceMateScore } from './evaluate.js';
+import { generateMoves, moveBonusOf, reswapPenaltyOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
 import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
 
@@ -31,6 +34,8 @@ interface SearchCtx {
   readonly prof: EffectiveProfile;
   readonly deps: StepDeps;
   readonly budget: NodeBudget;
+  // [A-SEARCH-QUIESCE]［決着の確認］確認の延長の内側であるか。入れ子の確認を行わないために持つ。
+  readonly verified?: boolean;
 }
 
 function consumeNode(budget: NodeBudget): void {
@@ -48,6 +53,100 @@ function findUnitById(state: BattleState, unitId: string): Unit {
   return unit;
 }
 
+// [A-SEARCH-NODE]［待機手の約定］ユニットID → 待機するアクションのインスタンスIDと、約定を記録した
+// 時点のステップ。枝ごとに複製して受け渡し、探索中の局面（BattleState）には持たせない。
+// ステップは［解消］の期限（記録から TTK_MAX ステップ）の判定に用いる。
+interface WaitCommitment {
+  readonly instanceId: string;
+  readonly since: number;
+}
+type WaitCommitments = Readonly<Record<string, WaitCommitment>>;
+
+const FRONT_IDX_OF_OPPONENT: Readonly<Record<string, number>> = { MINE: 2, FOE: 1 }; // [M-FIELD-GRID]
+
+// ［発射］対象アクションが実行可能で、相手陣営の前列のマスターに命中し射程内にあるとき。
+export function readyToFire(state: BattleState, unit: Unit, instanceId: string): 'FIRE' | 'WAIT' | 'DROP' {
+  const action = unit.acts.find((candidate) => candidate.instance_id === instanceId);
+  if (action === undefined) {
+    return 'DROP';
+  }
+  const front = state.units[FRONT_IDX_OF_OPPONENT[unit.side]] ?? null;
+  const fires =
+    isActionExecutable(state, unit, action) &&
+    front !== null &&
+    front.unit_kind === 'MASTER' &&
+    effectiveAtk(unit, action) >= currentDefense(front) &&
+    Math.abs(front.pos_idx - unit.pos_idx) <= effectiveRange(unit, action);
+  return fires ? 'FIRE' : 'WAIT';
+}
+
+interface FireResult {
+  readonly outcome: BattleOutcome;
+  readonly waits: WaitCommitments; // 解消されずに残った約定
+}
+
+// ［発射］［解消］配置マス idx 昇順に約定を判定する。発射の確定は深さに数えない。
+function fireWaits(state: BattleState, waits: WaitCommitments, deps: StepDeps): FireResult {
+  const remaining: Record<string, WaitCommitment> = {};
+  const units = state.units.filter((unit): unit is Unit => unit !== null && waits[unit.unit_id] !== undefined);
+  for (const unit of units.sort((a, b) => a.pos_idx - b.pos_idx)) {
+    const commitment = waits[unit.unit_id];
+    // ［解消］記録から TTK_MAX ステップを経過した約定は解消し、以後は通常の決定点として扱う。
+    // 発射条件は相手の配置・防御力・距離に依存し、成立しないまま推移する局面では発射も対象の消滅も
+    // 起こらないため、期限がないと決定点が現れないまま自動進行が終わらない。
+    if (state.step - commitment.since >= TTK_MAX) {
+      continue;
+    }
+    const instanceId = commitment.instanceId;
+    const verdict = readyToFire(state, unit, instanceId);
+    if (verdict === 'WAIT') {
+      remaining[unit.unit_id] = commitment;
+    } else if (verdict === 'FIRE') {
+      const action = unit.acts.find((candidate) => candidate.instance_id === instanceId)!;
+      const outcome = applyMove(state, unit, { kind: 'ACT', action }, deps);
+      if (outcome !== 'NONE') {
+        return { outcome, waits: {} };
+      }
+    }
+  }
+  return { outcome: 'NONE', waits: remaining };
+}
+
+// ［葉での扱い］約定が残っていれば、新規行動を入れずに（発射の確定のみ行い）進めてから評価する。
+// extendable は [A-SEARCH-QUIESCE]［決着の確認］の対象となる葉（手を適用して到達した葉）であるか。
+function evaluateLeaf(
+  state: BattleState,
+  waits: WaitCommitments,
+  ctx: SearchCtx,
+  ply: number,
+  passed: readonly string[] = [],
+  extendable = false,
+): number {
+  let pending = waits;
+  for (let steps = 0; Object.keys(pending).length > 0; steps += 1) {
+    const fired = fireWaits(state, pending, ctx.deps);
+    if (fired.outcome !== 'NONE') {
+      return quiescenceMateScore(fired.outcome, ply, steps);
+    }
+    pending = fired.waits;
+    if (Object.keys(pending).length === 0 || steps >= TTK_MAX) {
+      break;
+    }
+    runStepEnd(state);
+    const outcome = runPreP8(state, ctx.deps);
+    if (outcome !== 'NONE') {
+      return quiescenceMateScore(outcome, ply, steps + 1);
+    }
+  }
+  const leaf = evaluateLeafPosition(state, ctx.prof, ply, ctx.deps);
+  // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、決定点1つ分だけ
+  // 延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
+  if (extendable && leaf.refutableSettlement && ctx.verified !== true) {
+    return searchStep(cloneState(state), { ...ctx, verified: true }, 1, ply, passed, waits);
+  }
+  return leaf.value;
+}
+
 // [A-SEARCH-NODE]「子ノードへの遷移」の続き。手を適用後、次の決定点または詰みまで進める。
 function continueAfterMove(
   state: BattleState,
@@ -56,11 +155,14 @@ function continueAfterMove(
   depthRemaining: number,
   ply: number,
   passedUnitIds: readonly string[],
+  waits: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
   if (outcomeFromMove !== 'NONE') {
     return mateScore(outcomeFromMove, ply);
   }
-  return searchStep(state, ctx, depthRemaining, ply, passedUnitIds);
+  return searchStep(state, ctx, depthRemaining, ply, passedUnitIds, waits, alpha, beta);
 }
 
 // P1〜P7を経て、なお決定待ちのユニットがなければステップ境界を越えて進む。全ユニットが
@@ -74,15 +176,25 @@ function searchStep(
   depthRemaining: number,
   ply: number,
   passedUnitIds: readonly string[],
+  waitsIn: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
   let passed = passedUnitIds;
+  let waits = waitsIn;
   for (;;) {
-    const pending = firstPendingUnit(state, passed);
+    // [A-SEARCH-NODE]［待機手の約定］決定点の探索に先立ち発射を判定し、約定のあるユニットは決定点から除く。
+    const fired = fireWaits(state, waits, ctx.deps);
+    if (fired.outcome !== 'NONE') {
+      return mateScore(fired.outcome, ply);
+    }
+    waits = fired.waits;
+    const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)]);
     if (pending !== undefined) {
-      return searchDecision(state, pending, ctx, depthRemaining, ply, passed);
+      return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits, alpha, beta);
     }
     if (isStalled(state)) {
-      return evaluate(state, ctx.prof, ply, ctx.deps);
+      return evaluateLeaf(state, waits, ctx, ply);
     }
     passed = [];
     runStepEnd(state);
@@ -109,9 +221,17 @@ function rankMoves(
   depthRemaining: number,
   ply: number,
   passedUnitIds: readonly string[],
+  waits: WaitCommitments,
+  alphaIn = -INF,
+  betaIn = INF,
 ): RankedMove[] {
-  const moves = generateMoves(state, unit);
+  const moves = generateMoves(state, unit, ctx.prof.waitMoves);
   const ranked: RankedMove[] = [];
+  // [A-SEARCH-ALGORITHM] αβ。根ノードは全候補の確定スコアを保持する必要があるため枝刈りしない
+  // （[A-TIE-BREAK]「根ノードはフルウィンドウで探索」・自滅ポリシーの適用のため）。
+  const maximizing = unit.side === 'FOE';
+  let alpha = alphaIn;
+  let beta = betaIn;
   for (const move of moves) {
     consumeNode(ctx.budget);
     const clone = cloneState(state);
@@ -120,24 +240,46 @@ function rankMoves(
     // 適用前に必ずクローン側の対応インスタンスへ差し替える。そのまま適用すると
     // [A-CORE-DETERMINISM]#6 に反し、探索の分岐評価が呼び出し元の実ステートを汚染する
     // （uses_left・seal_accum 等が探索のたびに減耗する）。
-    const clonedMove =
+    const clonedMove: AiMove =
       move.kind === 'PASS'
         ? move
-        : { kind: 'ACT' as const, action: clonedUnit.acts.find((a) => a.instance_id === move.action.instance_id)! };
+        : { kind: move.kind, action: clonedUnit.acts.find((a) => a.instance_id === move.action.instance_id)! };
     const outcome = applyMove(clone, clonedUnit, clonedMove, ctx.deps);
+    // [A-SEARCH-NODE]［待機手の約定］待機手は約定を記録し、同ステップ内のパスと同様に扱う。
+    const waitsAfter =
+      move.kind === 'WAIT'
+        ? { ...waits, [unit.unit_id]: { instanceId: move.action.instance_id, since: clone.step } }
+        : waits;
     let value: number;
+    const passedAfter = move.kind === 'ACT' ? passedUnitIds : [...passedUnitIds, unit.unit_id];
     if (depthRemaining <= 1) {
-      value = outcome !== 'NONE' ? mateScore(outcome, ply + 1) : evaluate(clone, ctx.prof, ply + 1, ctx.deps);
+      value =
+        outcome !== 'NONE'
+          ? mateScore(outcome, ply + 1)
+          : evaluateLeaf(clone, waitsAfter, ctx, ply + 1, passedAfter, true);
     } else {
-      const passedAfter = move.kind === 'PASS' ? [...passedUnitIds, unit.unit_id] : passedUnitIds;
-      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter);
+      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter, waitsAfter, alpha, beta);
     }
     // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
     // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
     if (ply === 0) {
-      value += unit.side === 'FOE' ? moveBonusOf(move, ctx.prof) : -moveBonusOf(move, ctx.prof);
+      // [A-PROFILE-BONUS] 再交代の減点も根の手の選好として同じく加算する。
+      const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(state, unit, move);
+      value += unit.side === 'FOE' ? bonus : -bonus;
     }
     ranked.push({ move, value, outcome });
+    if (ply > 0) {
+      if (maximizing) {
+        if (value > alpha) {
+          alpha = value;
+        }
+      } else if (value < beta) {
+        beta = value;
+      }
+      if (alpha >= beta) {
+        break; // 窓が閉じた。以降の兄弟手は親の選択を変えない
+      }
+    }
   }
   return ranked;
 }
@@ -149,8 +291,11 @@ function searchDecision(
   depthRemaining: number,
   ply: number,
   passedUnitIds: readonly string[],
+  waits: WaitCommitments,
+  alpha = -INF,
+  beta = INF,
 ): number {
-  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply, passedUnitIds);
+  const ranked = rankMoves(state, unit, ctx, depthRemaining, ply, passedUnitIds, waits, alpha, beta);
   const maximizing = unit.side === 'FOE';
   let best = maximizing ? -INF : INF;
   for (const { value } of ranked) {
@@ -224,7 +369,7 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
     const ctx: SearchCtx = { prof, deps, budget };
     let ranked: RankedMove[];
     try {
-      ranked = rankMoves(state, unit, ctx, depth, 0, []);
+      ranked = rankMoves(state, unit, ctx, depth, 0, [], {});
     } catch (error) {
       if (error instanceof NodeBudgetExceeded) {
         break; // 直前深さの結果を採用して打ち切る
@@ -246,7 +391,8 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
       break;
     }
 
-    bestDecision = chosen.move.kind === 'PASS' ? { kind: 'PASS' } : { kind: 'ACT', instanceId: chosen.move.action.instance_id };
+    // [A-SEARCH-NODE]［待機手の約定］根で選ばれた待機手はパスとして返す。
+    bestDecision = chosen.move.kind === 'ACT' ? { kind: 'ACT', instanceId: chosen.move.action.instance_id } : { kind: 'PASS' };
     bestScore = chosen.value;
     completedAnyDepth = true;
     if (Math.abs(chosen.value) >= MATE_TH) {

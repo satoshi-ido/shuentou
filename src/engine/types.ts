@@ -4,6 +4,7 @@
 
 import type { ActionParams } from '../data/types.js';
 import type { ParamId } from './params.js';
+import type { MirrorStats } from './run/state.js';
 
 export type Side = 'MINE' | 'FOE';
 export type UnitKind = 'MASTER' | 'CREATURE';
@@ -114,4 +115,9 @@ export interface BattleState {
   book_aborted: boolean;
   book_wait_elapsed: number | null;
   ai_reuse: Record<string, ReuseRecord>;
+  // [M-META-MIRRORSTATS] 当該バトル中の主人公マスターの系統別実行回数と初手系統。
+  // 確定はバトルクリア共通決済（[M-PROG-CLEAR]）が行い、5-08 のクリア時のみ RunState へ写す。
+  mirror_tally: MirrorStats;
+  // [A-MIRROR-5-09]［決定論の担保］バトル開始時に固定した鏡像統計。5-09 以外は Null。
+  mirror_snapshot: MirrorStats | null;
 }

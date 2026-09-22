@@ -6,11 +6,19 @@ export const SCALE = 1024;
 export const MATE = 100000;
 export const SIMUL_PEN = 1000; // Δ（両軍マスター同時撃破の減点）
 export const MATE_TH = MATE - 10000;
+export const QMATE = MATE_TH - 1; // [A-EVAL-MATE]「静止探索中の決着」のスコア基準
 export const INF = MATE + SCALE;
 export const TTK_MAX = 999;
 export const TIE_BONUS = 16; // SCALE // 64
 export const PURIFY_ITER_MAX = 8;
 export const BONUS_DEFAULT_PASS = -400; // [A-PROFILE-BONUS]
+// [V-TEST-REFAI]「体勢への減点」参照プレイヤーAIのアクション種別ボーナス。
+export const BONUS_REFAI_STANCE = -1000;
+// [A-PROFILE-BONUS] 再交代の判定窓。隊列交代で思考中へ着地してからの経過思考がこれ未満の組を「直前の
+// ステップで交代した組」とみなす（瞬動の実行者は次の決定点で経過思考1となるため、2で直前のステップを捉える）。
+export const RESWAP_WINDOW_STEPS = 2;
+// [A-PROFILE-BONUS] 再交代の減点。パスの既定減点と同じ値とする。
+export const RESWAP_PENALTY = BONUS_DEFAULT_PASS;
 
 // [A-EVAL-REFIMPL]「系統フラグのビット割当」。[M-STATE-FLAGS] のフラグ名で直接扱うため
 // 本実装ではビット値そのものは使用しないが、参照用に残す。

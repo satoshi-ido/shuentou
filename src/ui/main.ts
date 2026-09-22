@@ -1,3 +1,4 @@
+import { createCreatureFactory } from '../engine/creature.js';
 // UI のエントリ。論理解像度のステージを表示領域へ合わせ、入力はマウスのみを扱う（[M-UI-VIEWPORT]）。
 // 画面は [M-UI-SCREENS] に従い phase から定まり、バトルは探索ワーカー（[I-ENV-WORKER]）と
 // 再生ループ（[M-UI-PLAYBACK]）の上で進行する。
@@ -5,7 +6,9 @@
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';
 import { ASSET_MASTERS } from '../data/generated/asset-masters.js';
 import { ATTENDANT_MASTERS } from '../data/generated/attendant-masters.js';
+import { BREAKERS } from '../data/generated/breaker-masters.js';
 import { BOOK_MASTERS } from '../data/generated/book-masters.js';
+import { CREATURE_MASTERS } from '../data/generated/creature-masters.js';
 import { ENEMY_MASTERS } from '../data/generated/enemy-masters.js';
 import { HELP_MASTERS } from '../data/generated/help-masters.js';
 import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../data/generated/hero-init.js';
@@ -98,6 +101,8 @@ const masters: GameMasters = {
   enemies: ENEMY_MASTERS,
   scenes: SCENE_MASTERS,
   books: BOOK_MASTERS,
+  breakers: BREAKERS,
+  creatures: CREATURE_MASTERS,
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
   crossIds: [],
@@ -105,10 +110,9 @@ const masters: GameMasters = {
   helpIds: Object.keys(HELP_MASTERS),
 };
 
+// [M-RESOLVE-SUMMON] 召喚が要求するクリーチャーの実体化。採番は解決時のステートが持つ連番を用いる。
 const stepDeps = {
-  createCreature: (): never => {
-    throw new Error('クリーチャーマスタは未投入である');
-  },
+  createCreature: createCreatureFactory({ creatures: CREATURE_MASTERS, actions: ACTION_MASTERS }),
 };
 
 // 画面の再描画で消えない演出層。ステージ直下に常置し、画面本体とは別に差し替える。
