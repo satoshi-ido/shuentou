@@ -1,4 +1,4 @@
-// [V-AUDIT-SCRIPT] 静的監査。アクションマスタの実データを走査し、D-03・D-04a・D-04b・D-06 と、
+// [V-AUDIT-SCRIPT] 静的監査。アクションマスタの実データを走査し、D-03・D-04a・D-04b・D-06・D-14 と、
 // 別系の走査単位を持つ D-07（[M-GUARD-REACH]【監査式】）を判定する。
 // 記号の定義は [V-AUDIT-SYMBOLS]、実装上の解釈は [V-AUDIT-IMPL] に従う。
 // 決定論層につき浮動小数演算・除算演算子を用いない（[I-ENV-TOOLING]［禁止事項の検査規則］）。
@@ -12,6 +12,7 @@ import { deriveSysFlags } from '../../src/engine/flags.ts';
 import { instantiateAction } from '../../src/engine/instantiate.ts';
 import { createZeroParamMap } from '../../src/engine/params.ts';
 import { buildAttackPlan } from '../../src/ai/ttk.ts';
+import { ROLE_HP_STALE_INTERMISSIONS } from '../../src/ai/refai.ts';
 import { TTK_MAX } from '../../src/ai/constants.ts';
 import { floorDiv, roundDiv } from '../../src/num/helpers.ts';
 
@@ -76,6 +77,7 @@ export function buildAuditInput(masters = { actions: ACTION_MASTERS, enemies: EN
       name: scene.display_name,
       level: scene.level,
       expected_length: scene.expected_length,
+      hp_bonus_base: scene.hp_bonus_base,
       enemy_actions: actions,
       enemy_has_creature: actions.some((action) => action.has_summon),
       enemy_interfere: actions.some((action) => action.interfere_pos === 'PUSH' || action.interfere_pos === 'BOTH'),
@@ -137,6 +139,43 @@ export function breakerRange(scene, masters = { actions: ACTION_MASTERS }) {
   return masters.actions[classId].params.range;
 }
 
+// [V-AUDIT-SYMBOLS] min_hp(N)：シーン N における主人公の想定最低最大HP（[M-GUARD-LETHAL]）。
+// 60 + floor( Σ_{k<N} hp_bonus_base(k) × 最低配分率 )。最低配分率は 1 / (ROLE_HP_STALE_INTERMISSIONS + 1)。
+export function minHp(scenes, index) {
+  let sum = 0;
+  for (let i = 0; i < index; i += 1) {
+    sum += scenes[i].hp_bonus_base ?? 0;
+  }
+  return HERO_INIT_UNIT.max_hp + floorDiv(sum, ROLE_HP_STALE_INTERMISSIONS + 1);
+}
+
+// [V-AUDIT-SYMBOLS] max_deploy(N)：pool(N) のうち体勢を内包するアクションの deploy_ap 基礎値の最大値。
+export function maxDeploy(pool) {
+  let best = 0;
+  for (const record of pool) {
+    if (hasFlagOf(record, 'FLAG_STANCE') && record.params.deploy_ap > best) {
+      best = record.params.deploy_ap;
+    }
+  }
+  return best;
+}
+
+// [M-GUARD-LETHAL] 敵マスターの一撃のうち min_hp(N) 以上の実効HPダメージを持ち、かつ max_deploy(N) で防げない
+// もの（マスター根源武技を除く）。dmg は [M-CALC-LEVEL] の基礎値による実効HPダメージ。
+export function lethalUnblockable(scene, minHpValue, maxDeployValue) {
+  const found = [];
+  for (const record of scene.enemy_records) {
+    if (record.is_root || record.params.dmg_hp <= 0) {
+      continue;
+    }
+    const dmg = roundDiv(record.params.dmg_hp * scene.level, 100);
+    if (dmg >= minHpValue && record.params.atk > maxDeployValue) {
+      found.push({ class_id: record.class_id, dmg, atk: record.params.atk });
+    }
+  }
+  return found;
+}
+
 // [V-AUDIT-SYMBOLS] pool_max_atk(N)：has_martial かつ is_root == False の atk 基礎値の最大値。
 export function poolMaxAtk(pool) {
   let best = 0;
@@ -287,6 +326,8 @@ export function audit(masters = { actions: ACTION_MASTERS, enemies: ENEMY_MASTER
       first_hit_open: firstHit(pool, 0),
       first_hit_wall: firstHit(pool, wall),
       effective_wall: effectiveWall(scene, wall),
+      min_hp: minHp(scenes, index),
+      max_deploy: maxDeploy(pool),
     };
     rows.push(row);
 
@@ -305,6 +346,12 @@ export function audit(masters = { actions: ACTION_MASTERS, enemies: ENEMY_MASTER
     // D-06：[M-GUARD-ASYM] の実効値比較。
     if (row.effective_wall > row.pool_max_atk) {
       warns.push(`D-06 ${scene.scene_id}: 実効壁 ${row.effective_wall} > pool_max_atk ${row.pool_max_atk}`);
+    }
+    // D-14：[M-GUARD-LETHAL]。主人公の想定最低最大HPを一撃で削り切る武技は防御可能でなければならない。
+    for (const hit of lethalUnblockable(scene, row.min_hp, row.max_deploy)) {
+      fails.push(
+        `D-14 ${scene.scene_id}: ${hit.class_id} dmg ${hit.dmg} >= min_hp ${row.min_hp} かつ atk ${hit.atk} > max_deploy ${row.max_deploy}`,
+      );
     }
     // D-07：[M-GUARD-REACH]【監査式】。位置干渉の初出 3-02 以降を対象とする。
     if (scene.enemy_interfere || index > 0) {

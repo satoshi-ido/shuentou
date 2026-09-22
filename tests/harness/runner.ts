@@ -37,6 +37,7 @@ import type { StepDeps } from '../../src/engine/pipeline/step.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { buildEffectiveProfile, referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
+import { ROLE_HP_STALE_INTERMISSIONS } from '../../src/ai/refai.js';
 
 export const MASTERS: GameMasters = {
   actions: ACTION_MASTERS,
@@ -353,9 +354,8 @@ function isSustainedRanged(record: ActionRecord): boolean {
 // [V-TEST-REFAI]［役割充足による選択］最大HP加算を最後に継承してから経過したインターミッション数（周回ごと）。
 const HP_GAIN_SINCE = new WeakMap<object, number>();
 
-// 最大HP加算の途絶とみなすインターミッション数（暫定値）。2では体力の役割が他の役割の枠を奪い 4-07 で
-// 14件が敗北し、3では 4-04 の敗北が解消する（摂動21件、1-01〜4-08）。
-export const ROLE_HP_STALE_INTERMISSIONS = 3;
+// 途絶とみなす回数は [M-GUARD-LETHAL] と共有するため参照プレイヤーAIのモジュールに置く。
+export { ROLE_HP_STALE_INTERMISSIONS };
 
 export function chooseByRole(
   run: {

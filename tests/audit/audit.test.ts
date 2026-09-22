@@ -13,6 +13,7 @@ import {
   poolOf,
   ROOT_THOUGHT,
 } from '../../tools/audit/lib.js';
+import { ROLE_HP_STALE_INTERMISSIONS } from '../../src/ai/refai.js';
 
 const result = audit();
 const rowOf = (sceneId: string) => {
@@ -158,5 +159,38 @@ describe('[M-GUARD-BREAKER]［火力の要求］', () => {
       scenes: SCENE_MASTERS,
     }) as { fails: string[] };
     expect(doctoredResult.fails.some((fail) => fail.includes('breaker_range'))).toBe(true);
+  });
+});
+
+// [M-GUARD-LETHAL] 主人公の想定最低最大HPを一撃で削り切る武技は防御可能でなければならない。
+describe('[M-GUARD-LETHAL] D-14', () => {
+  const rows = result.rows as { scene_id: string; min_hp: number; max_deploy: number }[];
+
+  it('min_hp は 60 + floor( Σ hp_bonus_base × 1 / (ROLE_HP_STALE_INTERMISSIONS + 1) ) である', () => {
+    const scenes = buildAuditInput() as { scene_id: string; hp_bonus_base: number | null }[];
+    let sum = 0;
+    for (const scene of scenes) {
+      const row = rows.find((entry) => entry.scene_id === scene.scene_id);
+      if (row !== undefined) {
+        expect(row.min_hp).toBe(60 + Math.floor(sum / (ROLE_HP_STALE_INTERMISSIONS + 1)));
+      }
+      sum += scene.hp_bonus_base ?? 0;
+    }
+    // 実測（参照プレイヤーAI、4-08 開始時の最大HP 1015）とほぼ一致する。
+    expect(rowOf('SCENE_4_08').min_hp).toBe(1026);
+  });
+
+  it('全シーンで違反がない', () => {
+    expect(result.fails.filter((fail: string) => fail.startsWith('D-14'))).toEqual([]);
+  });
+
+  it('防げない一撃が min_hp に達すると違反を検出する', () => {
+    const record = ACTION_MASTERS.ACT_SPEC_BREAK_ZOL_VOD;
+    const doctored = {
+      ...ACTION_MASTERS,
+      ACT_SPEC_BREAK_ZOL_VOD: { ...record, params: { ...record.params, dmg_hp: record.params.dmg_hp * 2 } },
+    } as unknown as typeof ACTION_MASTERS;
+    const doctoredResult = audit({ actions: doctored, enemies: ENEMY_MASTERS, scenes: SCENE_MASTERS }) as { fails: string[] };
+    expect(doctoredResult.fails.some((fail) => fail.startsWith('D-14 SCENE_4_08'))).toBe(true);
   });
 });
