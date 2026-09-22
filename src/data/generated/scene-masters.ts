@@ -308,7 +308,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ZEFAL",
     "hp_bonus_base": 230,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -336,7 +336,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_HAUSEN",
     "hp_bonus_base": 230,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -364,7 +364,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_OREIN",
     "hp_bonus_base": 253,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -393,7 +393,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_SERG",
     "hp_bonus_base": 274,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -422,7 +422,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_RIIN",
     "hp_bonus_base": 288,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -451,7 +451,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_GRAVE",
     "hp_bonus_base": 302,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -479,7 +479,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_VOD_RIA",
     "hp_bonus_base": 311,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -508,7 +508,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ZOL_NA",
     "hp_bonus_base": 320,
     "max_depth": 4,
-    "node_limit": 20000,
+    "node_limit": 8000,
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": [
@@ -535,7 +535,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ZOL_VOD",
     "hp_bonus_base": 324,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -564,7 +564,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_007",
     "hp_bonus_base": 324,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -593,7 +593,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_019",
     "hp_bonus_base": 344,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -622,7 +622,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_044",
     "hp_bonus_base": 364,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -652,7 +652,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_080",
     "hp_bonus_base": 378,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -682,7 +682,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_130",
     "hp_bonus_base": 392,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -712,7 +712,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_200",
     "hp_bonus_base": 403,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -741,7 +741,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_299",
     "hp_bonus_base": 413,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -771,7 +771,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_ERNA_300",
     "hp_bonus_base": 419,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -802,7 +802,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_MIRROR_SEIN",
     "hp_bonus_base": 426,
     "max_depth": 5,
-    "node_limit": 50000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": false,
     "eval_mask": [
@@ -832,7 +832,7 @@ export const SCENE_MASTERS = {
     "enemy_id": "ENEMY_VEIN",
     "hp_bonus_base": 429,
     "max_depth": 7,
-    "node_limit": 200000,
+    "node_limit": 8000,
     "joint_action": true,
     "deferred_decision": true,
     "eval_mask": [

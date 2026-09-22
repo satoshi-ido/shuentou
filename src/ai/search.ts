@@ -413,6 +413,8 @@ export interface DecideActionResult {
   readonly score: number;
   // [D-05] 決定点1回（反復深化の全深さを通じた累計）で消費したノード数。
   readonly nodesConsumed: number;
+  // [V-TEST-NONFUNC] D-01a 反復深化で完了した最大の深さ。1段も完了しなかった場合と定跡の手は 0。
+  readonly depthCompleted: number;
 }
 
 function bookOf(bookId: string): BookMasterRecord {
@@ -436,10 +438,10 @@ export function decideActionDetailed(
   if (prof.bookId !== null && unit.side === 'FOE' && unit.unit_kind === 'MASTER') {
     const lookup = lookupBook(state, unit, bookOf(prof.bookId));
     if (lookup.kind === 'MOVE') {
-      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
+      return { decision: { kind: 'ACT', instanceId: lookup.instanceId, book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0, depthCompleted: 0 };
     }
     if (lookup.kind === 'PASS_MOVE') {
-      return { decision: { kind: 'PASS', book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0 };
+      return { decision: { kind: 'PASS', book: lookup.progress, source: 'BOOK' }, score: 0, nodesConsumed: 0, depthCompleted: 0 };
     }
     const searched = searchRoot(state, unit, prof, deps);
     return { ...searched, decision: { ...searched.decision, book: lookup.progress, source: 'SEARCH' } };
@@ -452,7 +454,7 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
   const budget: NodeBudget = { remaining: prof.nodeLimit };
   let bestDecision: ResolvedDecision = { kind: 'PASS' };
   let bestScore = 0;
-  let completedAnyDepth = false;
+  let depthCompleted = 0;
   // [A-LATE-5-10] 敵軍AIはプレイヤーの着手が確定した子ノードから探索を始める。同一ステップの自軍の決定は
   // 済んでいるため、自軍ユニットを当該ステップで決定済みとして扱う。
   const decided =
@@ -494,16 +496,17 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
     // [A-SEARCH-NODE]［待機手の約定］根で選ばれた待機手はパスとして返す。
     bestDecision = chosen.move.kind === 'ACT' ? { kind: 'ACT', instanceId: chosen.move.action.instance_id } : { kind: 'PASS' };
     bestScore = chosen.value;
-    completedAnyDepth = true;
+    depthCompleted = depth;
     if (Math.abs(chosen.value) >= MATE_TH) {
       break; // 詰み発見で早期打ち切り
     }
   }
 
-  if (!completedAnyDepth) {
-    return { decision: { kind: 'PASS' }, score: 0, nodesConsumed: prof.nodeLimit - Math.max(budget.remaining, 0) };
+  const nodesConsumed = prof.nodeLimit - Math.max(budget.remaining, 0);
+  if (depthCompleted === 0) {
+    return { decision: { kind: 'PASS' }, score: 0, nodesConsumed, depthCompleted };
   }
-  return { decision: bestDecision, score: bestScore, nodesConsumed: prof.nodeLimit - Math.max(budget.remaining, 0) };
+  return { decision: bestDecision, score: bestScore, nodesConsumed, depthCompleted };
 }
 
 export function decideAction(state: BattleState, unit: Unit, prof: EffectiveProfile, deps: StepDeps): ResolvedDecision {
