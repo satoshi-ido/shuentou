@@ -2,8 +2,9 @@
 //
 // 各プロファイルは編成列・供犠スケジュール・継承配分規則・戦闘方針の4項で定義される。探索と重みは
 // 方針によらず同一であり（[V-TEST-REFAI]）、方針の違いは継承と補充の選び方に限られる。このため
-// 戦闘方針は、継承配分規則が選べない場合の代替の規則として用いる。参照プレイヤーAIの体力の管理
-// （［役割充足による選択］・閾値による供犠の独立発動）は適用せず、各プロファイルの規則に従う。
+// 戦闘方針は [V-TEST-REFAI] の維持規則（攻撃型・防御型は体力・リソース生成手段・射程の維持、
+// バランス型は［役割充足による選択］）を含み、維持規則が選んだ枠を除く枠に継承配分規則を用いる。
+// 継承配分規則が選べない場合は戦闘方針の継承規則で選ぶ。閾値による供犠の独立発動は適用しない。
 //
 // 読み替え（[V-TEST-BUILD-PROFILES] の文言の解釈）：
 // ・編成列：アクト移行の補充では、アクト5の最終編成に名指しされた従者を優先し、残りを従者ID昇順で満たす。
@@ -28,16 +29,21 @@ import {
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
+import { sceneByOrder } from '../../src/engine/run/masters.js';
 import type { BattleState } from '../../src/engine/types.js';
 import { referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 import {
+  chooseByRole,
   chooseInherit,
+  chooseMindRefill,
   createRun,
   HARD_STEP_CAP,
   MASTERS,
+  mindUsesLeft,
   needsBossSacrifice,
   needsSacrifice,
   playScene,
+  ROLE_HP_STALE_INTERMISSIONS,
   type RefPolicy,
   type SceneOutcome,
 } from './runner.js';
@@ -349,6 +355,60 @@ function actFinalOrder(act: number): number {
   return order;
 }
 
+// [V-TEST-REFAI]［役割充足による選択］最大HP加算が途絶したインターミッションの連続回数（周回ごと）。
+const HP_GAIN_SINCE = new WeakMap<object, number>();
+
+const isRanged = (record: ActionRecord): boolean => !record.is_root && record.params.range >= 2 && record.params.atk > 0;
+
+// [V-TEST-REFAI] 戦闘方針の維持規則。インターミッション開始時の判定を保持し、枠ごとに維持の対象を返す
+// （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → リソース生成手段 →
+// 射程の順に優先する。バランス型は枠ごとに［役割充足による選択］を判定する。
+export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy) {
+  const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
+  const since = HP_GAIN_SINCE.get(run) ?? 0;
+  let hpGained = false;
+  let raiseHp = run.hero_max_hp < hpBase;
+  let refillMind = mindUsesLeft(run) <= 1;
+  let needRange = !holds(run, isRanged);
+  return {
+    next(pool: readonly InheritTarget[]): InheritTarget | null {
+      if (policy === 'BALANCE') {
+        return chooseByRole(run, pool, hpBase, !hpGained && since >= ROLE_HP_STALE_INTERMISSIONS);
+      }
+      if (policy === 'PASSIVE') {
+        return null;
+      }
+      if (raiseHp) {
+        raiseHp = false;
+        const hp = maxHp(pool);
+        if (hp !== null) {
+          return hp;
+        }
+      }
+      if (refillMind) {
+        refillMind = false;
+        const mind = chooseMindRefill(pool);
+        if (mind !== null) {
+          return mind;
+        }
+      }
+      if (needRange) {
+        needRange = false;
+        return bestBy(pool, isRanged, byAtk);
+      }
+      return null;
+    },
+    record(target: InheritTarget): void {
+      hpGained = hpGained || target.kind === 'MAX_HP';
+    },
+    settle(): void {
+      if (policy === 'BALANCE') {
+        HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
+      }
+    },
+  };
+}
+
 // アクトごとに実行した供犠の数（周回ごと）。
 const SACRIFICES_DONE = new WeakMap<object, Record<number, number>>();
 
@@ -419,19 +479,23 @@ export function playBuildIntermission(
   const run = session.data.run;
   const start = { holdsStance: holds(run, isStance), holdsSummon: holds(run, isSummon) };
   const picks: InheritTarget[] = [];
+  const maintenance = maintenanceRules(run, profile.policy);
   for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
     if (member.inherit_state !== 'UNUSED') {
       continue;
     }
     const pool = inheritPool(run, MASTERS);
     const target =
+      maintenance.next(pool) ??
       profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start }) ??
       chooseInherit(pool, profile.policy, turn);
     if (target !== null) {
       confirmInherit(session, ctx, member.attendant_id, target);
+      maintenance.record(target);
       picks.push(target);
     }
   }
+  maintenance.settle();
 
   const victim = scheduledSacrifice(profile, run);
   if (victim !== null) {

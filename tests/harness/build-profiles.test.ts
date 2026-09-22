@@ -10,6 +10,7 @@ import {
   chooseRefill,
   chooseSacrificeTarget,
   coefficientScore,
+  maintenanceRules,
   mergeMax,
   type AllocContext,
 } from './build-profiles.js';
@@ -165,6 +166,43 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
   it('BP-07 は急襲（思考0・防御効率あり）の武技を選び、重撃・斬撃を選ばない', () => {
     const pool = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
     expect(buildProfileOf('BP-07').allocate(ctx({ pool }))).toEqual(action('ACT_RUSH_AR12'));
+  });
+});
+
+describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規則', () => {
+  const held = (masterRef: string, usesLeft: number, sysFlags: string[] = []) => ({
+    master_ref: masterRef,
+    uses_left: usesLeft,
+    sys_flags: sysFlags,
+  });
+  // 1-02 の後（直前にクリアしたシーンは 1-02）。
+  const runOf = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
+    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs }) as never;
+  const RANGED = held('ACT_RUSH_AR20', 3);
+  const MIND = held('ACT_MIND_AR12', 5, ['FLAG_MIND']);
+  const pool = [action('ACT_HEAVY_AR117'), action('ACT_MIND_AR12'), action('ACT_RUSH_AR117'), MAX_HP];
+
+  it('攻撃型は最大HPが hp_bonus_base 未満なら1枠だけ最大HP加算を選ぶ', () => {
+    const rules = maintenanceRules(runOf(60, [MIND, RANGED]), 'ATTACK');
+    expect(rules.next(pool)).toEqual(MAX_HP);
+    expect(rules.next(pool)).toBeNull();
+  });
+
+  it('攻撃型は心気の残り使用回数が1以下なら1枠だけ心気を選ぶ', () => {
+    const rules = maintenanceRules(runOf(10_000, [held('ACT_MIND_AR12', 1, ['FLAG_MIND']), RANGED]), 'ATTACK');
+    expect(rules.next(pool)).toEqual(action('ACT_MIND_AR12'));
+    expect(rules.next(pool)).toBeNull();
+  });
+
+  it('攻撃型は射程2以上の武技を保持しなければ1枠だけ最大攻撃力の射程2以上の武技を選ぶ', () => {
+    const rules = maintenanceRules(runOf(10_000, [MIND]), 'ATTACK');
+    const ranged = rules.next(pool);
+    expect(ranged).not.toBeNull();
+    expect(rules.next(pool)).toBeNull();
+  });
+
+  it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
+    expect(maintenanceRules(runOf(10_000, [MIND, RANGED]), 'DEFENSE').next(pool)).toBeNull();
   });
 });
 
