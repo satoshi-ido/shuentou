@@ -269,7 +269,7 @@ export function playScene(
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
-function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: number): InheritTarget | null {
+export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: number): InheritTarget | null {
   const actions = pool.filter((target): target is { kind: 'ACTION'; class_id: string } => target.kind === 'ACTION');
   const maxHp = pool.find((target) => target.kind === 'MAX_HP') ?? null;
   const paramOf = (target: { class_id: string }, key: 'atk' | 'dmg_hp' | 'deploy_ap' | 'gain_vp') =>
