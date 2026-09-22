@@ -464,6 +464,8 @@ export interface BuildSceneRecord {
   // 当該シーンの直前インターミッションの merge_max（1-01 は null）。
   readonly mergeMaxBefore: number | null;
   readonly party: readonly string[];
+  // 当該シーン開始時の主人公の現在HP・最大HP。
+  readonly heroHp: readonly [number, number];
 }
 
 export interface BuildRunOutcome {
@@ -484,6 +486,7 @@ export function playBuildRun(
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const holder: { state: BattleState | null } = { state: null };
     const party = session.data.run.party.map((slot) => slot.attendant_id);
+    const heroHp = [session.data.run.hero_hp, session.data.run.hero_max_hp] as const;
     const outcome = playScene(
       session,
       ctx,
@@ -495,7 +498,7 @@ export function playBuildRun(
       HARD_STEP_CAP,
     );
     const counts = holder.state === null ? [0, 0, 0, 0] : [...holder.state.mirror_tally.counts];
-    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, party });
+    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, party, heroHp });
     if (!outcome.measured || outcome.result !== 'WIN') {
       return { profileId: profile.id, scenes, completed: false };
     }
