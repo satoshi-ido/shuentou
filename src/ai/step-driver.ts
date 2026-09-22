@@ -37,12 +37,13 @@ export function runPreP8(state: BattleState, deps: PreP8Deps): BattleOutcome {
 }
 
 // [M-PIPE-P8-ORDER] 敵軍（FOE）を先に、続いて自軍（MINE）を評価する順序で、
-// まだ決定を経ていない思考中ユニットを1体返す。joint_action=False の範囲では
-// 呼び出し側が「1体決定するたびに再度問い合わせる」ことで #1・#3 の逐次ループと同義になる。
+// まだ決定を経ていない思考中ユニットを1体返す。呼び出し側が「1体決定するたびに再度問い合わせる」
+// ことで #1・#3 の逐次ループと同義になる（joint action の相方は探索器が組として扱う：[A-SEARCH-ROOT]）。
 // [A-SEARCH-NODE] 決定点は「行動を確定できる瞬間」であるため、実行可能アクションを持たない
 // ユニットは対象としない。passedUnitIds は当該ステップ内でパスを採択したユニットであり、
 // [M-PIPE-P8-ORDER]#1「パス採択時：残る思考中ユニットの評価へ移行」に従い同ステップ内では再度問わない。
-export function firstPendingUnit(state: BattleState, passedUnitIds: readonly string[]): Unit | undefined {
+// [A-LATE-5-10]「探索木内の順序」mineFirst のとき自軍（MINE）を先に問う。
+export function firstPendingUnit(state: BattleState, passedUnitIds: readonly string[], mineFirst = false): Unit | undefined {
   const candidates = state.units.filter(
     (unit): unit is Unit =>
       unit !== null &&
@@ -50,12 +51,14 @@ export function firstPendingUnit(state: BattleState, passedUnitIds: readonly str
       !passedUnitIds.includes(unit.unit_id) &&
       executableActions(state, unit).length > 0,
   );
-  const foe = candidates.filter((unit) => unit.side === 'FOE').sort((a, b) => a.pos_idx - b.pos_idx);
-  if (foe.length > 0) {
-    return foe[0];
+  const order: readonly Unit['side'][] = mineFirst ? ['MINE', 'FOE'] : ['FOE', 'MINE'];
+  for (const side of order) {
+    const first = candidates.filter((unit) => unit.side === side).sort((a, b) => a.pos_idx - b.pos_idx)[0];
+    if (first !== undefined) {
+      return first;
+    }
   }
-  const mine = candidates.filter((unit) => unit.side === 'MINE').sort((a, b) => a.pos_idx - b.pos_idx);
-  return mine[0];
+  return undefined;
 }
 
 // 全生存ユニットが思考中で、思考の蓄積だけではいずれのアクションも実行可能にならない局面。

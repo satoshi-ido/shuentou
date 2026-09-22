@@ -1,7 +1,6 @@
 // [A-SEARCH-MOVEGEN] 候補手の生成規則。[A-TIE-BREAK] の優先度1（アクション区分）・
 // 優先度4（所持アクション配列インデックス昇順）を実装する。優先度2・3（ユニット種別・マス配置idx）
-// は同時手（joint action）比較時のみ意味を持ち、[A-DIFF-CONFIG] で joint_action=False の
-// M2範囲（1-01, max_depth 3）では単一ユニットの決定点のみを扱うため対象外とする。
+// は同時手（joint action）の組の順序として探索器が扱う（[A-SEARCH-ROOT]［joint action の規則］）。
 // [A-PROFILE-BONUS] アクション種別ボーナスのタグ判定もここに置く。
 
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';

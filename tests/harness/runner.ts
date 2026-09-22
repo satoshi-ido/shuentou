@@ -213,6 +213,8 @@ export function driveBattle(
   // 確定しており、以降を進めても判定は変わらない。expected_length を持たないシーン（5-11）は
   // D-02 の対象外（[M-TMPL-VESSEL]）であり上限を導けないため、安全弁のみを用いる。
   const abortStep = abortAt ?? (scene.expected_length === null ? HARD_STEP_CAP : limit);
+  // [A-LATE-5-10]「探索木内の順序」参照プレイヤーAIの探索も、決定順を反転するシーンでは自軍 → 敵軍の順に並べる。
+  const profile: EffectiveProfile = scene.deferred_decision ? { ...playerProfile, deferredDecision: true } : playerProfile;
 
   let result = initial;
   // [V-TEST-NONFUNC]［測定の打ち切り］シーンごとに計数を始める。
@@ -237,7 +239,7 @@ export function driveBattle(
       result === 'RUNNING'
         ? // 観測時の1歩進行（maxSteps）から再開する場合も、同じステップの手動停止要求を引き継ぐ。
           resumeBattle(session, ctx, policy === 'PASSIVE' || state === null ? options : { ...options, stopAtStep: state.step })
-        : playOneOperation(session, ctx, policy, options, playerProfile);
+        : playOneOperation(session, ctx, policy, options, profile);
     // 勝利時はバトルクリア共通決済（[M-PROG-CLEAR]）が run.battle_state を破棄する。進行は同じ
     // BattleState を更新し続けるため、呼び出し前に保持した参照から決着ステップを読む（破棄後の
     // run.battle_state を引くと、時間停止を挟まず決着した区間が数えられず、最後の停止位置になる）。

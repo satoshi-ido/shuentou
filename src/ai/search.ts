@@ -1,8 +1,9 @@
 // [A-SEARCH-ALGORITHM] 探索アルゴリズム。反復深化 + αβ + [A-CORE-DETERMINISM] の決定論規約。
 // 深さ（ply）は決定点の数で数える（[A-SEARCH-NODE]）。手番モデルは minimax（[A-SEARCH-ROOT]）：
 // 各決定点でFOEユニットはE(state)を最大化、MINEユニットはE(state)を最小化する（Eは常にFOE視点、
-// [A-EVAL-FORM]）。[A-DIFF-CONFIG] で joint_action=False の範囲（1-01, max_depth 3）を対象とし、
-// 同時手（joint action）は扱わない。
+// [A-EVAL-FORM]）。joint_action のシーンでは同一陣営の2体の手を組として1エッジで扱い
+// （[A-SEARCH-ROOT]［joint action の規則］）、deferred_decision のシーンでは同一ステップ内の
+// 決定点を自軍 → 敵軍の順に並べる（[A-LATE-5-10]）。
 
 import { BOOK_MASTERS } from '../data/generated/book-masters.js';
 import type { BookMasterRecord } from '../data/types.js';
@@ -10,7 +11,7 @@ import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
-import { isActionExecutable } from '../engine/decision.js';
+import { executableActions, isActionExecutable } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveAtk, effectiveRange } from '../engine/effective.js';
 import { applyMove } from './apply.js';
@@ -189,7 +190,7 @@ function searchStep(
       return mateScore(fired.outcome, ply);
     }
     waits = fired.waits;
-    const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)]);
+    const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)], ctx.prof.deferredDecision);
     if (pending !== undefined) {
       return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits, alpha, beta);
     }
@@ -205,10 +206,78 @@ function searchStep(
   }
 }
 
+// [A-SEARCH-ROOT]［joint action の規則］組の後の手。自滅ポリシーの判定に実行者と即時決着を保持する。
+interface PartnerMove {
+  readonly unit: Unit;
+  readonly move: AiMove;
+  readonly outcome: BattleOutcome;
+}
+
 interface RankedMove {
   readonly move: AiMove;
   readonly value: number;
   readonly outcome: BattleOutcome; // その手を root で適用した直後の即時決着（自滅ポリシー判定に用いる）
+  readonly partner: PartnerMove | null;
+}
+
+// 手をクローンへ適用した結果。
+interface Applied {
+  readonly outcome: BattleOutcome;
+  readonly waits: WaitCommitments;
+  readonly passed: readonly string[];
+}
+
+// state（クローン）上の unit に手を適用する。move.action は生成時点のユニットを参照しうるため、
+// 適用前に必ずクローン側の対応インスタンスへ差し替える。そのまま適用すると [A-CORE-DETERMINISM]#6 に
+// 反し、探索の分岐評価が呼び出し元の実ステートを汚染する（uses_left・seal_accum 等が探索のたびに減耗する）。
+function applyToClone(
+  clone: BattleState,
+  unitId: string,
+  move: AiMove,
+  deps: StepDeps,
+  passed: readonly string[],
+  waits: WaitCommitments,
+): Applied {
+  const clonedUnit = findUnitById(clone, unitId);
+  const clonedMove: AiMove =
+    move.kind === 'PASS'
+      ? move
+      : { kind: move.kind, action: clonedUnit.acts.find((a) => a.instance_id === move.action.instance_id)! };
+  const outcome = applyMove(clone, clonedUnit, clonedMove, deps);
+  // [A-SEARCH-NODE]［待機手の約定］待機手は約定を記録し、同ステップ内のパスと同様に扱う。
+  return {
+    outcome,
+    waits: move.kind === 'WAIT' ? { ...waits, [unitId]: { instanceId: move.action.instance_id, since: clone.step } } : waits,
+    passed: move.kind === 'ACT' ? passed : [...passed, unitId],
+  };
+}
+
+// [A-SEARCH-ROOT]［joint action の規則］「組の列挙と適用の順序」unit の後に [M-PIPE-P8-ORDER]#1 の
+// ループ順（配置 idx 昇順）で並ぶ同一陣営の思考中ユニット。実行可能性は先の手の適用後に判定する。
+function jointPartnerIdOf(state: BattleState, unit: Unit, passed: readonly string[], waits: WaitCommitments): string | null {
+  const partner = state.units.find(
+    (other): other is Unit =>
+      other !== null &&
+      other.side === unit.side &&
+      other.unit_id !== unit.unit_id &&
+      other.state === 'THOUGHT' &&
+      other.pos_idx > unit.pos_idx &&
+      !passed.includes(other.unit_id) &&
+      waits[other.unit_id] === undefined,
+  );
+  return partner?.unit_id ?? null;
+}
+
+// ［退化］先の手の適用後も相方が思考中で実行可能アクションを持つとき、その候補手を返す。
+function partnerMovesAfter(clone: BattleState, partnerId: string | null, applied: Applied, ctx: SearchCtx): PartnerMove[] {
+  if (partnerId === null || applied.outcome !== 'NONE') {
+    return [];
+  }
+  const partner = clone.units.find((unit): unit is Unit => unit !== null && unit.unit_id === partnerId);
+  if (partner === undefined || partner.state !== 'THOUGHT' || executableActions(clone, partner).length === 0) {
+    return [];
+  }
+  return generateMoves(clone, partner, ctx.prof.waitMoves).map((move) => ({ unit: partner, move, outcome: 'NONE' }));
 }
 
 // unit の候補手をすべて探索し、(move, value) の対を [A-TIE-BREAK] の生成順を保って返す。
@@ -232,53 +301,73 @@ function rankMoves(
   const maximizing = unit.side === 'FOE';
   let alpha = alphaIn;
   let beta = betaIn;
-  for (const move of moves) {
-    consumeNode(ctx.budget);
-    const clone = cloneState(state);
-    const clonedUnit = findUnitById(clone, unit.unit_id);
-    // move.action は generateMoves 呼び出し時点の unit（クローン前の可能性がある）を参照するため、
-    // 適用前に必ずクローン側の対応インスタンスへ差し替える。そのまま適用すると
-    // [A-CORE-DETERMINISM]#6 に反し、探索の分岐評価が呼び出し元の実ステートを汚染する
-    // （uses_left・seal_accum 等が探索のたびに減耗する）。
-    const clonedMove: AiMove =
-      move.kind === 'PASS'
-        ? move
-        : { kind: move.kind, action: clonedUnit.acts.find((a) => a.instance_id === move.action.instance_id)! };
-    const outcome = applyMove(clone, clonedUnit, clonedMove, ctx.deps);
-    // [A-SEARCH-NODE]［待機手の約定］待機手は約定を記録し、同ステップ内のパスと同様に扱う。
-    const waitsAfter =
-      move.kind === 'WAIT'
-        ? { ...waits, [unit.unit_id]: { instanceId: move.action.instance_id, since: clone.step } }
-        : waits;
-    let value: number;
-    const passedAfter = move.kind === 'ACT' ? passedUnitIds : [...passedUnitIds, unit.unit_id];
+  const partnerId = ctx.prof.jointAction ? jointPartnerIdOf(state, unit, passedUnitIds, waits) : null;
+
+  // 1エッジ（単独の手または組）の子を評価する。
+  const childValue = (clone: BattleState, applied: Applied): number => {
     if (depthRemaining <= 1) {
-      value =
-        outcome !== 'NONE'
-          ? mateScore(outcome, ply + 1)
-          : evaluateLeaf(clone, waitsAfter, ctx, ply + 1, passedAfter, true);
-    } else {
-      value = continueAfterMove(clone, outcome, ctx, depthRemaining - 1, ply + 1, passedAfter, waitsAfter, alpha, beta);
+      return applied.outcome !== 'NONE'
+        ? mateScore(applied.outcome, ply + 1)
+        : evaluateLeaf(clone, applied.waits, ctx, ply + 1, applied.passed, true);
     }
-    // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
-    // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
+    return continueAfterMove(clone, applied.outcome, ctx, depthRemaining - 1, ply + 1, applied.passed, applied.waits, alpha, beta);
+  };
+  // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
+  // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
+  // [A-PROFILE-BONUS] 再交代の減点も根の手の選好として同じく加算する。
+  const rootBonus = (before: BattleState, actor: Unit, move: AiMove): number => {
+    const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(before, actor, move);
+    return actor.side === 'FOE' ? bonus : -bonus;
+  };
+  // 窓を更新し、閉じたら true を返す。
+  const record = (entry: RankedMove): boolean => {
+    ranked.push(entry);
     if (ply === 0) {
-      // [A-PROFILE-BONUS] 再交代の減点も根の手の選好として同じく加算する。
-      const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(state, unit, move);
-      value += unit.side === 'FOE' ? bonus : -bonus;
+      return false;
     }
-    ranked.push({ move, value, outcome });
-    if (ply > 0) {
-      if (maximizing) {
-        if (value > alpha) {
-          alpha = value;
-        }
-      } else if (value < beta) {
-        beta = value;
+    if (maximizing) {
+      if (entry.value > alpha) {
+        alpha = entry.value;
       }
-      if (alpha >= beta) {
-        break; // 窓が閉じた。以降の兄弟手は親の選択を変えない
+    } else if (entry.value < beta) {
+      beta = entry.value;
+    }
+    return alpha >= beta; // 窓が閉じた。以降の兄弟手は親の選択を変えない
+  };
+
+  for (const move of moves) {
+    const clone = cloneState(state);
+    const applied = applyToClone(clone, unit.unit_id, move, ctx.deps, passedUnitIds, waits);
+    const partnerMoves = partnerMovesAfter(clone, partnerId, applied, ctx);
+    if (partnerMoves.length === 0) {
+      consumeNode(ctx.budget);
+      let value = childValue(clone, applied);
+      if (ply === 0) {
+        value += rootBonus(state, unit, move);
       }
+      if (record({ move, value, outcome: applied.outcome, partner: null })) {
+        break;
+      }
+      continue;
+    }
+    // [A-SEARCH-ROOT]［joint action の規則］組は1手（1 ply）・1ノード。後の手は先の手を適用した局面で生成する。
+    let closed = false;
+    for (const partner of partnerMoves) {
+      consumeNode(ctx.budget);
+      const pairClone = cloneState(clone);
+      const pairApplied = applyToClone(pairClone, partner.unit.unit_id, partner.move, ctx.deps, applied.passed, applied.waits);
+      let value = childValue(pairClone, pairApplied);
+      if (ply === 0) {
+        // ［根のボーナスと自滅ポリシー］組の両手にボーナスと再交代の減点を加算する。
+        value += rootBonus(state, unit, move) + rootBonus(clone, partner.unit, partner.move);
+      }
+      if (record({ move, value, outcome: applied.outcome, partner: { ...partner, outcome: pairApplied.outcome } })) {
+        closed = true;
+        break;
+      }
+    }
+    if (closed) {
+      break;
     }
   }
   return ranked;
@@ -364,12 +453,18 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
   let bestDecision: ResolvedDecision = { kind: 'PASS' };
   let bestScore = 0;
   let completedAnyDepth = false;
+  // [A-LATE-5-10] 敵軍AIはプレイヤーの着手が確定した子ノードから探索を始める。同一ステップの自軍の決定は
+  // 済んでいるため、自軍ユニットを当該ステップで決定済みとして扱う。
+  const decided =
+    prof.deferredDecision && unit.side === 'FOE'
+      ? state.units.filter((u): u is Unit => u !== null && u.side === 'MINE').map((u) => u.unit_id)
+      : [];
 
   for (let depth = 1; depth <= prof.maxDepth; depth += 1) {
     const ctx: SearchCtx = { prof, deps, budget };
     let ranked: RankedMove[];
     try {
-      ranked = rankMoves(state, unit, ctx, depth, 0, [], {});
+      ranked = rankMoves(state, unit, ctx, depth, 0, decided, {});
     } catch (error) {
       if (error instanceof NodeBudgetExceeded) {
         break; // 直前深さの結果を採用して打ち切る
@@ -383,8 +478,13 @@ function searchRoot(state: BattleState, unit: Unit, prof: EffectiveProfile, deps
     // [A-EVAL-MATE]「自滅手への対処」[A-SEARCH-ALGORITHM]#3：上位手から順に、マスターの
     // スリップ決済自滅かつ score < MATE_TH の手を除外する。パスは自滅し得ないため必ず残る。
     let chosen = sorted[0];
+    // [A-SEARCH-ROOT]［根のボーナスと自滅ポリシー］組ではマスターの手について判定する。
     for (const candidate of sorted) {
-      if (isMasterSlipSuicide(unit, candidate.move, candidate.outcome) && Math.abs(candidate.value) < MATE_TH) {
+      const suicide =
+        isMasterSlipSuicide(unit, candidate.move, candidate.outcome) ||
+        (candidate.partner !== null &&
+          isMasterSlipSuicide(candidate.partner.unit, candidate.partner.move, candidate.partner.outcome));
+      if (suicide && Math.abs(candidate.value) < MATE_TH) {
         continue;
       }
       chosen = candidate;

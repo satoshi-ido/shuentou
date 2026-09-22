@@ -1,8 +1,9 @@
-// [M-PIPE-P8-ORDER] [M-PIPE-PAUSE-TRIGGER] [M-STATE-HISTORY] [M-STATE-RUNSTATE] [M-PROG-CLEAR]
+// [M-PIPE-P8-ORDER] [M-PIPE-PAUSE-TRIGGER] [M-STATE-HISTORY] [M-STATE-RUNSTATE] [M-PROG-CLEAR] [A-LATE-5-10]
 // バトルの開始・時間停止までの進行・プレイヤー指示（確定操作1）・ステップ進行確定（確定操作2）。
 //
 // 静止中のバトルは常に「《処理8》の時間停止中（敵軍AI確定後）」にある。HistoryStack の各項目も
 // この時点で記録されるため、復元後に敵軍AIを再計算せずプレイヤー指示から再開できる（[M-REWIND-UNDO]）。
+// 5-10（[A-LATE-5-10]）に限り時間停止は敵軍AI決定の前にあり、停止の解除後に同ステップの敵軍AI決定を行う。
 // 例外はバトル開始時セーブのステップ0生成直後であり、ロード・バトル開始時ロールバックでは
 // enterBattle により最初の時間停止まで進める。
 // 時間停止トリガーの #3（UI監視トグル）は [M-UI-WATCH] の判定を用い、#4（手動停止）は stopAtStep で与える。
@@ -99,10 +100,27 @@ function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleO
   return outcome;
 }
 
+// [A-LATE-5-10] 決定順を反転するシーン（シーンマスタの deferred_decision）。
+function isDeferred(session: GameSession, ctx: GameContext): boolean {
+  return sceneOf(ctx.masters, session.data.run.current_scene_id).deferred_decision;
+}
+
+// [A-LATE-5-10]「時間停止トリガー2」前のステップの敵アクションを次のステップで提示する。
+// 発生満了までの残ステップ数（[M-DATA-PAUSE-REASON]）は、間の《処理6》で1ステップ進んだ分を差し引く。
+function carriedToCurrentStep(executed: ExecutedAction | null | undefined): ExecutedAction | null {
+  if (executed === null || executed === undefined) {
+    return null;
+  }
+  return executed.instant ? executed : { ...executed, remainingSteps: Math.max(0, executed.remainingSteps - 1) };
+}
+
 // ステップの先頭（ステップ0は《処理8》の先頭）から、時間停止または決着まで進める。
+// [A-LATE-5-10] 決定順の反転時は、時間停止判定 → プレイヤー指示 → 敵軍AI決定 の順に進める。
 function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceOptions): BattleResult {
   const state = battleOf(session);
   const foeDecision = foeDecisionWithReuse(session, ctx);
+  const deferred = isDeferred(session, ctx);
+  const sceneId = session.data.run.current_scene_id;
   let advanced = 0;
   for (;;) {
     const pending = session.pending_step ?? { preDone: false, loop: newSideLoopState() };
@@ -113,6 +131,17 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
       }
       pending.preDone = true;
     }
+    if (deferred && pending.mineDone !== true) {
+      const edges = detectWatchEdges(state, ctx.stepDeps);
+      const reason = pauseReasonOf(state, sceneId, carriedToCurrentStep(pending.carried), edges, options);
+      pending.carried = null;
+      if (reason !== null && instructableUnits(state).length > 0) {
+        session.pending_step = null;
+        state.pause_reason = reason;
+        return 'PAUSED';
+      }
+      pending.mineDone = true;
+    }
     const foe = runSideDecisionLoop(state, 'FOE', foeDecision, ctx.stepDeps, pending.loop);
     if (foe.awaiting) {
       session.pending_step = pending; // [I-ENV-WORKER] 応答後に同じ地点から再開する
@@ -122,17 +151,23 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
     if (foe.outcome !== 'NONE') {
       return finish(session, ctx, foe.outcome);
     }
-    // [M-PIPE-P8-ORDER]#2 敵AI確定後の状態を基準に判定する。
-    // #3 の充足判定は停止の成否に関わらず毎ステップ行い、watch_prev_met を更新する（[M-UI-WATCH]）。
-    const edges = detectWatchEdges(state, ctx.stepDeps);
-    const reason = pauseReasonOf(state, session.data.run.current_scene_id, foe.firstExecuted, edges, options);
-    // ［停止の継続と解除］停止は手動指示可能な自軍ユニットがいる場合に限り成立する。
-    // #4 の手動停止要求は、指示可能な自軍ユニットが現れるまで維持する。
-    if (reason !== null && instructableUnits(state).length > 0) {
-      state.pause_reason = reason;
-      return 'PAUSED';
+    if (deferred) {
+      // [A-LATE-5-10] 敵アクションの実行開始による時間停止は次のステップで成立させる。
+      runStepEnd(state);
+      session.pending_step = { preDone: false, loop: newSideLoopState(), carried: foe.firstExecuted };
+    } else {
+      // [M-PIPE-P8-ORDER]#2 敵AI確定後の状態を基準に判定する。
+      // #3 の充足判定は停止の成否に関わらず毎ステップ行い、watch_prev_met を更新する（[M-UI-WATCH]）。
+      const edges = detectWatchEdges(state, ctx.stepDeps);
+      const reason = pauseReasonOf(state, sceneId, foe.firstExecuted, edges, options);
+      // ［停止の継続と解除］停止は手動指示可能な自軍ユニットがいる場合に限り成立する。
+      // #4 の手動停止要求は、指示可能な自軍ユニットが現れるまで維持する。
+      if (reason !== null && instructableUnits(state).length > 0) {
+        state.pause_reason = reason;
+        return 'PAUSED';
+      }
+      runStepEnd(state);
     }
-    runStepEnd(state);
     advanced += 1;
     if (options.maxSteps !== undefined && advanced >= options.maxSteps) {
       return 'RUNNING';
@@ -189,8 +224,14 @@ export function setWatch(session: GameSession, instanceId: string, kind: WatchKi
 }
 
 // [M-DATA-PAUSE-REASON]［停止事由レコード］「解除」：ステップ境界への移行時に Null へ戻す。
-function leavePause(state: BattleState): void {
+// [A-LATE-5-10] 決定順の反転時は、ステップ境界の前に同ステップの敵軍AI決定を行う。
+function leavePause(session: GameSession, ctx: GameContext): void {
+  const state = battleOf(session);
   state.pause_reason = null;
+  if (isDeferred(session, ctx)) {
+    session.pending_step = { preDone: true, loop: newSideLoopState(), mineDone: true };
+    return;
+  }
   runStepEnd(state);
 }
 
@@ -268,7 +309,7 @@ export function instruct(
   if (instructableUnits(state).length > 0) {
     return 'PAUSED';
   }
-  leavePause(state);
+  leavePause(session, ctx);
   return runUntilPause(session, ctx, options);
 }
 
@@ -276,6 +317,6 @@ export function instruct(
 export function resumeTime(session: GameSession, ctx: GameContext, options: AdvanceOptions = {}): BattleResult {
   assertPaused(battleOf(session));
   beginConfirmOperation(session, 2, ctx);
-  leavePause(battleOf(session));
+  leavePause(session, ctx);
   return runUntilPause(session, ctx, options);
 }
