@@ -13,9 +13,23 @@
 // src/engine/run/snapshot.ts の別実装が担う。バトル中に書き込みがないことは
 // tests/ai/clone.test.ts の凍結検査が担保する。
 
-// 参照のまま渡すキー。ActionInstance.base_params / merge_params / sys_flags と
-// LastActionSnapshot.params / sys_flags が該当する。
-const SHARED_KEYS = ['base_params', 'merge_params', 'sys_flags', 'params'];
+// 監視トグルとその充足状態（BattleState.watching / watch_prev_met：[M-UI-WATCH]）も同じく参照のまま渡す。
+// 書き込みは時間停止判定とプレイヤーの操作（src/engine/game/）に限られ、探索が進める《処理1》〜《処理7》
+// と手の適用は触れない。
+
+// 参照のまま渡すキー。ActionInstance.base_params / merge_params / sys_flags、
+// LastActionSnapshot.params / sys_flags、BattleState.watching / watch_prev_met が該当する。
+// 複製のたびに全キーで判定するため、配列の走査ではなく比較で判定する。
+function isSharedKey(key: string): boolean {
+  return (
+    key === 'base_params' ||
+    key === 'merge_params' ||
+    key === 'sys_flags' ||
+    key === 'params' ||
+    key === 'watching' ||
+    key === 'watch_prev_met'
+  );
+}
 
 export function cloneState<T>(value: T): T {
   if (Array.isArray(value)) {
@@ -30,7 +44,7 @@ export function cloneState<T>(value: T): T {
     const source = value as Record<string, unknown>;
     const copy: Record<string, unknown> = {};
     for (const key of Object.keys(source)) {
-      copy[key] = SHARED_KEYS.includes(key) ? source[key] : cloneState(source[key]);
+      copy[key] = isSharedKey(key) ? source[key] : cloneState(source[key]);
     }
     return copy as unknown as T;
   }

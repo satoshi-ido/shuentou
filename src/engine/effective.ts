@@ -5,8 +5,10 @@ import { effectiveBasicInt, effectiveDecayRateCenti, effectiveDecimalCenti } fro
 import type { ParamId } from './params.js';
 import type { ActionInstance, Unit } from './types.js';
 
+const FLOOR_AT_ONE = { floorAtOne: true } as const;
+
 function basic(unit: Unit, id: ParamId, base: number, floorAtOne = false): number {
-  return effectiveBasicInt(base, unit.buff[id], unit.debuff[id], id, floorAtOne ? { floorAtOne: true } : undefined);
+  return effectiveBasicInt(base, unit.buff[id], unit.debuff[id], id, floorAtOne ? FLOOR_AT_ONE : undefined);
 }
 
 export function effectiveStepThought(unit: Unit, action: ActionInstance): number {

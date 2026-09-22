@@ -25,6 +25,11 @@ export function effectiveBasicInt(
   if (base === 0) {
     return 0;
   }
+  // 被バフ量・被デバフ量がともに0なら factor は100であり、四捨五入の結果は基礎値に等しい（探索の葉で
+  // 大量に呼ばれるため、同じ値を返す近道を置く）。
+  if (buffCenti === 0 && debuffCenti === 0) {
+    return options?.floorAtOne === true ? Math.max(base, 1) : Math.max(base, 0);
+  }
   const factor = effectiveFactorCenti(buffCenti, debuffCenti, id);
   const value = roundDiv(Math.max(base * factor, 0), CENTI);
   if (options?.floorAtOne === true) {

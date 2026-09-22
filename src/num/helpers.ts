@@ -15,6 +15,11 @@ function assertPositiveInteger(value: number, name: string): void {
   }
 }
 
+// 長除算の倍加列。呼び出しのたびに確保せず再利用する（探索の葉で大量に呼ばれるため）。
+// floorDiv は再入しないため共有してよい。安全な整数の範囲では倍加は64段に収まる。
+const SCALED_DIVISORS: number[] = new Array<number>(64).fill(0);
+const SCALED_QUOTIENTS: number[] = new Array<number>(64).fill(0);
+
 // floor(dividend / divisor)。被除数・除数はいずれも非負（除数は正）とする。
 export function floorDiv(dividend: number, divisor: number): number {
   assertNonNegativeInteger(dividend, 'dividend');
@@ -23,22 +28,24 @@ export function floorDiv(dividend: number, divisor: number): number {
     return 0;
   }
 
-  const doublings: Array<[number, number]> = [];
+  let count = 0;
   let scaledDivisor = divisor;
   let scaledQuotient = 1;
   while (scaledDivisor <= dividend) {
-    doublings.push([scaledDivisor, scaledQuotient]);
+    SCALED_DIVISORS[count] = scaledDivisor;
+    SCALED_QUOTIENTS[count] = scaledQuotient;
+    count += 1;
     scaledDivisor = scaledDivisor * 2;
     scaledQuotient = scaledQuotient * 2;
   }
 
   let remainder = dividend;
   let quotient = 0;
-  for (let i = doublings.length - 1; i >= 0; i--) {
-    const [candidateDivisor, candidateQuotient] = doublings[i];
+  for (let i = count - 1; i >= 0; i--) {
+    const candidateDivisor = SCALED_DIVISORS[i];
     if (candidateDivisor <= remainder) {
       remainder = remainder - candidateDivisor;
-      quotient = quotient + candidateQuotient;
+      quotient = quotient + SCALED_QUOTIENTS[i];
     }
   }
   return quotient;

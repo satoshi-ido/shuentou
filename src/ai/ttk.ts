@@ -54,7 +54,9 @@ interface ActionMetrics {
 
 export interface PlanContext {
   readonly unit: Unit;
-  readonly metrics: Readonly<Record<string, ActionMetrics>>;
+  readonly level: number;
+  // 実効値は参照されたアクションに限り、初回の参照時に確定する（武技と補充アクション以外は参照されない）。
+  readonly metrics: Record<string, ActionMetrics>;
   readonly purify: ActionInstance | null;
   readonly mind: ActionInstance | null;
   readonly stance: ActionInstance | null;
@@ -84,42 +86,27 @@ function metricsOf(unit: Unit, action: ActionInstance, level: number): ActionMet
 // 系統ごとの補充アクション（フルサイクル最短、同値は所持アクション配列インデックス昇順）も併せて確定する。
 export function planContext(unit: Unit, level: number): PlanContext {
   const metrics: Record<string, ActionMetrics> = {};
+  const metricAt = (action: ActionInstance): ActionMetrics =>
+    (metrics[action.instance_id] ??= metricsOf(unit, action, level));
   let purify: ActionInstance | null = null;
   let mind: ActionInstance | null = null;
   let stance: ActionInstance | null = null;
   for (const action of unit.acts) {
-    const m = metricsOf(unit, action, level);
-    metrics[action.instance_id] = m;
-    if (hasFlag(action.sys_flags, 'FLAG_PURIFY') && (purify === null || m.cycle < metrics[purify.instance_id].cycle)) {
+    if (hasFlag(action.sys_flags, 'FLAG_PURIFY') && (purify === null || metricAt(action).cycle < metricAt(purify).cycle)) {
       purify = action;
     }
-    if (hasFlag(action.sys_flags, 'FLAG_MIND') && (mind === null || m.cycle < metrics[mind.instance_id].cycle)) {
+    if (hasFlag(action.sys_flags, 'FLAG_MIND') && (mind === null || metricAt(action).cycle < metricAt(mind).cycle)) {
       mind = action;
     }
-    if (hasFlag(action.sys_flags, 'FLAG_STANCE') && (stance === null || m.cycle < metrics[stance.instance_id].cycle)) {
+    if (hasFlag(action.sys_flags, 'FLAG_STANCE') && (stance === null || metricAt(action).cycle < metricAt(stance).cycle)) {
       stance = action;
     }
   }
-  return { unit, metrics, purify, mind, stance };
+  return { unit, level, metrics, purify, mind, stance };
 }
 
 function metric(ctx: PlanContext, action: ActionInstance): ActionMetrics {
-  return ctx.metrics[action.instance_id];
-}
-
-function fullCycle(unit: Unit, action: ActionInstance): number {
-  return effectiveStepThought(unit, action) + effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action);
-}
-
-// 保持するアクションのうち flag を持ち、フルサイクルが最短のもの（同値は所持アクション配列インデックス昇順）。
-function shortestCycleAction(unit: Unit, flag: 'FLAG_MIND' | 'FLAG_STANCE' | 'FLAG_PURIFY'): ActionInstance | null {
-  let best: ActionInstance | null = null;
-  for (const action of unit.acts) {
-    if (hasFlag(action.sys_flags, flag) && (best === null || fullCycle(unit, action) < fullCycle(unit, best))) {
-      best = action;
-    }
-  }
-  return best;
+  return (ctx.metrics[action.instance_id] ??= metricsOf(ctx.unit, action, ctx.level));
 }
 
 // [A-EVAL-TTK]「封印解除回数」。
@@ -166,11 +153,20 @@ export interface AttackPlan {
 }
 
 // [A-EVAL-TTK]「攻撃計画」。tDeny は防御側の最速スタン着弾（TTK_MAX は妨害なし）。null は決着不能。
-export function buildAttackPlan(attacker: Unit, action: ActionInstance, requiredHits: number, tDeny: number): AttackPlan | null {
-  const costHp = effectiveCostHp(attacker, action);
-  const costVp = effectiveCostVp(attacker, action);
-  const costPp = effectiveCostPp(attacker, action);
-  const costAp = effectiveCostAp(attacker, action);
+// ctx は攻撃側の planContext。補充アクションの選定（フルサイクル最短、同値は配列インデックス昇順）と
+// 実効値は planContext が確定したものを用いる。本関数は打点を用いないため、省略時のレベルは問わない。
+export function buildAttackPlan(
+  attacker: Unit,
+  action: ActionInstance,
+  requiredHits: number,
+  tDeny: number,
+  ctx: PlanContext = planContext(attacker, 0),
+): AttackPlan | null {
+  const shotMetrics = metric(ctx, action);
+  const costHp = shotMetrics.costHp;
+  const costVp = shotMetrics.costVp;
+  const costPp = shotMetrics.costPp;
+  const costAp = shotMetrics.costAp;
   const res: PlanResources = { hp: attacker.hp, vp: attacker.vp, pp: attacker.pp, ap: attacker.ap, uses: action.uses_left };
   if (res.uses !== INFINITE_USES && res.uses < requiredHits) {
     return null; // 使用回数は補充できない
@@ -179,7 +175,7 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
     return null; // HPコストは補充できない（[M-PIPE-SUICIDE]）
   }
 
-  const purify = shortestCycleAction(attacker, 'FLAG_PURIFY');
+  const purify = ctx.purify;
   let purifyLeft = 0;
   if (action.seal_accum >= SEAL_LIMIT_CENTI) {
     if (purify === null) {
@@ -190,8 +186,8 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
       return null;
     }
   }
-  const mind = shortestCycleAction(attacker, 'FLAG_MIND');
-  const stance = shortestCycleAction(attacker, 'FLAG_STANCE');
+  const mind = ctx.mind;
+  const stance = ctx.stance;
 
   let t = residualBeforeThought(attacker);
   let carriedThought = attacker.state === 'THOUGHT' ? attacker.elapsed_thought : 0;
@@ -213,7 +209,7 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
       kind = 'REFILL_MIND';
       cycleAction = mind;
     } else if (res.ap < costAp) {
-      if (stance === null || effectiveDeployAp(attacker, stance) < costAp) {
+      if (stance === null || metric(ctx, stance).deployAp < costAp) {
         return null;
       }
       kind = 'REFILL_STANCE';
@@ -224,10 +220,11 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
     }
 
     // 2. サイクルの区間：思考 [t, startupStart)・発生 [startupStart, fire)・硬直 [fire, end)。
-    const thought = Math.max(effectiveStepThought(attacker, cycleAction) - carriedThought, 0);
+    const cycleMetrics = metric(ctx, cycleAction);
+    const thought = Math.max(cycleMetrics.thought - carriedThought, 0);
     const startupStart = t + thought;
-    const fire = startupStart + effectiveStepStartup(attacker, cycleAction);
-    const end = fire + effectiveStepRecovery(attacker, cycleAction);
+    const fire = startupStart + cycleMetrics.startup;
+    const end = fire + cycleMetrics.recovery;
 
     // 3. 妨害補正：t_deny が当サイクルの区間に入れば中断規則を適用する（1回のみ）。
     if (denyPending && tDeny >= t && tDeny < fire) {
@@ -254,13 +251,13 @@ export function buildAttackPlan(attacker: Unit, action: ActionInstance, required
     } else if (kind === 'REFILL_MIND') {
       const beforeVp = res.vp;
       const beforePp = res.pp;
-      res.vp += effectiveGainVp(attacker, cycleAction);
-      res.pp = Math.max(res.pp, roundDiv(res.vp * effectiveChargePpCenti(attacker, cycleAction), 100)); // [M-RESOLVE-MIND]#2〜#4
+      res.vp += cycleMetrics.gainVp;
+      res.pp = Math.max(res.pp, roundDiv(res.vp * cycleMetrics.chargePp, 100)); // [M-RESOLVE-MIND]#2〜#4
       if (res.vp === beforeVp && res.pp === beforePp) {
         return null; // 補充が進まない
       }
     } else if (kind === 'REFILL_STANCE') {
-      res.ap = effectiveDeployAp(attacker, cycleAction); // [M-RESOLVE-STANCE] 強制上書き
+      res.ap = cycleMetrics.deployAp; // [M-RESOLVE-STANCE] 強制上書き
     } else {
       payShot(res, costHp, costVp, costPp, costAp);
       landed += 1;
@@ -310,8 +307,11 @@ interface Candidate {
 function substituteCandidates(ctx: PlanContext): Candidate[] {
   const candidates: Candidate[] = [];
   for (const action of ctx.unit.acts) {
+    if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || action.seal_accum >= SEAL_LIMIT_CENTI) {
+      continue;
+    }
     const m = metric(ctx, action);
-    if (!m.martial || action.seal_accum >= SEAL_LIMIT_CENTI || m.damage <= 0) {
+    if (m.damage <= 0) {
       continue;
     }
     candidates.push({ action, damage: m.damage, cycle: Math.max(m.cycle, 1) });
@@ -503,13 +503,48 @@ export interface TtkInputs {
   // [A-SEARCH-QUIESCE]［評価対象］延長したステップ数 q。攻撃計画は静止局面を 0 とし、トレースは
   // 葉ノードを添字0として記録するため、計画上のステップ t は添字 q + t で参照する。
   readonly offset: number;
+  // 1回の葉の評価の中で共有する表（newTtkCache）。評価の間ユニットは変更されないため、同じユニットの
+  // 計画文脈・想定体勢を一度だけ求める。省略時は毎回求める。
+  readonly cache?: TtkCache;
+}
+
+type Guard = { readonly at: number; readonly defense: number } | null;
+
+export interface TtkCache {
+  readonly contexts: WeakMap<Unit, PlanContext>;
+  readonly guards: WeakMap<Unit, Guard>;
+}
+
+export function newTtkCache(): TtkCache {
+  return { contexts: new WeakMap(), guards: new WeakMap() };
+}
+
+// 葉の評価では同じユニットが攻撃側（ttk）と防御側（denyTime）の双方で参照される。
+function contextOf(inputs: TtkInputs, unit: Unit): PlanContext {
+  const cached = inputs.cache?.contexts.get(unit);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const ctx = planContext(unit, inputs.level);
+  inputs.cache?.contexts.set(unit, ctx);
+  return ctx;
 }
 
 // [A-EVAL-TTK]［代替武技に対する防御側の体勢］防御側が最大展開APの体勢を1度だけ張るものとし、
 // その完了以降の着弾予測時点では、トレース由来の防御力と想定体勢による防御力の大きい方を用いる。
 // 想定体勢は実効展開APが最大のもの（同値は所持アクション配列インデックス昇順）で、実効消費コストを
 // 防御側の現在値で満たせるものに限る。減衰（[M-CALC-DECAY]）は織り込まない。
-function projectedGuard(target: Unit): { readonly at: number; readonly defense: number } | null {
+function projectedGuard(inputs: TtkInputs, target: Unit): Guard {
+  const cached = inputs.cache?.guards.get(target);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const guard = computeProjectedGuard(target);
+  inputs.cache?.guards.set(target, guard);
+  return guard;
+}
+
+function computeProjectedGuard(target: Unit): Guard {
   let best: ActionInstance | null = null;
   let bestAp = 0;
   for (const candidate of target.acts) {
@@ -557,7 +592,7 @@ function hitsAt(
   let defense = targetSample.defense;
   // ［代替武技に対する防御側の体勢］代替武技による射撃に限り、防御側の想定体勢を織り込む。
   if (substitute) {
-    const guard = projectedGuard(target);
+    const guard = projectedGuard(inputs, target);
     if (guard !== null && landing >= guard.at) {
       defense = Math.max(defense, guard.defense);
     }
@@ -572,11 +607,13 @@ function hitsAt(
 // 防御側の攻撃計画（妨害補正なし、必要ヒット数1）で求める。存在しなければ TTK_MAX。
 export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): number {
   let best = TTK_MAX;
+  let ctx: PlanContext | null = null; // スタン付き武技を持つ場合に限り確定する
   for (const action of defender.acts) {
     if (!action.base_params.stun || !hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
       continue;
     }
-    const plan = buildAttackPlan(defender, action, 1, TTK_MAX);
+    ctx ??= contextOf(inputs, defender);
+    const plan = buildAttackPlan(defender, action, 1, TTK_MAX, ctx);
     if (plan === null || plan.firstLanding >= best) {
       continue;
     }
@@ -592,13 +629,13 @@ export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): num
 // 最終着弾ステップに q を加えてからクランプする（[A-EVAL-TTK]「同着の非対称性」）。
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
   const tDeny = denyTime(defenderMaster, attacker, inputs);
-  const ctx = planContext(attacker, inputs.level);
+  const ctx = contextOf(inputs, attacker);
   let best = TTK_MAX;
   for (const action of attacker.acts) {
-    const m = metric(ctx, action);
-    if (!m.martial) {
+    if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
       continue;
     }
+    const m = metric(ctx, action);
     if (m.damage <= 0) {
       continue; // 実効HPダメージ0
     }

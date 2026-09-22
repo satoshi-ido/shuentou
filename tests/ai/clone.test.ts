@@ -5,6 +5,7 @@ import { createDuel, findUnit, makeAction, martialAction, setRecovery, NO_SUMMON
 import { advanceStep } from '../../src/engine/pipeline/step.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { referenceProfile } from '../../src/ai/profile.js';
+import { syncWatchKeys } from '../../src/engine/watch.js';
 
 const jsonClone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
@@ -42,7 +43,7 @@ describe('[I-STATE-JSON] 探索器の状態複製', () => {
 });
 
 describe('[M-STATE-ACTION] バトル中の静的パラメータの不変性', () => {
-  it('静的パラメータと系統フラグを凍結してもバトルが進行する', () => {
+  it('静的パラメータ・系統フラグ・監視トグルを凍結してもバトルが進行する', () => {
     // 探索用の複製はこれらを参照共有する（src/ai/clone.ts）。書き込みがあれば strict mode の
     // 代入で TypeError となるため、凍結したまま進行できることが共有の前提を担保する。
     const state = createDuel({
@@ -63,6 +64,14 @@ describe('[M-STATE-ACTION] バトル中の静的パラメータの不変性', ()
         Object.freeze(action.merge_params);
         Object.freeze(action.sys_flags);
       }
+    }
+    // 監視トグルとその充足状態も参照共有する。キーを揃えてから各値ごと凍結する。
+    syncWatchKeys(state);
+    for (const table of [state.watching, state.watch_prev_met]) {
+      for (const flags of Object.values(table)) {
+        Object.freeze(flags);
+      }
+      Object.freeze(table);
     }
     const provider = createAiDecisionProvider(referenceProfile(), NO_SUMMON_DEPS);
     for (let step = 0; step < 60; step += 1) {

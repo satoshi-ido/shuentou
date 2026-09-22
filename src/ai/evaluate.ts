@@ -28,7 +28,7 @@ import {
 } from './features.js';
 import { type FeatureKey, BASE_WEIGHTS, type EffectiveProfile, weightMultOf } from './profile.js';
 import { runQuiescence } from './quiesce.js';
-import { ttk, xSurvival } from './ttk.js';
+import { newTtkCache, ttk, xSurvival } from './ttk.js';
 import { SCALE } from './constants.js';
 
 const INT32_MAX = 2147483647;
@@ -158,7 +158,7 @@ export function evaluateLeafPosition(
     throw new Error('静止探索が決着を返さずにマスターが消滅した');
   }
   // 延長したステップ数 q。トレースは葉ノードを添字0として記録されている。
-  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1 };
+  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1, cache: newTtkCache() };
   // [A-EVAL-TTK]［延長中の決定点からの計画］延長中に決定点を持った陣営は、その時点からの計画と比べて小さい方を採る。
   let tp = ttk(mineMaster, foeMaster, inputs);
   let te = ttk(foeMaster, mineMaster, inputs);
