@@ -2,7 +2,9 @@
 
 import { describe, expect, it } from 'vitest';
 import type { InheritTarget } from '../../src/engine/progress/inherit.js';
-import { breakerForScene, chooseByRole, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
+import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
+import { referenceProfile } from '../../src/ai/profile.js';
+import { battleProfileFor, breakerForScene, chooseByRole, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const held = (masterRef: string, usesLeft: number, sysFlags: string[] = []) => ({
@@ -64,5 +66,16 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
     };
     const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), action('ACT_HEAVY_AR9')];
     expect(chooseByRole(run, pool, 212)).toBeNull();
+  });
+});
+
+describe('[V-TEST-REFAI]「体勢への減点」の方針別の適用', () => {
+  it('防御型の戦闘では体勢の減点を外し、他の方針は与えた重みのまま用いる', () => {
+    const base = referenceProfile();
+    expect(base.actionBonus.STANCE).toBe(BONUS_REFAI_STANCE);
+    expect(battleProfileFor('DEFENSE', base).actionBonus.STANCE).toBe(0);
+    for (const policy of ['ATTACK', 'BALANCE'] as const) {
+      expect(battleProfileFor(policy, base)).toBe(base);
+    }
   });
 });

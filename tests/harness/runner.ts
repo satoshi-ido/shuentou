@@ -185,6 +185,11 @@ function playOneOperation(
   return resumeTime(session, ctx, next);
 }
 
+// [V-TEST-REFAI]「体勢への減点」防御型の戦闘では適用しない（STANCE = 0）。他の方針は与えた重みのまま用いる。
+export function battleProfileFor(policy: RefPolicy, profile: EffectiveProfile): EffectiveProfile {
+  return policy === 'DEFENSE' ? { ...profile, actionBonus: { ...profile.actionBonus, STANCE: 0 } } : profile;
+}
+
 // 観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、ステップ境界ごとに観測点を通す
 // （実バトルと同じ進行経路のまま計測するため、別の駆動系を作らない）。
 export function advanceOptionsFor(observe?: StepObserver): AdvanceOptions {
@@ -214,7 +219,8 @@ export function driveBattle(
   // D-02 の対象外（[M-TMPL-VESSEL]）であり上限を導けないため、安全弁のみを用いる。
   const abortStep = abortAt ?? (scene.expected_length === null ? HARD_STEP_CAP : limit);
   // [A-LATE-5-10]「探索木内の順序」参照プレイヤーAIの探索も、決定順を反転するシーンでは自軍 → 敵軍の順に並べる。
-  const profile: EffectiveProfile = scene.deferred_decision ? { ...playerProfile, deferredDecision: true } : playerProfile;
+  const battleProfile = battleProfileFor(policy, playerProfile);
+  const profile: EffectiveProfile = scene.deferred_decision ? { ...battleProfile, deferredDecision: true } : battleProfile;
 
   let result = initial;
   // [V-TEST-NONFUNC]［測定の打ち切り］シーンごとに計数を始める。
