@@ -1,16 +1,18 @@
 // [A-SEARCH-QUIESCE] [A-SEARCH-ALGORITHM]「静止探索 quiesce」。
 // 「延長中のプレイヤー行動は待機と仮定する」ため、[M-UI-TIMELINE] と同じ
-// `advance_one_step(no_new_actions=true)` を、既存の [M-PIPE-MAIN] advanceStep に
-// 常にPASSを返す DecisionProvider を渡す形でそのまま再利用する。
+// `advance_one_step(no_new_actions=true)` を、既存の [M-PIPE-MAIN] の《処理1》〜《処理7》と
+// ステップ境界の一斉加算でそのまま再利用する。新規行動を入れない《処理8》（全ユニットがパス）は
+// ステートを変えないため実行しない（advanceStep に常にPASSを返す決定主体を渡した場合と同じ結果になる）。
 
-import { executableActions, type DecisionProvider } from '../engine/decision.js';
+import { hasExecutableAction } from '../engine/decision.js';
 import { decayAp } from '../engine/calc.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveDecayApRateCenti, effectiveStepStartup } from '../engine/effective.js';
-import { advanceStep, type StepDeps } from '../engine/pipeline/step.js';
+import { runPreDecision, type StepDeps } from '../engine/pipeline/step.js';
+import { runStepEnd } from '../engine/pipeline/stepend.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { ActionInstance, BattleState, Side, Unit } from '../engine/types.js';
-import { cloneState } from './clone.js';
+import { cloneUnit } from './clone.js';
 
 // [A-SEARCH-QUIESCE]「トレースの記録内容」。APTrace（現在AP・実効防御力）と PosTrace（現在位置）
 // を同一ステップ添字で対応づけて1構造にまとめる（[A-EVAL-TTK] は両者を組で参照するため）。
@@ -45,8 +47,6 @@ export interface FirstDecision {
   readonly mine: Unit;
   readonly foe: Unit;
 }
-
-const alwaysPass: DecisionProvider = () => ({ kind: 'PASS' });
 
 function snapshotFrame(state: BattleState): QuiesceFrame {
   const frame: Record<string, QuiesceSample> = {};
@@ -113,12 +113,13 @@ function computeQMaxSteps(state: BattleState): number {
 
 // [A-SEARCH-QUIESCE]［決着の確認］延長の各時点で決定点（[A-SEARCH-NODE]：思考中かつ実行可能な
 // 候補アクションを持つ生存ユニット）を持つ陣営を記録する。
+// 記録は真へ変わるのみであるため、記録済みの陣営は判定しない。
 function markDecisionPoints(state: BattleState, decided: { MINE: boolean; FOE: boolean }): void {
   for (const unit of state.units) {
-    if (unit === null || unit.state !== 'THOUGHT') {
+    if (unit === null || unit.state !== 'THOUGHT' || decided[unit.side]) {
       continue;
     }
-    if (executableActions(state, unit).length > 0) {
+    if (hasExecutableAction(state, unit)) {
       decided[unit.side] = true;
     }
   }
@@ -135,7 +136,7 @@ function markFirstDecision(state: BattleState, index: number, first: Record<Side
       continue;
     }
     const master = masterOf(state, side);
-    if (master === undefined || master.state !== 'THOUGHT' || executableActions(state, master).length === 0) {
+    if (master === undefined || !hasExecutableAction(state, master)) {
       continue;
     }
     const mine = masterOf(state, 'MINE');
@@ -143,7 +144,7 @@ function markFirstDecision(state: BattleState, index: number, first: Record<Side
     if (mine === undefined || foe === undefined) {
       continue;
     }
-    first[side] = { index, mine: cloneState(mine), foe: cloneState(foe) };
+    first[side] = { index, mine: cloneUnit(mine), foe: cloneUnit(foe) };
   }
 }
 
@@ -160,7 +161,8 @@ export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult
     if (isQuiescentState(state)) {
       break;
     }
-    const { outcome } = advanceStep(state, alwaysPass, deps);
+    const outcome = runPreDecision(state, deps);
+    runStepEnd(state);
     trace.push(snapshotFrame(state));
     if (outcome !== 'NONE') {
       return { trace, outcome, decided, firstDecision };

@@ -11,12 +11,12 @@ import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Unit } from '../engine/types.js';
-import { executableActions, isActionExecutable } from '../engine/decision.js';
+import { hasExecutableAction, isActionExecutable } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveAtk, effectiveRange } from '../engine/effective.js';
 import { applyMove } from './apply.js';
 import { lookupBook } from './book.js';
-import { cloneState } from './clone.js';
+import { cloneBattleState } from './clone.js';
 import { INF, MATE_TH, TTK_MAX } from './constants.js';
 import { evaluateLeafPosition, mateScore, quiescenceMateScore } from './evaluate.js';
 import { generateMoves, moveBonusOf, reswapPenaltyOf, type AiMove } from './movegen.js';
@@ -143,7 +143,7 @@ function evaluateLeaf(
   // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、決定点1つ分だけ
   // 延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
   if (extendable && leaf.refutableSettlement && ctx.verified !== true) {
-    return searchStep(cloneState(state), { ...ctx, verified: true }, 1, ply, passed, waits);
+    return searchStep(cloneBattleState(state), { ...ctx, verified: true }, 1, ply, passed, waits);
   }
   return leaf.value;
 }
@@ -274,7 +274,7 @@ function partnerMovesAfter(clone: BattleState, partnerId: string | null, applied
     return [];
   }
   const partner = clone.units.find((unit): unit is Unit => unit !== null && unit.unit_id === partnerId);
-  if (partner === undefined || partner.state !== 'THOUGHT' || executableActions(clone, partner).length === 0) {
+  if (partner === undefined || !hasExecutableAction(clone, partner)) {
     return [];
   }
   return generateMoves(clone, partner, ctx.prof.waitMoves).map((move) => ({ unit: partner, move, outcome: 'NONE' }));
@@ -336,7 +336,7 @@ function rankMoves(
   };
 
   for (const move of moves) {
-    const clone = cloneState(state);
+    const clone = cloneBattleState(state);
     const applied = applyToClone(clone, unit.unit_id, move, ctx.deps, passedUnitIds, waits);
     const partnerMoves = partnerMovesAfter(clone, partnerId, applied, ctx);
     if (partnerMoves.length === 0) {
@@ -354,7 +354,7 @@ function rankMoves(
     let closed = false;
     for (const partner of partnerMoves) {
       consumeNode(ctx.budget);
-      const pairClone = cloneState(clone);
+      const pairClone = cloneBattleState(clone);
       const pairApplied = applyToClone(pairClone, partner.unit.unit_id, partner.move, ctx.deps, applied.passed, applied.waits);
       let value = childValue(pairClone, pairApplied);
       if (ply === 0) {

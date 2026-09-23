@@ -17,6 +17,8 @@
 // 書き込みは時間停止判定とプレイヤーの操作（src/engine/game/）に限られ、探索が進める《処理1》〜《処理7》
 // と手の適用は触れない。
 
+import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
+
 // 参照のまま渡すキー。ActionInstance.base_params / merge_params / sys_flags、
 // LastActionSnapshot.params / sys_flags、BattleState.watching / watch_prev_met が該当する。
 // 複製のたびに全キーで判定するため、配列の走査ではなく比較で判定する。
@@ -49,4 +51,34 @@ export function cloneState<T>(value: T): T {
     return copy as unknown as T;
   }
   return value;
+}
+
+// 探索の枝ごとの複製（BattleState 専用）。cloneState と同じ値を返すが、構造を既知として
+// 変更されうる部分だけを複製する。バトル中の書き込みの形は次のとおりであり、これに従って共有範囲を定める。
+// - 要素ごと書き換える：units、各ユニットの acts・buff・debuff、各アクションの可変値、mirror_tally.counts
+// - 値を丸ごと差し替える（記録の辞書だけを複製し、値は共有）：instant_used・ai_reuse の各値
+// - バトル中に書き込まない（共有）：last_act（実行確定のたびに新しいスナップショットへ差し替える）、
+//   pause_reason、mirror_snapshot、および cloneState と同じ共有キー
+// 共有しない入れ子のオブジェクトが残っていないことは tests/ai/clone.test.ts の独立性検査が担保する。
+export function cloneBattleState(state: BattleState): BattleState {
+  const units = new Array<Unit | null>(state.units.length);
+  for (let index = 0; index < state.units.length; index += 1) {
+    const unit = state.units[index];
+    units[index] = unit === null ? null : cloneUnit(unit);
+  }
+  return {
+    ...state,
+    units,
+    instant_used: { ...state.instant_used },
+    ai_reuse: { ...state.ai_reuse },
+    mirror_tally: { ...state.mirror_tally, counts: [...state.mirror_tally.counts] },
+  };
+}
+
+export function cloneUnit(unit: Unit): Unit {
+  const acts = new Array<ActionInstance>(unit.acts.length);
+  for (let index = 0; index < unit.acts.length; index += 1) {
+    acts[index] = { ...unit.acts[index] };
+  }
+  return { ...unit, acts, buff: { ...unit.buff }, debuff: { ...unit.debuff } };
 }

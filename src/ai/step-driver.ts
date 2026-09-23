@@ -5,7 +5,7 @@
 // このため探索の再帰（[src/ai/search.ts]）は runP8Decision を経由せず、本モジュールが提供する
 // 「次の思考中ユニットを1体返す」問い合わせと組み合わせて値を持つ再帰を組み立てる。
 
-import { executableActions } from '../engine/decision.js';
+import { hasExecutableAction } from '../engine/decision.js';
 import { runP1Freeze } from '../engine/pipeline/p1-freeze.js';
 import { runP2Apply, type P2Deps } from '../engine/pipeline/p2-apply.js';
 import { runP3Recovery } from '../engine/pipeline/p3-recovery.js';
@@ -49,7 +49,7 @@ export function firstPendingUnit(state: BattleState, passedUnitIds: readonly str
       unit !== null &&
       unit.state === 'THOUGHT' &&
       !passedUnitIds.includes(unit.unit_id) &&
-      executableActions(state, unit).length > 0,
+      hasExecutableAction(state, unit),
   );
   const order: readonly Unit['side'][] = mineFirst ? ['MINE', 'FOE'] : ['FOE', 'MINE'];
   for (const side of order) {
@@ -72,7 +72,7 @@ export function isStalled(state: BattleState): boolean {
       return false;
     }
     const matured: Unit = { ...unit, elapsed_thought: Number.MAX_SAFE_INTEGER };
-    return executableActions(state, matured).length === 0;
+    return !hasExecutableAction(state, matured);
   });
 }
 

@@ -1,7 +1,7 @@
 // [I-STATE-JSON] 探索器の複製がJSON往復と同じ結果を返すことを検査する。
 import { describe, expect, it } from 'vitest';
-import { cloneState } from '../../src/ai/clone.js';
-import { createDuel, findUnit, makeAction, martialAction, setRecovery, NO_SUMMON_DEPS } from './fixtures.js';
+import { cloneBattleState, cloneState, cloneUnit } from '../../src/ai/clone.js';
+import { createDuel, findUnit, makeAction, martialAction, placeUnit, setRecovery, NO_SUMMON_DEPS } from './fixtures.js';
 import { advanceStep } from '../../src/engine/pipeline/step.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { referenceProfile } from '../../src/ai/profile.js';
@@ -80,5 +80,97 @@ describe('[M-STATE-ACTION] バトル中の静的パラメータの不変性', ()
         return;
       }
     }
+  });
+});
+
+// 構造を既知とした探索用の複製（src/ai/clone.ts cloneBattleState）。
+describe('[I-STATE-JSON] BattleState 専用の複製', () => {
+  // 可変部分をひととおり持つ局面：クリーチャー、実行中アクション、停止事由、再探索抑制の記録、即時型の使用記録、鏡像統計。
+  function richState() {
+    const state = createDuel({
+      heroMaxHp: 60,
+      heroActs: [martialAction('ACT_SLASH', { step_thought: 10 }), makeAction('ACT_GUARD', { deploy_ap: 20 })],
+      enemyMaxHp: 40,
+      enemyActs: [martialAction('ACT_HEAVY', { step_startup: 9, stun: true })],
+    });
+    setRecovery(findUnit(state, 'FOE'), 'ACT_HEAVY', 4, 1);
+    placeUnit(state, {
+      side: 'FOE',
+      kind: 'CREATURE',
+      pos: 3,
+      maxHp: 10,
+      acts: [martialAction('ACT_BITE', {})],
+      counter: { instance_id_seq: 500 },
+    });
+    findUnit(state, 'MINE').buff.atk = 20;
+    state.pause_reason = { code: 'MANUAL_PAUSE', unit_id: null, instance_id: null, watch_kind: null, remaining_steps: null };
+    state.ai_reuse = { U0001: { hash: 1, until: 10, executable: ['IID0001'] } };
+    state.instant_used = { U0000: ['ACT_SLASH'] };
+    state.mirror_tally.counts[0] = 3;
+    syncWatchKeys(state);
+    return state;
+  }
+
+  // 参照を共有してよいキー。これ以外の入れ子のオブジェクト・配列は複製されていなければならない。
+  const SHARED = new Map<string, 'SHARED' | 'VALUES_SHARED'>([
+    ['base_params', 'SHARED'],
+    ['merge_params', 'SHARED'],
+    ['sys_flags', 'SHARED'],
+    ['last_act', 'SHARED'],
+    ['watching', 'SHARED'],
+    ['watch_prev_met', 'SHARED'],
+    ['pause_reason', 'SHARED'],
+    ['mirror_snapshot', 'SHARED'],
+    ['instant_used', 'VALUES_SHARED'],
+    ['ai_reuse', 'VALUES_SHARED'],
+  ]);
+
+  function unsharedViolations(copy: unknown, source: unknown, path: string, out: string[]): void {
+    if (copy === null || typeof copy !== 'object') {
+      return;
+    }
+    if (copy === source) {
+      out.push(path);
+      return;
+    }
+    for (const key of Object.keys(copy)) {
+      const rule = SHARED.get(key);
+      const child = (copy as Record<string, unknown>)[key];
+      const original = (source as Record<string, unknown>)[key];
+      if (rule === 'SHARED') {
+        continue;
+      }
+      if (rule === 'VALUES_SHARED') {
+        if (child === original) {
+          out.push(`${path}.${key}`);
+        }
+        continue;
+      }
+      unsharedViolations(child, original, `${path}.${key}`, out);
+    }
+  }
+
+  it('JSON往復と一致する', () => {
+    const state = richState();
+    expect(cloneBattleState(state)).toEqual(jsonClone(state));
+  });
+
+  it('共有を定めたキー以外の入れ子のオブジェクト・配列はすべて複製する', () => {
+    const state = richState();
+    const violations: string[] = [];
+    unsharedViolations(cloneBattleState(state), state, 'state', violations);
+    expect(violations).toEqual([]);
+  });
+
+  it('ユニットの複製は元のユニットと独立である', () => {
+    const state = richState();
+    const hero = findUnit(state, 'MINE');
+    const copy = cloneUnit(hero);
+    copy.buff.atk = 0;
+    copy.acts[0].uses_left -= 1;
+    copy.acts.pop();
+    expect(hero.buff.atk).toBe(20);
+    expect(hero.acts).toHaveLength(2);
+    expect(hero.acts[0].uses_left).not.toBe(copy.acts[0].uses_left);
   });
 });

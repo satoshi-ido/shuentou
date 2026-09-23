@@ -9,7 +9,7 @@
 // 時間停止トリガーの #3（UI監視トグル）は [M-UI-WATCH] の判定を用い、#4（手動停止）は stopAtStep で与える。
 // 停止事由は BattleState の pause_reason に記録する（[M-DATA-PAUSE-REASON]）。
 
-import { executableActions, type DecisionProvider } from '../decision.js';
+import { executableActions, hasExecutableAction, type DecisionProvider } from '../decision.js';
 import { createBattleState } from '../battle.js';
 import { instantiateActionList } from '../instantiate.js';
 import type { BattleOutcome } from '../pipeline/p5-discard.js';
@@ -86,7 +86,7 @@ function hasMaster(state: BattleState, side: Unit['side']): boolean {
 // ［停止の継続と解除］手動指示可能な思考中の自軍ユニット。
 function instructableUnits(state: BattleState): Unit[] {
   return state.units.filter(
-    (unit): unit is Unit => unit !== null && unit.side === 'MINE' && executableActions(state, unit).length > 0,
+    (unit): unit is Unit => unit !== null && unit.side === 'MINE' && hasExecutableAction(state, unit),
   );
 }
 
