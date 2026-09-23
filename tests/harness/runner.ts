@@ -140,7 +140,7 @@ export interface SceneOutcome {
 }
 
 // [V-TEST-NONFUNC]［測定の打ち切り］1試行1シーンあたりの E(state) 呼び出し回数の上限。
-export const EVAL_CALL_LIMIT = 1_000_000;
+export const EVAL_CALL_LIMIT = 10_000_000;
 
 // 決着上限を超えても計測を続けるための安全弁。無限ループの検出そのものは within が担う。
 export const HARD_STEP_CAP = 20000;

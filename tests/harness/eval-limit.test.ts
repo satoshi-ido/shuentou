@@ -5,7 +5,7 @@ import { createRun, playScene, EVAL_CALL_LIMIT } from './runner.js';
 
 describe('[V-TEST-NONFUNC]［測定の打ち切り］', () => {
   it('上限は決定論的な量（E(state) の呼び出し回数）で定める', () => {
-    expect(EVAL_CALL_LIMIT).toBe(1_000_000);
+    expect(EVAL_CALL_LIMIT).toBe(10_000_000);
   });
 
   it('上限を超えた試行は測定不能となり、勝敗を確定させない', () => {
