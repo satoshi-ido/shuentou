@@ -316,7 +316,7 @@ function rankMoves(
   // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。
   // [A-PROFILE-BONUS] 再交代の減点も根の手の選好として同じく加算する。
   const rootBonus = (before: BattleState, actor: Unit, move: AiMove): number => {
-    const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(before, actor, move);
+    const bonus = moveBonusOf(move, ctx.prof) + reswapPenaltyOf(before, actor, move, ctx.prof);
     return actor.side === 'FOE' ? bonus : -bonus;
   };
   // 窓を更新し、閉じたら true を返す。

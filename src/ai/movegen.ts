@@ -8,7 +8,6 @@ import { executableActions, isInstant } from '../engine/decision.js';
 import { hasFlag } from '../engine/flags.js';
 import { partnerOf } from '../engine/resolve/partner.js';
 import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
-import { RESWAP_PENALTY, RESWAP_WINDOW_STEPS } from './constants.js';
 import { actionBonusOf, type ActionTag, type EffectiveProfile } from './profile.js';
 
 // WAIT は待機手（[A-SEARCH-MOVEGEN]）。適用・約定・発射は [A-SEARCH-NODE]［待機手の約定］に従い、探索器が扱う。
@@ -100,26 +99,27 @@ export function moveBonusOf(move: AiMove, prof: EffectiveProfile): number {
   return total;
 }
 
-// 隊列交代で思考中へ着地してから RESWAP_WINDOW_STEPS 未満のユニット。
-function swappedRecently(unit: Unit | null): boolean {
+// 隊列交代の後に他のアクションを実行していない思考中のユニット（経過したステップ数を問わない）。
+function unmovedSinceSwap(unit: Unit | null): boolean {
   return (
     unit !== null &&
     unit.state === 'THOUGHT' &&
     unit.last_act !== null &&
-    hasFlag(unit.last_act.sys_flags, 'FLAG_SWAP') &&
-    unit.elapsed_thought < RESWAP_WINDOW_STEPS
+    hasFlag(unit.last_act.sys_flags, 'FLAG_SWAP')
   );
 }
 
-// [A-PROFILE-BONUS] 再交代：直前のステップで交代した組（実行者または相方）による隊列交代。交代と戻しの
-// 2手は局面を変えずにパスの減点を回避できるため、パスと同じ減点を課す（同点は [A-TIE-BREAK] の生成順による）。
+// [A-PROFILE-BONUS]［再交代の減点］再交代：交代の後に他のアクションを実行していないユニット（実行者または相方）を
+// 含む組の隊列交代。交代と戻しの繰り返しは局面を変えずにパスの減点を回避し、相方の経過思考を0へ戻し続けるため、
+// パスより1だけ大きい減点を課して、評価がパスを上回る場合に限り選ばれるようにする。
 export function isReswap(state: BattleState, unit: Unit, move: AiMove): boolean {
   if (move.kind !== 'ACT' || !hasFlag(move.action.sys_flags, 'FLAG_SWAP')) {
     return false;
   }
-  return swappedRecently(unit) || swappedRecently(partnerOf(state.units, unit));
+  return unmovedSinceSwap(unit) || unmovedSinceSwap(partnerOf(state.units, unit));
 }
 
-export function reswapPenaltyOf(state: BattleState, unit: Unit, move: AiMove): number {
-  return isReswap(state, unit, move) ? RESWAP_PENALTY : 0;
+// 再交代の減点 = 当該プロファイルの PASS の値 − 1（プロファイルの上書きを含む）。
+export function reswapPenaltyOf(state: BattleState, unit: Unit, move: AiMove, prof: EffectiveProfile): number {
+  return isReswap(state, unit, move) ? actionBonusOf(prof, 'PASS') - 1 : 0;
 }

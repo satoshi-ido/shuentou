@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../src/engine/types.js';
 import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import { applyMove } from '../../src/ai/apply.js';
-import { BONUS_DEFAULT_PASS, RESWAP_PENALTY } from '../../src/ai/constants.js';
+import { BONUS_DEFAULT_PASS } from '../../src/ai/constants.js';
+import { defaultProfile } from '../../src/ai/profile.js';
 import { generateMoves, isReswap, reswapPenaltyOf, tagsOf, type AiMove } from '../../src/ai/movegen.js';
 import { createDuel, makeAction, martialAction, moveUnit, NO_SUMMON_DEPS, placeUnit } from './fixtures.js';
 
@@ -57,25 +58,35 @@ describe('[A-PROFILE-BONUS] 再交代の判定', () => {
     return { state, master, creature, swapOf };
   }
 
-  it('直前のステップで交代した実行者の隊列交代は再交代とし、パスと同じ減点を課す', () => {
+  it('交代の後に他のアクションを実行していない実行者の隊列交代は再交代とし、パスより1大きい減点を課す', () => {
     const { state, creature, swapOf } = afterSwap(1);
-    expect(creature.elapsed_thought).toBe(1);
     expect(isReswap(state, creature, swapOf(creature))).toBe(true);
-    expect(RESWAP_PENALTY).toBe(BONUS_DEFAULT_PASS);
-    expect(reswapPenaltyOf(state, creature, swapOf(creature))).toBe(RESWAP_PENALTY);
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), defaultProfile())).toBe(BONUS_DEFAULT_PASS - 1);
   });
 
-  it('相方が直前のステップで交代した場合も再交代とする', () => {
+  it('減点はプロファイルのパスの値（上書きを含む）に従う', () => {
+    const { state, creature, swapOf } = afterSwap(1);
+    const prof = { ...defaultProfile(), actionBonus: { PASS: -700 } };
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), prof)).toBe(-701);
+  });
+
+  it('相方が交代の後に他のアクションを実行していない場合も再交代とする', () => {
     const { state, master, swapOf } = afterSwap(1);
     expect(isReswap(state, master, swapOf(master))).toBe(true);
   });
 
-  it('交代から2ステップ以上経過した組の隊列交代は再交代としない', () => {
-    const { state, master, creature, swapOf } = afterSwap(2);
-    expect(creature.elapsed_thought).toBe(2);
+  it('経過したステップ数を問わず再交代とする（3ステップごとの往復も捉える）', () => {
+    const { state, master, creature, swapOf } = afterSwap(40);
+    expect(creature.elapsed_thought).toBe(40);
+    expect(isReswap(state, creature, swapOf(creature))).toBe(true);
+    expect(isReswap(state, master, swapOf(master))).toBe(true);
+  });
+
+  it('交代の後に他のアクションを実行した組の隊列交代は再交代としない', () => {
+    const { state, creature, swapOf } = afterSwap(1);
+    creature.last_act = { ...creature.last_act!, class_id: 'ACT_WAIT', sys_flags: [] };
     expect(isReswap(state, creature, swapOf(creature))).toBe(false);
-    expect(isReswap(state, master, swapOf(master))).toBe(false);
-    expect(reswapPenaltyOf(state, creature, swapOf(creature))).toBe(0);
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), defaultProfile())).toBe(0);
   });
 
   it('隊列交代以外の手とパスは再交代としない', () => {
