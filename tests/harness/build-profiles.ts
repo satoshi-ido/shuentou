@@ -36,6 +36,7 @@ import {
   chooseByRole,
   chooseInherit,
   chooseMindRefill,
+  missingBreaker,
   createRun,
   HARD_STEP_CAP,
   MASTERS,
@@ -361,13 +362,14 @@ const HP_GAIN_SINCE = new WeakMap<object, number>();
 const isRanged = (record: ActionRecord): boolean => !record.is_root && record.params.range >= 2 && record.params.atk > 0;
 
 // [V-TEST-REFAI] 戦闘方針の維持規則。インターミッション開始時の判定を保持し、枠ごとに維持の対象を返す
-// （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → リソース生成手段 →
+// （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → 壁割り → リソース生成手段 →
 // 射程の順に優先する。バランス型は枠ごとに［役割充足による選択］を判定する。
 export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy) {
   const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
   const since = HP_GAIN_SINCE.get(run) ?? 0;
   let hpGained = false;
   let raiseHp = run.hero_max_hp < hpBase;
+  let needBreaker = missingBreaker(run);
   let refillMind = mindUsesLeft(run) <= 1;
   let needRange = !holds(run, isRanged);
   return {
@@ -383,6 +385,15 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
         const hp = maxHp(pool);
         if (hp !== null) {
           return hp;
+        }
+      }
+      // [V-TEST-REFAI]［壁割りの維持］
+      if (needBreaker !== null) {
+        const breakerId = needBreaker;
+        needBreaker = null;
+        const breaker = pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === breakerId);
+        if (breaker !== undefined) {
+          return breaker;
         }
       }
       if (refillMind) {

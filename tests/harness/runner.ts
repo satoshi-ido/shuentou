@@ -346,6 +346,20 @@ export function breakerForScene(sceneId: string): string | null {
   return best?.class_id ?? null;
 }
 
+// [V-TEST-REFAI]［壁割りの維持］次に挑むシーンのカバー区間を担当する壁割りを、残り使用回数2以上で
+// 保持していないとき、そのクラスID。保持している、または担当がないときは null。
+export function missingBreaker(run: {
+  current_scene_id: string;
+  hero_acts: readonly { master_ref: string; uses_left: number }[];
+}): string | null {
+  const breakerId = breakerForScene(run.current_scene_id);
+  if (breakerId === null) {
+    return null;
+  }
+  const held = run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, ROLE_BREAKER_USES));
+  return held ? null : breakerId;
+}
+
 // 反復射程：射程2以上の武技のうち、マスター根源武技と壁割り担当を除くもの。
 function isSustainedRanged(record: ActionRecord): boolean {
   return (
@@ -524,15 +538,21 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       });
     let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
     let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
+    // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する。
+    let needBreaker = missingBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
       const pool = inheritPool(run, MASTERS);
       const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
-      const refill = hp === null && refillMind ? chooseMindRefill(pool) : null;
+      const breaker =
+        hp === null && needBreaker !== null
+          ? (pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === needBreaker) ?? null)
+          : null;
+      const refill = hp === null && breaker === null && refillMind ? chooseMindRefill(pool) : null;
       const ranged =
-        hp === null && refill === null && needRange
+        hp === null && breaker === null && refill === null && needRange
           ? (pool
               .filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION')
               .filter((entry) => {
@@ -546,12 +566,14 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
                 return a > b ? entry : best;
               }, null) ?? null)
           : null;
-      const target = hp ?? refill ?? ranged ?? chooseInherit(pool, policy, turn);
+      const target = hp ?? breaker ?? refill ?? ranged ?? chooseInherit(pool, policy, turn);
       if (target === null) {
         continue;
       }
       if (hp !== null) {
         raiseHp = false;
+      } else if (breaker !== null) {
+        needBreaker = null;
       } else if (refill !== null) {
         refillMind = false;
       } else if (ranged !== null) {

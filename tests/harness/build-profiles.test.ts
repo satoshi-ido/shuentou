@@ -204,6 +204,32 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
     expect(maintenanceRules(runOf(10_000, [MIND, RANGED]), 'DEFENSE').next(pool)).toBeNull();
   });
+
+  // [V-TEST-REFAI]［壁割りの維持］2-01 の後（次に挑むシーンは 2-02。担当は ACT_SPEC_BREAK_VOLG）。
+  const BREAKER = 'ACT_SPEC_BREAK_VOLG';
+  const runBefore202 = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
+    ({ current_scene_id: 'SCENE_2_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs }) as never;
+  const breakerPool = [action('ACT_HEAVY_AR117'), action(BREAKER), action('ACT_MIND_AR12'), MAX_HP];
+
+  it('攻撃型・防御型は次のシーンの壁割りを保持しなければ1枠だけ当該アクションを選ぶ', () => {
+    for (const policy of ['ATTACK', 'DEFENSE'] as const) {
+      const rules = maintenanceRules(runBefore202(10_000, [MIND, RANGED]), policy);
+      expect(rules.next(breakerPool)).toEqual(action(BREAKER));
+      expect(rules.next(breakerPool)).toBeNull();
+    }
+  });
+
+  it('壁割りの維持は体力の維持に劣後する', () => {
+    const rules = maintenanceRules(runBefore202(60, [MIND, RANGED]), 'ATTACK');
+    expect(rules.next(breakerPool)).toEqual(MAX_HP);
+    expect(rules.next(breakerPool)).toEqual(action(BREAKER));
+  });
+
+  it('壁割りを残り使用回数2以上で保持していれば選ばず、1回以下なら選ぶ', () => {
+    const withUses = (uses: number) => maintenanceRules(runBefore202(10_000, [MIND, RANGED, held(BREAKER, uses)]), 'ATTACK');
+    expect(withUses(2).next(breakerPool)).toBeNull();
+    expect(withUses(1).next(breakerPool)).toEqual(action(BREAKER));
+  });
 });
 
 describe('[V-TEST-BUILD-METRICS] merge_max', () => {
