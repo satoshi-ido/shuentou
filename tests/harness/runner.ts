@@ -426,8 +426,8 @@ export function chooseByRole(
       return best.entry;
     }
   }
-  // 4. 心気
-  if (mindUsesLeft(run) < ROLE_MIND_USES) {
+  // 4. 心気（残り使用回数、または心気1回の出力が次の壁割りに足りないとき）
+  if (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, pool)) {
     const mind = chooseMindRefill(pool);
     if (mind !== null) {
       return mind;
@@ -452,22 +452,62 @@ export function mindUsesLeft(run: { hero_acts: readonly { sys_flags: readonly st
   return total;
 }
 
-// 継承プールの FLAG_MIND を持つ項目のうち加算VPが最大のもの（同値ならプールの走査順で最初のもの）。
+// 心気1回（VP 0 から）で得る PP の100倍：gain_vp × charge_pp（centi）。[M-RESOLVE-MIND] の PP = VP × 充填率による。
+function mindYieldCenti(classId: string): number {
+  const record = ACTION_MASTERS[classId as keyof typeof ACTION_MASTERS];
+  if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
+    return -1;
+  }
+  return record.params.gain_vp * record.params.charge_pp;
+}
+
+// 継承プールの FLAG_MIND を持つ項目のうち、心気1回の PP が最大のもの（同値ならプールの走査順で最初のもの）。
 export function chooseMindRefill(pool: readonly InheritTarget[]): InheritTarget | null {
-  let best: { target: InheritTarget; gainVp: number } | null = null;
+  let best: { target: InheritTarget; yieldCenti: number } | null = null;
   for (const target of pool) {
     if (target.kind !== 'ACTION') {
       continue;
     }
-    const record = ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS];
-    if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
+    const yieldCenti = mindYieldCenti(target.class_id);
+    if (yieldCenti < 0) {
       continue;
     }
-    if (best === null || record.params.gain_vp > best.gainVp) {
-      best = { target, gainVp: record.params.gain_vp };
+    if (best === null || yieldCenti > best.yieldCenti) {
+      best = { target, yieldCenti };
     }
   }
   return best?.target ?? null;
+}
+
+// [V-TEST-REFAI]［心気の出力］保持する心気のいずれも、次に挑むシーンの壁割り担当の PP コストを心気1回
+// （VP 0 から）で賄えず、かつ継承プールに、より出力が高く MIND_SHORT_USES 回で賄える心気があるとき真。
+const MIND_SHORT_USES = 2;
+export function mindShort(
+  run: { current_scene_id: string; hero_acts: readonly { master_ref: string; uses_left: number }[] },
+  pool: readonly InheritTarget[],
+): boolean {
+  const breakerId = breakerForScene(run.current_scene_id);
+  const breaker = breakerId === null ? undefined : ACTION_MASTERS[breakerId as keyof typeof ACTION_MASTERS];
+  if (breaker === undefined) {
+    return false;
+  }
+  let held = -1;
+  for (const act of run.hero_acts) {
+    if (act.uses_left !== 0) {
+      held = Math.max(held, mindYieldCenti(act.master_ref));
+    }
+  }
+  if (held >= breaker.params.cost_pp * 100) {
+    return false;
+  }
+  const offer = chooseMindRefill(pool);
+  if (offer === null || offer.kind !== 'ACTION') {
+    return false;
+  }
+  // 出力が上回り、かつ2回で壁割りの PP コストを賄える心気に限る（VP は心気のたびに累積する）。
+  // 出力が上回るだけの心気まで選ぶと、壁割りに届かない小刻みな更新が継承枠を占め、他の役割が痩せる。
+  const offered = mindYieldCenti(offer.class_id);
+  return offered > held && offered * MIND_SHORT_USES >= breaker.params.cost_pp * 100;
 }
 
 // [V-TEST-REFAI]［供犠の実行］対象は同行従者のうち従者01（リナ）以外を従者ID降順に並べた先頭。
@@ -543,7 +583,8 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         return master !== undefined && !master.is_root && master.params.range >= 2 && master.params.atk > 0;
       });
     let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
-    let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
+    let refillMind =
+      (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) <= 1 || mindShort(run, inheritPool(run, MASTERS)));
     // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する。
     let needBreaker = missingBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {

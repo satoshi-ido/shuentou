@@ -4,7 +4,14 @@ import { describe, expect, it } from 'vitest';
 import type { InheritTarget } from '../../src/engine/progress/inherit.js';
 import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
 import { referenceProfile } from '../../src/ai/profile.js';
-import { battleProfileFor, breakerForScene, chooseByRole, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
+import {
+  battleProfileFor,
+  breakerForScene,
+  chooseByRole,
+  chooseMindRefill,
+  mindShort,
+  ROLE_HP_STALE_INTERMISSIONS,
+} from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const held = (masterRef: string, usesLeft: number, sysFlags: string[] = []) => ({
@@ -77,5 +84,27 @@ describe('[V-TEST-REFAI]「体勢への減点」の方針別の適用', () => {
     for (const policy of ['ATTACK', 'BALANCE'] as const) {
       expect(battleProfileFor(policy, base)).toBe(base);
     }
+  });
+});
+
+describe('[V-TEST-REFAI]［心気の出力］', () => {
+  // 3-01 の後（次に挑むシーンは 3-02。壁割り担当 ACT_SPEC_BREAK_ASHAL の PP コスト12）。
+  const runBefore302 = (heroActs: ReturnType<typeof held>[]) => ({ current_scene_id: 'SCENE_3_02', hero_acts: heroActs });
+  const HELD_AR4 = held('ACT_MIND_AR4', 30, ['FLAG_MIND']); // 心気1回の PP 2.32
+
+  it('保持する心気で壁割りを賄えず、2回で賄える高出力の心気がプールにあれば不足とする', () => {
+    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR12')])).toBe(true); // 8.04 × 2 ≥ 12
+  });
+
+  it('プールの心気が2回でも賄えない小刻みな更新であれば不足としない', () => {
+    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR9')])).toBe(false); // 5.22 × 2 < 12
+  });
+
+  it('保持する心気が1回で壁割りを賄えれば不足としない', () => {
+    expect(mindShort(runBefore302([held('ACT_MIND_AR19', 30, ['FLAG_MIND'])]), [action('ACT_MIND_AR24')])).toBe(false); // 12.65 ≥ 12
+  });
+
+  it('プールの心気は心気1回の PP が最大のものを選ぶ', () => {
+    expect(chooseMindRefill([action('ACT_MIND_AR9'), action('ACT_MIND_AR12'), action('ACT_MIND_AR8')])).toEqual(action('ACT_MIND_AR12'));
   });
 });

@@ -37,6 +37,7 @@ import {
   chooseInherit,
   chooseMindRefill,
   missingBreaker,
+  mindShort,
   createRun,
   HARD_STEP_CAP,
   MASTERS,
@@ -370,7 +371,7 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
   let hpGained = false;
   let raiseHp = run.hero_max_hp < hpBase;
   let needBreaker = missingBreaker(run);
-  let refillMind = mindUsesLeft(run) <= 1;
+  let refillMind = mindUsesLeft(run) <= 1 || mindShort(run, inheritPool(run, MASTERS));
   let needRange = !holds(run, isRanged);
   return {
     next(pool: readonly InheritTarget[]): InheritTarget | null {
