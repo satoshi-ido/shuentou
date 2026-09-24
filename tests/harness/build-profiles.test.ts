@@ -12,6 +12,7 @@ import {
   coefficientScore,
   maintenanceRules,
   mergeMax,
+  playBuildRunWithRetry,
   type AllocContext,
 } from './build-profiles.js';
 
@@ -244,5 +245,16 @@ describe('[V-TEST-BUILD-METRICS] merge_max', () => {
 
   it('継承がなければ値を持たない', () => {
     expect(mergeMax([])).toBeNull();
+  });
+});
+
+describe('[V-TEST-BUILD-PROPERTY] 1 再挑戦込みの通しプレイ', () => {
+  it('突破したシーンは再挑戦せず、挑戦回数と決着させた摂動を記録する', () => {
+    const run = playBuildRunWithRetry(buildProfileOf('BP-01'), 1);
+    expect(run.completed).toBe(true);
+    expect(run.scenes).toHaveLength(1);
+    expect(run.scenes[0].outcome.result).toBe('WIN');
+    expect(run.scenes[0].attempts).toBe(1);
+    expect(run.scenes[0].profileId).toBe('BASE');
   });
 });

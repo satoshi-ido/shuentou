@@ -32,6 +32,7 @@ import { isActTransition, refillCapacity, refillPool } from '../../src/engine/pr
 import { sceneByOrder } from '../../src/engine/run/masters.js';
 import type { BattleState } from '../../src/engine/types.js';
 import { referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
+import { playSceneWithRetry, type SceneAttempts } from './perturb.js';
 import {
   chooseByRole,
   chooseInherit,
@@ -582,6 +583,33 @@ export function playBuildRun(
       break;
     }
     mergeBefore = playBuildIntermission(session, ctx, profile, turn).mergeMax;
+  }
+  return { profileId: profile.id, scenes, completed: true };
+}
+
+export interface BuildRetryRunOutcome {
+  readonly profileId: string;
+  readonly scenes: readonly SceneAttempts[];
+  // 1-01〜lastOrder を突破したか。false のとき、scenes の末尾が詰んだシーン（21件すべてで突破できない）。
+  readonly completed: boolean;
+}
+
+// [V-TEST-BUILD-PROPERTY] 1（完走性）の再挑戦込みの通しプレイ。敗北したシーンは重み摂動の次の件へ切り替えて
+// バトル開始時ロールバックで再挑戦し（[V-TEST-NONFUNC] D-13 と同じ手段：playSceneWithRetry）、21件すべてで
+// 突破できないシーンで打ち切る。
+export function playBuildRunWithRetry(profile: BuildProfile, lastOrder = 30): BuildRetryRunOutcome {
+  const { session, ctx } = createRun();
+  const scenes: SceneAttempts[] = [];
+  for (let turn = 0; turn < lastOrder; turn += 1) {
+    const attempt = playSceneWithRetry(session, ctx, profile.policy);
+    scenes.push(attempt);
+    if (attempt.outcome.result !== 'WIN') {
+      return { profileId: profile.id, scenes, completed: false };
+    }
+    if (turn + 1 >= lastOrder) {
+      break;
+    }
+    playBuildIntermission(session, ctx, profile, turn);
   }
   return { profileId: profile.id, scenes, completed: true };
 }
