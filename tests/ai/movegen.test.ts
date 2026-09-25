@@ -130,6 +130,21 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
     expect(labels(generateMoves(root, rootUnit, true))).toEqual(['PASS']);
   });
 
+  it('相手陣営の前列マスがマスターでない場合は待機手としない（思考を待っても発射されない）', () => {
+    const { state, unit } = hero([WAITABLE]);
+    const enemy = findUnit(state, 'FOE');
+    moveUnit(state, enemy, 3);
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+    placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 2, maxHp: 10, acts: [MIND_SLOW], counter: { instance_id_seq: 50 } });
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+  });
+
+  it('実効攻撃力が前列のマスターの現在の防御力に満たない場合は待機手としない', () => {
+    const { state, unit } = hero([WAITABLE]);
+    findUnit(state, 'FOE').ap = 100;
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+  });
+
   it('待機手のボーナスはパスと同じ既定値・上書きに従う', () => {
     const { state, unit } = hero([WAITABLE]);
     const wait = generateMoves(state, unit, true).find((m) => m.kind === 'WAIT')!;

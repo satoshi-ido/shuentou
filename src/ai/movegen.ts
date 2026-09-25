@@ -5,6 +5,8 @@
 
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';
 import { executableActions, isInstant } from '../engine/decision.js';
+import { currentDefense } from '../engine/defense.js';
+import { effectiveAtk, effectiveRange } from '../engine/effective.js';
 import { hasFlag } from '../engine/flags.js';
 import { partnerOf } from '../engine/resolve/partner.js';
 import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
@@ -28,16 +30,23 @@ function isRootAction(action: ActionInstance): boolean {
   return (ACTION_MASTERS as Readonly<Record<string, { readonly is_root: boolean }>>)[action.master_ref]?.is_root === true;
 }
 
-// [A-SEARCH-MOVEGEN]「待機手」必要思考のみが未充足の武技（マスター根源武技を除く）。所持アクション配列の順。
+// [A-SEARCH-MOVEGEN]「待機手」必要思考のみが未充足の武技（マスター根源武技を除く）で、発射の条件のうち
+// 実行可能であること以外が成立するもの。所持アクション配列の順。
 function waitableActions(state: BattleState, unit: Unit, executable: readonly ActionInstance[]): ActionInstance[] {
   const matured: Unit = { ...unit, elapsed_thought: Number.MAX_SAFE_INTEGER };
   const whenMatured = executableActions(state, matured).map((action) => action.instance_id);
+  // 相手陣営の前列マス（[M-FIELD-GRID]）。発射の条件は [A-SEARCH-NODE]［待機手の約定］による。
+  const front = state.units[unit.side === 'MINE' ? 2 : 1] ?? null;
   return unit.acts.filter(
     (action) =>
       hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
       !isRootAction(action) &&
       !executable.includes(action) &&
-      whenMatured.includes(action.instance_id),
+      whenMatured.includes(action.instance_id) &&
+      front !== null &&
+      front.unit_kind === 'MASTER' &&
+      effectiveAtk(unit, action) >= currentDefense(front) &&
+      Math.abs(front.pos_idx - unit.pos_idx) <= effectiveRange(unit, action),
   );
 }
 
