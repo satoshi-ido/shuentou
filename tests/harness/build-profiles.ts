@@ -256,7 +256,7 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       attendantId === 'ATTENDANT_02' ? maxHp(pool) : bestBy(pool, isMind, (record) => [record.params.gain_vp]),
   },
   {
-    // 各従者が自身の係数が寄与する項目を持つ別スロットへ分散する（同一インターミッションの重複を避ける）。
+    // 各従者が自身の係数が寄与する項目（心気を除く）を持つ別スロットへ分散する（同一インターミッションの重複を避ける）。
     id: 'BP-04',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_11', 'ATTENDANT_12', 'ATTENDANT_13', 'ATTENDANT_14'],
     sacrifices: [{ act: 4, count: 3 }],
@@ -266,6 +266,10 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       let best: { target: InheritTarget; score: number } | null = null;
       for (const target of pool) {
         if (target.kind === 'ACTION' && picked.some((entry) => sameTarget(entry, target))) {
+          continue;
+        }
+        // 心気は維持規則（［役割充足による選択］）が補うため、配分の対象としない。
+        if (target.kind === 'ACTION' && isMind(recordOf(target.class_id)!)) {
           continue;
         }
         const score = coefficientScore(attendant, target);
@@ -310,12 +314,12 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       ) ?? maxHp(pool),
   },
   {
-    // 全枠を単一の武技（急襲）スロットへ統合。
+    // 全枠を単一の召喚スロットへ統合。プールに召喚が無ければ武技（急襲）へ。
     id: 'BP-07',
     finalParty: ['ATTENDANT_03', 'ATTENDANT_04', 'ATTENDANT_06'],
     sacrifices: [{ act: 2, count: 1, target: RINA }],
     policy: 'ATTACK',
-    allocate: ({ pool }) => bestBy(pool, isRush, byAtk),
+    allocate: ({ pool }) => bestBy(pool, isSummon, () => [0]) ?? bestBy(pool, isRush, byAtk),
   },
 ];
 
@@ -489,7 +493,7 @@ export function playBuildIntermission(
   ctx: GameContext,
   profile: BuildProfile,
   turn: number,
-): { readonly mergeMax: number | null; readonly sacrificed: string | null } {
+): { readonly mergeMax: number | null; readonly sacrificed: string | null; readonly picks: readonly InheritTarget[] } {
   const run = session.data.run;
   const start = { holdsStance: holds(run, isStance), holdsSummon: holds(run, isSummon) };
   const picks: InheritTarget[] = [];
@@ -531,7 +535,39 @@ export function playBuildIntermission(
     }
   }
   settleIntermission(session, ctx);
-  return { mergeMax: mergeMax(picks), sacrificed: victim };
+  return { mergeMax: mergeMax(picks), sacrificed: victim, picks };
+}
+
+// [V-TEST-BUILD-METRICS] inherit_ratio の系統。最大HP加算、および FLAG_SUMMON・FLAG_STANCE・FLAG_MIND・FLAG_MARTIAL の
+// うちこの順で最初に持つもの。いずれも持たない項目はその他。
+export const INHERIT_SYSTEMS = ['MARTIAL', 'STANCE', 'MIND', 'SUMMON', 'OTHER', 'MAX_HP'] as const;
+export type InheritSystem = (typeof INHERIT_SYSTEMS)[number];
+
+export function inheritSystem(target: InheritTarget): InheritSystem {
+  if (target.kind === 'MAX_HP') {
+    return 'MAX_HP';
+  }
+  const flags = flagsOf(recordOf(target.class_id)!);
+  for (const [flag, system] of [
+    ['FLAG_SUMMON', 'SUMMON'],
+    ['FLAG_STANCE', 'STANCE'],
+    ['FLAG_MIND', 'MIND'],
+    ['FLAG_MARTIAL', 'MARTIAL'],
+  ] as const) {
+    if (flags.includes(flag)) {
+      return system;
+    }
+  }
+  return 'OTHER';
+}
+
+// [V-TEST-BUILD-METRICS] inherit_ratio：実行した継承（継承枠1件を1回）の系統別の比（INHERIT_SYSTEMS の順）。
+export function inheritRatio(picks: readonly InheritTarget[]): number[] | null {
+  if (picks.length === 0) {
+    return null;
+  }
+  const counts = INHERIT_SYSTEMS.map((system) => picks.filter((pick) => inheritSystem(pick) === system).length);
+  return counts.map((count) => count / picks.length);
 }
 
 export interface BuildSceneRecord {
@@ -541,6 +577,8 @@ export interface BuildSceneRecord {
   readonly counts: readonly number[];
   // 当該シーンの直前インターミッションの merge_max（1-01 は null）。
   readonly mergeMaxBefore: number | null;
+  // 当該シーンの直前インターミッションで実行した継承（inherit_ratio の元。1-01 は空）。
+  readonly picksBefore: readonly InheritTarget[];
   readonly party: readonly string[];
   // 当該シーン開始時の主人公の現在HP・最大HP。
   readonly heroHp: readonly [number, number];
@@ -561,6 +599,7 @@ export function playBuildRun(
   const { session, ctx } = createRun();
   const scenes: BuildSceneRecord[] = [];
   let mergeBefore: number | null = null;
+  let picksBefore: readonly InheritTarget[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const holder: { state: BattleState | null } = { state: null };
     const party = session.data.run.party.map((slot) => slot.attendant_id);
@@ -576,14 +615,16 @@ export function playBuildRun(
       HARD_STEP_CAP,
     );
     const counts = holder.state === null ? [0, 0, 0, 0] : [...holder.state.mirror_tally.counts];
-    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, party, heroHp });
+    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, picksBefore, party, heroHp });
     if (!outcome.measured || outcome.result !== 'WIN') {
       return { profileId: profile.id, scenes, completed: false };
     }
     if (turn + 1 >= lastOrder) {
       break;
     }
-    mergeBefore = playBuildIntermission(session, ctx, profile, turn).mergeMax;
+    const intermission = playBuildIntermission(session, ctx, profile, turn);
+    mergeBefore = intermission.mergeMax;
+    picksBefore = intermission.picks;
   }
   return { profileId: profile.id, scenes, completed: true };
 }

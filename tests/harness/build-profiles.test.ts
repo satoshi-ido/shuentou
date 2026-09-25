@@ -1,4 +1,4 @@
-// [V-TEST-BUILD-PROFILES] ビルドプロファイルの編成列・供犠対象・継承配分規則と、[V-TEST-BUILD-METRICS] merge_max。
+// [V-TEST-BUILD-PROFILES] ビルドプロファイルの編成列・供犠対象・継承配分規則と、[V-TEST-BUILD-METRICS] merge_max・inherit_ratio。
 
 import { describe, expect, it } from 'vitest';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
@@ -10,6 +10,9 @@ import {
   chooseRefill,
   chooseSacrificeTarget,
   coefficientScore,
+  INHERIT_SYSTEMS,
+  inheritRatio,
+  inheritSystem,
   maintenanceRules,
   mergeMax,
   playBuildRunWithRetry,
@@ -143,6 +146,16 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     );
   });
 
+  it('BP-04 は心気を配分の対象としない', () => {
+    // 従者11の usesRate は心気にも寄与するが、心気は維持規則が補うため除く。
+    expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_MIND_AR12'))).toBeGreaterThan(0);
+    const bp = buildProfileOf('BP-04');
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool: [action('ACT_MIND_AR12')] }))).toBeNull();
+    expect(
+      bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool: [action('ACT_MIND_AR12'), action('ACT_GUARD_AR12')] })),
+    ).toEqual(action('ACT_GUARD_AR12'));
+  });
+
   it('BP-05 は召喚を保持していなければ1枠で召喚を確保し、従者10は常に武技を選ぶ', () => {
     const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12')];
     const bp = buildProfileOf('BP-05');
@@ -164,9 +177,11 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12'), MAX_HP] }))).toEqual(MAX_HP);
   });
 
-  it('BP-07 は急襲（思考0・防御効率あり）の武技を選び、重撃・斬撃を選ばない', () => {
-    const pool = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
-    expect(buildProfileOf('BP-07').allocate(ctx({ pool }))).toEqual(action('ACT_RUSH_AR12'));
+  it('BP-07 は召喚を選び、プールに召喚が無ければ急襲（思考0・防御効率あり）の武技を選ぶ', () => {
+    const bp = buildProfileOf('BP-07');
+    const martial = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
+    expect(bp.allocate(ctx({ pool: [...martial, action('ACT_SUMMON_AR12')] }))).toEqual(action('ACT_SUMMON_AR12'));
+    expect(bp.allocate(ctx({ pool: martial }))).toEqual(action('ACT_RUSH_AR12'));
   });
 });
 
@@ -245,6 +260,26 @@ describe('[V-TEST-BUILD-METRICS] merge_max', () => {
 
   it('継承がなければ値を持たない', () => {
     expect(mergeMax([])).toBeNull();
+  });
+});
+
+describe('[V-TEST-BUILD-METRICS] inherit_ratio', () => {
+  it('系統は召喚・体勢・心気・武技の順で最初に持つフラグにより、最大HP加算は独立に数える', () => {
+    expect(inheritSystem(action('ACT_SUMMON_AR12'))).toBe('SUMMON');
+    expect(inheritSystem(action('ACT_GUARD_AR12'))).toBe('STANCE');
+    expect(inheritSystem(action('ACT_MIND_AR12'))).toBe('MIND');
+    expect(inheritSystem(action('ACT_HEAVY_AR12'))).toBe('MARTIAL');
+    expect(inheritSystem(MAX_HP)).toBe('MAX_HP');
+  });
+
+  it('継承枠1件を1回として系統別の比を返す（統合した枠も枠ごとに数える）', () => {
+    const ratio = inheritRatio([action('ACT_HEAVY_AR12'), action('ACT_HEAVY_AR12'), action('ACT_MIND_AR12'), MAX_HP]);
+    expect(INHERIT_SYSTEMS).toEqual(['MARTIAL', 'STANCE', 'MIND', 'SUMMON', 'OTHER', 'MAX_HP']);
+    expect(ratio).toEqual([0.5, 0, 0.25, 0, 0, 0.25]);
+  });
+
+  it('継承がなければ値を持たない', () => {
+    expect(inheritRatio([])).toBeNull();
   });
 });
 
