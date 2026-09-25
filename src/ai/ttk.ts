@@ -603,25 +603,47 @@ function hitsAt(
   return Math.abs(shooterSample.pos - targetSample.pos) <= effectiveRange(shooter, action);
 }
 
-// [A-EVAL-TTK]「妨害モデル t_deny」：防御側が保有するスタン付き武技のうち、攻撃側へ命中するものの最速の初弾着弾。
-// 防御側の攻撃計画（妨害補正なし、必要ヒット数1）で求める。存在しなければ TTK_MAX。
+// [A-EVAL-TTK]［妨害補正］：防御側が保有するスタン付き武技のうち、発生中のもの、または今すぐ実行できるものについて、
+// 着弾ステップにおいて攻撃側へ命中するものの最速の着弾。補充・浄化・思考の待機を要するものは数えない。
+// 存在しなければ TTK_MAX。
 export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): number {
   let best = TTK_MAX;
-  let ctx: PlanContext | null = null; // スタン付き武技を持つ場合に限り確定する
   for (const action of defender.acts) {
     if (!action.base_params.stun || !hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
       continue;
     }
-    ctx ??= contextOf(inputs, defender);
-    const plan = buildAttackPlan(defender, action, 1, TTK_MAX, ctx);
-    if (plan === null || plan.firstLanding >= best) {
+    const landing = inFlightLanding(defender, action) ?? readyLanding(defender, action);
+    if (landing === null || landing >= best) {
       continue;
     }
-    if (hitsAt(inputs, defender, action, attacker, plan.firstLanding)) {
-      best = plan.firstLanding;
+    if (hitsAt(inputs, defender, action, attacker, landing)) {
+      best = landing;
     }
   }
   return best;
+}
+
+// ［妨害補正］発生中のスタン付き武技の着弾までの残りステップ（残り発生）。
+function inFlightLanding(unit: Unit, action: ActionInstance): number | null {
+  if (unit.state !== 'STARTUP' || unit.last_act?.instance_id !== action.instance_id) {
+    return null;
+  }
+  return Math.max(effectiveStepStartup(unit, action) - unit.elapsed_startup, 0);
+}
+
+// ［妨害補正］今すぐ実行できるスタン付き武技の着弾ステップ（必要発生実効値）。実行できる条件は
+// [A-SEARCH-MOVEGEN] の対象ユニット・対象アクションに従う（防御側はマスターであり、HPコストの自滅は選べない）。
+function readyLanding(unit: Unit, action: ActionInstance): number | null {
+  const ready =
+    unit.state === 'THOUGHT' &&
+    action.uses_left !== 0 &&
+    action.seal_accum < SEAL_LIMIT_CENTI &&
+    unit.elapsed_thought >= effectiveStepThought(unit, action) &&
+    unit.vp >= effectiveCostVp(unit, action) &&
+    unit.pp >= effectiveCostPp(unit, action) &&
+    unit.ap >= effectiveCostAp(unit, action) &&
+    unit.hp > effectiveCostHp(unit, action);
+  return ready ? effectiveStepStartup(unit, action) : null;
 }
 
 // TTK(atk_side -> def_side) を、攻撃側マスターの全武技の攻撃計画の最小値として求める。

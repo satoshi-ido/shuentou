@@ -324,7 +324,7 @@ export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy,
 // 役割は枠ごとに、直前の枠の継承を反映した手持ちで判定する。すべて充足していれば循環選択に従う。
 const ROLE_BREAKER_USES = 2;
 const ROLE_RANGED_USES = 3;
-const ROLE_MIND_USES = 5;
+export const ROLE_MIND_USES = 5;
 const BREAKER_IDS: readonly string[] = BREAKERS.map((breaker) => breaker.class_id);
 
 type ActionRecord = (typeof ACTION_MASTERS)[keyof typeof ACTION_MASTERS];
@@ -584,7 +584,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       });
     let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
     let refillMind =
-      (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) <= 1 || mindShort(run, inheritPool(run, MASTERS)));
+      (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS)));
     // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する。
     let needBreaker = missingBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {

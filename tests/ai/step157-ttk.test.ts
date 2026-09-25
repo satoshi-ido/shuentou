@@ -94,10 +94,10 @@ function rowAfter(classIdOrPass: string): Row {
 
 describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
   it.each([
-    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 970, tp: 498, xSurvivalMilli: -321, total: -1285 } },
-    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 970, tp: 681, xSurvivalMilli: -175, total: -699 } },
-    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 843, tp: 673, xSurvivalMilli: -112, total: -449 } },
-    { move: 'PASS', label: 'パス', expected: { te: 607, tp: 437, xSurvivalMilli: -163, total: -1452 } },
+    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 708, tp: 419, xSurvivalMilli: -257, total: -1027 } },
+    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 662, tp: 419, xSurvivalMilli: -225, total: -898 } },
+    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 787, tp: 735, xSurvivalMilli: -34, total: -137 } },
+    { move: 'PASS', label: 'パス', expected: { te: 551, tp: 498, xSurvivalMilli: -51, total: -1003 } },
   ])('$label', ({ move, expected }) => {
     expect(rowAfter(move)).toEqual(expected);
   });
@@ -117,7 +117,9 @@ describe('[V-TEST-POSITIONS] T-18 パスへの負のボーナスと妨害モデ�
     expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_HEAVY_AR3');
   });
 
-  it('T-18: 1-01 の実効プロファイルによる探索では非パス手（武技（重撃）AR3）を選ぶ', () => {
-    expect(chosen(frenzy)).toBe('ACT_HEAVY_AR3');
+  // 1-01 の実効プロファイルによる探索の選択は T-18 の期待手としない（[V-TEST-POSITIONS] T-18）。
+  // [V-NUM-STEP157] の算出値（パス）として検証する。
+  it('[V-NUM-STEP157] 1-01 の実効プロファイルによる探索ではパスを選ぶ', () => {
+    expect(chosen(frenzy)).toBe('PASS');
   });
 });

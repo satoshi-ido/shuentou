@@ -189,8 +189,8 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(rules.next(pool)).toBeNull();
   });
 
-  it('攻撃型は心気の残り使用回数が1以下なら1枠だけ心気を選ぶ', () => {
-    const rules = maintenanceRules(runOf(10_000, [held('ACT_MIND_AR12', 1, ['FLAG_MIND']), RANGED]), 'ATTACK');
+  it('攻撃型は心気の残り使用回数が5未満なら1枠だけ心気を選ぶ', () => {
+    const rules = maintenanceRules(runOf(10_000, [held('ACT_MIND_AR12', 4, ['FLAG_MIND']), RANGED]), 'ATTACK');
     expect(rules.next(pool)).toEqual(action('ACT_MIND_AR12'));
     expect(rules.next(pool)).toBeNull();
   });

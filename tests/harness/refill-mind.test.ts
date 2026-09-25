@@ -21,7 +21,7 @@ describe('mindUsesLeft', () => {
     expect(mindUsesLeft({ hero_acts: [act('ACT_MIND_AR3', 1), act('ACT_MUSOU_AR3', 2)] })).toBe(3);
   });
 
-  it('心気を保持しないとき0となり、読み替えの条件（1以下）を満たす', () => {
+  it('心気を保持しないとき0となり、読み替えの条件（5未満）を満たす', () => {
     expect(mindUsesLeft({ hero_acts: [act('ACT_SLASH_AR3', 9), act('ACT_HEAVY_AR15', 7)] })).toBe(0);
   });
 
