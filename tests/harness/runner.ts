@@ -458,6 +458,10 @@ function mindYieldCenti(classId: string): number {
   if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
     return -1;
   }
+  // [V-TEST-REFAI]［心気の出力］PPコストを要する心気は PP 0 から実行できないため、心気1回のPPを持たない。
+  if (record.params.cost_pp > 0) {
+    return -1;
+  }
   return record.params.gain_vp * record.params.charge_pp;
 }
 

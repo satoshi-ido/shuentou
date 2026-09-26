@@ -43,6 +43,15 @@ describe('chooseMindRefill', () => {
     expect(chooseMindRefill([target('ACT_MUSOU_AR3'), target('ACT_MIND_AR3')])).toEqual(target('ACT_MIND_AR3'));
   });
 
+  it('PPコストを要する心気（特殊の自己強化等）は PP 0 から実行できないため選ばない', () => {
+    const costly = ACTION_MASTERS.ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN.params;
+    expect(costly.cost_pp).toBeGreaterThan(0);
+    expect(costly.gain_vp * costly.charge_pp).toBeGreaterThan(ACTION_MASTERS.ACT_MIND_AR24.params.gain_vp * ACTION_MASTERS.ACT_MIND_AR24.params.charge_pp);
+    const pool = [target('ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN'), target('ACT_MIND_AR24')];
+    expect(chooseMindRefill(pool)).toEqual(target('ACT_MIND_AR24'));
+    expect(chooseMindRefill([target('ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN')])).toBeNull();
+  });
+
   it('最大HP加算および心気以外しかない場合は null を返し、本来の規則へ委ねる', () => {
     expect(chooseMindRefill([{ kind: 'MAX_HP' }, target('ACT_SLASH_AR3')])).toBeNull();
     expect(chooseMindRefill([])).toBeNull();
