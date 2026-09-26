@@ -28,7 +28,7 @@ import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settl
 import { evalCallCount, resetEvalCallCount } from '../../src/ai/evaluate.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
-import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
+import { inheritPool, previewInherit, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import { deriveSysFlags } from '../../src/engine/flags.js';
 import { INFINITE_USES } from '../../src/engine/params.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
@@ -551,6 +551,19 @@ function clearedSceneOf(run: { current_scene_id: string }) {
   return sceneByOrder(MASTERS, current.order - 1);
 }
 
+// [V-TEST-REFAI]［効果のない継承の除外］継承しても主人公の手持ちが変わらない項目（既存スロットへの統合で
+// 基礎値がいずれも改善せず、実効初期使用回数が当該スロットの残り使用回数を上回らないもの）を継承プールから除く。
+export function usefulPool(run: GameSession['data']['run'], attendantId: string): InheritTarget[] {
+  return inheritPool(run, MASTERS).filter((target) => {
+    const preview = previewInherit(run, MASTERS, attendantId, target);
+    if (preview.kind !== 'MERGE') {
+      return true;
+    }
+    const existing = run.hero_acts.find((action) => action.instance_id === preview.existingInstanceId);
+    return preview.improved.length > 0 || (existing !== undefined && existing.uses_left < preview.usesInitial);
+  });
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
@@ -562,7 +575,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
-      const pool = inheritPool(run, MASTERS);
+      const pool = usefulPool(run, member.attendant_id);
       const stale: boolean = !hpGained && since >= ROLE_HP_STALE_INTERMISSIONS;
       const target: InheritTarget | null =
         chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn);
@@ -591,7 +604,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
-      const pool = inheritPool(run, MASTERS);
+      const pool = usefulPool(run, member.attendant_id);
       const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
       const breaker =
         hp === null && needBreaker !== null
