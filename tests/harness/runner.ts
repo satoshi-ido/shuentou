@@ -532,7 +532,10 @@ export function needsSacrifice(run: { hero_hp: number; hero_max_hp: number }): b
   return run.hero_hp * 3 < run.hero_max_hp;
 }
 
-// [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーンであり、
+// [M-TMPL-VESSEL] 5-11 の依代。
+const VESSEL_ENEMY_ID = 'ENEMY_VESSEL';
+
+// [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーン、または依代のシーンの直前のシーンであり、
 // 現在HPが最大HP未満であるとき、閾値に依らず供犠する。インターミッションの時点で
 // current_scene_id は次に挑むシーンを指す。
 export function needsBossSacrifice(run: {
@@ -546,7 +549,9 @@ export function needsBossSacrifice(run: {
   }
   const afterNext = sceneByOrder(MASTERS, next.order + 1);
   const isActFinal = afterNext === undefined || afterNext.act !== next.act;
-  return isActFinal && run.hero_hp < run.hero_max_hp;
+  // 依代のシーン（[M-END-SCENE511]、5-11）はクリア決済のない結末であり、その直前（5-10）を実質の最終ボスとして扱う。
+  const beforeVessel = afterNext !== undefined && afterNext.enemy_id === VESSEL_ENEMY_ID;
+  return (isActFinal || beforeVessel) && run.hero_hp < run.hero_max_hp;
 }
 
 // [V-TEST-REFAI]［体力の維持］判定に用いる、直前にクリアしたシーン。継承プールの提示元と同じである。
