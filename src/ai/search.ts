@@ -10,7 +10,7 @@ import type { BookMasterRecord } from '../data/types.js';
 import type { ResolvedDecision } from '../engine/decision.js';
 import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
-import type { BattleState, Unit } from '../engine/types.js';
+import type { BattleState, Side, Unit } from '../engine/types.js';
 import { hasExecutableAction, isActionExecutable } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveAtk, effectiveRange } from '../engine/effective.js';
@@ -19,7 +19,7 @@ import { lookupBook } from './book.js';
 import { cloneBattleState } from './clone.js';
 import { INF, MATE_TH, TTK_MAX } from './constants.js';
 import { evaluateLeafPosition, mateScore, quiescenceMateScore } from './evaluate.js';
-import { generateMoves, moveBonusOf, reswapPenaltyOf, type AiMove } from './movegen.js';
+import { generateMoves, moveBonusOf, opposingMaster, reswapPenaltyOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
 import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
 
@@ -37,6 +37,8 @@ interface SearchCtx {
   readonly budget: NodeBudget;
   // [A-SEARCH-QUIESCE]［決着の確認］確認の延長の内側であるか。入れ子の確認を行わないために持つ。
   readonly verified?: boolean;
+  // [A-SEARCH-QUIESCE]［決着の確認］確認の延長で決定点を与える陣営（敗れる側）。他陣営の決定点はパスとして進める。
+  readonly confirmSide?: Side;
 }
 
 function consumeNode(budget: NodeBudget): void {
@@ -63,21 +65,18 @@ interface WaitCommitment {
 }
 type WaitCommitments = Readonly<Record<string, WaitCommitment>>;
 
-const FRONT_IDX_OF_OPPONENT: Readonly<Record<string, number>> = { MINE: 2, FOE: 1 }; // [M-FIELD-GRID]
-
-// ［発射］対象アクションが実行可能で、相手陣営の前列のマスターに命中し射程内にあるとき。
+// ［発射］対象アクションが実行可能で、相手陣営のマスター（前列・後列を問わない）に命中し射程内にあるとき。
 export function readyToFire(state: BattleState, unit: Unit, instanceId: string): 'FIRE' | 'WAIT' | 'DROP' {
   const action = unit.acts.find((candidate) => candidate.instance_id === instanceId);
   if (action === undefined) {
     return 'DROP';
   }
-  const front = state.units[FRONT_IDX_OF_OPPONENT[unit.side]] ?? null;
+  const master = opposingMaster(state, unit);
   const fires =
     isActionExecutable(state, unit, action) &&
-    front !== null &&
-    front.unit_kind === 'MASTER' &&
-    effectiveAtk(unit, action) >= currentDefense(front) &&
-    Math.abs(front.pos_idx - unit.pos_idx) <= effectiveRange(unit, action);
+    master !== null &&
+    effectiveAtk(unit, action) >= currentDefense(master) &&
+    Math.abs(master.pos_idx - unit.pos_idx) <= effectiveRange(unit, action);
   return fires ? 'FIRE' : 'WAIT';
 }
 
@@ -140,10 +139,10 @@ function evaluateLeaf(
     }
   }
   const leaf = evaluateLeafPosition(state, ctx.prof, ply, ctx.deps);
-  // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、決定点1つ分だけ
-  // 延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
-  if (extendable && leaf.refutableSettlement && ctx.verified !== true) {
-    return searchStep(cloneBattleState(state), { ...ctx, verified: true }, 1, ply, passed, waits);
+  // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、敗れる側の最初の決定点まで
+  // 進めて決定点1つ分だけ延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
+  if (extendable && leaf.refutableLoser !== null && ctx.verified !== true) {
+    return searchStep(cloneBattleState(state), { ...ctx, verified: true, confirmSide: leaf.refutableLoser }, 1, ply, passed, waits);
   }
   return leaf.value;
 }
@@ -191,6 +190,11 @@ function searchStep(
     }
     waits = fired.waits;
     const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)], ctx.prof.deferredDecision);
+    // [A-SEARCH-QUIESCE]［決着の確認］確認の延長では、敗れる側より先に現れる勝つ側の決定点をパスとして進める。
+    if (pending !== undefined && ctx.confirmSide !== undefined && pending.side !== ctx.confirmSide) {
+      passed = [...passed, pending.unit_id];
+      continue;
+    }
     if (pending !== undefined) {
       return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits, alpha, beta);
     }

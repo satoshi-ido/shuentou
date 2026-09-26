@@ -30,23 +30,28 @@ function isRootAction(action: ActionInstance): boolean {
   return (ACTION_MASTERS as Readonly<Record<string, { readonly is_root: boolean }>>)[action.master_ref]?.is_root === true;
 }
 
+// [A-SEARCH-NODE]［待機手の約定］［発射］の対象である相手陣営のマスター。武技は射程内のすべての敵ユニットへ
+// 個別に判定する（[M-RESOLVE-MARTIAL]）ため、前列・後列を問わない。
+export function opposingMaster(state: BattleState, unit: Unit): Unit | null {
+  return state.units.find((u): u is Unit => u !== null && u.side !== unit.side && u.unit_kind === 'MASTER') ?? null;
+}
+
 // [A-SEARCH-MOVEGEN]「待機手」必要思考のみが未充足の武技（マスター根源武技を除く）で、発射の条件のうち
 // 実行可能であること以外が成立するもの。所持アクション配列の順。
 function waitableActions(state: BattleState, unit: Unit, executable: readonly ActionInstance[]): ActionInstance[] {
   const matured: Unit = { ...unit, elapsed_thought: Number.MAX_SAFE_INTEGER };
   const whenMatured = executableActions(state, matured).map((action) => action.instance_id);
-  // 相手陣営の前列マス（[M-FIELD-GRID]）。発射の条件は [A-SEARCH-NODE]［待機手の約定］による。
-  const front = state.units[unit.side === 'MINE' ? 2 : 1] ?? null;
+  // 発射の条件は [A-SEARCH-NODE]［待機手の約定］による。
+  const master = opposingMaster(state, unit);
   return unit.acts.filter(
     (action) =>
       hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
       !isRootAction(action) &&
       !executable.includes(action) &&
       whenMatured.includes(action.instance_id) &&
-      front !== null &&
-      front.unit_kind === 'MASTER' &&
-      effectiveAtk(unit, action) >= currentDefense(front) &&
-      Math.abs(front.pos_idx - unit.pos_idx) <= effectiveRange(unit, action),
+      master !== null &&
+      effectiveAtk(unit, action) >= currentDefense(master) &&
+      Math.abs(master.pos_idx - unit.pos_idx) <= effectiveRange(unit, action),
   );
 }
 

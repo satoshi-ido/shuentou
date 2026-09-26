@@ -309,9 +309,15 @@ describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
     return { state, hero, breakId: hero.acts[0].instance_id };
   }
 
-  it('前列がクリーチャーのときは、実行可能でも発射しない', () => {
+  it('前列がクリーチャーで後列のマスターが射程外のときは、実行可能でも発射しない', () => {
     const { state, hero, breakId } = position({ creatureFront: true, masterAp: 0, elapsed: 17 });
     expect(readyToFire(state, hero, breakId)).toBe('WAIT');
+  });
+
+  it('前列がクリーチャーでも、後列のマスターが射程内なら発射する（武技は射程内のすべての敵に命中する）', () => {
+    const { state, hero, breakId } = position({ creatureFront: true, masterAp: 0, elapsed: 17 });
+    hero.acts[0] = { ...hero.acts[0], base_params: { ...hero.acts[0].base_params, range: 2 } };
+    expect(readyToFire(state, hero, breakId)).toBe('FIRE');
   });
 
   it('前列のマスターの防御力が実効攻撃力を上回るときは発射しない', () => {
@@ -324,7 +330,7 @@ describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
     expect(readyToFire(state, hero, breakId)).toBe('WAIT');
   });
 
-  it('実行可能で、射程内の前列のマスターに命中するときに発射する', () => {
+  it('実行可能で、射程内のマスターに命中するときに発射する', () => {
     const { state, hero, breakId } = position({ creatureFront: false, masterAp: 40, elapsed: 17 });
     expect(readyToFire(state, hero, breakId)).toBe('FIRE');
   });
