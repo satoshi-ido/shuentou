@@ -573,6 +573,13 @@ export function usefulPool(run: GameSession['data']['run'], attendantId: string)
   });
 }
 
+// [V-TEST-REFAI]［体力の維持］攻撃型・防御型の読み替えの判定。最大HPが直前にクリアしたシーンの
+// hp_bonus_base を下回るとき、および攻撃型に限り直近 ROLE_HP_STALE_INTERMISSIONS 回のインターミッションで
+// 最大HP加算を継承していないとき（[M-GUARD-LETHAL] の前提）に真。since は途絶の続いた回数。
+export function needsHpRaise(run: { current_scene_id: string; hero_max_hp: number }, policy: RefPolicy, since: number): boolean {
+  return run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0) || (policy === 'ATTACK' && since >= ROLE_HP_STALE_INTERMISSIONS);
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
@@ -604,7 +611,9 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         const master = ACTION_MASTERS[act.master_ref as keyof typeof ACTION_MASTERS];
         return master !== undefined && !master.is_root && master.params.range >= 2 && master.params.atk > 0;
       });
-    let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
+    const since = HP_GAIN_SINCE.get(run) ?? 0;
+    let raiseHp = needsHpRaise(run, policy, since);
+    let hpGained = false;
     let refillMind =
       (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS)));
     // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する。
@@ -648,8 +657,10 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       } else if (ranged !== null) {
         needRange = false;
       }
+      hpGained = hpGained || target.kind === 'MAX_HP';
       confirmInherit(session, ctx, member.attendant_id, target);
     }
+    HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
   }
 
   // [V-TEST-REFAI]［供犠の実行］継承をすべて終えた後に1度だけ判定する。アクト最終シーンのクリア後は
