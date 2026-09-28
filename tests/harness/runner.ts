@@ -34,6 +34,7 @@ import { INFINITE_USES } from '../../src/engine/params.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
 import { sceneByOrder, type GameMasters } from '../../src/engine/run/masters.js';
 import type { StepDeps } from '../../src/engine/pipeline/step.js';
+import type { ActionParams } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { buildEffectiveProfile, referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
@@ -277,7 +278,16 @@ export function playScene(
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
-export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: number): InheritTarget | null {
+export function chooseInherit(
+  pool: readonly InheritTarget[],
+  policy: RefPolicy,
+  turn: number,
+  run: GameSession['data']['run'],
+): InheritTarget | null {
+  if (policy === 'ATTACK') {
+    // [V-TEST-REFAI]［攻撃型の武技の選択］1サイクルあたりの与ダメージが最大の武技を選ぶ。
+    return chooseAttackDps(run, pool);
+  }
   const actions = pool.filter((target): target is { kind: 'ACTION'; class_id: string } => target.kind === 'ACTION');
   const maxHp = pool.find((target) => target.kind === 'MAX_HP') ?? null;
   const paramOf = (target: { class_id: string }, key: 'atk' | 'dmg_hp' | 'deploy_ap' | 'gain_vp') =>
@@ -285,17 +295,6 @@ export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy,
   const flagged = (target: { class_id: string }, key: 'atk' | 'deploy_ap' | 'charge_pp') =>
     paramOf(target as { class_id: string }, key as 'atk' | 'deploy_ap') > 0;
 
-  if (policy === 'ATTACK') {
-    // 常に最大実効攻撃力の武技を選ぶ。同値なら最大HPダメージ。
-    const martial = actions.filter((target) => flagged(target, 'atk'));
-    if (martial.length === 0) {
-      return maxHp;
-    }
-    return martial.reduce((best, target) => {
-      const byAtk = paramOf(target, 'atk') - paramOf(best, 'atk');
-      return byAtk > 0 || (byAtk === 0 && paramOf(target, 'dmg_hp') > paramOf(best, 'dmg_hp')) ? target : best;
-    });
-  }
   if (policy === 'DEFENSE') {
     // 常に最大展開APの体勢を選ぶ。無ければ最大HP加算。
     const stances = actions.filter((target) => flagged(target, 'deploy_ap'));
@@ -580,6 +579,45 @@ export function needsHpRaise(run: { current_scene_id: string; hero_max_hp: numbe
   return run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0) || (policy === 'ATTACK' && since >= ROLE_HP_STALE_INTERMISSIONS);
 }
 
+// [V-TEST-REFAI]［攻撃型の武技の選択］PPの補充に要する歩数を含む1サイクルあたりの与ダメージが最大の武技。
+// 同値はプールの走査順で最初のもの。武技が無ければ最大HP加算。
+const NO_MIND_REFILL_STEPS = 1e9;
+export function chooseAttackDps(
+  run: { hero_acts: readonly { uses_left: number; sys_flags: readonly string[]; base_params: ActionParams }[] },
+  pool: readonly InheritTarget[],
+): InheritTarget | null {
+  // 主人公の心気（PPコスト0、残り使用回数0を除く）のうち、PP1あたりの歩数が最小のもの（［心気の出力］の心気1回のPP）。
+  let stepsPerPp = Number.POSITIVE_INFINITY;
+  for (const act of run.hero_acts) {
+    const params = act.base_params;
+    if (act.uses_left === 0 || params.cost_pp > 0 || !act.sys_flags.includes('FLAG_MIND')) {
+      continue;
+    }
+    const ppPerUse = (params.gain_vp * params.charge_pp) / 100;
+    if (ppPerUse > 0) {
+      stepsPerPp = Math.min(stepsPerPp, (params.step_thought + params.step_startup) / ppPerUse);
+    }
+  }
+  let best: { target: InheritTarget; score: number } | null = null;
+  for (const target of pool) {
+    if (target.kind !== 'ACTION') {
+      continue;
+    }
+    const record = ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS];
+    if (record === undefined || record.is_root || record.params.atk <= 0 || record.params.dmg_hp <= 0) {
+      continue;
+    }
+    const params = record.params;
+    const refill =
+      params.cost_pp > 0 ? (Number.isFinite(stepsPerPp) ? params.cost_pp * stepsPerPp : NO_MIND_REFILL_STEPS) : 0;
+    const score = params.dmg_hp / (params.step_thought + params.step_startup + params.step_recovery + refill + 1);
+    if (best === null || score > best.score) {
+      best = { target, score };
+    }
+  }
+  return best?.target ?? pool.find((target) => target.kind === 'MAX_HP') ?? null;
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
@@ -594,7 +632,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       const pool = usefulPool(run, member.attendant_id);
       const stale: boolean = !hpGained && since >= ROLE_HP_STALE_INTERMISSIONS;
       const target: InheritTarget | null =
-        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn);
+        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn, run);
       if (target !== null) {
         confirmInherit(session, ctx, member.attendant_id, target);
         hpGained = hpGained || target.kind === 'MAX_HP';
@@ -644,7 +682,12 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
                 return a > b ? entry : best;
               }, null) ?? null)
           : null;
-      const target = hp ?? breaker ?? refill ?? ranged ?? chooseInherit(pool, policy, turn);
+      const target =
+        hp ??
+        breaker ??
+        refill ??
+        ranged ??
+        chooseInherit(pool, policy, turn, run);
       if (target === null) {
         continue;
       }

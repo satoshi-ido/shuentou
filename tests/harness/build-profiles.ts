@@ -506,7 +506,7 @@ export function playBuildIntermission(
     const target =
       maintenance.next(pool) ??
       profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start }) ??
-      chooseInherit(pool, profile.policy, turn);
+      chooseInherit(pool, profile.policy, turn, run);
     if (target !== null) {
       confirmInherit(session, ctx, member.attendant_id, target);
       maintenance.record(target);
