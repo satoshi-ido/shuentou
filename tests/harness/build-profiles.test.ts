@@ -64,11 +64,11 @@ const ctx = (partial: Partial<AllocContext>): AllocContext => ({
 describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］', () => {
   const finals: Record<string, string[]> = {
     'BP-01': ['01', '03', '05', '10', '11'],
-    'BP-02': ['01', '02', '07', '12', '15'],
+    'BP-02': ['01', '07', '11', '12', '15'],
     'BP-03': ['01', '02', '08', '09', '11'],
     'BP-04': ['01', '11', '12', '13', '14'],
-    'BP-05': ['01', '02', '04', '10', '11'],
-    'BP-06': ['01', '02', '04', '14', '15'],
+    'BP-05': ['01', '07', '08', '10', '11'],
+    'BP-06': ['01', '07', '08', '14', '15'],
     'BP-07': ['03', '04', '06', '07', '11'],
   };
   for (const [id, expected] of Object.entries(finals)) {
@@ -91,7 +91,6 @@ describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］',
 
   it('供犠「なし」のプロファイルは供犠スケジュールを持たない', () => {
     expect(buildProfileOf('BP-01').sacrifices).toEqual([]);
-    expect(buildProfileOf('BP-05').sacrifices).toEqual([]);
   });
 
   it('7件のプロファイルを持つ', () => {

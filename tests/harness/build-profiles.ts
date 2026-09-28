@@ -238,7 +238,10 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 体勢を保持していなければ全枠を最大展開APの体勢へ。保持していれば与バフ量合計が最大の心気へ。
     id: 'BP-02',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_07', 'ATTENDANT_12', 'ATTENDANT_15'],
-    sacrifices: [{ act: 4, count: 1 }],
+    sacrifices: [
+      { act: 3, count: 1 },
+      { act: 4, count: 2 },
+    ],
     policy: 'DEFENSE',
     allocate: ({ pool, start }) => {
       const stance = bestBy(pool, isStance, (record) => [record.params.deploy_ap]);
@@ -261,7 +264,10 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 各従者が自身の係数が寄与する項目（心気を除く）を持つ別スロットへ分散する（同一インターミッションの重複を避ける）。
     id: 'BP-04',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_11', 'ATTENDANT_12', 'ATTENDANT_13', 'ATTENDANT_14'],
-    sacrifices: [{ act: 4, count: 3 }],
+    sacrifices: [
+      { act: 3, count: 2 },
+      { act: 4, count: 3 },
+    ],
     policy: 'BALANCE',
     allocate: ({ attendantId, pool, picked }) => {
       const attendant = attendantOf(attendantId);
@@ -286,7 +292,7 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 従者10は常に最大攻撃力の武技へ。召喚を保持していなければ他の1枠が召喚を確保する。
     id: 'BP-05',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_10'],
-    sacrifices: [],
+    sacrifices: [{ act: 3, count: 2 }],
     policy: 'ATTACK',
     allocate: ({ attendantId, pool, picked, start }) => {
       if (attendantId === 'ATTENDANT_10') {
@@ -306,7 +312,11 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 浄化率・剥奪率を持つアクションを優先。無ければ最大HP加算。
     id: 'BP-06',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_14', 'ATTENDANT_15'],
-    sacrifices: [{ act: 4, count: 1 }],
+    sacrifices: [
+      { act: 2, count: 1 },
+      { act: 3, count: 2 },
+      { act: 4, count: 1 },
+    ],
     policy: 'DEFENSE',
     allocate: ({ pool }) =>
       bestBy(
