@@ -42,6 +42,7 @@ import {
   ROLE_MIND_USES,
   createRun,
   HARD_STEP_CAP,
+  hpGainSince,
   MASTERS,
   mindUsesLeft,
   needsBossSacrifice,
@@ -363,9 +364,6 @@ function actFinalOrder(act: number): number {
   return order;
 }
 
-// [V-TEST-REFAI]［役割充足による選択］最大HP加算が途絶したインターミッションの連続回数（周回ごと）。
-const HP_GAIN_SINCE = new WeakMap<object, number>();
-
 const isRanged = (record: ActionRecord): boolean => !record.is_root && record.params.range >= 2 && record.params.atk > 0;
 
 // [V-TEST-REFAI] 戦闘方針の維持規則。インターミッション開始時の判定を保持し、枠ごとに維持の対象を返す
@@ -373,7 +371,7 @@ const isRanged = (record: ActionRecord): boolean => !record.is_root && record.pa
 // 射程の順に優先する。バランス型は枠ごとに［役割充足による選択］を判定する。
 export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy) {
   const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
-  const since = HP_GAIN_SINCE.get(run) ?? 0;
+  const since = hpGainSince(run);
   let hpGained = false;
   let raiseHp = run.hero_max_hp < hpBase;
   let needBreaker = missingBreaker(run);
@@ -419,16 +417,15 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
     record(target: InheritTarget): void {
       hpGained = hpGained || target.kind === 'MAX_HP';
     },
-    settle(): void {
-      if (policy === 'BALANCE') {
-        HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
-      }
-    },
   };
 }
 
-// アクトごとに実行した供犠の数（周回ごと）。
-const SACRIFICES_DONE = new WeakMap<object, Record<number, number>>();
+// 当該アクトで実行した供犠の数。再挑戦のロールバックはステートを複製するため、当該アクトの最初の
+// インターミッションのスナップショットとの比較で求める。
+function sacrificesInAct(run: GameSession['data']['run'], act: number): number {
+  const start = run.im_snapshots.find((snapshot) => sceneOf(snapshot.state.current_scene_id).act === act);
+  return run.sacrificed.length - (start?.state.sacrificed.length ?? 0);
+}
 
 // ［供犠スケジュール］時機：当該アクト内で［供犠の実行］の条件が成立した最初のインターミッション。
 // 残りのインターミッション数が残りの供犠数に達した場合は強制する。アクト移行の段では行わない。
@@ -444,8 +441,7 @@ export function scheduledSacrifice(
   if (plan === undefined) {
     return null;
   }
-  const done = SACRIFICES_DONE.get(run)?.[next.act] ?? 0;
-  const remaining = plan.count - done;
+  const remaining = plan.count - sacrificesInAct(run, next.act);
   if (remaining <= 0) {
     return null;
   }
@@ -513,15 +509,10 @@ export function playBuildIntermission(
       picks.push(target);
     }
   }
-  maintenance.settle();
 
   const victim = scheduledSacrifice(profile, run);
   if (victim !== null) {
-    const act = sceneOf(run.current_scene_id).act;
     confirmSacrifice(session, ctx, victim);
-    const done = SACRIFICES_DONE.get(run) ?? {};
-    done[act] = (done[act] ?? 0) + 1;
-    SACRIFICES_DONE.set(run, done);
   }
 
   if (isActTransition(run, MASTERS)) {

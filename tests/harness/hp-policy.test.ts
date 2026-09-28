@@ -1,7 +1,7 @@
 // [V-TEST-REFAI]［体力の維持］攻撃型・防御型の最大HP加算への読み替えの判定。
 
 import { describe, expect, it } from 'vitest';
-import { needsHpRaise, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
+import { hpGainSince, needsHpRaise, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 // 4-08 を次に挑む時点（直前にクリアしたのは 4-07、hp_bonus_base 320）。
 const before408 = (heroMaxHp: number) => ({ current_scene_id: 'SCENE_4_08', hero_max_hp: heroMaxHp });
@@ -17,5 +17,23 @@ describe('needsHpRaise', () => {
     expect(needsHpRaise(before408(572), 'ATTACK', ROLE_HP_STALE_INTERMISSIONS)).toBe(true);
     expect(needsHpRaise(before408(572), 'ATTACK', ROLE_HP_STALE_INTERMISSIONS - 1)).toBe(false);
     expect(needsHpRaise(before408(572), 'DEFENSE', ROLE_HP_STALE_INTERMISSIONS)).toBe(false);
+  });
+});
+
+// インターミッション開始時の最大HPの列（先頭が最初のインターミッション）を持つステート。
+const withSnapshots = (maxHps: readonly number[]) =>
+  ({ im_snapshots: maxHps.map((hp, order) => ({ order, state: { hero_max_hp: hp } })) }) as never;
+
+describe('hpGainSince', () => {
+  it('最大HP加算の無かった直近のインターミッションの連続回数を、スナップショットの最大HPから数える', () => {
+    expect(hpGainSince(withSnapshots([]))).toBe(0);
+    expect(hpGainSince(withSnapshots([60]))).toBe(0);
+    expect(hpGainSince(withSnapshots([60, 141, 141, 141]))).toBe(2);
+    expect(hpGainSince(withSnapshots([60, 60, 141]))).toBe(0);
+  });
+
+  it('再挑戦のロールバック（ステートの複製）を跨いでも同じ値を返す', () => {
+    const run = withSnapshots([60, 141, 141]);
+    expect(hpGainSince(structuredClone(run))).toBe(hpGainSince(run));
   });
 });

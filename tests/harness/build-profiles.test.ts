@@ -193,7 +193,7 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
   });
   // 1-02 の後（直前にクリアしたシーンは 1-02）。
   const runOf = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
-    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs }) as never;
+    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
   const RANGED = held('ACT_RUSH_AR20', 3);
   const MIND = held('ACT_MIND_AR12', 5, ['FLAG_MIND']);
   const pool = [action('ACT_HEAVY_AR117'), action('ACT_MIND_AR12'), action('ACT_RUSH_AR117'), MAX_HP];
@@ -224,7 +224,7 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
   // [V-TEST-REFAI]［壁割りの維持］2-01 の後（次に挑むシーンは 2-02。担当は ACT_SPEC_BREAK_VOLG）。
   const BREAKER = 'ACT_SPEC_BREAK_VOLG';
   const runBefore202 = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
-    ({ current_scene_id: 'SCENE_2_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs }) as never;
+    ({ current_scene_id: 'SCENE_2_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
   const breakerPool = [action('ACT_HEAVY_AR117'), action(BREAKER), action('ACT_MIND_AR12'), MAX_HP];
 
   it('攻撃型・防御型は次のシーンの壁割りを保持しなければ1枠だけ当該アクションを選ぶ', () => {
