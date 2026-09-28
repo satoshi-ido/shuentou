@@ -46,6 +46,7 @@ import {
   MASTERS,
   mindUsesLeft,
   needsBossSacrifice,
+  needsHpRaise,
   needsSacrifice,
   playScene,
   ROLE_HP_STALE_INTERMISSIONS,
@@ -373,7 +374,8 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
   const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
   const since = hpGainSince(run);
   let hpGained = false;
-  let raiseHp = run.hero_max_hp < hpBase;
+  // [V-TEST-REFAI]［体力の維持］攻撃型は途絶（直近の回で最大HP加算なし）も含む。
+  let raiseHp = needsHpRaise(run, policy, since);
   let needBreaker = missingBreaker(run);
   let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS));
   let needRange = !holds(run, isRanged);

@@ -18,6 +18,7 @@ import {
   playBuildRunWithRetry,
   type AllocContext,
 } from './build-profiles.js';
+import { ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const MAX_HP: InheritTarget = { kind: 'MAX_HP' };
@@ -215,6 +216,23 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     const ranged = rules.next(pool);
     expect(ranged).not.toBeNull();
     expect(rules.next(pool)).toBeNull();
+  });
+
+  it('攻撃型に限り、最大HP加算の途絶が続くときも1枠だけ最大HP加算を選ぶ', () => {
+    // 最大HP10000は hp_bonus_base を上回るため、途絶（直近 ROLE_HP_STALE_INTERMISSIONS 回に加算なし）の判定のみが働く。
+    const staleRun = (stale: number) =>
+      ({
+        current_scene_id: 'SCENE_2_01',
+        hero_hp: 10_000,
+        hero_max_hp: 10_000,
+        hero_acts: [MIND, RANGED],
+        im_snapshots: Array.from({ length: stale + 1 }, (_, order) => ({ order, state: { hero_max_hp: 10_000 } })),
+      }) as never;
+    const rules = maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'ATTACK');
+    expect(rules.next(pool)).toEqual(MAX_HP);
+    expect(rules.next(pool)).toBeNull();
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'ATTACK').next(pool)).toBeNull();
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'DEFENSE').next(pool)).toBeNull();
   });
 
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
