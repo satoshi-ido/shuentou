@@ -255,7 +255,10 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 従者02は常に最大HP加算。他は加算VPが最大の心気へ統合する。
     id: 'BP-03',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_02', 'ATTENDANT_08', 'ATTENDANT_09'],
-    sacrifices: [{ act: 3, count: 1 }],
+    sacrifices: [
+      { act: 3, count: 1 },
+      { act: 5, count: 1 },
+    ],
     policy: 'BALANCE',
     allocate: ({ attendantId, pool }) =>
       attendantId === 'ATTENDANT_02' ? maxHp(pool) : bestBy(pool, isMind, (record) => [record.params.gain_vp]),
