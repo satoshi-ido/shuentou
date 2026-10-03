@@ -86,6 +86,16 @@ describe('［シーン単位の勝率測定］の集計', () => {
     expect(row.winRateByHp).toEqual({ '100': 100, '75': 100, '50': 0 });
     expect(row.unmeasured).toBe(1);
   });
+
+  it('余裕の平均は敗北（負の余裕）を含めて求める', () => {
+    const [row] = summarizeTrials([
+      trial({ result: 'LOSS', margin: -40 }),
+      trial({ result: 'LOSS', margin: -21 }),
+      trial({ margin: 10 }),
+    ]);
+    expect(row.marginMean).toBe(-17); // -51 / 3
+    expect(row.winRate).toBe(33);
+  });
 });
 
 describe('シーン単体の試行', () => {

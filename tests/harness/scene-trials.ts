@@ -1,6 +1,7 @@
 // [V-TEST-REFAI]［シーン単位の勝率測定］到達局面の集合の収集、到達局面からのシーン単体の試行、目標勝率との集計。
 // 長時間の実行と並列化は CLI（scene-trials-cli.js）が担い、本モジュールは1件ずつの処理と集計を提供する。
 
+import { signedRoundDiv } from '../../src/ai/fixed.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import type { SaveData } from '../../src/engine/meta/types.js';
 import { floorDiv, roundDiv } from '../../src/num/helpers.js';
@@ -188,8 +189,9 @@ export interface SceneSummary {
   readonly unmeasured: number;
 }
 
+// 余裕は敗北時に負となるため、符号付きの丸め除算で平均する。
 function mean(values: readonly number[]): number | null {
-  return values.length === 0 ? null : roundDiv(values.reduce((sum, value) => sum + value, 0), values.length);
+  return values.length === 0 ? null : signedRoundDiv(values.reduce((sum, value) => sum + value, 0), values.length);
 }
 
 // シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。
