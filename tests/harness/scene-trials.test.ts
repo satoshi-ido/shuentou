@@ -107,5 +107,8 @@ describe('シーン単体の試行', () => {
     expect(result.measured).toBe(true);
     expect(result.result).toBe('WIN');
     expect(result.margin).toBeGreaterThan(0);
+    // 決着の型の分析用の記録：勝った主人公の最後の行動と、直前の敵マスターの残りHP%。
+    expect(result.finisher).toMatch(/^ACT_/);
+    expect(result.loserHpBefore).toBeGreaterThan(0);
   });
 });

@@ -4,6 +4,7 @@
 import { signedRoundDiv } from '../../src/ai/fixed.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import type { SaveData } from '../../src/engine/meta/types.js';
+import type { BattleState } from '../../src/engine/types.js';
 import { floorDiv, roundDiv } from '../../src/num/helpers.js';
 import { buildProfileOf, playBuildIntermission } from './build-profiles.js';
 import { perturbationSet } from './perturb.js';
@@ -114,6 +115,10 @@ export interface SceneTrial {
   readonly measured: boolean;
   // ［余裕］勝利時は主人公の残りHP%、敗北時は敵マスターの残りHP%に負号。決着しなかった場合は null。
   readonly margin: number | null;
+  // 決着の型の分析用。勝った側のマスターが最後に実行したアクション（決着しなかった場合は null）と、
+  // 決着の直前の観測での負けた側のマスターの残りHP%。
+  readonly finisher?: string | null;
+  readonly loserHpBefore?: number | null;
 }
 
 // 到達局面から当該シーンのみを無摂動の重みで1回戦う。現在HPは最大HPの hpPct%（切り捨て、最低1）に置き換える。
@@ -124,7 +129,21 @@ export function playSceneTrial(serialized: string, policy: TrialPolicy, hpPct: n
   run.hero_hp = Math.max(1, floorDiv(run.hero_max_hp * hpPct, 100));
   const scene = run.current_scene_id;
   const hpIn = [run.hero_hp, run.hero_max_hp] as const;
-  const outcome = playScene(session, ctx, policy, undefined, weightsOf('BASE'));
+  // 観測の有無で決着は変わらない（[V-TEST-NONFUNC]［D-09 の実測］）。各ステップで両マスターの残りHP%と
+  // 最後に実行したアクションだけを控える。
+  const last: Record<'MINE' | 'FOE', { hpPct: number; act: string | null }> = {
+    MINE: { hpPct: 100, act: null },
+    FOE: { hpPct: 100, act: null },
+  };
+  const observe = (state: BattleState) => {
+    for (const unit of state.units) {
+      if (unit !== null && unit.unit_kind === 'MASTER') {
+        last[unit.side] = { hpPct: roundDiv(unit.hp * 100, unit.max_hp), act: unit.last_act?.class_id ?? null };
+      }
+    }
+  };
+  const outcome = playScene(session, ctx, policy, observe, weightsOf('BASE'));
+  const winner = outcome.result === 'WIN' ? 'MINE' : outcome.result === 'LOSS' ? 'FOE' : null;
   let margin: number | null = null;
   if (outcome.result === 'WIN') {
     margin = roundDiv(session.data.run.hero_hp * 100, session.data.run.hero_max_hp);
@@ -143,6 +162,8 @@ export function playSceneTrial(serialized: string, policy: TrialPolicy, hpPct: n
     within: outcome.within,
     measured: outcome.measured,
     margin,
+    finisher: winner === null ? null : last[winner].act,
+    loserHpBefore: winner === null ? null : last[winner === 'MINE' ? 'FOE' : 'MINE'].hpPct,
   };
 }
 
