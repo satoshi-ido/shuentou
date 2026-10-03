@@ -1,0 +1,254 @@
+// [V-TEST-REFAI]［シーン単位の勝率測定］到達局面の集合の収集、到達局面からのシーン単体の試行、目標勝率との集計。
+// 長時間の実行と並列化は CLI（scene-trials-cli.js）が担い、本モジュールは1件ずつの処理と集計を提供する。
+
+import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
+import type { SaveData } from '../../src/engine/meta/types.js';
+import { floorDiv, roundDiv } from '../../src/num/helpers.js';
+import { buildProfileOf, playBuildIntermission } from './build-profiles.js';
+import { perturbationSet } from './perturb.js';
+import { createRun, playIntermission, playScene, type RefPolicy } from './runner.js';
+
+export type TrialPolicy = Exclude<RefPolicy, 'PASSIVE'>;
+
+// ［到達局面の集合］の出所。参照プレイヤーAIの3方針 × 摂動21件、ビルドプロファイル7件 × 摂動21件。
+export type ArrivalSource =
+  | { readonly kind: 'ref'; readonly policy: TrialPolicy; readonly pid: string }
+  | { readonly kind: 'build'; readonly profile: string; readonly pid: string };
+
+export const REF_POLICIES: readonly TrialPolicy[] = ['BALANCE', 'ATTACK', 'DEFENSE'];
+export const BUILD_PROFILE_IDS: readonly string[] = ['BP-01', 'BP-02', 'BP-03', 'BP-04', 'BP-05', 'BP-06', 'BP-07'];
+
+export function allSources(): ArrivalSource[] {
+  const pids = perturbationSet().map((entry) => entry.id);
+  const sources: ArrivalSource[] = [];
+  for (const policy of REF_POLICIES) {
+    for (const pid of pids) {
+      sources.push({ kind: 'ref', policy, pid });
+    }
+  }
+  for (const profile of BUILD_PROFILE_IDS) {
+    for (const pid of pids) {
+      sources.push({ kind: 'build', profile, pid });
+    }
+  }
+  return sources;
+}
+
+export function sourceName(source: ArrivalSource): string {
+  return source.kind === 'ref' ? `ref_${source.policy}_${source.pid}` : `build_${source.profile}_${source.pid}`;
+}
+
+// ［戦闘方針と重み］出所の試行の戦闘方針。ビルドプロファイルは [V-TEST-BUILD-PROFILES] の戦闘方針。
+export function sourcePolicy(source: ArrivalSource): TrialPolicy {
+  if (source.kind === 'ref') {
+    return source.policy;
+  }
+  const policy = buildProfileOf(source.profile).policy;
+  if (policy === 'PASSIVE') {
+    throw new Error(`無操作型のビルドプロファイルは測定の対象外: ${source.profile}`);
+  }
+  return policy;
+}
+
+function weightsOf(pid: string) {
+  const entry = perturbationSet().find((candidate) => candidate.id === pid);
+  if (entry === undefined) {
+    throw new Error(`未知の摂動プロファイル: ${pid}`);
+  }
+  return entry.profile;
+}
+
+// FNV-1a（64ビット）。到達局面のキーに用いる（暗号学的な強度は要しない）。
+function fnv1a64(text: string): string {
+  const prime = 0x100000001b3n;
+  const mask = 0xffffffffffffffffn;
+  let hash = 0xcbf29ce484222325n;
+  for (let index = 0; index < text.length; index += 1) {
+    hash ^= BigInt(text.charCodeAt(index));
+    hash = (hash * prime) & mask;
+  }
+  return hash.toString(16).padStart(16, '0');
+}
+
+// 到達局面の同一性。HistoryStack とインターミッションスナップショットは戦闘に影響しないため除く。
+export function arrivalKey(serialized: string): string {
+  const data = JSON.parse(serialized) as SaveData;
+  return fnv1a64(JSON.stringify({ ...data.run, history_stack: [], im_snapshots: [] }));
+}
+
+// 出所の通しプレイ（再挑戦なし）を行い、各シーンの開始時点の周回データを onArrival へ渡す。
+// 敗北または測定不能で打ち切る（[V-TEST-NONFUNC]［測定の打ち切り］）。
+export function collectArrivals(source: ArrivalSource, onArrival: (sceneId: string, serialized: string) => void): void {
+  const weights = weightsOf(source.pid);
+  const policy = sourcePolicy(source);
+  const profile = source.kind === 'build' ? buildProfileOf(source.profile) : null;
+  const { session, ctx } = createRun();
+  const lastOrder = Object.keys(SCENE_MASTERS).length - 1; // 5-11 は対象外（[M-TMPL-VESSEL]）
+  for (let turn = 0; turn < lastOrder; turn += 1) {
+    onArrival(session.data.run.current_scene_id, JSON.stringify(session.data));
+    const outcome = playScene(session, ctx, policy, undefined, weights);
+    if (!outcome.measured || outcome.result !== 'WIN' || turn + 1 >= lastOrder) {
+      return;
+    }
+    if (profile === null) {
+      playIntermission(session, ctx, policy, turn);
+    } else {
+      playBuildIntermission(session, ctx, profile, turn);
+    }
+  }
+}
+
+// ［到達時HPの水準］
+export const HP_LEVELS: readonly number[] = [100, 75, 50];
+
+export interface SceneTrial {
+  readonly scene: string; // 'SCENE_x_yy'
+  readonly state: string; // arrivalKey
+  readonly policy: TrialPolicy;
+  readonly hpPct: number;
+  readonly hpIn: readonly [number, number];
+  readonly result: string;
+  readonly steps: number;
+  readonly within: boolean;
+  readonly measured: boolean;
+  // ［余裕］勝利時は主人公の残りHP%、敗北時は敵マスターの残りHP%に負号。決着しなかった場合は null。
+  readonly margin: number | null;
+}
+
+// 到達局面から当該シーンのみを無摂動の重みで1回戦う。現在HPは最大HPの hpPct%（切り捨て、最低1）に置き換える。
+export function playSceneTrial(serialized: string, policy: TrialPolicy, hpPct: number): SceneTrial {
+  const data = JSON.parse(serialized) as SaveData;
+  const { session, ctx } = createRun(data);
+  const run = session.data.run;
+  run.hero_hp = Math.max(1, floorDiv(run.hero_max_hp * hpPct, 100));
+  const scene = run.current_scene_id;
+  const hpIn = [run.hero_hp, run.hero_max_hp] as const;
+  const outcome = playScene(session, ctx, policy, undefined, weightsOf('BASE'));
+  let margin: number | null = null;
+  if (outcome.result === 'WIN') {
+    margin = roundDiv(session.data.run.hero_hp * 100, session.data.run.hero_max_hp);
+  } else if (outcome.result === 'LOSS') {
+    const foe = session.data.run.battle_state?.units.find((unit) => unit !== null && unit.side === 'FOE' && unit.unit_kind === 'MASTER');
+    margin = foe === undefined || foe === null ? null : -roundDiv(foe.hp * 100, foe.max_hp);
+  }
+  return {
+    scene,
+    state: arrivalKey(serialized),
+    policy,
+    hpPct,
+    hpIn,
+    result: outcome.result,
+    steps: outcome.steps,
+    within: outcome.within,
+    measured: outcome.measured,
+    margin,
+  };
+}
+
+// ［目標勝率］の区分と目標（centi）。通常シーンの消耗の目標は最大HPの 10〜30%。
+export type SceneBand = 'TUTORIAL' | 'NORMAL' | 'BOSS' | 'FINAL';
+
+export function bandOf(sceneId: string): SceneBand {
+  if (!(sceneId in SCENE_MASTERS) || sceneId === 'SCENE_5_11') {
+    throw new Error(`目標勝率の対象外のシーン: ${sceneId}`); // 5-11 は [M-TMPL-VESSEL] により対象外
+  }
+  if (sceneId === 'SCENE_1_01') return 'TUTORIAL';
+  if (['SCENE_1_02', 'SCENE_2_04', 'SCENE_3_06', 'SCENE_4_08'].includes(sceneId)) return 'BOSS';
+  if (sceneId === 'SCENE_5_10') return 'FINAL';
+  return 'NORMAL';
+}
+
+export const TARGET_WIN_RATE: Readonly<Record<SceneBand, Readonly<Record<TrialPolicy, number>>>> = {
+  TUTORIAL: { BALANCE: 95, ATTACK: 95, DEFENSE: 95 },
+  NORMAL: { BALANCE: 90, ATTACK: 90, DEFENSE: 90 },
+  BOSS: { BALANCE: 40, ATTACK: 50, DEFENSE: 35 },
+  FINAL: { BALANCE: 25, ATTACK: 30, DEFENSE: 20 },
+};
+
+// チュートリアル・通常シーンの目標は下限（以上）、ボス・最終ボスは目標値そのもの。
+export function isLowerBound(band: SceneBand): boolean {
+  return band === 'TUTORIAL' || band === 'NORMAL';
+}
+
+export const NORMAL_CONSUMPTION_RANGE: readonly [number, number] = [10, 30];
+
+export interface SceneSummary {
+  readonly scene: string;
+  readonly policy: TrialPolicy;
+  readonly band: SceneBand;
+  readonly trials: number; // 測定できた試行（測定不能を除く）
+  readonly wins: number;
+  readonly winRate: number; // centi
+  readonly target: number;
+  readonly marginMean: number | null;
+  // ［消耗］到達時HP100%の水準で勝利した試行の、失ったHPの最大HPに対する百分率（100 − 余裕）の平均。
+  readonly consumptionMean: number | null;
+  readonly winRateByHp: Readonly<Record<string, number | null>>;
+  readonly overLimit: number;
+  readonly unmeasured: number;
+}
+
+function mean(values: readonly number[]): number | null {
+  return values.length === 0 ? null : roundDiv(values.reduce((sum, value) => sum + value, 0), values.length);
+}
+
+// シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。
+export function summarizeTrials(trials: readonly SceneTrial[]): SceneSummary[] {
+  const groups: Record<string, SceneTrial[]> = {};
+  for (const trial of trials) {
+    (groups[`${trial.scene}|${trial.policy}`] ??= []).push(trial);
+  }
+  const orderOf = (scene: string) => SCENE_MASTERS[scene as keyof typeof SCENE_MASTERS]?.order ?? 0;
+  const keys = Object.keys(groups).sort((left, right) => {
+    const [ls, lp] = left.split('|');
+    const [rs, rp] = right.split('|');
+    return orderOf(ls) - orderOf(rs) || REF_POLICIES.indexOf(lp as TrialPolicy) - REF_POLICIES.indexOf(rp as TrialPolicy);
+  });
+  return keys.map((key) => {
+    const group = groups[key];
+    const [scene, policy] = key.split('|') as [string, TrialPolicy];
+    const band = bandOf(scene);
+    const measured = group.filter((trial) => trial.measured);
+    const wins = measured.filter((trial) => trial.result === 'WIN').length;
+    const winRateByHp: Record<string, number | null> = {};
+    for (const level of HP_LEVELS) {
+      const atLevel = measured.filter((trial) => trial.hpPct === level);
+      winRateByHp[String(level)] =
+        atLevel.length === 0 ? null : roundDiv(atLevel.filter((trial) => trial.result === 'WIN').length * 100, atLevel.length);
+    }
+    return {
+      scene,
+      policy,
+      band,
+      trials: measured.length,
+      wins,
+      winRate: measured.length === 0 ? 0 : roundDiv(wins * 100, measured.length),
+      target: TARGET_WIN_RATE[band][policy],
+      marginMean: mean(measured.flatMap((trial) => (trial.margin === null ? [] : [trial.margin]))),
+      consumptionMean: mean(
+        measured.filter((trial) => trial.hpPct === 100 && trial.result === 'WIN' && trial.margin !== null).map((trial) => 100 - (trial.margin as number)),
+      ),
+      winRateByHp,
+      overLimit: group.filter((trial) => !trial.within && trial.measured).length,
+      unmeasured: group.length - measured.length,
+    };
+  });
+}
+
+// 実験用：シーンごとに敵マスターの最大HPと expected_length を centi 倍率でメモリ上だけ差し替える
+// （生成マスタは変更しない）。spec は "2_01=200,2_02=150" の形。プロセスごとに1度だけ呼ぶ。
+export function applySceneMultipliers(spec: string, enemyMasters: Record<string, { max_hp: number }>): void {
+  for (const pair of spec.split(',').filter((entry) => entry !== '')) {
+    const [scene, multText] = pair.split('=');
+    const mult = Number(multText);
+    const master = SCENE_MASTERS[`SCENE_${scene}` as keyof typeof SCENE_MASTERS] as { enemy_id: string; expected_length: number | null } | undefined;
+    if (master === undefined || !Number.isInteger(mult) || mult <= 0) {
+      throw new Error(`倍率の指定が不正: ${pair}`);
+    }
+    const enemy = enemyMasters[master.enemy_id];
+    enemy.max_hp = roundDiv(enemy.max_hp * mult, 100);
+    if (master.expected_length !== null) {
+      master.expected_length = roundDiv(master.expected_length * mult, 100);
+    }
+  }
+}

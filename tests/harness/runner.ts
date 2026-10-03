@@ -28,6 +28,7 @@ import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settl
 import { evalCallCount, resetEvalCallCount } from '../../src/ai/evaluate.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
+import type { SaveData } from '../../src/engine/meta/types.js';
 import { inheritPool, previewInherit, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import { deriveSysFlags } from '../../src/engine/flags.js';
 import { INFINITE_USES } from '../../src/engine/params.js';
@@ -748,8 +749,9 @@ export interface RunOutcome {
   readonly completed: boolean;
 }
 
-// 新規セッションと、そのセッションを引く文脈の組。
-export function createRun(): { session: GameSession; ctx: HarnessContext } {
+// 新規セッションと、そのセッションを引く文脈の組。data を与えると、その周回データ（シーン開始前の
+// 保存）から再開する（[V-TEST-REFAI]［シーン単位の勝率測定］の到達局面）。
+export function createRun(data?: SaveData): { session: GameSession; ctx: HarnessContext } {
   let started: GameSession | null = null;
   const ctx = createHarnessContext(() => {
     if (started === null) {
@@ -757,7 +759,7 @@ export function createRun(): { session: GameSession; ctx: HarnessContext } {
     }
     return started;
   });
-  const session = newGameSession(ctx);
+  const session: GameSession = data === undefined ? newGameSession(ctx) : { data, battle_start_run: null };
   started = session;
   return { session, ctx };
 }

@@ -1,0 +1,273 @@
+#!/usr/bin/env node
+// [V-TEST-REFAI]［シーン単位の勝率測定］のCLI。到達局面の集合の収集・シーン単体の試行・集計を行う。
+// いずれも子プロセスで並列に実行し、中断しても同じコマンドで続きから再開できる（済んだ分は飛ばす）。
+//
+//   node tests/harness/scene-trials-cli.js collect <bankDir> [--jobs N] [--only ref_BALANCE_BASE,...]
+//   node tests/harness/scene-trials-cli.js measure <bankDir> <outDir> [--jobs N] [--scenes 3_06,4_08] [--hp 100,75,50] [--scene-mult 2_01=200,...]
+//   node tests/harness/scene-trials-cli.js summary <outDir>
+//
+// 生成物（到達局面・試行結果）はリポジトリに置かない。Node 22 では --experimental-strip-types を付けて起動する。
+// --scene-mult は実験用で、シーンごとに敵マスターの最大HPと expected_length をメモリ上だけ差し替える。
+
+import { spawn } from 'node:child_process';
+import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import * as nodeModule from 'node:module';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// src のモジュールは相互参照を `.js` 拡張子で書くため、`.ts` へ読み替える解決フックを登録する
+// （tools/audit/index.js と同じ。registerHooks を持たない Node 22.14 では register へ切り替える）。
+if (typeof nodeModule.registerHooks === 'function') {
+  nodeModule.registerHooks({
+    resolve(specifier, context, nextResolve) {
+      if (specifier.endsWith('.js') && (specifier.startsWith('./') || specifier.startsWith('../'))) {
+        const candidate = new URL(`${specifier.slice(0, -3)}.ts`, context.parentURL);
+        if (existsSync(candidate)) {
+          return { url: candidate.href, shortCircuit: true };
+        }
+      }
+      return nextResolve(specifier, context);
+    },
+  });
+} else {
+  const hooks = `import { existsSync } from 'node:fs';
+export async function resolve(specifier, context, nextResolve) {
+  if (specifier.endsWith('.js') && (specifier.startsWith('./') || specifier.startsWith('../')) && context.parentURL) {
+    const candidate = new URL(specifier.slice(0, -3) + '.ts', context.parentURL);
+    if (existsSync(candidate)) return { url: candidate.href, shortCircuit: true };
+  }
+  return nextResolve(specifier, context);
+}`;
+  nodeModule.register(`data:text/javascript,${encodeURIComponent(hooks)}`);
+}
+
+const SELF = fileURLToPath(import.meta.url);
+const [command, ...rest] = process.argv.slice(2);
+
+function option(name, fallback) {
+  const index = rest.indexOf(`--${name}`);
+  return index >= 0 ? rest[index + 1] : fallback;
+}
+
+function positional() {
+  const values = [];
+  for (let index = 0; index < rest.length; index += 1) {
+    if (rest[index].startsWith('--')) {
+      index += 1;
+    } else {
+      values.push(rest[index]);
+    }
+  }
+  return values;
+}
+
+function readJsonl(file) {
+  if (!existsSync(file)) {
+    return [];
+  }
+  return readFileSync(file, 'utf8')
+    .split('\n')
+    .filter((line) => line.trim() !== '')
+    .map((line) => JSON.parse(line));
+}
+
+// jobs（引数配列の列）を子プロセスで並列に実行する。子の失敗は errors.log に残して続ける。
+function runPool(jobs, concurrency, errorLog, env = {}) {
+  return new Promise((resolve) => {
+    let next = 0;
+    let running = 0;
+    let done = 0;
+    const started = Date.now();
+    if (jobs.length === 0) {
+      resolve();
+      return;
+    }
+    const launch = () => {
+      while (running < concurrency && next < jobs.length) {
+        const args = jobs[next];
+        next += 1;
+        running += 1;
+        let stderr = '';
+        const child = spawn(process.execPath, [...process.execArgv, SELF, ...args], {
+          stdio: ['ignore', 'ignore', 'pipe'],
+          env: { ...process.env, ...env },
+        });
+        child.stderr.on('data', (chunk) => {
+          stderr += chunk;
+        });
+        child.on('close', (code) => {
+          running -= 1;
+          done += 1;
+          if (code !== 0) {
+            appendFileSync(errorLog, `${JSON.stringify({ args, code, stderr: stderr.slice(-2000) })}\n`);
+          }
+          const minutes = Math.round((Date.now() - started) / 60000);
+          console.log(`[${done}/${jobs.length}] ${code === 0 ? 'ok' : `exit ${code}`} ${args.slice(1).join(' ')} (${minutes}分)`);
+          if (done === jobs.length) {
+            resolve();
+          } else {
+            launch();
+          }
+        });
+      }
+    };
+    launch();
+  });
+}
+
+// 到達局面の索引：<bank>/sources/<出所>.jsonl の各行 {scene, key} を集め、局面ごとに出所の方針をまとめる。
+async function loadIndex(bankDir) {
+  const { allSources, sourceName, sourcePolicy } = await import('./scene-trials.js');
+  const policyOf = Object.fromEntries(allSources().map((source) => [sourceName(source), sourcePolicy(source)]));
+  const index = {};
+  const sourcesDir = join(bankDir, 'sources');
+  for (const file of existsSync(sourcesDir) ? readdirSync(sourcesDir).filter((name) => name.endsWith('.jsonl')) : []) {
+    const name = file.replace(/\.jsonl$/, '');
+    for (const { scene, key } of readJsonl(join(sourcesDir, file))) {
+      const entry = ((index[scene] ??= {})[key] ??= { policies: [] });
+      if (!entry.policies.includes(policyOf[name])) {
+        entry.policies.push(policyOf[name]);
+        entry.policies.sort();
+      }
+    }
+  }
+  return index;
+}
+
+async function collect() {
+  const [bankDir] = positional();
+  const jobs = Number(option('jobs', '8'));
+  const { allSources, sourceName } = await import('./scene-trials.js');
+  mkdirSync(join(bankDir, 'sources'), { recursive: true });
+  // --only は出所名（ref_BALANCE_BASE 等）のカンマ区切り。確認用に一部だけ収集する。
+  const only = option('only', '')
+    .split(',')
+    .filter((value) => value !== '');
+  const pending = allSources()
+    .map(sourceName)
+    .filter((name) => only.length === 0 || only.includes(name))
+    .filter((name) => !existsSync(join(bankDir, 'sources', `${name}.done`)));
+  console.log(`出所 ${pending.length} 件を収集する`);
+  await runPool(
+    pending.map((name) => ['worker-collect', bankDir, name]),
+    jobs,
+    join(bankDir, 'errors.log'),
+  );
+  const index = await loadIndex(bankDir);
+  let total = 0;
+  for (const scene of Object.keys(index).sort()) {
+    const count = Object.keys(index[scene]).length;
+    total += count;
+    console.log(`${scene}\t${count}`);
+  }
+  console.log(`到達局面 ${total} 件`);
+}
+
+async function workerCollect() {
+  const [bankDir, name] = positional();
+  const { allSources, sourceName, collectArrivals, arrivalKey } = await import('./scene-trials.js');
+  const source = allSources().find((candidate) => sourceName(candidate) === name);
+  if (source === undefined) {
+    throw new Error(`未知の出所: ${name}`);
+  }
+  const lines = [];
+  collectArrivals(source, (scene, serialized) => {
+    const key = arrivalKey(serialized);
+    const dir = join(bankDir, 'states', scene);
+    mkdirSync(dir, { recursive: true });
+    const file = join(dir, `${key}.json`);
+    if (!existsSync(file)) {
+      try {
+        writeFileSync(file, serialized, { flag: 'wx' });
+      } catch (error) {
+        if (error.code !== 'EEXIST') throw error;
+      }
+    }
+    lines.push(JSON.stringify({ scene, key }));
+  });
+  // 出所の記録は完了時にまとめて書き、.done で完了を示す（途中で止まった出所は再開時にやり直す）。
+  writeFileSync(join(bankDir, 'sources', `${name}.jsonl`), `${lines.join('\n')}\n`);
+  writeFileSync(join(bankDir, 'sources', `${name}.done`), '');
+}
+
+async function measure() {
+  const [bankDir, outDir] = positional();
+  const jobs = Number(option('jobs', '8'));
+  const scenes = option('scenes', '')
+    .split(',')
+    .filter((value) => value !== '')
+    .map((value) => `SCENE_${value}`);
+  const levels = option('hp', '100,75,50').split(',').map(Number);
+  const mult = option('scene-mult', '');
+  mkdirSync(outDir, { recursive: true });
+  const index = await loadIndex(bankDir);
+  const done = {};
+  for (const file of readdirSync(outDir).filter((name) => name.endsWith('.jsonl'))) {
+    for (const trial of readJsonl(join(outDir, file))) {
+      done[`${trial.scene}|${trial.state}|${trial.policy}|${trial.hpPct}`] = true;
+    }
+  }
+  const pending = [];
+  for (const scene of Object.keys(index).sort()) {
+    if (scenes.length > 0 && !scenes.includes(scene)) continue;
+    for (const [key, entry] of Object.entries(index[scene])) {
+      for (const policy of entry.policies) {
+        for (const level of levels) {
+          if (!done[`${scene}|${key}|${policy}|${level}`]) {
+            pending.push(['worker-trial', bankDir, outDir, scene, key, policy, String(level)]);
+          }
+        }
+      }
+    }
+  }
+  console.log(`試行 ${pending.length} 件を実行する${mult === '' ? '' : `（倍率 ${mult}）`}`);
+  await runPool(pending, jobs, join(outDir, 'errors.log'), mult === '' ? {} : { SCENE_TRIALS_MULT: mult });
+}
+
+async function workerTrial() {
+  const [bankDir, outDir, scene, key, policy, level] = positional();
+  if (process.env.SCENE_TRIALS_MULT) {
+    const { applySceneMultipliers } = await import('./scene-trials.js');
+    const { ENEMY_MASTERS } = await import('../../src/data/generated/enemy-masters.js');
+    applySceneMultipliers(process.env.SCENE_TRIALS_MULT, ENEMY_MASTERS);
+  }
+  const { playSceneTrial } = await import('./scene-trials.js');
+  const serialized = readFileSync(join(bankDir, 'states', scene, `${key}.json`), 'utf8');
+  const trial = playSceneTrial(serialized, policy, Number(level));
+  appendFileSync(join(outDir, `${scene}.jsonl`), `${JSON.stringify(trial)}\n`);
+}
+
+async function summary() {
+  const [outDir] = positional();
+  const { summarizeTrials, isLowerBound, NORMAL_CONSUMPTION_RANGE } = await import('./scene-trials.js');
+  const trials = readdirSync(outDir)
+    .filter((name) => name.endsWith('.jsonl'))
+    .flatMap((name) => readJsonl(join(outDir, name)));
+  const pad = (value, width) => String(value ?? '-').padStart(width);
+  console.log('scene       policy    band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas');
+  for (const row of summarizeTrials(trials)) {
+    const met = isLowerBound(row.band) ? row.winRate >= row.target : true;
+    const consumeOut =
+      row.band === 'NORMAL' &&
+      row.consumptionMean !== null &&
+      (row.consumptionMean < NORMAL_CONSUMPTION_RANGE[0] || row.consumptionMean > NORMAL_CONSUMPTION_RANGE[1]);
+    console.log(
+      `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${met ? ' ' : '!'} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeOut ? '!' : ' '} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
+    );
+  }
+  console.log(`試行 ${trials.length} 件（! は下限の目標・消耗の目標帯を外れたもの。+ は「以上」の目標）`);
+}
+
+const COMMANDS = {
+  collect,
+  measure,
+  summary,
+  'worker-collect': workerCollect,
+  'worker-trial': workerTrial,
+};
+
+if (!(command in COMMANDS)) {
+  console.error('usage: scene-trials-cli.js collect <bankDir> | measure <bankDir> <outDir> | summary <outDir>');
+  process.exit(2);
+}
+await COMMANDS[command]();

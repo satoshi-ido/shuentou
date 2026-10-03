@@ -100,7 +100,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['tools/**/*.{ts,js}', '*.config.js'],
+    files: ['tools/**/*.{ts,js}', 'tests/**/*.js', '*.config.js'],
     languageOptions: {
       globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
     },
