@@ -271,10 +271,12 @@ async function summary() {
     let winMark = ' ';
     if (isLowerBound(row.band) && row.winRate < row.target) winMark = '!';
     if (row.band === 'NORMAL' && row.winRate < NORMAL_WIN_RATE_CHECK) winMark = '?';
-    // 消耗：! は通常シーンの目標の帯を外れるもの、? はボスの参照の帯を外れるもの。
+    // 消耗：! は通常シーンの目標の帯を外れるもの、? はボスの参照の帯を外れるもの。出所で分けた場合は、
+    // 参照プレイヤーAIを出所とする行に限って判定する（［目標勝率］「通常シーンの消耗」）。
     let consumeMark = ' ';
-    if (row.band === 'NORMAL' && outside(row.consumptionMean, NORMAL_CONSUMPTION_RANGE)) consumeMark = '!';
-    if (row.band === 'BOSS' && outside(row.consumptionMean, BOSS_CONSUMPTION_RANGE)) consumeMark = '?';
+    const judged = row.group === null || row.group.split('+').some((label) => label.startsWith('ref_'));
+    if (judged && row.band === 'NORMAL' && outside(row.consumptionMean, NORMAL_CONSUMPTION_RANGE)) consumeMark = '!';
+    if (judged && row.band === 'BOSS' && outside(row.consumptionMean, BOSS_CONSUMPTION_RANGE)) consumeMark = '?';
     console.log(
       `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.group === null ? '' : `${row.group.padEnd(17)} `}${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${winMark} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeMark} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
     );
