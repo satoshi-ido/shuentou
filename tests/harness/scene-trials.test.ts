@@ -97,15 +97,41 @@ describe('［シーン単位の勝率測定］の集計', () => {
     expect(row.unmeasured).toBe(1);
   });
 
-  it('groupOf を与えると、到達局面の出所の区分ごとに分けて集計する', () => {
+  it('出所の区分名を与えると、区分ごとに分けて集計する', () => {
     const rows = summarizeTrials(
       [trial({ state: 'a', margin: 90 }), trial({ state: 'b', margin: 60 }), trial({ state: 'c', margin: 70 })],
-      (entry) => (entry.state === 'b' ? 'BP-02' : 'ref_BALANCE'),
+      (entry) => ({ [entry.state === 'b' ? 'BP-02' : 'ref_BALANCE']: 1 }),
     );
     expect(rows.map((row) => [row.group, row.consumptionMean])).toEqual([
       ['BP-02', 40],
       ['ref_BALANCE', 20],
     ]);
+  });
+
+  it('［集計の重み］各試行を、局面に到達した出所の件数で重み付ける', () => {
+    // 局面 a に2件、局面 b に1件の出所が到達した。等しく数えると消耗は (10 + 40) / 2 = 25 となる。
+    const weights: Record<string, Record<string, number>> = { a: { '': 2 }, b: { '': 1 } };
+    const [row] = summarizeTrials(
+      [
+        trial({ state: 'a', margin: 90 }),
+        trial({ state: 'b', margin: 60 }),
+        trial({ state: 'a', hpPct: 50, result: 'LOSS', margin: -30 }),
+        trial({ state: 'b', hpPct: 50, margin: 20 }),
+      ],
+      (entry) => weights[entry.state],
+    );
+    expect(row.group).toBeNull();
+    expect(row.consumptionMean).toBe(20); // (10 × 2 + 40 × 1) / 3
+    expect(row.trials).toBe(6);
+    expect(row.wins).toBe(4);
+    expect(row.winRate).toBe(67);
+    expect(row.winRateByHp).toEqual({ '100': 100, '75': null, '50': 33 });
+    expect(row.marginMean).toBe(33); // (90 × 2 + 60 − 30 × 2 + 20) / 6
+  });
+
+  it('重み0の区分は行を作らない（戦闘方針の一致しない出所）', () => {
+    const rows = summarizeTrials([trial({})], () => ({ ref_ATTACK: 0, ref_BALANCE: 3 }));
+    expect(rows.map((row) => [row.group, row.trials])).toEqual([['ref_BALANCE', 3]]);
   });
 
   it('余裕の平均は敗北（負の余裕）を含めて求める', () => {

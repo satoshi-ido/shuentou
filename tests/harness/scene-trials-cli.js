@@ -4,7 +4,7 @@
 //
 //   node tests/harness/scene-trials-cli.js collect <bankDir> [--jobs N] [--only ref_BALANCE_BASE,...]
 //   node tests/harness/scene-trials-cli.js measure <bankDir> <outDir> [--jobs N] [--scenes 3_06,4_08] [--hp 100,75,50] [--scene-mult 2_01=200,...]
-//   node tests/harness/scene-trials-cli.js summary <outDir> [--bank <bankDir>]（出所ごとに分ける）
+//   node tests/harness/scene-trials-cli.js summary <outDir> --bank <bankDir> [--by-source]（出所の件数で重み付け、--by-source で出所ごとに分ける）
 //   node tests/harness/scene-trials-cli.js playthrough <outDir> [--jobs N] [--scene-mult ...]
 //   node tests/harness/scene-trials-cli.js playthrough-summary <outDir>
 //
@@ -51,9 +51,13 @@ function option(name, fallback) {
   return index >= 0 ? rest[index + 1] : fallback;
 }
 
+// 値を取らない指定。
+const FLAGS = ['--by-source'];
+
 function positional() {
   const values = [];
   for (let index = 0; index < rest.length; index += 1) {
+    if (FLAGS.includes(rest[index])) continue;
     if (rest[index].startsWith('--')) {
       index += 1;
     } else {
@@ -248,25 +252,33 @@ async function summary() {
     .flatMap((name) => readJsonl(join(outDir, name)));
   const pad = (value, width) => String(value ?? '-').padStart(width);
   const outside = (value, [low, high]) => value !== null && (value < low || value > high);
-  // --bank を与えると、到達局面の出所の区分（ref_<方針>・BP-xx）ごとに分けて集計する。
+  // ［集計の重み］：各試行に、当該の局面に到達した出所のうち戦闘方針が一致するものの件数を重みとして与える。
+  // --by-source を与えると、出所の区分（ref_<方針>・BP-xx）ごとに分けて集計する。
   const bankDir = option('bank', '');
-  let groupOf;
-  if (bankDir !== '') {
-    const labels = {};
-    for (const file of readdirSync(join(bankDir, 'sources')).filter((name) => name.endsWith('.jsonl'))) {
-      const name = file.replace(/\.jsonl$/, '');
-      const label = name.startsWith('ref_') ? name.split('_').slice(0, 2).join('_') : name.split('_')[1];
-      for (const { scene, key } of readJsonl(join(bankDir, 'sources', file))) {
-        const entry = (labels[`${scene}|${key}`] ??= []);
-        if (!entry.includes(label)) entry.push(label);
-      }
-    }
-    groupOf = (trial) => (labels[`${trial.scene}|${trial.state}`] ?? ['?']).sort().join('+');
+  if (bankDir === '') {
+    throw new Error('summary には --bank <bankDir> が要る（集計の重みを到達局面の出所から求める）');
   }
+  const bySource = rest.includes('--by-source');
+  const { allSources, sourceName, sourcePolicy } = await import('./scene-trials.js');
+  const policyOf = Object.fromEntries(allSources().map((source) => [sourceName(source), sourcePolicy(source)]));
+  const counts = {};
+  for (const file of readdirSync(join(bankDir, 'sources')).filter((name) => name.endsWith('.jsonl'))) {
+    const name = file.replace(/\.jsonl$/, '');
+    const label = bySource ? (name.startsWith('ref_') ? name.split('_').slice(0, 2).join('_') : name.split('_')[1]) : '';
+    for (const { scene, key } of readJsonl(join(bankDir, 'sources', file))) {
+      const entry = (counts[`${scene}|${key}|${policyOf[name]}`] ??= {});
+      entry[label] = (entry[label] ?? 0) + 1;
+    }
+  }
+  const missing = trials.filter((trial) => counts[`${trial.scene}|${trial.state}|${trial.policy}`] === undefined);
+  if (missing.length > 0) {
+    throw new Error(`出所の見つからない試行が ${missing.length} 件ある（例：${missing[0].scene} ${missing[0].state} ${missing[0].policy}）`);
+  }
+  const weightsOf = (trial) => counts[`${trial.scene}|${trial.state}|${trial.policy}`];
   console.log(
-    `scene       policy   ${groupOf === undefined ? '' : 'source            '}band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas`,
+    `scene       policy   ${bySource ? 'source            ' : ''}band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas`,
   );
-  for (const row of summarizeTrials(trials, groupOf)) {
+  for (const row of summarizeTrials(trials, weightsOf)) {
     // 勝率：! は下限の目標を下回るもの、? は通常シーンの確認（90%）を下回るもの。
     let winMark = ' ';
     if (isLowerBound(row.band) && row.winRate < row.target) winMark = '!';
@@ -282,7 +294,7 @@ async function summary() {
     );
   }
   console.log(
-    `試行 ${trials.length} 件（! は目標を外れたもの、? は確かめる対象の基準・参照の帯を外れたもの。+ は「以上」の目標）`,
+    `試行 ${trials.length} 件。n・over・unmeas は出所の件数で重み付けた試行数（! は目標を外れたもの、? は確かめる対象の基準・参照の帯を外れたもの。+ は「以上」の目標）`,
   );
 }
 
@@ -382,7 +394,7 @@ const COMMANDS = {
 
 if (!(command in COMMANDS)) {
   console.error(
-    'usage: scene-trials-cli.js collect <bankDir> | measure <bankDir> <outDir> | summary <outDir> | playthrough <outDir> | playthrough-summary <outDir>',
+    'usage: scene-trials-cli.js collect <bankDir> | measure <bankDir> <outDir> | summary <outDir> --bank <bankDir> | playthrough <outDir> | playthrough-summary <outDir>',
   );
   process.exit(2);
 }

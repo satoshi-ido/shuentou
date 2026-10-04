@@ -204,9 +204,10 @@ export const BOSS_CONSUMPTION_RANGE: readonly [number, number] = [30, 70];
 export interface SceneSummary {
   readonly scene: string;
   readonly policy: TrialPolicy;
-  // 到達局面の出所の区分（groupOf を与えた場合のみ。例：'ref_DEFENSE'・'BP-02'）。
+  // 到達局面の出所の区分（weightsOf が区分名を返した場合のみ。例：'ref_DEFENSE'・'BP-02'）。
   readonly group: string | null;
   readonly band: SceneBand;
+  // 件数はいずれも重み付き（［集計の重み］）。
   readonly trials: number; // 測定できた試行（測定不能を除く）
   readonly wins: number;
   readonly winRate: number; // centi
@@ -219,17 +220,32 @@ export interface SceneSummary {
   readonly unmeasured: number;
 }
 
-// 余裕は敗北時に負となるため、符号付きの丸め除算で平均する。
-function mean(values: readonly number[]): number | null {
-  return values.length === 0 ? null : signedRoundDiv(values.reduce((sum, value) => sum + value, 0), values.length);
+interface WeightedTrial {
+  readonly trial: SceneTrial;
+  readonly weight: number;
 }
 
-// シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。groupOf を与えると、
-// さらに到達局面の出所の区分ごとに分ける（最大HPの異なる出所が1行に混ざると消耗の平均が歪むため）。
-export function summarizeTrials(trials: readonly SceneTrial[], groupOf?: (trial: SceneTrial) => string): SceneSummary[] {
-  const groups: Record<string, SceneTrial[]> = {};
+const weightOf = (entries: readonly WeightedTrial[]) => entries.reduce((sum, entry) => sum + entry.weight, 0);
+
+// 重み付きの平均。余裕は敗北時に負となるため、符号付きの丸め除算で平均する。
+function mean(entries: readonly WeightedTrial[], valueOf: (trial: SceneTrial) => number): number | null {
+  const total = weightOf(entries);
+  return total === 0 ? null : signedRoundDiv(entries.reduce((sum, entry) => sum + entry.weight * valueOf(entry.trial), 0), total);
+}
+
+// シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。
+// weightsOf は試行ごとに {出所の区分: 重み} を返す（［集計の重み］：当該の局面に到達した出所のうち、
+// 戦闘方針が一致するものの件数）。区分名を '' とすれば区分に分けず、空でなければ区分ごとに分ける
+// （最大HPの異なる出所が1行に混ざると消耗の平均が歪むため）。省くと各試行を重み1で数える。
+export function summarizeTrials(
+  trials: readonly SceneTrial[],
+  weightsOf: (trial: SceneTrial) => Readonly<Record<string, number>> = () => ({ '': 1 }),
+): SceneSummary[] {
+  const groups: Record<string, WeightedTrial[]> = {};
   for (const trial of trials) {
-    (groups[`${trial.scene}|${trial.policy}|${groupOf?.(trial) ?? ''}`] ??= []).push(trial);
+    for (const [groupName, weight] of Object.entries(weightsOf(trial))) {
+      if (weight > 0) (groups[`${trial.scene}|${trial.policy}|${groupName}`] ??= []).push({ trial, weight });
+    }
   }
   const orderOf = (scene: string) => SCENE_MASTERS[scene as keyof typeof SCENE_MASTERS]?.order ?? 0;
   const keys = Object.keys(groups).sort((left, right) => {
@@ -245,30 +261,36 @@ export function summarizeTrials(trials: readonly SceneTrial[], groupOf?: (trial:
     const group = groups[key];
     const [scene, policy, groupName] = key.split('|') as [string, TrialPolicy, string];
     const band = bandOf(scene);
-    const measured = group.filter((trial) => trial.measured);
-    const wins = measured.filter((trial) => trial.result === 'WIN').length;
+    const measured = group.filter(({ trial }) => trial.measured);
+    const isWin = ({ trial }: WeightedTrial) => trial.result === 'WIN';
+    const total = weightOf(measured);
+    const wins = weightOf(measured.filter(isWin));
     const winRateByHp: Record<string, number | null> = {};
     for (const level of HP_LEVELS) {
-      const atLevel = measured.filter((trial) => trial.hpPct === level);
-      winRateByHp[String(level)] =
-        atLevel.length === 0 ? null : roundDiv(atLevel.filter((trial) => trial.result === 'WIN').length * 100, atLevel.length);
+      const atLevel = measured.filter(({ trial }) => trial.hpPct === level);
+      const atLevelTotal = weightOf(atLevel);
+      winRateByHp[String(level)] = atLevelTotal === 0 ? null : roundDiv(weightOf(atLevel.filter(isWin)) * 100, atLevelTotal);
     }
     return {
       scene,
       policy,
       group: groupName === '' ? null : groupName,
       band,
-      trials: measured.length,
+      trials: total,
       wins,
-      winRate: measured.length === 0 ? 0 : roundDiv(wins * 100, measured.length),
+      winRate: total === 0 ? 0 : roundDiv(wins * 100, total),
       target: TARGET_WIN_RATE[band]?.[policy] ?? null,
-      marginMean: mean(measured.flatMap((trial) => (trial.margin === null ? [] : [trial.margin]))),
+      marginMean: mean(
+        measured.filter(({ trial }) => trial.margin !== null),
+        (trial) => trial.margin as number,
+      ),
       consumptionMean: mean(
-        measured.filter((trial) => trial.hpPct === 100 && trial.result === 'WIN' && trial.margin !== null).map((trial) => 100 - (trial.margin as number)),
+        measured.filter(({ trial }) => trial.hpPct === 100 && trial.result === 'WIN' && trial.margin !== null),
+        (trial) => 100 - (trial.margin as number),
       ),
       winRateByHp,
-      overLimit: group.filter((trial) => !trial.within && trial.measured).length,
-      unmeasured: group.length - measured.length,
+      overLimit: weightOf(measured.filter(({ trial }) => !trial.within)),
+      unmeasured: weightOf(group) - total,
     };
   });
 }
