@@ -5,6 +5,8 @@
 //   node tests/harness/scene-trials-cli.js collect <bankDir> [--jobs N] [--only ref_BALANCE_BASE,...]
 //   node tests/harness/scene-trials-cli.js measure <bankDir> <outDir> [--jobs N] [--scenes 3_06,4_08] [--hp 100,75,50] [--scene-mult 2_01=200,...]
 //   node tests/harness/scene-trials-cli.js summary <outDir>
+//   node tests/harness/scene-trials-cli.js playthrough <outDir> [--jobs N] [--scene-mult ...]
+//   node tests/harness/scene-trials-cli.js playthrough-summary <outDir>
 //
 // 生成物（到達局面・試行結果）はリポジトリに置かない。Node 22 では --experimental-strip-types を付けて起動する。
 // --scene-mult は実験用で、シーンごとに敵マスターの最大HPと expected_length をメモリ上だけ差し替える。
@@ -258,16 +260,104 @@ async function summary() {
   console.log(`試行 ${trials.length} 件（! は下限の目標・消耗の目標帯を外れたもの。+ は「以上」の目標）`);
 }
 
+// 通しプレイによる確認（［シーン単位の勝率測定］の「通しプレイとの役割分担」）：参照プレイヤーAIの3方針 × 摂動21件
+// （再挑戦なし、[V-TEST-NONFUNC] D-02）と、ビルドプロファイル7件の再挑戦込みの通しプレイ（D-10）。
+async function playthrough() {
+  const [outDir] = positional();
+  const jobs = Number(option('jobs', '8'));
+  const mult = option('scene-mult', '');
+  const { REF_POLICIES, BUILD_PROFILE_IDS } = await import('./scene-trials.js');
+  const { perturbationSet } = await import('./perturb.js');
+  mkdirSync(outDir, { recursive: true });
+  const runs = [
+    ...REF_POLICIES.flatMap((policy) => perturbationSet().map((entry) => ['ref', policy, entry.id])),
+    ...BUILD_PROFILE_IDS.map((profile) => ['build', profile]),
+  ];
+  const pending = runs.filter((run) => !existsSync(join(outDir, `${run.join('_')}.json`)));
+  console.log(`通しプレイ ${pending.length} 件を実行する${mult === '' ? '' : `（倍率 ${mult}）`}`);
+  await runPool(
+    pending.map((run) => ['worker-run', outDir, ...run]),
+    jobs,
+    join(outDir, 'errors.log'),
+    mult === '' ? {} : { SCENE_TRIALS_MULT: mult },
+  );
+}
+
+async function workerRun() {
+  const [outDir, kind, ...args] = positional();
+  if (process.env.SCENE_TRIALS_MULT) {
+    const { applySceneMultipliers } = await import('./scene-trials.js');
+    const { ENEMY_MASTERS } = await import('../../src/data/generated/enemy-masters.js');
+    applySceneMultipliers(process.env.SCENE_TRIALS_MULT, ENEMY_MASTERS);
+  }
+  let record;
+  if (kind === 'ref') {
+    const [policy, pid] = args;
+    const { playRun } = await import('./runner.js');
+    const { perturbationSet } = await import('./perturb.js');
+    const weights = perturbationSet().find((entry) => entry.id === pid).profile;
+    const run = playRun(policy, 30, undefined, weights);
+    record = { kind, policy, pid, completed: run.completed, scenes: run.scenes };
+  } else {
+    const [profileId] = args;
+    const { buildProfileOf, playBuildRunWithRetry } = await import('./build-profiles.js');
+    const run = playBuildRunWithRetry(buildProfileOf(profileId));
+    record = {
+      kind,
+      profile: profileId,
+      completed: run.completed,
+      scenes: run.scenes.map((attempt) => ({ ...attempt.outcome, attempts: attempt.attempts })),
+    };
+  }
+  writeFileSync(join(outDir, `${[kind, ...args].join('_')}.json`), JSON.stringify(record));
+}
+
+async function playthroughSummary() {
+  const [outDir] = positional();
+  const records = readdirSync(outDir)
+    .filter((name) => name.endsWith('.json'))
+    .map((name) => JSON.parse(readFileSync(join(outDir, name), 'utf8')));
+  const stopOf = (record) => {
+    const last = record.scenes[record.scenes.length - 1];
+    return record.completed ? '完走' : `${last.scene_id.slice(6)}${last.measured === false ? '(測定不能)' : ''}`;
+  };
+  for (const policy of ['BALANCE', 'ATTACK', 'DEFENSE']) {
+    const group = records.filter((record) => record.kind === 'ref' && record.policy === policy);
+    const stops = {};
+    for (const record of group) {
+      stops[stopOf(record)] = (stops[stopOf(record)] ?? 0) + 1;
+    }
+    const over = group.flatMap((record) => record.scenes).filter((scene) => scene.measured && !scene.within).length;
+    const listed = Object.entries(stops)
+      .sort((left, right) => right[1] - left[1])
+      .map(([stop, count]) => `${stop} ${count}`)
+      .join('、');
+    console.log(`${policy.padEnd(8)} ${group.length}件：${listed}（決着上限の超過 ${over}）`);
+  }
+  for (const record of records.filter((entry) => entry.kind === 'build').sort((left, right) => left.profile.localeCompare(right.profile))) {
+    const retries = record.scenes
+      .filter((scene) => scene.attempts > 1)
+      .map((scene) => `${scene.scene_id.slice(6)}×${scene.attempts}`)
+      .join(' ');
+    console.log(`${record.profile} ${record.completed ? '完走' : `${stopOf(record)} で詰む`}${retries === '' ? '' : `（再挑戦 ${retries}）`}`);
+  }
+}
+
 const COMMANDS = {
   collect,
   measure,
   summary,
+  playthrough,
+  'playthrough-summary': playthroughSummary,
   'worker-collect': workerCollect,
   'worker-trial': workerTrial,
+  'worker-run': workerRun,
 };
 
 if (!(command in COMMANDS)) {
-  console.error('usage: scene-trials-cli.js collect <bankDir> | measure <bankDir> <outDir> | summary <outDir>');
+  console.error(
+    'usage: scene-trials-cli.js collect <bankDir> | measure <bankDir> <outDir> | summary <outDir> | playthrough <outDir> | playthrough-summary <outDir>',
+  );
   process.exit(2);
 }
 await COMMANDS[command]();
