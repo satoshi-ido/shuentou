@@ -4,7 +4,7 @@
 //
 //   node tests/harness/scene-trials-cli.js collect <bankDir> [--jobs N] [--only ref_BALANCE_BASE,...]
 //   node tests/harness/scene-trials-cli.js measure <bankDir> <outDir> [--jobs N] [--scenes 3_06,4_08] [--hp 100,75,50] [--scene-mult 2_01=200,...]
-//   node tests/harness/scene-trials-cli.js summary <outDir>
+//   node tests/harness/scene-trials-cli.js summary <outDir> [--bank <bankDir>]（出所ごとに分ける）
 //   node tests/harness/scene-trials-cli.js playthrough <outDir> [--jobs N] [--scene-mult ...]
 //   node tests/harness/scene-trials-cli.js playthrough-summary <outDir>
 //
@@ -248,8 +248,25 @@ async function summary() {
     .flatMap((name) => readJsonl(join(outDir, name)));
   const pad = (value, width) => String(value ?? '-').padStart(width);
   const outside = (value, [low, high]) => value !== null && (value < low || value > high);
-  console.log('scene       policy    band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas');
-  for (const row of summarizeTrials(trials)) {
+  // --bank を与えると、到達局面の出所の区分（ref_<方針>・BP-xx）ごとに分けて集計する。
+  const bankDir = option('bank', '');
+  let groupOf;
+  if (bankDir !== '') {
+    const labels = {};
+    for (const file of readdirSync(join(bankDir, 'sources')).filter((name) => name.endsWith('.jsonl'))) {
+      const name = file.replace(/\.jsonl$/, '');
+      const label = name.startsWith('ref_') ? name.split('_').slice(0, 2).join('_') : name.split('_')[1];
+      for (const { scene, key } of readJsonl(join(bankDir, 'sources', file))) {
+        const entry = (labels[`${scene}|${key}`] ??= []);
+        if (!entry.includes(label)) entry.push(label);
+      }
+    }
+    groupOf = (trial) => (labels[`${trial.scene}|${trial.state}`] ?? ['?']).sort().join('+');
+  }
+  console.log(
+    `scene       policy   ${groupOf === undefined ? '' : 'source            '}band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas`,
+  );
+  for (const row of summarizeTrials(trials, groupOf)) {
     // 勝率：! は下限の目標を下回るもの、? は通常シーンの確認（90%）を下回るもの。
     let winMark = ' ';
     if (isLowerBound(row.band) && row.winRate < row.target) winMark = '!';
@@ -259,7 +276,7 @@ async function summary() {
     if (row.band === 'NORMAL' && outside(row.consumptionMean, NORMAL_CONSUMPTION_RANGE)) consumeMark = '!';
     if (row.band === 'BOSS' && outside(row.consumptionMean, BOSS_CONSUMPTION_RANGE)) consumeMark = '?';
     console.log(
-      `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${winMark} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeMark} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
+      `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.group === null ? '' : `${row.group.padEnd(17)} `}${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${winMark} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeMark} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
     );
   }
   console.log(

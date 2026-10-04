@@ -204,6 +204,8 @@ export const BOSS_CONSUMPTION_RANGE: readonly [number, number] = [30, 70];
 export interface SceneSummary {
   readonly scene: string;
   readonly policy: TrialPolicy;
+  // 到達局面の出所の区分（groupOf を与えた場合のみ。例：'ref_DEFENSE'・'BP-02'）。
+  readonly group: string | null;
   readonly band: SceneBand;
   readonly trials: number; // 測定できた試行（測定不能を除く）
   readonly wins: number;
@@ -222,21 +224,26 @@ function mean(values: readonly number[]): number | null {
   return values.length === 0 ? null : signedRoundDiv(values.reduce((sum, value) => sum + value, 0), values.length);
 }
 
-// シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。
-export function summarizeTrials(trials: readonly SceneTrial[]): SceneSummary[] {
+// シーン × 方針ごとの集計。シーンは order 順、方針は REF_POLICIES の順に並べる。groupOf を与えると、
+// さらに到達局面の出所の区分ごとに分ける（最大HPの異なる出所が1行に混ざると消耗の平均が歪むため）。
+export function summarizeTrials(trials: readonly SceneTrial[], groupOf?: (trial: SceneTrial) => string): SceneSummary[] {
   const groups: Record<string, SceneTrial[]> = {};
   for (const trial of trials) {
-    (groups[`${trial.scene}|${trial.policy}`] ??= []).push(trial);
+    (groups[`${trial.scene}|${trial.policy}|${groupOf?.(trial) ?? ''}`] ??= []).push(trial);
   }
   const orderOf = (scene: string) => SCENE_MASTERS[scene as keyof typeof SCENE_MASTERS]?.order ?? 0;
   const keys = Object.keys(groups).sort((left, right) => {
-    const [ls, lp] = left.split('|');
-    const [rs, rp] = right.split('|');
-    return orderOf(ls) - orderOf(rs) || REF_POLICIES.indexOf(lp as TrialPolicy) - REF_POLICIES.indexOf(rp as TrialPolicy);
+    const [ls, lp, lg] = left.split('|');
+    const [rs, rp, rg] = right.split('|');
+    return (
+      orderOf(ls) - orderOf(rs) ||
+      REF_POLICIES.indexOf(lp as TrialPolicy) - REF_POLICIES.indexOf(rp as TrialPolicy) ||
+      lg.localeCompare(rg)
+    );
   });
   return keys.map((key) => {
     const group = groups[key];
-    const [scene, policy] = key.split('|') as [string, TrialPolicy];
+    const [scene, policy, groupName] = key.split('|') as [string, TrialPolicy, string];
     const band = bandOf(scene);
     const measured = group.filter((trial) => trial.measured);
     const wins = measured.filter((trial) => trial.result === 'WIN').length;
@@ -249,6 +256,7 @@ export function summarizeTrials(trials: readonly SceneTrial[]): SceneSummary[] {
     return {
       scene,
       policy,
+      group: groupName === '' ? null : groupName,
       band,
       trials: measured.length,
       wins,

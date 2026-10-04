@@ -97,6 +97,17 @@ describe('［シーン単位の勝率測定］の集計', () => {
     expect(row.unmeasured).toBe(1);
   });
 
+  it('groupOf を与えると、到達局面の出所の区分ごとに分けて集計する', () => {
+    const rows = summarizeTrials(
+      [trial({ state: 'a', margin: 90 }), trial({ state: 'b', margin: 60 }), trial({ state: 'c', margin: 70 })],
+      (entry) => (entry.state === 'b' ? 'BP-02' : 'ref_BALANCE'),
+    );
+    expect(rows.map((row) => [row.group, row.consumptionMean])).toEqual([
+      ['BP-02', 40],
+      ['ref_BALANCE', 20],
+    ]);
+  });
+
   it('余裕の平均は敗北（負の余裕）を含めて求める', () => {
     const [row] = summarizeTrials([
       trial({ result: 'LOSS', margin: -40 }),
