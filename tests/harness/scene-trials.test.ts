@@ -7,6 +7,9 @@ import {
   allSources,
   arrivalKey,
   bandOf,
+  BOSS_CONSUMPTION_RANGE,
+  NORMAL_CONSUMPTION_RANGE,
+  NORMAL_WIN_RATE_CHECK,
   playSceneTrial,
   sourcePolicy,
   summarizeTrials,
@@ -32,10 +35,17 @@ describe('［目標勝率］の区分', () => {
     expect(() => bandOf('SCENE_5_11')).toThrow('対象外');
   });
 
-  it('通常シーンは3方針とも 90、ボスは 40・50・35、最終ボスは 25・30・20', () => {
-    expect(TARGET_WIN_RATE.NORMAL).toEqual({ BALANCE: 90, ATTACK: 90, DEFENSE: 90 });
-    expect(TARGET_WIN_RATE.BOSS).toEqual({ BALANCE: 40, ATTACK: 50, DEFENSE: 35 });
+  it('勝率の目標はチュートリアル（95以上）と最終ボス（25・30・20）に限る', () => {
+    expect(TARGET_WIN_RATE.TUTORIAL).toEqual({ BALANCE: 95, ATTACK: 95, DEFENSE: 95 });
+    expect(TARGET_WIN_RATE.NORMAL).toBeNull();
+    expect(TARGET_WIN_RATE.BOSS).toBeNull();
     expect(TARGET_WIN_RATE.FINAL).toEqual({ BALANCE: 25, ATTACK: 30, DEFENSE: 20 });
+  });
+
+  it('通常シーンは勝率90%を確認の基準、消耗10〜30%を目標とし、ボスの消耗は30〜70%を参照の帯とする', () => {
+    expect(NORMAL_WIN_RATE_CHECK).toBe(90);
+    expect(NORMAL_CONSUMPTION_RANGE).toEqual([10, 30]);
+    expect(BOSS_CONSUMPTION_RANGE).toEqual([30, 70]);
   });
 });
 

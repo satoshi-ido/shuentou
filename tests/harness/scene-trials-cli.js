@@ -241,23 +241,30 @@ async function workerTrial() {
 
 async function summary() {
   const [outDir] = positional();
-  const { summarizeTrials, isLowerBound, NORMAL_CONSUMPTION_RANGE } = await import('./scene-trials.js');
+  const { summarizeTrials, isLowerBound, NORMAL_WIN_RATE_CHECK, NORMAL_CONSUMPTION_RANGE, BOSS_CONSUMPTION_RANGE } =
+    await import('./scene-trials.js');
   const trials = readdirSync(outDir)
     .filter((name) => name.endsWith('.jsonl'))
     .flatMap((name) => readJsonl(join(outDir, name)));
   const pad = (value, width) => String(value ?? '-').padStart(width);
+  const outside = (value, [low, high]) => value !== null && (value < low || value > high);
   console.log('scene       policy    band       n  win%  target  margin  consume | 100%  75%  50% | over unmeas');
   for (const row of summarizeTrials(trials)) {
-    const met = isLowerBound(row.band) ? row.winRate >= row.target : true;
-    const consumeOut =
-      row.band === 'NORMAL' &&
-      row.consumptionMean !== null &&
-      (row.consumptionMean < NORMAL_CONSUMPTION_RANGE[0] || row.consumptionMean > NORMAL_CONSUMPTION_RANGE[1]);
+    // 勝率：! は下限の目標を下回るもの、? は通常シーンの確認（90%）を下回るもの。
+    let winMark = ' ';
+    if (isLowerBound(row.band) && row.winRate < row.target) winMark = '!';
+    if (row.band === 'NORMAL' && row.winRate < NORMAL_WIN_RATE_CHECK) winMark = '?';
+    // 消耗：! は通常シーンの目標の帯を外れるもの、? はボスの参照の帯を外れるもの。
+    let consumeMark = ' ';
+    if (row.band === 'NORMAL' && outside(row.consumptionMean, NORMAL_CONSUMPTION_RANGE)) consumeMark = '!';
+    if (row.band === 'BOSS' && outside(row.consumptionMean, BOSS_CONSUMPTION_RANGE)) consumeMark = '?';
     console.log(
-      `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${met ? ' ' : '!'} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeOut ? '!' : ' '} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
+      `${row.scene.padEnd(11)} ${row.policy.padEnd(8)} ${row.band.padEnd(8)} ${pad(row.trials, 4)}  ${pad(row.winRate, 4)}${winMark} ${pad(row.target, 5)}${isLowerBound(row.band) ? '+' : ' '}  ${pad(row.marginMean, 6)}  ${pad(row.consumptionMean, 6)}${consumeMark} | ${['100', '75', '50'].map((level) => pad(row.winRateByHp[level], 4)).join(' ')} | ${pad(row.overLimit, 4)} ${pad(row.unmeasured, 5)}`,
     );
   }
-  console.log(`試行 ${trials.length} 件（! は下限の目標・消耗の目標帯を外れたもの。+ は「以上」の目標）`);
+  console.log(
+    `試行 ${trials.length} 件（! は目標を外れたもの、? は確かめる対象の基準・参照の帯を外れたもの。+ は「以上」の目標）`,
+  );
 }
 
 // 通しプレイによる確認（［シーン単位の勝率測定］の「通しプレイとの役割分担」）：参照プレイヤーAIの3方針 × 摂動21件

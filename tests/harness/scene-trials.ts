@@ -180,19 +180,26 @@ export function bandOf(sceneId: string): SceneBand {
   return 'NORMAL';
 }
 
-export const TARGET_WIN_RATE: Readonly<Record<SceneBand, Readonly<Record<TrialPolicy, number>>>> = {
+// 勝率の目標はチュートリアル（下限）と最終ボスに限る。通常シーンは消耗を目標とし、勝率は確かめる対象とする
+// （［目標勝率］「通常シーンの勝率の確認」）。ボスは勝率・消耗とも確かめる対象とする（同「ボスの扱い」）。
+export const TARGET_WIN_RATE: Readonly<Record<SceneBand, Readonly<Record<TrialPolicy, number>> | null>> = {
   TUTORIAL: { BALANCE: 95, ATTACK: 95, DEFENSE: 95 },
-  NORMAL: { BALANCE: 90, ATTACK: 90, DEFENSE: 90 },
-  BOSS: { BALANCE: 40, ATTACK: 50, DEFENSE: 35 },
+  NORMAL: null,
+  BOSS: null,
   FINAL: { BALANCE: 25, ATTACK: 30, DEFENSE: 20 },
 };
 
-// チュートリアル・通常シーンの目標は下限（以上）、ボス・最終ボスは目標値そのもの。
+// チュートリアルの目標は下限（以上）、最終ボスは目標値そのもの。
 export function isLowerBound(band: SceneBand): boolean {
-  return band === 'TUTORIAL' || band === 'NORMAL';
+  return band === 'TUTORIAL';
 }
 
+// 通常シーンの勝率の確認：これを下回るシーンは壁となっていないかを調べる。
+export const NORMAL_WIN_RATE_CHECK = 90;
+// 通常シーンの消耗の目標の帯。
 export const NORMAL_CONSUMPTION_RANGE: readonly [number, number] = [10, 30];
+// ボスの消耗の参照の帯（暫定、調整の目標ではない）。
+export const BOSS_CONSUMPTION_RANGE: readonly [number, number] = [30, 70];
 
 export interface SceneSummary {
   readonly scene: string;
@@ -201,7 +208,7 @@ export interface SceneSummary {
   readonly trials: number; // 測定できた試行（測定不能を除く）
   readonly wins: number;
   readonly winRate: number; // centi
-  readonly target: number;
+  readonly target: number | null; // ボスは null
   readonly marginMean: number | null;
   // ［消耗］到達時HP100%の水準で勝利した試行の、失ったHPの最大HPに対する百分率（100 − 余裕）の平均。
   readonly consumptionMean: number | null;
@@ -246,7 +253,7 @@ export function summarizeTrials(trials: readonly SceneTrial[]): SceneSummary[] {
       trials: measured.length,
       wins,
       winRate: measured.length === 0 ? 0 : roundDiv(wins * 100, measured.length),
-      target: TARGET_WIN_RATE[band][policy],
+      target: TARGET_WIN_RATE[band]?.[policy] ?? null,
       marginMean: mean(measured.flatMap((trial) => (trial.margin === null ? [] : [trial.margin]))),
       consumptionMean: mean(
         measured.filter((trial) => trial.hpPct === 100 && trial.result === 'WIN' && trial.margin !== null).map((trial) => 100 - (trial.margin as number)),
