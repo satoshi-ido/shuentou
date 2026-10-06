@@ -26,6 +26,7 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       expectedLength: 800,
       bookId: 'B-01',
       waitMoves: false,
+      thoughtDeny: false,
     });
   });
 
@@ -73,5 +74,18 @@ describe('[A-SEARCH-MOVEGEN] 待機手を含めるプロファイル', () => {
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
     expect(built.waitMoves).toBe(false);
+  });
+});
+
+describe('[A-EVAL-TTK]［妨害補正］思考待ちのスタンを数えるプロファイル', () => {
+  it('参照プレイヤーAIに限り数え、敵軍AIの実効プロファイルと既定プロファイルは数えない', () => {
+    expect(referenceProfile().thoughtDeny).toBe(true);
+    expect(defaultProfile().thoughtDeny).toBe(false);
+    const built = buildEffectiveProfile({
+      scene: SCENE_MASTERS.SCENE_1_01,
+      enemy: ENEMY_MASTERS.ENEMY_LEF,
+      profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
+    });
+    expect(built.thoughtDeny).toBe(false);
   });
 });

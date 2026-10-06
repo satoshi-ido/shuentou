@@ -2,8 +2,10 @@
 
 import { describe, expect, it } from 'vitest';
 import { TTK_MAX } from '../../src/ai/constants.js';
-import { buildAttackPlan } from '../../src/ai/ttk.js';
-import { createDuel, findUnit, makeAction, martialAction, setStartup } from './fixtures.js';
+import { cloneState } from '../../src/ai/clone.js';
+import { runQuiescence } from '../../src/ai/quiesce.js';
+import { buildAttackPlan, denyTime } from '../../src/ai/ttk.js';
+import { createDuel, findUnit, makeAction, martialAction, NO_SUMMON_DEPS, setStartup } from './fixtures.js';
 
 // 心気（基本）AR3 相当：必要思考147・発生10・加算VP2・PP充填効率1.00（フルサイクル157）。
 const MIND = makeAction('MIND', { gain_vp: 2, charge_pp: 100, step_thought: 147, step_startup: 10, step_recovery: 0 });
@@ -90,5 +92,32 @@ describe('[A-EVAL-TTK]［妨害補正］', () => {
   it('妨害補正は1回に限り適用する', () => {
     const unit = hero(2, 2);
     expect(buildAttackPlan(unit, actionOf(unit, 'HEAVY'), 1, 10)?.finalLanding).toBe(10 + 314 + 105);
+  });
+});
+
+describe('[A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン', () => {
+  // 防御側（主人公）のスタン付き武技：必要思考20・発生5。経過思考16（残り4）。
+  const STUN = martialAction('STUN', { atk: 10, dmg_hp: 10, stun: true, cost_pp: 3, step_thought: 20, step_startup: 5, step_recovery: 5 });
+
+  function deny(pp: number, thoughtDeny: boolean | undefined): number {
+    const state = createDuel({ heroMaxHp: 60, heroActs: [STUN], enemyMaxHp: 60, enemyActs: [WAIT] });
+    const defender = findUnit(state, 'MINE');
+    defender.elapsed_thought = 16;
+    defender.pp = pp;
+    const { trace } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
+    return denyTime(defender, findUnit(state, 'FOE'), { trace, level: state.scene_level, offset: 0, thoughtDeny });
+  }
+
+  it('参照プレイヤーAIの探索では、着弾を残りの必要思考＋必要発生とする', () => {
+    expect(deny(3, true)).toBe(4 + 5);
+  });
+
+  it('敵軍AIの探索（既定）では数えない', () => {
+    expect(deny(3, false)).toBe(TTK_MAX);
+    expect(deny(3, undefined)).toBe(TTK_MAX);
+  });
+
+  it('補充を要するもの（PP不足）は参照プレイヤーAIの探索でも数えない', () => {
+    expect(deny(2, true)).toBe(TTK_MAX);
   });
 });

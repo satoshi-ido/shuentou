@@ -506,6 +506,8 @@ export interface TtkInputs {
   // 1回の葉の評価の中で共有する表（newTtkCache）。評価の間ユニットは変更されないため、同じユニットの
   // 計画文脈・想定体勢を一度だけ求める。省略時は毎回求める。
   readonly cache?: TtkCache;
+  // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン付き武技を数えるか（参照プレイヤーAIの探索に限る）。省略時は数えない。
+  readonly thoughtDeny?: boolean;
 }
 
 type Guard = { readonly at: number; readonly defense: number } | null;
@@ -604,15 +606,15 @@ function hitsAt(
 }
 
 // [A-EVAL-TTK]［妨害補正］：防御側が保有するスタン付き武技のうち、発生中のもの、または今すぐ実行できるものについて、
-// 着弾ステップにおいて攻撃側へ命中するものの最速の着弾。補充・浄化・思考の待機を要するものは数えない。
-// 存在しなければ TTK_MAX。
+// 着弾ステップにおいて攻撃側へ命中するものの最速の着弾。補充・浄化を要するものは数えない。思考の待機のみを
+// 要するものは inputs.thoughtDeny のとき（参照プレイヤーAIの探索）に限って数える。存在しなければ TTK_MAX。
 export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): number {
   let best = TTK_MAX;
   for (const action of defender.acts) {
     if (!action.base_params.stun || !hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
       continue;
     }
-    const landing = inFlightLanding(defender, action) ?? readyLanding(defender, action);
+    const landing = inFlightLanding(defender, action) ?? readyLanding(defender, action, inputs.thoughtDeny === true);
     if (landing === null || landing >= best) {
       continue;
     }
@@ -633,17 +635,24 @@ function inFlightLanding(unit: Unit, action: ActionInstance): number | null {
 
 // ［妨害補正］今すぐ実行できるスタン付き武技の着弾ステップ（必要発生実効値）。実行できる条件は
 // [A-SEARCH-MOVEGEN] の対象ユニット・対象アクションに従う（防御側はマスターであり、HPコストの自滅は選べない）。
-function readyLanding(unit: Unit, action: ActionInstance): number | null {
+// thoughtDeny のときは経過思考の条件を除き、着弾を残りの必要思考＋必要発生実効値とする（思考の待機のみを要する）。
+function readyLanding(unit: Unit, action: ActionInstance, thoughtDeny: boolean): number | null {
   const ready =
     unit.state === 'THOUGHT' &&
     action.uses_left !== 0 &&
     action.seal_accum < SEAL_LIMIT_CENTI &&
-    unit.elapsed_thought >= effectiveStepThought(unit, action) &&
     unit.vp >= effectiveCostVp(unit, action) &&
     unit.pp >= effectiveCostPp(unit, action) &&
     unit.ap >= effectiveCostAp(unit, action) &&
     unit.hp > effectiveCostHp(unit, action);
-  return ready ? effectiveStepStartup(unit, action) : null;
+  if (!ready) {
+    return null;
+  }
+  const thoughtLeft = Math.max(effectiveStepThought(unit, action) - unit.elapsed_thought, 0);
+  if (thoughtLeft > 0 && !thoughtDeny) {
+    return null;
+  }
+  return thoughtLeft + effectiveStepStartup(unit, action);
 }
 
 // TTK(atk_side -> def_side) を、攻撃側マスターの全武技の攻撃計画の最小値として求める。

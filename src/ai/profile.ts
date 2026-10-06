@@ -73,6 +73,8 @@ export interface EffectiveProfile {
   readonly bookId: string | null;
   // [A-SEARCH-MOVEGEN] 待機手を候補に含めるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
   readonly waitMoves: boolean;
+  // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン付き武技を数えるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  readonly thoughtDeny: boolean;
 }
 
 // [A-DIFF-CONFIG] 1-01 の設定値。M5（全30シーン投入）までの既定プロファイルとして用いる。
@@ -90,6 +92,7 @@ export function defaultProfile(): EffectiveProfile {
     expectedLength: 600,
     bookId: null,
     waitMoves: false,
+    thoughtDeny: false,
   };
 }
 
@@ -111,6 +114,7 @@ export function referenceProfile(): EffectiveProfile {
     expectedLength: 600,
     bookId: null,
     waitMoves: true, // [V-TEST-REFAI]「待機手」
+    thoughtDeny: true, // [V-TEST-REFAI]「思考待ちのスタンの妨害補正」
   };
 }
 
@@ -223,5 +227,6 @@ export function buildEffectiveProfile({ scene, enemy, profile, mirrorStats }: Pr
     expectedLength: requireValue(scene.expected_length, '想定戦闘長', scene.scene_id),
     bookId: enemy.book_id ?? null, // 手順5
     waitMoves: false, // [A-SEARCH-MOVEGEN] 敵軍AIの探索では待機手を生成しない
+    thoughtDeny: false, // [A-EVAL-TTK]［妨害補正］敵軍AIの探索では思考待ちのスタンを数えない
   };
 }

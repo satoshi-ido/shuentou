@@ -13,7 +13,7 @@ import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Side, Unit } from '../engine/types.js';
 import { hasExecutableAction, isActionExecutable } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
-import { effectiveAtk, effectiveRange } from '../engine/effective.js';
+import { effectiveAtk, effectiveRange, effectiveStepThought } from '../engine/effective.js';
 import { applyMove } from './apply.js';
 import { lookupBook } from './book.js';
 import { cloneBattleState } from './clone.js';
@@ -59,11 +59,11 @@ function findUnitById(state: BattleState, unitId: string): Unit {
 // [A-SEARCH-NODE]［待機手の約定］ユニットID → 待機するアクションのインスタンスIDと、約定を記録した
 // 時点のステップ。枝ごとに複製して受け渡し、探索中の局面（BattleState）には持たせない。
 // ステップは［解消］の期限（記録から TTK_MAX ステップ）の判定に用いる。
-interface WaitCommitment {
+export interface WaitCommitment {
   readonly instanceId: string;
   readonly since: number;
 }
-type WaitCommitments = Readonly<Record<string, WaitCommitment>>;
+export type WaitCommitments = Readonly<Record<string, WaitCommitment>>;
 
 // ［発射］対象アクションが実行可能で、相手陣営のマスター（前列・後列を問わない）に命中し射程内にあるとき。
 export function readyToFire(state: BattleState, unit: Unit, instanceId: string): 'FIRE' | 'WAIT' | 'DROP' {
@@ -112,7 +112,23 @@ function fireWaits(state: BattleState, waits: WaitCommitments, deps: StepDeps): 
   return { outcome: 'NONE', waits: remaining };
 }
 
-// ［葉での扱い］約定が残っていれば、新規行動を入れずに（発射の確定のみ行い）進めてから評価する。
+// ［葉での扱い］延長の上限：残っている約定のうち、待機するアクションの必要思考の残り + 1 の最大値
+// （TTK_MAX を超えない）。必要思考が満ちても発射されない約定は、発射の条件が崩れたものとして上限で解消する。
+export function leafExtensionLimit(state: BattleState, waits: WaitCommitments): number {
+  let limit = 0;
+  for (const [unitId, commitment] of Object.entries(waits)) {
+    const unit = state.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
+    const action = unit?.acts.find((candidate) => candidate.instance_id === commitment.instanceId);
+    if (unit === undefined || action === undefined) {
+      continue;
+    }
+    const elapsed = unit.state === 'THOUGHT' ? unit.elapsed_thought : 0;
+    limit = Math.max(limit, Math.max(effectiveStepThought(unit, action) - elapsed, 0) + 1);
+  }
+  return Math.min(limit, TTK_MAX);
+}
+
+// ［葉での扱い］約定が残っていれば、新規行動を入れずに（発射の確定のみ行い）上限まで進めてから評価する。
 // extendable は [A-SEARCH-QUIESCE]［決着の確認］の対象となる葉（手を適用して到達した葉）であるか。
 function evaluateLeaf(
   state: BattleState,
@@ -123,13 +139,15 @@ function evaluateLeaf(
   extendable = false,
 ): number {
   let pending = waits;
+  const limit = leafExtensionLimit(state, waits);
   for (let steps = 0; Object.keys(pending).length > 0; steps += 1) {
     const fired = fireWaits(state, pending, ctx.deps);
     if (fired.outcome !== 'NONE') {
       return quiescenceMateScore(fired.outcome, ply, steps);
     }
     pending = fired.waits;
-    if (Object.keys(pending).length === 0 || steps >= TTK_MAX) {
+    // 上限に達したら、発射されなかった約定を解消して評価する。
+    if (Object.keys(pending).length === 0 || steps >= limit) {
       break;
     }
     runStepEnd(state);
