@@ -133,7 +133,7 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_08', pool }))).toEqual(action('ACT_SPEC_BUFF_WALL_SERG'));
   });
 
-  it('BP-04 は係数が寄与する項目数で選び、同一インターミッションで選ばれた項目を避ける', () => {
+  it('BP-04 は係数が寄与する項目数で選び、同一インターミッションで選ばれた項目と同じ系統を避ける', () => {
     // 従者11：atkRate・usesRate。武技は2項目、体勢は usesRate の1項目。
     expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_HEAVY_AR12'))).toBe(2);
     expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_GUARD_AR12'))).toBe(1);
@@ -141,8 +141,9 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     const pool = [action('ACT_GUARD_AR12'), action('ACT_HEAVY_AR12'), action('ACT_HEAVY_AR117')];
     const bp = buildProfileOf('BP-04');
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    // 他の従者が武技を選んでいれば、別の武技（ACT_HEAVY_AR117）ではなく別の系統（体勢）を選ぶ。
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool, picked: [action('ACT_HEAVY_AR12')] }))).toEqual(
-      action('ACT_HEAVY_AR117'),
+      action('ACT_GUARD_AR12'),
     );
   });
 
@@ -156,7 +157,7 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     ).toEqual(action('ACT_GUARD_AR12'));
   });
 
-  it('BP-05 は召喚を保持していなければ1枠で召喚を確保し、従者10は常に武技を選ぶ', () => {
+  it('BP-05 は召喚の保持の有無によらず各インターミッションの1枠で召喚を選び、従者10は常に武技を選ぶ', () => {
     const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12')];
     const bp = buildProfileOf('BP-05');
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool }))).toEqual(action('ACT_HEAVY_AR12'));
@@ -166,7 +167,7 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     );
     expect(
       bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: { holdsStance: false, holdsSummon: true } })),
-    ).toEqual(action('ACT_HEAVY_AR12'));
+    ).toEqual(action('ACT_SUMMON_AR12'));
   });
 
   it('BP-06 は浄化率・剥奪率を持つアクションを選び、無ければ最大HP加算を選ぶ', () => {
@@ -175,6 +176,14 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
       action('ACT_GUARD_AR12'),
     );
     expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12'), MAX_HP] }))).toEqual(MAX_HP);
+  });
+
+  it('BP-06 は同一インターミッションで剥奪と浄化を交互に選ぶ（最初の枠は剥奪）', () => {
+    // ACT_HEAVY_AR12 は剥奪率50、ACT_GUARD_AR12 は浄化率50。
+    const pool = [action('ACT_GUARD_AR12'), action('ACT_HEAVY_AR12')];
+    const bp = buildProfileOf('BP-06');
+    expect(bp.allocate(ctx({ pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    expect(bp.allocate(ctx({ pool, picked: [action('ACT_HEAVY_AR12')] }))).toEqual(action('ACT_GUARD_AR12'));
   });
 
   it('BP-07 は召喚を選び、プールに召喚が無ければ急襲（思考0・防御効率あり）の武技を選ぶ', () => {

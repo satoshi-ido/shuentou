@@ -264,7 +264,7 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       attendantId === 'ATTENDANT_02' ? maxHp(pool) : bestBy(pool, isMind, (record) => [record.params.gain_vp]),
   },
   {
-    // 各従者が自身の係数が寄与する項目（心気を除く）を持つ別スロットへ分散する（同一インターミッションの重複を避ける）。
+    // 各従者が自身の係数が寄与する項目（心気を除く）を、互いに異なる系統の別スロットへ分散する。
     id: 'BP-04',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_11', 'ATTENDANT_12', 'ATTENDANT_13', 'ATTENDANT_14'],
     sacrifices: [
@@ -283,6 +283,11 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
         if (target.kind === 'ACTION' && isMind(recordOf(target.class_id)!)) {
           continue;
         }
+        // 他の従者が選んだ項目と同じ系統（inherit_ratio の系統）は除く。除かないと、係数の多くが攻撃・打点に
+        // 寄与するため実質的に武技の別スロットへの分散となり、継承の構成が BP-01 と重なる（分別性）。
+        if (picked.some((entry) => inheritSystem(entry) === inheritSystem(target))) {
+          continue;
+        }
         const score = coefficientScore(attendant, target);
         if (score > 0 && (best === null || score > best.score)) {
           best = { target, score };
@@ -292,17 +297,17 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     },
   },
   {
-    // 従者10は常に最大攻撃力の武技へ。召喚を保持していなければ他の1枠が召喚を確保する。
+    // 従者10は常に最大攻撃力の武技へ。他の1枠は、召喚の保持の有無によらず各インターミッションで召喚を選ぶ。
     id: 'BP-05',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_10'],
     sacrifices: [{ act: 3, count: 2 }],
     policy: 'ATTACK',
-    allocate: ({ attendantId, pool, picked, start }) => {
+    allocate: ({ attendantId, pool, picked }) => {
       if (attendantId === 'ATTENDANT_10') {
         return bestBy(pool, isMartial, byAtk);
       }
       const summonPicked = picked.some((entry) => entry.kind === 'ACTION' && isSummon(recordOf(entry.class_id)!));
-      if (!start.holdsSummon && !summonPicked) {
+      if (!summonPicked) {
         const summon = bestBy(pool, isSummon, () => [0]);
         if (summon !== null) {
           return summon;
@@ -312,7 +317,7 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     },
   },
   {
-    // 浄化率・剥奪率を持つアクションを優先。無ければ最大HP加算。
+    // 浄化率・剥奪率を持つアクションを優先し、同一インターミッションでは剥奪と浄化を交互に選ぶ。無ければ最大HP加算。
     id: 'BP-06',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_14', 'ATTENDANT_15'],
     sacrifices: [
@@ -321,12 +326,23 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       { act: 4, count: 1 },
     ],
     policy: 'DEFENSE',
-    allocate: ({ pool }) =>
-      bestBy(
-        pool,
-        (record) => record.params.purify_rate > 0 || record.params.strip_rate > 0,
-        (record) => [Math.max(record.params.purify_rate, record.params.strip_rate)],
-      ) ?? maxHp(pool),
+    // 同一インターミッションで既に剥奪率を持つアクションを選んでいれば剥奪率を持たない側を、選んでいなければ
+    // 剥奪率を持つ側を優先する（最初の枠は剥奪側）。交互にしないと浄化率を持つ心気に偏り、BP-03 と重なる。
+    allocate: ({ pool, picked }) => {
+      const stripPicked = picked.some(
+        (entry) => entry.kind === 'ACTION' && (recordOf(entry.class_id)?.params.strip_rate ?? 0) > 0,
+      );
+      return (
+        bestBy(
+          pool,
+          (record) => record.params.purify_rate > 0 || record.params.strip_rate > 0,
+          (record) => [
+            stripPicked === record.params.strip_rate > 0 ? 0 : 1,
+            Math.max(record.params.purify_rate, record.params.strip_rate),
+          ],
+        ) ?? maxHp(pool)
+      );
+    },
   },
   {
     // 全枠を単一の召喚スロットへ統合。プールに召喚が無ければ武技（急襲）へ。
