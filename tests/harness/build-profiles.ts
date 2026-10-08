@@ -459,7 +459,8 @@ function sacrificesInAct(run: GameSession['data']['run'], act: number): number {
 }
 
 // ［供犠スケジュール］時機：当該アクト内で［供犠の実行］の条件が成立した最初のインターミッション。
-// 残りのインターミッション数が残りの供犠数に達した場合は強制する。アクト移行の段では行わない。
+// 残りのインターミッション数が残りの供犠数に達した場合は強制する。予定を使い切った後は、閾値の条件が
+// 成立したインターミッションで供犠する（[V-TEST-BUILD-PROFILES]「供犠の時機」）。アクト移行の段では行わない。
 export function scheduledSacrifice(
   profile: BuildProfile,
   run: GameSession['data']['run'],
@@ -469,12 +470,17 @@ export function scheduledSacrifice(
   }
   const next = sceneOf(run.current_scene_id);
   const plan = profile.sacrifices.find((entry) => entry.act === next.act);
+  // 予定の供犠を使い切った後（予定が無い場合を含む）も、閾値による供犠（現在HP × 3 < 最大HP）を行う。
+  const thresholdOnly = () =>
+    needsSacrifice(run)
+      ? chooseSacrificeTarget(profile, { act: next.act, count: 1 }, run.party.map((slot) => slot.attendant_id))
+      : null;
   if (plan === undefined) {
-    return null;
+    return thresholdOnly();
   }
   const remaining = plan.count - sacrificesInAct(run, next.act);
   if (remaining <= 0) {
-    return null;
+    return thresholdOnly();
   }
   const intermissionsLeft = actFinalOrder(next.act) - next.order + 1;
   const due = needsSacrifice(run) || needsBossSacrifice(run) || remaining >= intermissionsLeft;
@@ -656,6 +662,10 @@ export interface BuildRetryRunOutcome {
   readonly scenes: readonly SceneAttempts[];
   // 1-01〜lastOrder を突破したか。false のとき、scenes の末尾が詰んだシーン（21件すべてで突破できない）。
   readonly completed: boolean;
+  // [V-TEST-BUILD-PROPERTY] 3（分別性）の比較の範囲：各インターミッションで実行した継承（inherit_ratio の元）と
+  // merge_max（継承を実行しなかったインターミッションは含めない）。
+  readonly picks: readonly InheritTarget[];
+  readonly mergeMaxes: readonly number[];
 }
 
 // [V-TEST-BUILD-PROPERTY] 1（完走性）の再挑戦込みの通しプレイ。敗北したシーンは重み摂動の次の件へ切り替えて
@@ -664,16 +674,22 @@ export interface BuildRetryRunOutcome {
 export function playBuildRunWithRetry(profile: BuildProfile, lastOrder = 30): BuildRetryRunOutcome {
   const { session, ctx } = createRun();
   const scenes: SceneAttempts[] = [];
+  const picks: InheritTarget[] = [];
+  const mergeMaxes: number[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const attempt = playSceneWithRetry(session, ctx, profile.policy);
     scenes.push(attempt);
     if (attempt.outcome.result !== 'WIN') {
-      return { profileId: profile.id, scenes, completed: false };
+      return { profileId: profile.id, scenes, completed: false, picks, mergeMaxes };
     }
     if (turn + 1 >= lastOrder) {
       break;
     }
-    playBuildIntermission(session, ctx, profile, turn);
+    const intermission = playBuildIntermission(session, ctx, profile, turn);
+    picks.push(...intermission.picks);
+    if (intermission.mergeMax !== null) {
+      mergeMaxes.push(intermission.mergeMax);
+    }
   }
-  return { profileId: profile.id, scenes, completed: true };
+  return { profileId: profile.id, scenes, completed: true, picks, mergeMaxes };
 }

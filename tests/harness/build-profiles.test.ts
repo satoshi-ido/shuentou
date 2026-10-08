@@ -16,9 +16,10 @@ import {
   maintenanceRules,
   mergeMax,
   playBuildRunWithRetry,
+  scheduledSacrifice,
   type AllocContext,
 } from './build-profiles.js';
-import { ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
+import { createRun, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const MAX_HP: InheritTarget = { kind: 'MAX_HP' };
@@ -91,6 +92,21 @@ describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］',
 
   it('供犠「なし」のプロファイルは供犠スケジュールを持たない', () => {
     expect(buildProfileOf('BP-01').sacrifices).toEqual([]);
+  });
+
+  it('予定を使い切った後（予定が無い場合を含む）も、閾値の条件が成立すれば供犠する', () => {
+    // BP-01 は予定を持たない。3-03 の前（アクト移行の段ではない）、同行従者3名。
+    const run = {
+      ...createRun().session.data.run,
+      current_scene_id: 'SCENE_3_03',
+      party: ['ATTENDANT_01', 'ATTENDANT_03', 'ATTENDANT_04'].map((attendant_id) => ({ attendant_id })),
+      sacrificed: [],
+      im_snapshots: [],
+      hero_max_hp: 300,
+    } as unknown as Parameters<typeof scheduledSacrifice>[1];
+    // 現在HP × 3 < 最大HP のとき、最終編成外の従者01以外を従者ID降順で選ぶ。
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 99 })).toBe('ATTENDANT_04');
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 100 })).toBeNull();
   });
 
   it('7件のプロファイルを持つ', () => {
@@ -317,5 +333,13 @@ describe('[V-TEST-BUILD-PROPERTY] 1 再挑戦込みの通しプレイ', () => {
     expect(run.scenes[0].outcome.result).toBe('WIN');
     expect(run.scenes[0].attempts).toBe(1);
     expect(run.scenes[0].profileId).toBe('BASE');
+  });
+
+  it('分別性の比較の範囲として、インターミッションごとの継承と merge_max を記録する', () => {
+    const run = playBuildRunWithRetry(buildProfileOf('BP-01'), 2);
+    expect(run.scenes).toHaveLength(2);
+    expect(run.picks.length).toBeGreaterThan(0);
+    expect(run.mergeMaxes).toHaveLength(1);
+    expect(run.mergeMaxes[0]).toBe(mergeMax(run.picks));
   });
 });
