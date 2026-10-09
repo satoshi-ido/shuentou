@@ -257,6 +257,9 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(rules.next(pool)).toBeNull();
     expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'ATTACK').next(pool)).toBeNull();
     expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'DEFENSE').next(pool)).toBeNull();
+    // BP-06 は防御型であっても途絶を判定する（hpStale）。
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'DEFENSE', true).next(pool)).toEqual(MAX_HP);
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'DEFENSE', true).next(pool)).toBeNull();
   });
 
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {

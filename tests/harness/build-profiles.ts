@@ -80,6 +80,8 @@ export interface BuildProfile {
   readonly sacrifices: readonly SacrificePlan[];
   readonly policy: RefPolicy;
   readonly allocate: (ctx: AllocContext) => InheritTarget | null;
+  // 維持規則の［体力の維持］で、戦闘方針によらず体力の途絶（直近の回で最大HP加算なし）も読み替えの対象とする。
+  readonly hpStale?: boolean;
 }
 
 function recordOf(classId: string): ActionRecord | undefined {
@@ -326,6 +328,8 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
       { act: 4, count: 1 },
     ],
     policy: 'DEFENSE',
+    // 防御型の維持規則は体力の途絶を判定しないため、最大HPが第4幕まで伸びず、低い到達時HPで 4-06 に詰む。
+    hpStale: true,
     // 同一インターミッションで既に剥奪率を持つアクションを選んでいれば剥奪率を持たない側を、選んでいなければ
     // 剥奪率を持つ側を優先する（最初の枠は剥奪側）。交互にしないと浄化率を持つ心気に偏り、BP-03 と重なる。
     allocate: ({ pool, picked }) => {
@@ -399,12 +403,12 @@ const isRanged = (record: ActionRecord): boolean => !record.is_root && record.pa
 // [V-TEST-REFAI] 戦闘方針の維持規則。インターミッション開始時の判定を保持し、枠ごとに維持の対象を返す
 // （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → 壁割り → リソース生成手段 →
 // 射程の順に優先する。バランス型は枠ごとに［役割充足による選択］を判定する。
-export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy) {
+export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy, hpStale = false) {
   const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
   const since = hpGainSince(run);
   let hpGained = false;
   // [V-TEST-REFAI]［体力の維持］攻撃型は途絶（直近の回で最大HP加算なし）も含む。
-  let raiseHp = needsHpRaise(run, policy, since);
+  let raiseHp = needsHpRaise(run, policy, since) || (hpStale && since >= ROLE_HP_STALE_INTERMISSIONS);
   let needBreaker = missingBreaker(run);
   let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS));
   let needRange = !holds(run, isRanged);
@@ -530,7 +534,7 @@ export function playBuildIntermission(
   const run = session.data.run;
   const start = { holdsStance: holds(run, isStance), holdsSummon: holds(run, isSummon) };
   const picks: InheritTarget[] = [];
-  const maintenance = maintenanceRules(run, profile.policy);
+  const maintenance = maintenanceRules(run, profile.policy, profile.hpStale);
   for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
     if (member.inherit_state !== 'UNUSED') {
       continue;
