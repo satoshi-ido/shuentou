@@ -94,7 +94,7 @@ describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］',
     expect(buildProfileOf('BP-01').sacrifices).toEqual([]);
   });
 
-  it('予定を使い切った後（予定が無い場合を含む）も、閾値の条件が成立すれば供犠する', () => {
+  it('予定を使い切った後（予定が無い場合を含む）も、追加の閾値またはボス前の供犠の条件が成立すれば供犠する', () => {
     // BP-01 は予定を持たない。3-03 の前（アクト移行の段ではない）、同行従者3名。
     const run = {
       ...createRun().session.data.run,
@@ -104,9 +104,13 @@ describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］',
       im_snapshots: [],
       hero_max_hp: 300,
     } as unknown as Parameters<typeof scheduledSacrifice>[1];
-    // 現在HP × 3 < 最大HP のとき、最終編成外の従者01以外を従者ID降順で選ぶ。
-    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 99 })).toBe('ATTENDANT_04');
-    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 100 })).toBeNull();
+    // 現在HP × 2 < 最大HP のとき、最終編成外の従者01以外を従者ID降順で選ぶ。
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 149 })).toBe('ATTENDANT_04');
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 150 })).toBeNull();
+    // ボス前（3-06 の前）は、現在HPが最大HP未満であれば供犠する。
+    const boss = { ...run, current_scene_id: 'SCENE_3_06' };
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...boss, hero_hp: 299 })).toBe('ATTENDANT_04');
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...boss, hero_hp: 300 })).toBeNull();
   });
 
   it('7件のプロファイルを持つ', () => {

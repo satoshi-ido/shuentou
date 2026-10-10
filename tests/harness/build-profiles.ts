@@ -463,8 +463,8 @@ function sacrificesInAct(run: GameSession['data']['run'], act: number): number {
 }
 
 // ［供犠スケジュール］時機：当該アクト内で［供犠の実行］の条件が成立した最初のインターミッション。
-// 残りのインターミッション数が残りの供犠数に達した場合は強制する。予定を使い切った後は、閾値の条件が
-// 成立したインターミッションで供犠する（[V-TEST-BUILD-PROFILES]「供犠の時機」）。アクト移行の段では行わない。
+// 残りのインターミッション数が残りの供犠数に達した場合は強制する。予定を使い切った後は、追加の閾値または
+// ボス前の供犠の条件が成立したインターミッションで供犠する（[V-TEST-BUILD-PROFILES]「供犠の時機」）。アクト移行の段では行わない。
 export function scheduledSacrifice(
   profile: BuildProfile,
   run: GameSession['data']['run'],
@@ -474,9 +474,10 @@ export function scheduledSacrifice(
   }
   const next = sceneOf(run.current_scene_id);
   const plan = profile.sacrifices.find((entry) => entry.act === next.act);
-  // 予定の供犠を使い切った後（予定が無い場合を含む）も、閾値による供犠（現在HP × 3 < 最大HP）を行う。
+  // 予定の供犠を使い切った後（予定が無い場合を含む）も、追加の閾値（現在HP × 2 < 最大HP）またはボス前の供犠の
+  // 条件が成立したインターミッションで供犠する。
   const thresholdOnly = () =>
-    needsSacrifice(run)
+    run.hero_hp * 2 < run.hero_max_hp || needsBossSacrifice(run)
       ? chooseSacrificeTarget(profile, { act: next.act, count: 1 }, run.party.map((slot) => slot.attendant_id))
       : null;
   if (plan === undefined) {
