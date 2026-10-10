@@ -72,6 +72,8 @@ export interface AllocContext {
   readonly pool: readonly InheritTarget[];
   readonly picked: readonly InheritTarget[];
   readonly start: { readonly holdsStance: boolean; readonly holdsSummon: boolean };
+  // 次に挑むシーンのアクト。
+  readonly act: number;
 }
 
 export interface BuildProfile {
@@ -299,23 +301,24 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     },
   },
   {
-    // 従者10は常に最大攻撃力の武技へ。他の1枠は、召喚の保持の有無によらず各インターミッションで召喚を選ぶ。
+    // 従者10は常に最大攻撃力の武技へ。召喚を保持していなければ他の1枠で召喚を選ぶ。その他の枠は、アクト3以降は
+    // 最大HP加算、アクト2までは BP-01 の規則による。
     id: 'BP-05',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_10'],
     sacrifices: [{ act: 3, count: 2 }],
     policy: 'ATTACK',
-    allocate: ({ attendantId, pool, picked }) => {
+    allocate: ({ attendantId, pool, picked, start, act }) => {
       if (attendantId === 'ATTENDANT_10') {
         return bestBy(pool, isMartial, byAtk);
       }
       const summonPicked = picked.some((entry) => entry.kind === 'ACTION' && isSummon(recordOf(entry.class_id)!));
-      if (!summonPicked) {
+      if (!start.holdsSummon && !summonPicked) {
         const summon = bestBy(pool, isSummon, () => [0]);
         if (summon !== null) {
           return summon;
         }
       }
-      return bestBy(pool, isMartial, byAtk);
+      return (act >= 3 ? maxHp(pool) : null) ?? bestBy(pool, isMartial, byAtk);
     },
   },
   {
@@ -535,6 +538,7 @@ export function playBuildIntermission(
   const run = session.data.run;
   const start = { holdsStance: holds(run, isStance), holdsSummon: holds(run, isSummon) };
   const picks: InheritTarget[] = [];
+  const act = sceneOf(run.current_scene_id).act;
   const maintenance = maintenanceRules(run, profile.policy, profile.hpStale);
   for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
     if (member.inherit_state !== 'UNUSED') {
@@ -543,7 +547,7 @@ export function playBuildIntermission(
     const pool = inheritPool(run, MASTERS);
     const target =
       maintenance.next(pool) ??
-      profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start }) ??
+      profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start, act }) ??
       chooseInherit(pool, profile.policy, turn, run);
     if (target !== null) {
       confirmInherit(session, ctx, member.attendant_id, target);

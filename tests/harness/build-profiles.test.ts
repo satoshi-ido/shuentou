@@ -59,6 +59,7 @@ const ctx = (partial: Partial<AllocContext>): AllocContext => ({
   pool: [],
   picked: [],
   start: { holdsStance: false, holdsSummon: false },
+  act: 1,
   ...partial,
 });
 
@@ -177,17 +178,20 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     ).toEqual(action('ACT_GUARD_AR12'));
   });
 
-  it('BP-05 は召喚の保持の有無によらず各インターミッションの1枠で召喚を選び、従者10は常に武技を選ぶ', () => {
-    const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12')];
+  it('BP-05 は召喚を保持していなければ1枠で召喚を選び、従者10は常に武技、その他はアクト3以降に最大HP加算を選ぶ', () => {
+    const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12'), MAX_HP];
     const bp = buildProfileOf('BP-05');
-    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    const held = { holdsStance: false, holdsSummon: true };
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool, act: 3 }))).toEqual(action('ACT_HEAVY_AR12'));
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool }))).toEqual(action('ACT_SUMMON_AR12'));
+    // 同一インターミッションで召喚を選んだ後、および召喚を保持しているときは召喚を選ばない。
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_04', pool, picked: [action('ACT_SUMMON_AR12')] }))).toEqual(
       action('ACT_HEAVY_AR12'),
     );
-    expect(
-      bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: { holdsStance: false, holdsSummon: true } })),
-    ).toEqual(action('ACT_SUMMON_AR12'));
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held }))).toEqual(action('ACT_HEAVY_AR12'));
+    // アクト3以降のその他の枠は最大HP加算。
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held, act: 2 }))).toEqual(action('ACT_HEAVY_AR12'));
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held, act: 3 }))).toEqual(MAX_HP);
   });
 
   it('BP-06 は浄化率・剥奪率を持つアクションを選び、無ければ最大HP加算を選ぶ', () => {
