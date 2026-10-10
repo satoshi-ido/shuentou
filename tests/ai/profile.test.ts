@@ -27,6 +27,7 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       bookId: 'B-01',
       waitMoves: false,
       thoughtDeny: false,
+      landingWait: false,
     });
   });
 
@@ -87,5 +88,18 @@ describe('[A-EVAL-TTK]［妨害補正］思考待ちのスタンを数えるプ�
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
     expect(built.thoughtDeny).toBe(false);
+  });
+});
+
+describe('[A-EVAL-TTK]［射撃アクション］着弾を待機するプロファイル', () => {
+  it('参照プレイヤーAIに限り待機し、敵軍AIの実効プロファイルと既定プロファイルは待機しない', () => {
+    expect(referenceProfile().landingWait).toBe(true);
+    expect(defaultProfile().landingWait).toBe(false);
+    const built = buildEffectiveProfile({
+      scene: SCENE_MASTERS.SCENE_1_01,
+      enemy: ENEMY_MASTERS.ENEMY_LEF,
+      profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
+    });
+    expect(built.landingWait).toBe(false);
   });
 });

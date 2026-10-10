@@ -423,16 +423,24 @@ function buildPlan(
 
     const cycleMetrics = kind === 'SHOT' ? shotMetrics : metric(ctx, cycleAction);
     const thought = Math.max(cycleMetrics.thought - carriedThought, 0);
-    const startupStart = t + thought;
-    const fire = startupStart + cycleMetrics.startup;
-    const end = fire + cycleMetrics.recovery;
+    let startupStart = t + thought;
+    let fire = startupStart + cycleMetrics.startup;
+    let end = fire + cycleMetrics.recovery;
 
     // ［除外条件］各アクションにつき初弾の着弾予測時点で1度だけ命中・射程を判定する。
     if (kind === 'SHOT' && !checked.includes(shot.instance_id)) {
       checked.push(shot.instance_id);
-      if (!hitsAt(inputs, attacker, shot, defender, fire, shot.instance_id !== act.instance_id)) {
-        excluded.push(shot.instance_id);
-        continue;
+      const substitute = shot.instance_id !== act.instance_id;
+      if (!hitsAt(inputs, attacker, shot, defender, fire, substitute)) {
+        // ［射撃アクション］着弾の待機：満たす最初の着弾予測時点まで思考区間を延ばす。
+        const later = inputs.landingWait === true ? earliestHit(inputs, attacker, shot, defender, fire, substitute) : null;
+        if (later === null) {
+          excluded.push(shot.instance_id);
+          continue;
+        }
+        startupStart += later - fire;
+        end += later - fire;
+        fire = later;
       }
     }
 
@@ -508,6 +516,8 @@ export interface TtkInputs {
   readonly cache?: TtkCache;
   // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン付き武技を数えるか（参照プレイヤーAIの探索に限る）。省略時は数えない。
   readonly thoughtDeny?: boolean;
+  // [A-EVAL-TTK]［射撃アクション］着弾の待機（参照プレイヤーAIの探索に限る）。省略時は待機しない。
+  readonly landingWait?: boolean;
 }
 
 type Guard = { readonly at: number; readonly defense: number } | null;
@@ -603,6 +613,44 @@ function hitsAt(
     return false;
   }
   return Math.abs(shooterSample.pos - targetSample.pos) <= effectiveRange(shooter, action);
+}
+
+// [A-EVAL-TTK]［射撃アクション］着弾の待機：landing より後で命中・射程を満たす最初の着弾予測時点。無ければ null。
+// 値が変わりうるのは、トレースの末尾までの各添字、末尾で硬直中のユニットの硬直満了の添字、想定体勢の
+// 適用時点のみであり、それらの最後より後は値が変わらないため、これらと末尾の次の時点だけを調べる。
+function earliestHit(
+  inputs: TtkInputs,
+  shooter: Unit,
+  action: ActionInstance,
+  target: Unit,
+  landing: number,
+  substitute: boolean,
+): number | null {
+  const tail = inputs.trace.length - 1 - inputs.offset;
+  const candidates: number[] = [];
+  for (let l = landing + 1; l <= tail + 1; l += 1) {
+    candidates.push(l);
+  }
+  const lastFrame = inputs.trace[inputs.trace.length - 1];
+  for (const unit of [shooter, target]) {
+    const index = lastFrame?.[unit.unit_id]?.landing?.index;
+    if (index !== undefined && index - inputs.offset > landing) {
+      candidates.push(index - inputs.offset);
+    }
+  }
+  if (substitute) {
+    const guard = projectedGuard(inputs, target);
+    if (guard !== null && guard.at > landing) {
+      candidates.push(guard.at);
+    }
+  }
+  candidates.sort((a, b) => a - b);
+  for (const l of candidates) {
+    if (hitsAt(inputs, shooter, action, target, l, substitute)) {
+      return l;
+    }
+  }
+  return null;
 }
 
 // [A-EVAL-TTK]［妨害補正］：防御側が保有するスタン付き武技のうち、発生中のもの、または今すぐ実行できるものについて、
