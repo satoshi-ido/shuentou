@@ -145,7 +145,7 @@ export function evaluateLeafPosition(
   // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
   // 延長中に決着した局面は「静止探索中の決着」のスコアで評価する（ply は葉ノードの値）。state は変更しない。
   const quiet = cloneBattleState(state);
-  const { trace, outcome, decided, firstDecision } = runQuiescence(quiet, deps);
+  const { trace, outcome, decided, firstDecision, thoughtLost } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
     // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、呼び出し側が
     // 敗れる側の決定点1つ分の延長で確認する。
@@ -164,7 +164,10 @@ export function evaluateLeafPosition(
   let te = ttk(foeMaster, mineMaster, inputs);
   const mineFirst = firstDecision.MINE;
   if (mineFirst !== null && mineFirst.index < inputs.offset) {
-    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index }));
+    // ［延長中の妨害］延長中に主人公のマスターが経過思考を失った最初の添字を、決定点からの計画の妨害に数える。
+    const lost = prof.traceDeny ? thoughtLost.MINE.find((index) => index > mineFirst.index) : undefined;
+    const traceDeny = lost === undefined ? undefined : lost - mineFirst.index;
+    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index, traceDeny }));
   }
   const foeFirst = firstDecision.FOE;
   if (foeFirst !== null && foeFirst.index < inputs.offset) {

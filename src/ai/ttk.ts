@@ -518,6 +518,9 @@ export interface TtkInputs {
   readonly thoughtDeny?: boolean;
   // [A-EVAL-TTK]［射撃アクション］着弾の待機（参照プレイヤーAIの探索に限る）。省略時は待機しない。
   readonly landingWait?: boolean;
+  // ［延長中の決定点からの計画］延長中の妨害：計画の起点から、攻撃側のマスターが延長中に経過思考を失った
+  // 最初の添字までのステップ数。t_deny との小さい方を妨害補正に用いる。
+  readonly traceDeny?: number;
 }
 
 type Guard = { readonly at: number; readonly defense: number } | null;
@@ -707,7 +710,7 @@ function readyLanding(unit: Unit, action: ActionInstance, thoughtDeny: boolean):
 // 有効HP(d) は対象マスターのHPのみ（[A-EVAL-TTK]）。返り値は葉ノード基準であり、静止局面を基準とする
 // 最終着弾ステップに q を加えてからクランプする（[A-EVAL-TTK]「同着の非対称性」）。
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
-  const tDeny = denyTime(defenderMaster, attacker, inputs);
+  const tDeny = Math.min(denyTime(defenderMaster, attacker, inputs), inputs.traceDeny ?? TTK_MAX);
   const ctx = contextOf(inputs, attacker);
   let best = TTK_MAX;
   for (const action of attacker.acts) {

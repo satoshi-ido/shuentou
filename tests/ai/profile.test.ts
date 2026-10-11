@@ -28,6 +28,7 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       waitMoves: false,
       thoughtDeny: false,
       landingWait: false,
+      traceDeny: false,
     });
   });
 
@@ -101,5 +102,18 @@ describe('[A-EVAL-TTK]［射撃アクション］着弾を待機するプロフ�
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
     expect(built.landingWait).toBe(false);
+  });
+});
+
+describe('[A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害を数えるプロファイル', () => {
+  it('参照プレイヤーAIに限り数え、敵軍AIの実効プロファイルと既定プロファイルは数えない', () => {
+    expect(referenceProfile().traceDeny).toBe(true);
+    expect(defaultProfile().traceDeny).toBe(false);
+    const built = buildEffectiveProfile({
+      scene: SCENE_MASTERS.SCENE_1_01,
+      enemy: ENEMY_MASTERS.ENEMY_LEF,
+      profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
+    });
+    expect(built.traceDeny).toBe(false);
   });
 });

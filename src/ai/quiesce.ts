@@ -40,6 +40,9 @@ export interface QuiesceResult {
   // [A-SEARCH-QUIESCE]［延長中の決定点］陣営ごとに、そのマスターが初めて決定点を持った添字と、その時点の
   // 両陣営のマスター。持たなかった陣営は null。[A-EVAL-TTK]［延長中の決定点からの計画］が用いる。
   readonly firstDecision: Readonly<Record<Side, FirstDecision | null>>;
+  // [A-SEARCH-QUIESCE]［延長中の決定点］陣営ごとに、思考中のマスターの経過思考が0へ戻った添字（昇順）。
+  // [A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害が用いる。
+  readonly thoughtLost: Readonly<Record<Side, readonly number[]>>;
 }
 
 export interface FirstDecision {
@@ -148,6 +151,14 @@ function markFirstDecision(state: BattleState, index: number, first: Record<Side
   }
 }
 
+const SIDES = ['MINE', 'FOE'] as const;
+
+// 思考中のマスターの経過思考。マスターが存在しない、または思考中でなければ −1。
+function thinkingElapsed(state: BattleState, side: Side): number {
+  const master = masterOf(state, side);
+  return master !== undefined && master.state === 'THOUGHT' ? master.elapsed_thought : -1;
+}
+
 // state を破壊的に静止局面まで進める（呼び出し側がクローンを渡す前提）。t=0（延長前の現局面）を
 // 先頭フレームとして含む。
 export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult {
@@ -156,22 +167,31 @@ export function runQuiescence(state: BattleState, deps: StepDeps): QuiesceResult
   const firstDecision: Record<Side, FirstDecision | null> = { MINE: null, FOE: null };
   markDecisionPoints(state, decided);
   markFirstDecision(state, 0, firstDecision);
+  const thoughtLost: Record<Side, number[]> = { MINE: [], FOE: [] };
   const qMaxSteps = computeQMaxSteps(state);
   for (let i = 0; i < qMaxSteps; i += 1) {
     if (isQuiescentState(state)) {
       break;
     }
+    const before = SIDES.map((side) => thinkingElapsed(state, side));
     const outcome = runPreDecision(state, deps);
     runStepEnd(state);
     trace.push(snapshotFrame(state));
+    SIDES.forEach((side, k) => {
+      const after = thinkingElapsed(state, side);
+      if (before[k] >= 0 && after >= 0 && after < before[k]) {
+        // 着弾のステップで0へ戻り、ステップ境界で加算された後の値が after である。
+        thoughtLost[side].push(trace.length - 1 - after);
+      }
+    });
     if (outcome !== 'NONE') {
-      return { trace, outcome, decided, firstDecision };
+      return { trace, outcome, decided, firstDecision, thoughtLost };
     }
     markDecisionPoints(state, decided);
     markFirstDecision(state, trace.length - 1, firstDecision);
   }
   trace[trace.length - 1] = tailFrame(state, trace.length - 1);
-  return { trace, outcome: 'NONE', decided, firstDecision };
+  return { trace, outcome: 'NONE', decided, firstDecision, thoughtLost };
 }
 
 // t が末尾を超える場合は末尾値を適用する。末尾で硬直中のユニットは、硬直満了の添字以降を
