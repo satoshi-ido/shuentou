@@ -100,6 +100,12 @@ describe('[V-TEST-REFAI]［心気の出力］', () => {
     expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR9')])).toBe(false); // 5.22 × 2 < 12
   });
 
+  it('2回後の PP は [M-RESOLVE-MIND] の目標PPと同じく四捨五入して壁割りの PP コストと比べる', () => {
+    // 4-01 の後（次に挑むシーンは 4-02。壁割り担当 ACT_SPEC_BREAK_ZEFAL の PP コスト26）。
+    const runBefore402 = { current_scene_id: 'SCENE_4_02', hero_acts: [held('ACT_MIND_AR12', 45, ['FLAG_MIND'])] };
+    expect(mindShort(runBefore402, [action('ACT_MIND_AR20')])).toBe(true); // round(12.95 × 2) = 26 ≥ 26
+  });
+
   it('保持する心気が1回で壁割りを賄えれば不足としない', () => {
     expect(mindShort(runBefore302([held('ACT_MIND_AR19', 30, ['FLAG_MIND'])]), [action('ACT_MIND_AR24')])).toBe(false); // 12.65 ≥ 12
   });

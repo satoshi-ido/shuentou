@@ -40,6 +40,7 @@ import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { buildEffectiveProfile, referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 import { ROLE_HP_STALE_INTERMISSIONS } from '../../src/ai/refai.js';
+import { roundDiv } from '../../src/num/helpers.js';
 
 export const MASTERS: GameMasters = {
   actions: ACTION_MASTERS,
@@ -513,17 +514,19 @@ export function mindShort(
       held = Math.max(held, mindYieldCenti(act.master_ref));
     }
   }
-  if (held >= breaker.params.cost_pp * 100) {
+  // 壁割りの PP コストとの比較は、[M-RESOLVE-MIND] の目標PPと同じく四捨五入した値で行う。
+  if (held >= 0 && roundDiv(held, 100) >= breaker.params.cost_pp) {
     return false;
   }
   const offer = chooseMindRefill(pool);
   if (offer === null || offer.kind !== 'ACTION') {
     return false;
   }
-  // 出力が上回り、かつ2回で壁割りの PP コストを賄える心気に限る（VP は心気のたびに累積する）。
+  // 出力が上回り、かつ2回で壁割りの PP コストを賄える心気に限る（VP は心気のたびに累積するため、
+  // 2回後の PP は round(2 × gain_vp × charge_pp)）。
   // 出力が上回るだけの心気まで選ぶと、壁割りに届かない小刻みな更新が継承枠を占め、他の役割が痩せる。
   const offered = mindYieldCenti(offer.class_id);
-  return offered > held && offered * MIND_SHORT_USES >= breaker.params.cost_pp * 100;
+  return offered > held && roundDiv(offered * MIND_SHORT_USES, 100) >= breaker.params.cost_pp;
 }
 
 // [V-TEST-REFAI]［供犠の実行］対象は同行従者のうち従者01（リナ）以外を従者ID降順に並べた先頭。
