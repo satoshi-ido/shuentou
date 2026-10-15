@@ -60,6 +60,19 @@ describe('[A-EVAL-TTK]［攻撃計画の構成］補充回数', () => {
     unit.elapsed_thought = 100;
     expect(buildAttackPlan(unit, actionOf(unit, 'HEAVY'), 1, TTK_MAX)?.finalLanding).toBe(47 + 10 + 157 + 105);
   });
+
+  it('心気の補充サイクルは、HPコストが現在HP未満のもののうちフルサイクルが最短のもの', () => {
+    // フルサイクル12・HPコスト30 の心気。現在HP30 では実行できない（[M-PIPE-SUICIDE]）。
+    const fastMind = makeAction('FAST_MIND', { gain_vp: 2, charge_pp: 100, cost_hp: 30, step_thought: 10, step_startup: 2, step_recovery: 0 });
+    const unit = hero(4, 4, [MIND, fastMind, HEAVY]);
+    unit.hp = 31;
+    expect(buildAttackPlan(unit, actionOf(unit, 'HEAVY'), 1, TTK_MAX)?.finalLanding).toBe(12 + 105);
+    unit.hp = 30;
+    expect(buildAttackPlan(unit, actionOf(unit, 'HEAVY'), 1, TTK_MAX)?.finalLanding).toBe(157 + 105);
+    const onlyFast = hero(4, 4, [fastMind, HEAVY]);
+    onlyFast.hp = 30;
+    expect(buildAttackPlan(onlyFast, actionOf(onlyFast, 'HEAVY'), 1, TTK_MAX)).toBeNull();
+  });
 });
 
 describe('[A-EVAL-TTK]［妨害補正］', () => {

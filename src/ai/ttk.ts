@@ -83,7 +83,7 @@ function metricsOf(unit: Unit, action: ActionInstance, level: number): ActionMet
   };
 }
 
-// 系統ごとの補充アクション（フルサイクル最短、同値は所持アクション配列インデックス昇順）も併せて確定する。
+// 系統ごとの補充アクション（フルサイクル最短、同値は所持アクション配列インデックス昇順。心気は現在HPで払えるもの）も併せて確定する。
 export function planContext(unit: Unit, level: number): PlanContext {
   const metrics: Record<string, ActionMetrics> = {};
   const metricAt = (action: ActionInstance): ActionMetrics =>
@@ -95,7 +95,12 @@ export function planContext(unit: Unit, level: number): PlanContext {
     if (hasFlag(action.sys_flags, 'FLAG_PURIFY') && (purify === null || metricAt(action).cycle < metricAt(purify).cycle)) {
       purify = action;
     }
-    if (hasFlag(action.sys_flags, 'FLAG_MIND') && (mind === null || metricAt(action).cycle < metricAt(mind).cycle)) {
+    // 心気は実効HPコストが現在HP未満のもの（[M-PIPE-SUICIDE] により実行できるもの）に限る。
+    if (
+      hasFlag(action.sys_flags, 'FLAG_MIND') &&
+      metricAt(action).costHp < unit.hp &&
+      (mind === null || metricAt(action).cycle < metricAt(mind).cycle)
+    ) {
       mind = action;
     }
     if (hasFlag(action.sys_flags, 'FLAG_STANCE') && (stance === null || metricAt(action).cycle < metricAt(stance).cycle)) {
