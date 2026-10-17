@@ -36,6 +36,7 @@ import { playSceneWithRetry, type SceneAttempts } from './perturb.js';
 import {
   chooseByRole,
   chooseInherit,
+  beforeVesselScene,
   chooseMindRefill,
   missingBreaker,
   mindShort,
@@ -422,6 +423,15 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
       }
       if (policy === 'PASSIVE') {
         return null;
+      }
+      // [V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑む回は体力に先立てる。
+      if (needBreaker !== null && beforeVesselScene(run)) {
+        const breakerId = needBreaker;
+        const breaker = pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === breakerId);
+        if (breaker !== undefined) {
+          needBreaker = null;
+          return breaker;
+        }
       }
       if (raiseHp) {
         raiseHp = false;

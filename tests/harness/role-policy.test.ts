@@ -6,9 +6,11 @@ import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
 import { referenceProfile } from '../../src/ai/profile.js';
 import {
   battleProfileFor,
+  beforeVesselScene,
   breakerForScene,
   chooseByRole,
   chooseMindRefill,
+  missingBreaker,
   mindShort,
   ROLE_HP_STALE_INTERMISSIONS,
 } from './runner.js';
@@ -73,6 +75,39 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
     };
     const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), action('ACT_HEAVY_AR9')];
     expect(chooseByRole(run, pool, 212)).toBeNull();
+  });
+});
+
+describe('[V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」', () => {
+  const ZOL_VOD = 'ACT_SPEC_BREAK_ZOL_VOD';
+  const member = (attendantId: string, inheritState = 'UNUSED') => ({ attendant_id: attendantId, inherit_state: inheritState });
+  const run = (sceneId: string, usesLeft: number, party: ReturnType<typeof member>[]) => ({
+    current_scene_id: sceneId,
+    hero_max_hp: 1000,
+    hero_acts: [MIND_FULL, held(ZOL_VOD, usesLeft)],
+    party,
+  });
+  const pool: InheritTarget[] = [{ kind: 'MAX_HP' }, action(ZOL_VOD)];
+
+  it('依代のシーンの直前のシーン（5-10）に挑む回に限る', () => {
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_5_10' })).toBe(true);
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_5_09' })).toBe(false);
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_4_08' })).toBe(false);
+  });
+
+  it('判定の残り使用回数は、未継承の同行従者が継承した場合の実効初期使用回数の最大とする', () => {
+    // 従者01 の使用回数係数450 → 5回、従者11 の300 → 3回（基礎使用回数1回）。
+    expect(missingBreaker(run('SCENE_5_10', 4, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBe(ZOL_VOD);
+    expect(missingBreaker(run('SCENE_5_10', 5, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBeNull();
+    expect(missingBreaker(run('SCENE_5_10', 2, [member('ATTENDANT_01', 'SPENT'), member('ATTENDANT_11')]))).toBe(ZOL_VOD);
+    expect(missingBreaker(run('SCENE_5_10', 3, [member('ATTENDANT_01', 'SPENT'), member('ATTENDANT_11')]))).toBeNull();
+    expect(missingBreaker(run('SCENE_5_09', 2, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBeNull();
+  });
+
+  it('［役割充足による選択］では当該回に限り壁割りを体力に先立てる', () => {
+    const party = [member('ATTENDANT_01'), member('ATTENDANT_11')];
+    expect(chooseByRole(run('SCENE_5_10', 2, party), pool, 2000)).toEqual(action(ZOL_VOD));
+    expect(chooseByRole(run('SCENE_5_09', 1, party), pool, 2000)).toEqual({ kind: 'MAX_HP' });
   });
 });
 

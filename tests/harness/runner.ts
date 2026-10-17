@@ -353,17 +353,54 @@ export function breakerForScene(sceneId: string): string | null {
   return best?.class_id ?? null;
 }
 
-// [V-TEST-REFAI]［壁割りの維持］次に挑むシーンのカバー区間を担当する壁割りを、残り使用回数2以上で
-// 保持していないとき、そのクラスID。保持している、または担当がないときは null。
-export function missingBreaker(run: {
+interface BreakerRun {
   current_scene_id: string;
   hero_acts: readonly { master_ref: string; uses_left: number }[];
-}): string | null {
+  // 未指定は同行従者なし（判定の残り使用回数は既定の2）。
+  party?: readonly { attendant_id: string; inherit_state: string }[];
+}
+
+// [V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」次に挑むシーンが依代のシーンの直前のシーンであるとき真。
+export function beforeVesselScene(run: { current_scene_id: string }): boolean {
+  const next = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
+  if (next === undefined) {
+    return false;
+  }
+  const afterNext = sceneByOrder(MASTERS, next.order + 1);
+  return afterNext !== undefined && afterNext.enemy_id === VESSEL_ENEMY_ID;
+}
+
+// [V-TEST-REFAI]［壁割りの維持］判定に用いる残り使用回数。依代のシーンの直前のシーンに挑むインターミッションでは、
+// 未継承の同行従者が当該壁割りを継承した場合の実効初期使用回数（[M-INHERIT-MERGE]）の最大とする。
+function breakerUsesRequired(run: BreakerRun, breakerId: string): number {
+  if (!beforeVesselScene(run)) {
+    return ROLE_BREAKER_USES;
+  }
+  const baseUses = recordOf(breakerId)!.base_uses;
+  let required = ROLE_BREAKER_USES;
+  for (const slot of run.party ?? []) {
+    if (slot.inherit_state !== 'UNUSED') {
+      continue;
+    }
+    const attendant = ATTENDANT_MASTERS[slot.attendant_id as keyof typeof ATTENDANT_MASTERS];
+    const usesRate: number = (attendant.coeffs as { usesRate?: number }).usesRate ?? USES_RATE_DEFAULT;
+    required = Math.max(required, roundDiv(baseUses * usesRate, USES_RATE_DEFAULT * USES_RATE_DEFAULT));
+  }
+  return required;
+}
+
+// 使用回数係数の既定値（centi、[M-INHERIT-MERGE]）。
+const USES_RATE_DEFAULT = 100;
+
+// [V-TEST-REFAI]［壁割りの維持］次に挑むシーンのカバー区間を担当する壁割りを、判定の残り使用回数で
+// 保持していないとき、そのクラスID。保持している、または担当がないときは null。
+export function missingBreaker(run: BreakerRun): string | null {
   const breakerId = breakerForScene(run.current_scene_id);
   if (breakerId === null) {
     return null;
   }
-  const held = run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, ROLE_BREAKER_USES));
+  const required = breakerUsesRequired(run, breakerId);
+  const held = run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, required));
   return held ? null : breakerId;
 }
 
@@ -393,8 +430,7 @@ export function hpGainSince(run: GameSession['data']['run']): number {
 export { ROLE_HP_STALE_INTERMISSIONS };
 
 export function chooseByRole(
-  run: {
-    current_scene_id: string;
+  run: BreakerRun & {
     hero_max_hp: number;
     hero_acts: readonly { master_ref: string; uses_left: number; sys_flags: readonly string[] }[];
   },
@@ -404,6 +440,12 @@ export function chooseByRole(
   hpStale = false,
 ): InheritTarget | null {
   const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
+  const breakerId = missingBreaker(run);
+  const breaker = breakerId === null ? undefined : actions.find((entry) => entry.class_id === breakerId);
+  // 「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは、壁割りを体力に先立てる。
+  if (breaker !== undefined && beforeVesselScene(run)) {
+    return breaker;
+  }
   // 1. 体力：最大HPが hp_bonus_base を下回るとき、または最大HPの加算が長く途絶えているとき。
   if (run.hero_max_hp < hpBonusBase || hpStale) {
     const hp = pool.find((entry) => entry.kind === 'MAX_HP');
@@ -412,15 +454,8 @@ export function chooseByRole(
     }
   }
   // 2. 壁割り
-  const breakerId = breakerForScene(run.current_scene_id);
-  if (
-    breakerId !== null &&
-    !run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, ROLE_BREAKER_USES))
-  ) {
-    const breaker = actions.find((entry) => entry.class_id === breakerId);
-    if (breaker !== undefined) {
-      return breaker;
-    }
+  if (breaker !== undefined) {
+    return breaker;
   }
   // 3. 反復射程
   const holdsRanged = run.hero_acts.some((act) => {
@@ -667,18 +702,20 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
     let raiseHp = needsHpRaise(run, policy, hpGainSince(run));
     let refillMind =
       (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS)));
-    // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する。
+    // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する（依代のシーンの直前のシーンに挑む回は体力に先立てる）。
     let needBreaker = missingBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
       const pool = usefulPool(run, member.attendant_id);
-      const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
-      const breaker =
-        hp === null && needBreaker !== null
-          ? (pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === needBreaker) ?? null)
-          : null;
+      // ［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは体力に先立てる。
+      const breakerFirst = beforeVesselScene(run);
+      const breakerOf = () =>
+        needBreaker !== null ? (pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === needBreaker) ?? null) : null;
+      const early = breakerFirst ? breakerOf() : null;
+      const hp = early === null && raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
+      const breaker = early ?? (hp === null ? breakerOf() : null);
       const refill = hp === null && breaker === null && refillMind ? chooseMindRefill(pool) : null;
       const ranged =
         hp === null && breaker === null && refill === null && needRange
