@@ -270,6 +270,25 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'DEFENSE', true).next(pool)).toBeNull();
   });
 
+  it('［体力の維持］「心気の出力の優先」：途絶のみで体力を読み替える回は、心気の出力の不足を先に満たす', () => {
+    // 5-05 の後（次に挑むシーンは 5-06。担当 ACT_SPEC_BREAK_ZOL_VOD の PP コスト51、5-05 の hp_bonus_base は392）。
+    // 保持する ACT_MIND_AR53 は1回で賄えず、プールの ACT_MIND_AR57 は2回で賄える。
+    const run505 = (heroMaxHp: number) =>
+      ({
+        current_scene_id: 'SCENE_5_06',
+        hero_hp: heroMaxHp,
+        hero_max_hp: heroMaxHp,
+        hero_acts: [held('ACT_MIND_AR53', 27, ['FLAG_MIND']), held('ACT_SPEC_BREAK_ZOL_VOD', 3), RANGED],
+        im_snapshots: Array.from({ length: ROLE_HP_STALE_INTERMISSIONS + 1 }, (_, order) => ({ order, state: { hero_max_hp: heroMaxHp } })),
+      }) as never;
+    const pool505 = [action('ACT_MIND_AR57'), action('ACT_SUMMON_AR57'), MAX_HP];
+    const rules = maintenanceRules(run505(1339), 'ATTACK');
+    expect(rules.next(pool505)).toEqual(action('ACT_MIND_AR57'));
+    expect(rules.next(pool505)).toEqual(MAX_HP);
+    // 最大HPが hp_bonus_base を下回る回は従来どおり体力を先に選ぶ。
+    expect(maintenanceRules(run505(300), 'ATTACK').next(pool505)).toEqual(MAX_HP);
+  });
+
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
     expect(maintenanceRules(runOf(10_000, [MIND, RANGED]), 'DEFENSE').next(pool)).toBeNull();
   });

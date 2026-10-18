@@ -414,7 +414,8 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
   // [V-TEST-REFAI]［体力の維持］攻撃型は途絶（直近の回で最大HP加算なし）も含む。
   let raiseHp = needsHpRaise(run, policy, since) || (hpStale && since >= ROLE_HP_STALE_INTERMISSIONS);
   let needBreaker = missingBreaker(run);
-  let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS));
+  const shortMind = mindShort(run, inheritPool(run, MASTERS));
+  let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || shortMind;
   let needRange = !holds(run, isRanged);
   return {
     next(pool: readonly InheritTarget[]): InheritTarget | null {
@@ -431,6 +432,14 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
         if (breaker !== undefined) {
           needBreaker = null;
           return breaker;
+        }
+      }
+      // [V-TEST-REFAI]［体力の維持］「心気の出力の優先」：途絶のみで読み替えが成立する回は、心気の出力の不足を先立てる。
+      if (raiseHp && refillMind && shortMind && run.hero_max_hp >= hpBase) {
+        refillMind = false;
+        const mind = chooseMindRefill(pool);
+        if (mind !== null) {
+          return mind;
         }
       }
       if (raiseHp) {
