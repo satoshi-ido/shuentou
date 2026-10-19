@@ -14,6 +14,7 @@ const LAYOUT_ZONES = {
   'tools/audit': ['src/num', 'src/data', 'src/engine', 'src/ai'],
   'tools/genmaster': ['src/num', 'src/data'],
   'tools/docindex': [],
+  desktop: [],
 };
 const ALL_ZONES = Object.keys(LAYOUT_ZONES);
 
@@ -100,9 +101,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['tools/**/*.{ts,js}', 'tests/**/*.js', '*.config.js'],
+    files: ['tools/**/*.{ts,js}', 'tests/**/*.js', '*.config.js', 'desktop/**/*.js'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly', URL: 'readonly' },
+      globals: { process: 'readonly', console: 'readonly', URL: 'readonly', Response: 'readonly' },
     },
   },
   {
@@ -112,7 +113,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/**/*.{ts,js}', 'tools/**/*.{ts,js}'],
+    files: ['src/**/*.{ts,js}', 'tools/**/*.{ts,js}', 'desktop/**/*.js'],
     plugins: { import: importPlugin },
     rules: {
       'import/no-restricted-paths': ['error', { zones: dependencyDirectionZones }],

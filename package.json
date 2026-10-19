@@ -14,10 +14,14 @@
     "test": "vitest run",
     "gen:master": "node tools/genmaster/index.js",
     "id": "node tools/docindex/index.js",
-    "audit": "node tools/audit/index.js"
+    "audit": "node tools/audit/index.js",
+    "desktop": "vite build && electron desktop/main.js",
+    "package": "vite build && node desktop/package.js"
   },
   "devDependencies": {
+    "@electron/packager": "^20.3.0",
     "@eslint/js": "^10.0.1",
+    "electron": "^44.9.0",
     "eslint": "^10.10.0",
     "eslint-plugin-import": "^2.32.0",
     "typescript": "^5.7.3",
