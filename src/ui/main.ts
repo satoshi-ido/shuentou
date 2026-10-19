@@ -684,6 +684,7 @@ const screenHandlers: ScreenHandlers = {
       cueTracker.rewindTo(restored.step); // 巻き戻した先より後に再生した契機は、再び通過すれば再生する
     }
     client?.invalidate();
+    resultText = ''; // 決着の前へ戻った場合、決着の提示を残さない
     focusedInstanceId = null;
     selectedInstanceId = null;
     // 復元先は確定操作の直前、すなわち《処理8》の時間停止中である。巻き戻した局面を
@@ -697,6 +698,7 @@ const screenHandlers: ScreenHandlers = {
       client?.invalidate();
       // 再開は再生速度に従う（1回の呼び出しで時間停止まで進めきらない）。
       cueTracker.reset(); // ステップ0へ巻き戻す
+      resultText = ''; // 決着の提示は、やり直したバトルには残さない
       runAdvance(() => rollbackBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(loop.speed))));
       render();
     });
@@ -988,8 +990,9 @@ function rollbackTargets(): RollbackTarget[] {
   if (session === null) {
     return [];
   }
+  // [M-STATE-IMSNAPSHOT] order は直前にクリアしたシーンの進行順である。復帰先は次のシーンの前のインターミッションとして示す。
   return rollbackOrders(session).map((order) => {
-    const scene = Object.values(scenes).find((candidate) => candidate.order === order);
+    const scene = Object.values(scenes).find((candidate) => candidate.order === order + 1);
     return {
       order,
       sceneNumber: scene === undefined ? String(order) : sceneNumberOf(scene.scene_id),
