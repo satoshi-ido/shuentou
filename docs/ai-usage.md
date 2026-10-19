@@ -38,7 +38,8 @@
 | :---- | :---- | :---- | :---- |
 | 脚本：アクト1・2（`tools/genmaster/authoring/scripts-acts-1-2.js`） | 生成AIが合本の散文を `lines` へ書き起こした。〈目覚め〉の台詞は合本の本文をそのまま用いた | Claude Code（Claude Opus 5.5） | 残響 `SCRIPT_ECHO_01`・`SCRIPT_ECHO_02` は、合本の要約から台詞と地の文を生成AIが新たに書いた |
 | 脚本：アクト表題カード | 合本の確定文字列をそのまま用いた | ─ | |
-| 文言マスタ・解説マスタ | 未執筆 | ─ | |
+| 文言マスタ（`tools/genmaster/authoring/strings.js`） | 生成AIが全件を執筆した。監視条件ラベル「拍断ち」など、合本が本文を定めるものはその文字列を用いた | Claude Code（Claude Opus 5.5） | |
+| 解説マスタ（`tools/genmaster/authoring/helps.js`） | 生成AIが合本の機構の定義から全件を執筆した。機構キーを持つ11件の表題は合本の表の文字列を用いた | Claude Code（Claude Opus 5.5） | |
 
 ## 表示アセット・音声
 
