@@ -23,18 +23,23 @@ export function screenOf(run: RunState): ScreenKind {
   }
 }
 
-// [M-UI-OBJECTIVE] 進行位置は次に遷移するシーンの order（2〜31）。31（最終インターミッション）は非表示。
+// [M-UI-OBJECTIVE]［表示区間］進行位置は次に遷移するシーンの order（2〜31）。
+// 2（1-02 の宣告より前）と 31（5-11）は非表示。2-01〜3-05 は中間目的を、3-06〜4-08 は建前①を、5-01〜5-10 は建前②を示す。
+export const OBJECTIVE_KALDEN = 'STR_OBJECTIVE_KALDEN';
 export const OBJECTIVE_VOID_LORD = 'STR_OBJECTIVE_VOID_LORD';
 export const OBJECTIVE_VEIN = 'STR_OBJECTIVE_VEIN';
 
 export function objectiveStringId(order: number): string | null {
-  if (order >= 2 && order <= 20) {
+  if (order >= 3 && order <= 11) {
+    return OBJECTIVE_KALDEN;
+  }
+  if (order >= 12 && order <= 20) {
     return OBJECTIVE_VOID_LORD;
   }
   if (order >= 21 && order <= 30) {
     return OBJECTIVE_VEIN;
   }
-  return null; // 進行位置 31：シーン5-11に建前が存在しないため提示しない
+  return null; // 進行位置 2：建前①の一次の提示（1-02 開幕の宣告）より前。31：5-11 に建前が存在しない
 }
 
 export interface TitleView {

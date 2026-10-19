@@ -10,6 +10,7 @@ import {
   dictionaryEntries,
   firstSightHelps,
   objectiveStringId,
+  OBJECTIVE_KALDEN,
   OBJECTIVE_VEIN,
   OBJECTIVE_VOID_LORD,
   sceneNumberOf,
@@ -42,7 +43,10 @@ describe('[M-UI-SCREENS] 画面の導出', () => {
 
 describe('[M-UI-OBJECTIVE] 目的表示の導出', () => {
   it.each([
-    [2, OBJECTIVE_VOID_LORD],
+    [2, null],
+    [3, OBJECTIVE_KALDEN],
+    [11, OBJECTIVE_KALDEN],
+    [12, OBJECTIVE_VOID_LORD],
     [20, OBJECTIVE_VOID_LORD],
     [21, OBJECTIVE_VEIN],
     [30, OBJECTIVE_VEIN],

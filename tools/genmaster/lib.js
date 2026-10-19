@@ -506,22 +506,23 @@ export function placeholderText(recordId, keys) {
 }
 
 // [M-DATA-STRINGMASTER]［見出しとボタン名］基底の string_id に _HEAD / _BTN を後置する。
+// 本文（text・head・button）を執筆済みの入力はそれを用い、未執筆はプレースホルダとする。
 export function buildStringRecords(strings) {
   const result = {};
-  const add = (stringId, context, keys) => {
+  const add = (stringId, context, keys, text) => {
     if (result[stringId] !== undefined) {
       throw new Error(`文言IDの重複: ${stringId}`);
     }
-    result[stringId] = { string_id: stringId, text: placeholderText(stringId, keys), context: [...context] };
+    result[stringId] = { string_id: stringId, text: text ?? placeholderText(stringId, keys), context: [...context] };
   };
   for (const entry of strings) {
     const context = [...entry.context].sort();
     const keys = [...context.flatMap((bundle) => BUNDLE_KEYS[bundle] ?? []), ...(entry.keys ?? [])];
-    add(entry.string_id, context, keys);
+    add(entry.string_id, context, keys, entry.text);
     if (entry.confirm === true) {
       // 確認ダイアログは見出しと決定ボタン名を別レコードで持つ。いずれも共通キーのみで書く。
-      add(`${entry.string_id}_HEAD`, [], []);
-      add(`${entry.string_id}_BTN`, [], []);
+      add(`${entry.string_id}_HEAD`, [], [], entry.head);
+      add(`${entry.string_id}_BTN`, [], [], entry.button);
     }
   }
   return result;
@@ -538,8 +539,8 @@ export function buildHelpRecords(helps) {
     orders[entry.category] = (orders[entry.category] ?? 0) + 1;
     result[entry.help_id] = {
       help_id: entry.help_id,
-      title: placeholderText(`${entry.help_id}_TITLE`, []),
-      body: placeholderText(entry.help_id, []),
+      title: entry.title ?? placeholderText(`${entry.help_id}_TITLE`, []),
+      body: entry.body ?? placeholderText(entry.help_id, []),
       unlock_key: entry.unlock_key,
       category: entry.category,
       order: orders[entry.category],

@@ -43,8 +43,10 @@ describe('[M-DATA-INTERP] 文字列補間', () => {
 
   it('解説マスタの title / body は共通キーのみで解決する', () => {
     const resolved = resolveHelp(HELP_MASTERS.HELP_WATCH, {});
-    expect(resolved.title).toBe('[HELP_WATCH_TITLE]');
-    expect(resolved.body).toBe('[HELP_WATCH]');
+    expect(resolved.title).toBe(HELP_MASTERS.HELP_WATCH.title);
+    expect(resolved.body).toBe(HELP_MASTERS.HELP_WATCH.body);
+    // 共通キーを用いる本文は、共通キーを供給して解決する。
+    expect(resolveHelp(HELP_MASTERS.HELP_SACRIFICE, { HeroName: 'セイン' }).body).toContain('セインのHP');
   });
 
   it('未知の文言IDは棄却する', () => {
@@ -78,8 +80,8 @@ describe('[M-DATA-PAUSE-REASON] 事由文言の解決', () => {
       { code: 'ENEMY_START', unit_id: enemy.unit_id, instance_id: enemy.acts[0].instance_id, watch_kind: null, remaining_steps: 20 },
       sources,
     );
-    // 本文は未執筆のプレースホルダであり、束のキーが宣言順（ACTION → PAUSE → UNIT）に差し込まれる（[I-PLAN-TEXT]）。
-    expect(text).toBe('[STR_PAUSE_ENEMY_START] FOE_STUN  20 レフ');
+    // UNIT・ACTION・PAUSE の各束の値が本文へ差し込まれる。
+    expect(text).toBe('レフがFOE_STUNの構えに入った。発動まで20ステップ。');
   });
 
   it('WATCH_MET は監視条件ラベルを文言マスタから引く', () => {
@@ -96,7 +98,7 @@ describe('[M-DATA-PAUSE-REASON] 事由文言の解決', () => {
     const { state } = duel();
     for (const code of ['STEP0_READY', 'MANUAL_PAUSE'] as const) {
       const text = pauseReasonText(state, { code, unit_id: null, instance_id: null, watch_kind: null, remaining_steps: null }, sources);
-      expect(text).toBe(`[${PAUSE_REASON_STRING_ID[code]}]`);
+      expect(text).toBe(strings.resolve(PAUSE_REASON_STRING_ID[code]));
     }
   });
 });

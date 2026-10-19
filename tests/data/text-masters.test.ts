@@ -9,7 +9,7 @@ import { HELP_MASTERS } from '../../src/data/generated/help-masters.js';
 import { STRING_MASTERS } from '../../src/data/generated/string-masters.js';
 import type { AssetMasterRecord, ContextBundle, HelpMasterRecord, StringMasterRecord } from '../../src/data/types.js';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
-import { isPlaceholderText } from '../../src/ui/text.js';
+import { BUNDLE_KEYS, COMMON_KEYS, isPlaceholderText, resolveHelp, resolveText } from '../../src/ui/text.js';
 
 const strings: Readonly<Record<string, StringMasterRecord>> = STRING_MASTERS;
 const helps: Readonly<Record<string, HelpMasterRecord>> = HELP_MASTERS;
@@ -28,6 +28,7 @@ const REQUIRED_STRINGS: readonly (readonly [string, readonly ContextBundle[]])[]
   ['STR_REWIND_PENDING', []],
   ['STR_RESULT_WIN', ['ENEMY']],
   ['STR_RESULT_LOSE', ['ENEMY']],
+  ['STR_OBJECTIVE_KALDEN', []],
   ['STR_OBJECTIVE_VOID_LORD', []],
   ['STR_OBJECTIVE_VEIN', []],
   ['STR_RESULT_LOSE_SUICIDE', []],
@@ -96,7 +97,25 @@ const REQUIRED_HELPS: readonly (readonly [string, string | null, HelpMasterRecor
   ['HELP_WATCH', null, 'UI'],
   ['HELP_TIMELINE', null, 'UI'],
   ['HELP_REWIND', null, 'UI'],
+  ['HELP_STUN', null, 'STEP'],
+  ['HELP_PURIFY_STRIP', null, 'ACTION'],
+  ['HELP_ROOT_MARTIAL', null, 'ACTION'],
 ];
+
+// [M-DATA-HELPS]［機構キー・補正キーによる自動提示］の title。
+const HELP_TITLES: Readonly<Record<string, string>> = {
+  HELP_RUSH: '急襲',
+  HELP_SUMMON: '召喚と仮身',
+  HELP_STRIP_VP: '気を削る打撃',
+  HELP_STRIP_PP: '力を削る打撃',
+  HELP_STRIP_AP: '壁を削る打撃',
+  HELP_INTERFERE: '斥け・招き',
+  HELP_BUFF: '付与',
+  HELP_DEBUFF: '減衰',
+  HELP_SLIP: '灼け',
+  HELP_COPY: '写し取り',
+  HELP_SEAL: '封印',
+};
 
 describe('[M-DATA-STRINGS] システム文言の必須レコード', () => {
   it.each(REQUIRED_STRINGS)('%s が存在し、要求文脈束が一致する', (stringId, context) => {
@@ -173,9 +192,10 @@ describe('[I-PLAN-TEXT] プレースホルダの残存件数', () => {
   it('本文が未執筆のレコードを数える（存在検査とは別に、執筆の進行を測る）', () => {
     const pendingStrings = Object.values(strings).filter((record) => isPlaceholderText(record.string_id, record.text));
     const pendingHelps = Object.values(helps).filter((record) => isPlaceholderText(record.help_id, record.body));
-    // 現時点では全件が未執筆である（[I-PLAN-TEXT]［執筆時点］文言マスタ・解説マスタは M4）。
-    expect(pendingStrings).toHaveLength(Object.keys(strings).length);
-    expect(pendingHelps).toHaveLength(Object.keys(helps).length);
+    // 文言マスタ・解説マスタは全件を執筆済みである（[I-PLAN-SUBMISSION] M9 の受け入れ線の3）。
+    expect(pendingStrings.map((record) => record.string_id)).toEqual([]);
+    expect(pendingHelps.map((record) => record.help_id)).toEqual([]);
+    expect(Object.values(helps).filter((record) => isPlaceholderText(`${record.help_id}_TITLE`, record.title))).toEqual([]);
   });
 });
 
@@ -215,6 +235,28 @@ describe('[M-DATA-INTERP]［束の供給元］共通キーのみの解決', () =
         expect(record, `${id}${suffix}`).toBeDefined();
         expect(record?.context ?? [], `${id}${suffix}`).toEqual([]);
       }
+    }
+  });
+});
+
+// [M-DATA-INTERP] 未定義キーはオーサリングエラーとして棄却する。各文言は context が列挙する束と共通キーで解決でき、
+// 解説の title / body は共通キーのみで解決できる。
+describe('[M-DATA-INTERP] 執筆した本文の補間キー', () => {
+  const dummy = (keys: readonly string[]): Record<string, string> => Object.fromEntries(keys.map((key) => [key, 'x']));
+
+  it('文言は context の束と共通キーで解決できる', () => {
+    for (const record of Object.values(strings)) {
+      const bundles = Object.fromEntries(record.context.map((bundle) => [bundle, dummy(BUNDLE_KEYS[bundle])]));
+      expect(() => resolveText(record, { common: dummy(COMMON_KEYS), bundles }), record.string_id).not.toThrow();
+    }
+  });
+
+  it('解説は共通キーのみで解決でき、機構キーを持つものの title は [M-DATA-HELPS] に一致する', () => {
+    for (const record of Object.values(helps)) {
+      expect(() => resolveHelp(record, dummy(COMMON_KEYS)), record.help_id).not.toThrow();
+    }
+    for (const [helpId, title] of Object.entries(HELP_TITLES)) {
+      expect(helps[helpId]?.title).toBe(title);
     }
   });
 });
