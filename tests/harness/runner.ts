@@ -76,6 +76,11 @@ function instructableMine(state: BattleState): Unit[] {
   return state.units.filter((unit): unit is Unit => unit !== null && unit.side === 'MINE' && unit.state === 'THOUGHT');
 }
 
+// [V-TEST-NONFUNC] D-01b の計時の受け口。観測子を設けたときに限り、敵軍AIの各決定の所要時間を渡す。
+// 実時刻は計時にのみ用い、決定そのもの（[A-CORE-DETERMINISM]）には関与しない。
+export type FoeDecisionTimer = (sceneId: string, state: BattleState, unit: Unit, elapsedMs: number) => void;
+export const foeDecisionTiming: { observer: FoeDecisionTimer | null } = { observer: null };
+
 // [A-PROFILE-RESOLVE] 敵軍の実効プロファイルは進行中のシーンから構築する。
 function createFoeDecision(currentSession: () => GameSession): DecisionProvider {
   const cache: Record<string, DecisionProvider> = {};
@@ -108,7 +113,14 @@ function createFoeDecision(currentSession: () => GameSession): DecisionProvider 
         cache[sceneId] = provider;
       }
     }
-    return provider(state, unit);
+    const observer = foeDecisionTiming.observer;
+    if (observer === null) {
+      return provider(state, unit);
+    }
+    const started = performance.now();
+    const decision = provider(state, unit);
+    observer(sceneId, state, unit, performance.now() - started);
+    return decision;
   };
 }
 
