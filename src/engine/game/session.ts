@@ -2,6 +2,7 @@
 // セーブデータ1件を単位とする操作の共通手続き：確定操作の記録・保留の決済・オートセーブ。
 
 import type { DecisionProvider } from '../decision.js';
+import type { BattleState } from '../types.js';
 import type { ExecutedAction, SideLoopState } from '../pipeline/p8-decision.js';
 import type { RewindPendingType, SaveData } from '../meta/types.js';
 import type { StepDeps } from '../pipeline/step.js';
@@ -38,6 +39,8 @@ export interface GameSession {
   battle_start_run: RunState | null;
   // [M-META-ECHO] 直近のバトルクリアで発火した種別Aの残響の echo_id。表示側が SCENE_CLEAR の後に再生する。
   cleared_echoes?: string[];
+  // 直近の勝利で決着したバトルの、決着時の BattleState。表示側が勝敗の確定の直前の契機判定に用いる。
+  won_battle_state?: BattleState | null;
 }
 
 // [M-STATE-HISTORY]［保存契機］の番号。SETTLEMENT はインターミッション決済の確定。

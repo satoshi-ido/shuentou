@@ -34,7 +34,8 @@ import {
 import { autosave, beginConfirmOperation, type GameContext, type GameSession } from './session.js';
 
 // AWAIT_FOE は敵軍AIの応答待ちで中断した状態（[I-ENV-WORKER]）。応答後に resumeBattle で再開する。
-export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS' | 'AWAIT_FOE' | 'RUNNING';
+// CUE は [S-SCRIPT-TRIGGER]【バトル中の契機】の成立による停止。BattleState を変えずに返し、resumeBattle で続ける。
+export type BattleResult = 'PAUSED' | 'WIN' | 'LOSS' | 'AWAIT_FOE' | 'RUNNING' | 'CUE';
 
 export interface AdvanceOptions {
   // [M-PIPE-PAUSE-TRIGGER]#4 手動停止を要求する最初のステップ数。
@@ -42,6 +43,9 @@ export interface AdvanceOptions {
   // [M-UI-PLAYBACK] 1回の呼び出しで越えるステップ境界の上限（1描画フレームあたりの歩進）。
   // 上限に達した時点で RUNNING を返し、次の呼び出しで続きから進める。省略時は時間停止まで進める。
   readonly maxSteps?: number;
+  // [S-SCRIPT-TRIGGER]【バトル中の契機】表示側の契機判定。《処理8》の先頭で呼び、true のとき時間を止めて CUE を返す。
+  // 再生済みの管理は表示側が行い、BattleState に含めない。
+  readonly cueAt?: (state: BattleState) => boolean;
 }
 
 export interface StartOptions extends AdvanceOptions {
@@ -95,6 +99,8 @@ function instructableUnits(state: BattleState): Unit[] {
 function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleOutcome, 'NONE'>): BattleResult {
   session.pending_step = null;
   if (outcome === 'WIN') {
+    // [S-SCRIPT-TRIGGER]【バトル中の契機】勝敗の確定の直前の判定に、表示側が決着時の盤面を用いる。
+    session.won_battle_state = session.data.run.battle_state;
     const cleared = sceneOf(ctx.masters, session.data.run.current_scene_id);
     settleBattleClear(session.data.run, ctx.masters);
     recordSceneCleared(session.data.meta, cleared.order);
@@ -135,6 +141,10 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
         return finish(session, ctx, pre);
       }
       pending.preDone = true;
+    }
+    if (options.cueAt?.(state) === true) {
+      session.pending_step = pending;
+      return 'CUE';
     }
     if (deferred && pending.mineDone !== true) {
       const edges = detectWatchEdges(state, ctx.stepDeps);

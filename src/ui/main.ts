@@ -14,10 +14,18 @@ import { ENEMY_MASTERS } from '../data/generated/enemy-masters.js';
 import { HELP_MASTERS } from '../data/generated/help-masters.js';
 import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../data/generated/scene-masters.js';
+import { SCRIPT_MASTERS } from '../data/generated/script-masters.js';
 import { STRING_MASTERS } from '../data/generated/string-masters.js';
-import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMasterRecord } from '../data/types.js';
-import { instruct, resumeBattle, resumeTime, setWatch, startBattle, type BattleResult } from '../engine/game/battle.js';
-import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../engine/game/intermission.js';
+import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMasterRecord, ScriptDirective, ScriptMasterRecord } from '../data/types.js';
+import { instruct, resumeBattle, resumeTime, setWatch, startBattle, type AdvanceOptions, type BattleResult } from '../engine/game/battle.js';
+import {
+  confirmInherit,
+  confirmRefill,
+  confirmSacrifice,
+  enterTransition,
+  openSacrificeConfirm,
+  settleIntermission,
+} from '../engine/game/intermission.js';
 import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } from '../engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
 import type { GameContext, GameSession } from '../engine/game/session.js';
@@ -27,11 +35,15 @@ import { canEnterTransition, canSettleIntermission } from '../engine/progress/re
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
 import type { BattleCue } from '../engine/cue.js';
-import type { ActionInstance, Unit, WatchKind } from '../engine/types.js';
+import { conditionReader } from '../engine/script/condition.js';
+import { scriptById, scriptsAt } from '../engine/script/select.js';
+import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/types.js';
+import { placeholderHue } from './assets/placeholder.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
+import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { RecordingAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
@@ -52,6 +64,8 @@ import {
 } from './dom/screens.js';
 import { PARAM_LABEL } from './format.js';
 import { PlaybackLoop, stepsPerFrame } from './playback.js';
+import { BattleCueTracker } from './script-cues.js';
+import { ScriptPlayer, type ScriptSegment } from './script-player.js';
 import { heroView, inheritOptions, refillView } from './view/intermission-view.js';
 import { createStringTable, resolveHelp, type BundleValues } from './text.js';
 import { buildBattleView, focusPreview, type UnitNaming } from './view/battle-view.js';
@@ -95,6 +109,7 @@ const actions: Readonly<Record<string, ActionMasterRecord>> = ACTION_MASTERS;
 const enemies: Readonly<Record<string, EnemyMasterRecord>> = ENEMY_MASTERS;
 const scenes: Readonly<Record<string, SceneMasterRecord>> = SCENE_MASTERS;
 const helps: Readonly<Record<string, HelpMasterRecord>> = HELP_MASTERS;
+const scripts: Readonly<Record<string, ScriptMasterRecord>> = SCRIPT_MASTERS;
 const strings = createStringTable(STRING_MASTERS);
 
 const masters: GameMasters = {
@@ -120,7 +135,10 @@ const stepDeps = {
 const screenRoot = document.createElement('div');
 screenRoot.className = 'screen-root';
 const effects = new EffectLayer(document.createElement('div'));
-stageElement.append(screenRoot, effects.root);
+// [M-UI-SCRIPT] 脚本の提示の層。文字送りのたびに画面本体を描き直さないよう、別の層に置く。
+const scriptRoot = document.createElement('div');
+scriptRoot.className = 'script-root';
+stageElement.append(screenRoot, effects.root, scriptRoot);
 
 // [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
 // [M-DATA-AUDIO-CUE] 発火契機は演出と音響の双方へ配る（探索・未来予測では受け口を与えない）。
@@ -149,6 +167,11 @@ let battleResult: BattleResult = 'PAUSED';
 let notice = ''; // 一度だけ提示するシステム文言（履歴が空である旨など）
 let resultText = ''; // [M-PIPE-P5-DISCARD] 決着の提示。バトルを離れるまで残す。
 let firstSightHelpId: string | null = null; // [M-DATA-HELPMASTER] 初出自動提示の対象
+// [M-UI-SCRIPT] 提示中の脚本。提示の間、背後の画面は操作を受け付けない。
+let script: { readonly player: ScriptPlayer; readonly hue: number; readonly onDone: () => void } | null = null;
+let introShown = false; // 現在の PRE_BATTLE で開幕の脚本を提示したか。PRE_BATTLE を離れると戻す。
+const cueTracker = new BattleCueTracker();
+let dueCues: string[] = []; // [S-SCRIPT-TRIGGER]【バトル中の契機】成立して再生を待つ契機の anchor
 
 let currentBgm = ''; // 再生中の BGM 資産ID（同じ資産を鳴らし直さない）
 
@@ -263,6 +286,176 @@ const naming: UnitNaming = {
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
 };
 
+// ── [M-UI-SCRIPT] 脚本の提示 ──
+
+// 発火した時点のステートで条件式を評価する読み取り（[S-SCRIPT-CONDITION]［評価の時点］）。
+const readCondition = () => conditionReader(requireSession(), masters);
+
+// 背景のプレースホルダの色相（[I-PLAN-ASSETS]）。シーンごとに定める。
+const sceneHue = (sceneId: string): number => placeholderHue(`ASSET_BG_${sceneId}`);
+
+// 発火点のレコード列。燈の中の声（[M-UI-SCRIPT]【燈の中の声】）は SACRIFICE_EXECUTE のレコードである。
+function triggerSegment(trigger: ScriptMasterRecord['trigger'], anchor: string | null): ScriptSegment {
+  return { records: scriptsAt(scripts, trigger, anchor, readCondition()), lantern: trigger === 'SACRIFICE_EXECUTE' };
+}
+
+// 残響マスタの script_id から再生するレコード（版を選んだ後のもの）。燈の中の声として示す。
+function echoSegment(echoIds: readonly string[]): ScriptSegment {
+  const read = readCondition();
+  const records = echoIds
+    .map((echoId) => masters.echoes[echoId]?.script_id ?? null)
+    .filter((scriptId): scriptId is string => scriptId !== null)
+    .map((scriptId) => scriptById(scripts, scriptId, read))
+    .filter((record): record is ScriptMasterRecord => record !== null);
+  return { records, lantern: true };
+}
+
+// 行の提示に伴って実行する演出指示のうち、音と進行に関わるもの。表示に関わるものは描画側が扱う。
+function runDirectives(directives: readonly ScriptDirective[]): void {
+  if (directives.includes('SILENCE')) {
+    audio.silence();
+    currentBgm = '';
+  }
+}
+
+function drawScript(): void {
+  scriptRoot.replaceChildren();
+  if (script === null) {
+    return;
+  }
+  scriptRoot.append(
+    renderScriptScreen(script.player.view(), script.hue, {
+      onAdvance: () => {
+        script?.player.click();
+        afterScriptInput();
+      },
+      onSkip: () => {
+        if (script !== null) {
+          runDirectives(script.player.skip());
+        }
+        afterScriptInput();
+      },
+    }),
+  );
+}
+
+function finishScript(): void {
+  const finished = script;
+  script = null;
+  scriptRoot.replaceChildren();
+  finished?.onDone();
+}
+
+function afterScriptInput(): void {
+  if (script === null) {
+    return;
+  }
+  if (script.player.done) {
+    finishScript();
+    return;
+  }
+  runDirectives(script.player.currentDirectives);
+  drawScript();
+}
+
+// 描画フレームごとの文字送り。実時刻を用いない（[M-UI-PLAYBACK] と同じくフレーム同期）。
+// 提示が終わった直後に次の提示が始まることがあるため、ループは1本に限る。
+let scriptLoopRunning = false;
+
+function scriptFrame(): void {
+  if (script !== null) {
+    const before = script.player.currentDirectives;
+    script.player.tick(config.textSpeed);
+    if (script.player.done) {
+      finishScript();
+    } else {
+      if (script.player.currentDirectives !== before) {
+        runDirectives(script.player.currentDirectives);
+      }
+      drawScript();
+    }
+  }
+  if (script === null) {
+    scriptLoopRunning = false;
+    return;
+  }
+  window.requestAnimationFrame(scriptFrame);
+}
+
+function ensureScriptLoop(): void {
+  if (!scriptLoopRunning) {
+    scriptLoopRunning = true;
+    window.requestAnimationFrame(scriptFrame);
+  }
+}
+
+// レコード列を1回の提示として再生し、終えたら onDone を呼ぶ。再生するレコードがなければ直ちに呼ぶ。
+function playScript(segments: readonly ScriptSegment[], sceneId: string, onDone: () => void): void {
+  const player = new ScriptPlayer(segments.filter((segment) => segment.records.length > 0));
+  if (player.done) {
+    onDone();
+    return;
+  }
+  script = { player, hue: sceneHue(sceneId), onDone };
+  runDirectives(player.currentDirectives);
+  drawScript();
+  ensureScriptLoop();
+}
+
+// [S-SCRIPT-TRIGGER] SCENE_INTRO：バトル開始前演出フェーズに入ったとき1度提示する。
+function presentIntro(): void {
+  if (session === null || session.data.run.phase !== 'PRE_BATTLE') {
+    introShown = false;
+    return;
+  }
+  if (introShown || script !== null) {
+    return;
+  }
+  introShown = true;
+  const sceneId = session.data.run.current_scene_id;
+  playScript([triggerSegment('SCENE_INTRO', sceneId)], sceneId, () => render());
+}
+
+// [S-SCRIPT-TRIGGER]【バトル中の契機】表示側の契機判定。成立した契機は再生済みとして控え、再生を待たせる。
+const cueAt = (state: BattleState): boolean => {
+  const due = cueTracker.take(state, requireSession().data.run.current_scene_id, scripts);
+  dueCues = due;
+  return due.length > 0;
+};
+
+const advanceOptions = (maxSteps: number): AdvanceOptions => ({ maxSteps: Math.max(maxSteps, 1), cueAt });
+
+function cueSegments(anchors: readonly string[]): ScriptSegment[] {
+  return anchors.map((anchor) => triggerSegment('BATTLE_CUE', anchor));
+}
+
+// 契機で止まったバトルを、脚本の提示の後に続ける。
+function playDueCues(): void {
+  const sceneId = requireSession().data.run.current_scene_id;
+  const anchors = dueCues;
+  dueCues = [];
+  playScript(cueSegments(anchors), sceneId, () => {
+    battleResult = 'RUNNING';
+    runAdvance(() => resumeBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(loop.speed))));
+    render();
+  });
+}
+
+// 勝利の決着：勝敗の確定の直前の契機 → 撃破後（SCENE_CLEAR）→ 種別Aの残響 の順に1回の提示とする。
+function playClearScripts(clearedSceneId: string): void {
+  const current = requireSession();
+  const won = current.won_battle_state ?? null;
+  const finalCues = won === null ? [] : cueTracker.take(won, clearedSceneId, scripts);
+  current.won_battle_state = null;
+  const echoes = current.cleared_echoes ?? [];
+  current.cleared_echoes = [];
+  playScript(
+    [...cueSegments(finalCues), triggerSegment('SCENE_CLEAR', clearedSceneId), echoSegment(echoes)],
+    clearedSceneId,
+    () => render(),
+  );
+}
+
 function openConfirm(
   baseId: string,
   rows: readonly string[],
@@ -299,10 +492,11 @@ function startScene(): void {
   const scene = currentScene();
   attachClient(scene.scene_id);
   resultText = '';
+  cueTracker.reset(); // ステップ0の生成
   runAdvance(() =>
     startBattle(requireSession(), ctx, {
+      ...advanceOptions(stepsPerFrame(config.defaultPlaybackSpeed)),
       watchDefault: config.watchDefault,
-      maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
     }),
   );
   loop.speed = config.defaultPlaybackSpeed;
@@ -312,7 +506,7 @@ function startScene(): void {
 
 // [M-DATA-HELPMASTER]［初出キー］未読の初出解説が残っていれば、次の1件を重ねて提示する。
 function presentFirstSight(): void {
-  if (session === null || session.data.run.phase !== 'PRE_BATTLE' || overlay !== 'NONE') {
+  if (session === null || session.data.run.phase !== 'PRE_BATTLE' || overlay !== 'NONE' || script !== null) {
     return;
   }
   const { run, meta } = session.data;
@@ -349,8 +543,9 @@ const screenHandlers: ScreenHandlers = {
       attachClient(saved.run.current_scene_id);
       loop.speed = config.defaultPlaybackSpeed;
     }
+    cueTracker.reset(); // バトル中のセーブからの再開はステップ0の生成直後から
     const loaded = loadGame(serialized, ctx, {
-      maxSteps: Math.max(stepsPerFrame(config.defaultPlaybackSpeed), 1),
+      ...advanceOptions(stepsPerFrame(config.defaultPlaybackSpeed)),
       watchDefault: config.watchDefault,
     });
     if (!loaded.ok) {
@@ -407,21 +602,31 @@ const screenHandlers: ScreenHandlers = {
     selectedAttendantId = attendantId;
     render();
   },
+  // [M-PROG-SACRIFICE] 種別Dの残響 → 確定ダイアログ → 確定 → 〈目覚め〉 の順に提示する（[M-META-ECHO]・[S-WAKE-DESIGN]）。
   onSacrifice: (attendantId) => {
     const bundles = {
       ATTENDANT: attendantBundle(attendantId),
       SACRIFICE: { PartyCountAfter: requireSession().data.run.party.length - 1 },
     };
-    openConfirm(
-      'STR_CONFIRM_SACRIFICE',
-      [],
-      () => {
-        confirmSacrifice(requireSession(), ctx, attendantId);
-        notice = strings.resolve('STR_SACRIFICE_DONE', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(attendantId) } });
-        render();
-      },
-      bundles,
-    );
+    const sceneId = requireSession().data.run.current_scene_id;
+    const confirm = (): void =>
+      openConfirm(
+        'STR_CONFIRM_SACRIFICE',
+        [],
+        () => {
+          confirmSacrifice(requireSession(), ctx, attendantId);
+          notice = strings.resolve('STR_SACRIFICE_DONE', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(attendantId) } });
+          playScript([triggerSegment('SACRIFICE_EXECUTE', attendantId)], sceneId, () => render());
+          render();
+        },
+        bundles,
+      );
+    const echoId = openSacrificeConfirm(requireSession(), ctx, attendantId);
+    if (echoId === null) {
+      confirm();
+      return;
+    }
+    playScript([echoSegment([echoId])], sceneId, confirm);
   },
   onSettleIntermission: () => {
     const current = requireSession();
@@ -436,9 +641,19 @@ const screenHandlers: ScreenHandlers = {
       strings.resolve('STR_CONFIRM_FORFEIT_ROW', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(slot.attendant_id) } }),
     );
     openConfirm(forfeited.length === 0 ? 'STR_CONFIRM_IM_COMMIT' : 'STR_CONFIRM_FORFEIT', rows, () => {
-      settleIntermission(requireSession(), ctx);
-      notice = resolveString('STR_IM_COMMIT_DONE');
-      render();
+      const settle = (): void => {
+        settleIntermission(requireSession(), ctx);
+        notice = resolveString('STR_IM_COMMIT_DONE');
+        render();
+      };
+      const { run } = requireSession().data;
+      if (run.intermission_stage !== 'TRANSITION') {
+        settle();
+        return;
+      }
+      // [S-SCRIPT-TRIGGER] ACT_TRANSITION：アクト移行決済の直前。anchor は移行元アクト番号。
+      const fromAct = String(scenes[run.current_scene_id].act - 1);
+      playScript([triggerSegment('ACT_TRANSITION', fromAct)], run.current_scene_id, settle);
     });
   },
   // [M-PROG-REFILL] 補充の確定確認。対象は行として並べる（[M-DATA-STRINGS]［複数対象の提示］）。
@@ -464,6 +679,10 @@ const screenHandlers: ScreenHandlers = {
     notice = '';
     playSe('UI_CANCEL'); // [M-DATA-AUDIO-CUE] UI_CANCEL：アンドゥ実行時
     undo(requireSession(), ctx);
+    const restored = requireSession().data.run.battle_state;
+    if (restored !== null) {
+      cueTracker.rewindTo(restored.step); // 巻き戻した先より後に再生した契機は、再び通過すれば再生する
+    }
     client?.invalidate();
     focusedInstanceId = null;
     selectedInstanceId = null;
@@ -477,7 +696,8 @@ const screenHandlers: ScreenHandlers = {
     openConfirm('STR_CONFIRM_ROLLBACK_BATTLE', [], () => {
       client?.invalidate();
       // 再開は再生速度に従う（1回の呼び出しで時間停止まで進めきらない）。
-      runAdvance(() => rollbackBattle(requireSession(), ctx, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) }));
+      cueTracker.reset(); // ステップ0へ巻き戻す
+      runAdvance(() => rollbackBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(loop.speed))));
       render();
     });
   },
@@ -510,17 +730,22 @@ function stepForward(maxSteps: number): void {
   const steps = Math.max(maxSteps, 1);
   runAdvance(() =>
     state !== null && state.pause_reason !== null
-      ? resumeTime(session, ctx, { maxSteps: steps })
-      : resumeBattle(session, ctx, { maxSteps: steps }),
+      ? resumeTime(session, ctx, advanceOptions(steps))
+      : resumeBattle(session, ctx, advanceOptions(steps)),
   );
 }
 
 // バトルの進行を1回行う。決着した場合は勝敗を提示する（[M-PIPE-P5-DISCARD]・[M-DATA-STRINGS]）。
 // 勝利の決済では current_scene_id が次のシーンへ進むため、敵の名は進行の前に控える。
 function runAdvance(advance: () => BattleResult): BattleResult {
-  const enemy = session === null ? undefined : enemies[scenes[session.data.run.current_scene_id]?.enemy_id ?? ''];
+  const sceneId = session?.data.run.current_scene_id ?? '';
+  const enemy = session === null ? undefined : enemies[scenes[sceneId]?.enemy_id ?? ''];
   const result = advance();
   battleResult = result;
+  if (result === 'CUE') {
+    playDueCues();
+    return result;
+  }
   // [M-DATA-AUDIO-CUE] WATCH_PAUSE：監視条件の立ち上がりエッジによる自動時間停止時。
   if (session?.data.run.battle_state?.pause_reason?.code === 'WATCH_MET') {
     playSe('WATCH_PAUSE');
@@ -533,6 +758,7 @@ function runAdvance(advance: () => BattleResult): BattleResult {
     // 勝利は画面がインターミッションへ移るため一度だけの提示とし、敗北は盤面に残す。
     if (result === 'WIN') {
       notice = text;
+      playClearScripts(sceneId);
     } else {
       resultText = text;
     }
@@ -575,7 +801,7 @@ const battleHandlers: BattleScreenHandlers = {
     playSe('UI_CONFIRM'); // [M-DATA-AUDIO-CUE] UI_CONFIRM：指示確定時
     // 指示後の進行も再生速度に従う（確定だけで時間停止まで進めきらない）。
     runAdvance(() =>
-      instruct(requireSession(), ctx, unit.unit_id, instanceId, { maxSteps: Math.max(stepsPerFrame(loop.speed), 1) }),
+      instruct(requireSession(), ctx, unit.unit_id, instanceId, advanceOptions(stepsPerFrame(loop.speed))),
     );
     render();
   },
@@ -810,6 +1036,7 @@ function renderOverlay(): HTMLElement | null {
 
 function render(): void {
   syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
+  presentIntro(); // [S-SCRIPT-TRIGGER] SCENE_INTRO。初出の解説は開幕の脚本を終えてから提示する。
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();
   screenRoot.append(renderScreen());
@@ -827,7 +1054,7 @@ const loop = new PlaybackLoop(
       return false;
     }
     if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING') {
-      runAdvance(() => resumeBattle(requireSession(), ctx, { maxSteps: stepsPerFrame(speed) }));
+      runAdvance(() => resumeBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(speed))));
       render();
     }
     return true;

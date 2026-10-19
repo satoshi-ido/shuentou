@@ -1744,3 +1744,83 @@ button:disabled { opacity: 0.4; cursor: default; }
 .first-sight-lead { margin: 0; font-size: 11.5px; letter-spacing: 0.1em; color: var(--ember); }
 .help-body { margin: 0; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
 .confirm-actions { display: flex; gap: 8px; margin-top: 6px; }
+
+/* [M-UI-SCRIPT] 脚本の提示。暗くした背景の中央に本文を行ごとに積む。 */
+.script-screen {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.script-bg {
+  position: absolute;
+  inset: 0;
+  /* 表示アセットの実体が入るまでのプレースホルダ（[I-PLAN-ASSETS]）。色相はシーンから定める。 */
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.72)),
+    radial-gradient(ellipse at 50% 70%, hsl(var(--script-hue) 30% 26%), hsl(var(--script-hue) 24% 9%) 70%);
+}
+.script-screen.lantern .script-bg {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.82), rgba(0, 0, 0, 0.9)),
+    radial-gradient(ellipse at 50% 55%, rgba(255, 138, 43, 0.22), transparent 60%),
+    #050406; /* 背後の画面を透かさない */
+}
+.script-page {
+  position: absolute;
+  top: 120px;
+  left: 240px;
+  width: 800px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.script-line {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 20px;
+  line-height: 1.8;
+  letter-spacing: 0.04em;
+  color: var(--ink);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+}
+.script-speaker { margin-right: 0.15em; color: var(--muted); }
+.script-screen.lantern .script-line { color: var(--ember); }
+.script-screen.lantern .script-speaker { color: var(--ember); }
+.script-title-card {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-serif);
+  font-size: 36px;
+  letter-spacing: 0.3em;
+  color: var(--ink);
+}
+.script-wait {
+  position: absolute;
+  right: 240px;
+  bottom: 96px;
+  color: var(--ember);
+  animation: script-wait-blink 1.2s steps(2, start) infinite;
+}
+.script-skip {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  padding: 4px 14px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(20, 18, 26, 0.7);
+  border: 1px solid var(--iron);
+  cursor: pointer;
+}
+.script-screen.fade-in .script-page,
+.script-screen.fade-in .script-title-card { animation: script-fade-in 0.8s ease-out; }
+@keyframes script-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes script-wait-blink { to { visibility: hidden; } }
+/* 脚本の層は空のときクリックを遮らない。提示中は .script-screen が入力を受ける。 */
+.script-root { position: absolute; inset: 0; pointer-events: none; }
+.script-root > * { pointer-events: auto; }
