@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 // [I-PLAN-DOCINDEX]
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { checkReferences, extractSection, loadIndex } from './lib.js';
+import { checkReferences, collectScriptIds, extractSection, loadIndex } from './lib.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const DOC_PATH = path.join(REPO_ROOT, 'docs', '終焉燈.md');
 const INDEX_PATH = path.join(REPO_ROOT, 'docs', 'id-index.json');
+const SCRIPT_IDS_PATH = path.join(REPO_ROOT, 'docs', 'script-ids.json');
 
 function fail(message) {
   console.error(message);
@@ -33,6 +34,15 @@ function runCheckRefs() {
   process.exit(violations.length > 0 ? 1 : 0);
 }
 
+// [I-PLAN-DOCINDEX]【脚本IDの収集】脚本マスタの要求集合を docs/script-ids.json に出力する。
+function runScriptIds() {
+  const docText = readFileSync(DOC_PATH, 'utf8');
+  const index = loadIndex(DOC_PATH, INDEX_PATH);
+  const scriptIds = collectScriptIds(docText, index);
+  writeFileSync(SCRIPT_IDS_PATH, JSON.stringify(scriptIds, null, 2) + '\n', 'utf8');
+  console.log(`脚本IDの収集: ${Object.keys(scriptIds).length}件`);
+}
+
 function runExtract(id) {
   const index = loadIndex(DOC_PATH, INDEX_PATH);
   const record = index.find((entry) => entry.id === id);
@@ -46,9 +56,11 @@ function runExtract(id) {
 const [command] = process.argv.slice(2);
 
 if (!command) {
-  fail('使用法: pnpm id <ID> | pnpm id --check-refs');
+  fail('使用法: pnpm id <ID> | pnpm id --check-refs | pnpm id --script-ids');
 } else if (command === '--check-refs') {
   runCheckRefs();
+} else if (command === '--script-ids') {
+  runScriptIds();
 } else {
   runExtract(command);
 }

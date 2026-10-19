@@ -151,3 +151,90 @@ export function checkReferences(docText, index) {
   }
   return { violations, suspicious };
 }
+
+// [I-PLAN-DOCINDEX]【脚本IDの収集】の手順1：合本全体から脚本IDの言及を集める。
+// 末尾が `_` の並びは系列の表記または接頭辞への言及として除く。
+const SCRIPT_ID_MENTION = /SCRIPT_[A-Z0-9_]+/g;
+
+function sourceIdAt(index, lineNumber) {
+  let found = null;
+  for (const record of index) {
+    if (record.start_line <= lineNumber && (found === null || record.start_line > found.start_line)) {
+      found = record;
+    }
+  }
+  return found === null ? null : found.id;
+}
+
+function collectMentions(docText, index) {
+  const lines = splitLines(docText);
+  const result = {};
+  for (let i = 0; i < lines.length; i++) {
+    for (const match of lines[i].matchAll(SCRIPT_ID_MENTION)) {
+      const scriptId = match[0];
+      if (scriptId.endsWith('_')) continue;
+      const source = sourceIdAt(index, i + 1);
+      result[scriptId] ??= [];
+      if (source !== null && !result[scriptId].includes(source)) result[scriptId].push(source);
+    }
+  }
+  return result;
+}
+
+// 手順2：[S-SCRIPT-RECORDS]【系列】の各行を【展開の記法】に従って展開する。
+// シーン番号の範囲（`1-01〜5-11`）は、索引に並ぶ S-SCENE-<シーン番号> の順に展開する。
+const SERIES_SOURCE_ID = 'S-SCRIPT-RECORDS';
+const SCENE_SECTION_ID = /^S-SCENE-(\d-\d\d)$/;
+
+function expandRangeItem(item, sceneNumbers) {
+  const [from, to] = item.split('〜');
+  if (to === undefined) return [from];
+  if (SCENE_SECTION_ID.test(`S-SCENE-${from}`)) {
+    const start = sceneNumbers.indexOf(from);
+    const end = sceneNumbers.indexOf(to);
+    if (start === -1 || end === -1 || end < start) throw new Error(`シーン番号の範囲を展開できない: ${item}`);
+    return sceneNumbers.slice(start, end + 1);
+  }
+  const first = Number.parseInt(from, 10);
+  const last = Number.parseInt(to, 10);
+  if (!Number.isInteger(first) || !Number.isInteger(last) || last < first) {
+    throw new Error(`従者番号の範囲を展開できない: ${item}`);
+  }
+  const items = [];
+  for (let n = first; n <= last; n++) items.push(String(n).padStart(from.length, '0'));
+  return items;
+}
+
+export function expandScriptSeries(docText, index) {
+  const record = index.find((entry) => entry.id === SERIES_SOURCE_ID);
+  if (record === undefined) throw new Error(`${SERIES_SOURCE_ID} が索引にない`);
+  const sceneNumbers = index.map((entry) => SCENE_SECTION_ID.exec(entry.id)?.[1]).filter((n) => n !== undefined);
+  const section = extractSection(docText, record);
+  const ids = [];
+  for (const line of splitLines(section)) {
+    const cells = line.split('|').map((cell) => cell.trim());
+    if (cells.length < 4) continue;
+    const templates = [...cells[1].matchAll(/`(SCRIPT_[^`]*<[^`]*>[^`]*)`/g)].map((m) => m[1]);
+    if (templates.length === 0) continue;
+    const range = cells[2].split(/\s/)[0];
+    const items = range.split('・').flatMap((item) => expandRangeItem(item, sceneNumbers));
+    for (const template of templates) {
+      const head = template.slice(0, template.indexOf('<'));
+      const tail = template.slice(template.lastIndexOf('>') + 1);
+      for (const item of items) ids.push(`${head}${item.replace(/-/g, '_')}${tail}`);
+    }
+  }
+  return ids;
+}
+
+// 手順3：1と2の和。各IDに、名が現れた項のIDを添える。
+export function collectScriptIds(docText, index) {
+  const result = collectMentions(docText, index);
+  for (const scriptId of expandScriptSeries(docText, index)) {
+    result[scriptId] ??= [];
+    if (!result[scriptId].includes(SERIES_SOURCE_ID)) result[scriptId].push(SERIES_SOURCE_ID);
+  }
+  const sorted = {};
+  for (const scriptId of Object.keys(result).sort()) sorted[scriptId] = [...result[scriptId]].sort();
+  return sorted;
+}

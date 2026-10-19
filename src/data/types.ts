@@ -207,9 +207,13 @@ export type ScriptTrigger =
   | 'SCENE_CLEAR'
   | 'INTERMISSION_ENTER'
   | 'SACRIFICE_CONFIRM'
+  | 'SACRIFICE_EXECUTE'
   | 'ACT_TRANSITION'
+  | 'SACRAMENT_AWAKEN'
   | 'ENDING'
   | 'EPILOGUE'
+  | 'BATTLE_DEFEAT'
+  | 'BATTLE_CUE'
   | 'NEWGAME_INTRO';
 
 // [S-SCRIPT-DIRECTIVE] 演出指示の語彙。
@@ -218,7 +222,6 @@ export type ScriptDirective =
   | 'FADE_IN'
   | 'FADE_OUT'
   | 'SILENCE'
-  | 'CAMERA_CLOSEUP'
   | 'PORTRAIT_ROLL'
   | 'BLACKOUT_TO_1_01'
   | 'ACT_TITLE_CARD';

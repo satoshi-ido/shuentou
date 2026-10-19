@@ -571,6 +571,7 @@ export function buildAssetRecords(assets) {
 // [S-SCRIPT-SCHEMA] 脚本マスタ。本文未執筆のレコードは [I-PLAN-TEXT]［プレースホルダの書式］に従い、
 // lines を1行・speaker を Null・directives を WAIT_INPUT のみとする。
 // `SCRIPT_SCENE_<シーン番号>_INTRO` の31件はシーンマスタの入力から一様に展開する。
+// 入力が同じ脚本IDを持つシーン（本文を執筆済み、または版の表が order を定めるもの）は展開しない。
 export function buildScriptRecords(scripts, scenes) {
   const result = {};
   const add = (entry) => {
@@ -594,14 +595,17 @@ export function buildScriptRecords(scripts, scenes) {
     };
   };
 
+  const authored = scripts.map((entry) => entry.script_id);
   for (const scene of scenes) {
     const number = scene.scene_id.replace(/^SCENE_/, '');
+    const scriptId = `SCRIPT_SCENE_${number}_INTRO`;
+    if (authored.includes(scriptId)) continue;
     add({
-      script_id: `SCRIPT_SCENE_${number}_INTRO`,
+      script_id: scriptId,
       trigger: 'SCENE_INTRO',
       anchor: scene.scene_id,
-      // [S-ACT-TITLECARD]「SCRIPT_ACT_TITLE_1 の order は [S-SCENE-1-01] の開幕脚本より前に置く」。
-      order: scene.scene_id === 'SCENE_1_01' ? 2 : 1,
+      // [S-SCRIPT-TRIGGER]【SCENE_INTRO の再生順】版の表が order を定めていないシーンは 1 とする。
+      order: 1,
       branch_group: null,
       condition: null,
       replay_on_rollback: true,
