@@ -463,6 +463,34 @@ export function mergeActionRecords(recordGroups) {
   return merged;
 }
 
+// [M-STATE-ACTIONMASTER] 効果説明を人が書く入力から与える。固有の説明を基本型の説明に優先し、
+// いずれも無いレコードはプレースホルダ（[I-PLAN-TEXT]）のまま残す。説明の無い class_id を入力に書けば棄却する。
+export function applyActionDescriptions(records, kindDescriptions, actionDescriptions) {
+  for (const classIdValue of Object.keys(actionDescriptions)) {
+    if (records[classIdValue] === undefined) {
+      throw new Error(`効果説明の対象が無い: ${classIdValue}`);
+    }
+  }
+  const usedKinds = [];
+  const result = {};
+  for (const [classIdValue, record] of Object.entries(records)) {
+    const kind = classIdValue.replace(/_AR\d+$/, '');
+    const own = actionDescriptions[classIdValue];
+    const shared = kind !== classIdValue ? kindDescriptions[kind] : undefined;
+    if (shared !== undefined) {
+      if (!usedKinds.includes(kind)) {
+        usedKinds.push(kind);
+      }
+    }
+    result[classIdValue] = { ...record, description: own ?? shared ?? record.description };
+  }
+  for (const kind of Object.keys(kindDescriptions)) {
+    if (!usedKinds.includes(kind)) {
+      throw new Error(`効果説明の基本型に該当するレコードが無い: ${kind}`);
+    }
+  }
+  return result;
+}
 
 // [A-PROFILE-SCHEMA] 人が書く入力をレコードへ写す。weight_mult は centi へ変換する。
 export function buildAiProfileRecords(profiles) {

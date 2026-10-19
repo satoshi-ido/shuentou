@@ -7,8 +7,20 @@ import mainSource from '../../src/ui/main.ts?raw';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import { HELP_MASTERS } from '../../src/data/generated/help-masters.js';
 import { STRING_MASTERS } from '../../src/data/generated/string-masters.js';
-import type { AssetMasterRecord, ContextBundle, HelpMasterRecord, StringMasterRecord } from '../../src/data/types.js';
+import type {
+  ActionMasterRecord,
+  AssetMasterRecord,
+  ContextBundle,
+  CreatureMasterRecord,
+  EnemyMasterRecord,
+  HelpMasterRecord,
+  StringMasterRecord,
+} from '../../src/data/types.js';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
+import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
+import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
+import { HERO_INIT_ACTIONS } from '../../src/data/generated/hero-init.js';
+import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import { BUNDLE_KEYS, COMMON_KEYS, isPlaceholderText, resolveHelp, resolveText } from '../../src/ui/text.js';
 
 const strings: Readonly<Record<string, StringMasterRecord>> = STRING_MASTERS;
@@ -204,9 +216,42 @@ describe('[M-STATE-ACTIONMASTER] 効果説明', () => {
     const records = Object.values(ACTION_MASTERS);
     expect(records.length).toBeGreaterThan(0);
     for (const record of records) {
-      expect(record.description).toBeDefined();
-      expect(isPlaceholderText(record.class_id, record.description ?? '')).toBe(true);
+      const description = record.description ?? '';
+      expect(description).not.toBe('');
+      // 角括弧で始まるのはプレースホルダに限る。
+      expect(!description.startsWith('[') || isPlaceholderText(record.class_id, description)).toBe(true);
+      // 数値は表示時に実効値から生成するため、本文に数字を書かない。
+      if (!isPlaceholderText(record.class_id, description)) {
+        expect(description).not.toMatch(/[0-9０-９]/u);
+      }
     }
+  });
+
+  // [I-PLAN-SUBMISSION]【M9 の受け入れ線】3：審査範囲（1-01〜2-04）に現れるアクションの残存0件。
+  // 主人公の初期所持・隊列交代・各シーンの敵マスターの所持・その召喚が呼ぶクリーチャーの所持を対象とする。
+  // 従者はアクションを持たず、継承は倒した敵の所持から選ぶため、敵マスターの所持に含まれる。
+  it('審査範囲に現れるアクションはすべて執筆済みである', () => {
+    const actions: Readonly<Record<string, ActionMasterRecord>> = ACTION_MASTERS;
+    const creatures: Readonly<Record<string, CreatureMasterRecord>> = CREATURE_MASTERS;
+    const enemies: Readonly<Record<string, EnemyMasterRecord>> = ENEMY_MASTERS;
+    const ids = new Set<string>([...HERO_INIT_ACTIONS, 'ACT_SWAP_SINGLE']);
+    for (const scene of Object.values(SCENE_MASTERS).filter((record) => record.order <= 6)) {
+      for (const classId of enemies[scene.enemy_id]?.acts ?? []) {
+        ids.add(classId);
+      }
+    }
+    for (const classId of [...ids]) {
+      const summonId = actions[classId]?.params.summon_id ?? null;
+      for (const creatureAct of summonId === null ? [] : (creatures[summonId]?.acts ?? [])) {
+        ids.add(creatureAct);
+      }
+    }
+    const pending = [...ids].filter((classId) => {
+      const record = actions[classId];
+      return record === undefined || isPlaceholderText(classId, record.description ?? '');
+    });
+    expect(ids.size).toBeGreaterThan(50);
+    expect(pending).toEqual([]);
   });
 });
 

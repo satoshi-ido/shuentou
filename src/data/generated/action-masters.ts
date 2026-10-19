@@ -6,7 +6,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR106": {
     "class_id": "ACT_GUARD_AR106",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR106]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -47,7 +47,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR114": {
     "class_id": "ACT_GUARD_AR114",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR114]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -88,7 +88,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR117": {
     "class_id": "ACT_GUARD_AR117",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR117]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -129,7 +129,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR12": {
     "class_id": "ACT_GUARD_AR12",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR12]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -170,7 +170,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR120": {
     "class_id": "ACT_GUARD_AR120",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR120]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -211,7 +211,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR126": {
     "class_id": "ACT_GUARD_AR126",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR126]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -252,7 +252,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR130": {
     "class_id": "ACT_GUARD_AR130",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR130]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -293,7 +293,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR134": {
     "class_id": "ACT_GUARD_AR134",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR134]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -334,7 +334,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR136": {
     "class_id": "ACT_GUARD_AR136",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR136]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -375,7 +375,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR15": {
     "class_id": "ACT_GUARD_AR15",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR15]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -416,7 +416,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR156": {
     "class_id": "ACT_GUARD_AR156",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR156]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -457,7 +457,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR16": {
     "class_id": "ACT_GUARD_AR16",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR16]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -498,7 +498,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR17": {
     "class_id": "ACT_GUARD_AR17",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR17]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -539,7 +539,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR18": {
     "class_id": "ACT_GUARD_AR18",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR18]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -580,7 +580,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR19": {
     "class_id": "ACT_GUARD_AR19",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR19]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -621,7 +621,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR20": {
     "class_id": "ACT_GUARD_AR20",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR20]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -662,7 +662,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR204": {
     "class_id": "ACT_GUARD_AR204",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR204]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -703,7 +703,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR24": {
     "class_id": "ACT_GUARD_AR24",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR24]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -744,7 +744,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR27": {
     "class_id": "ACT_GUARD_AR27",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR27]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -785,7 +785,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR272": {
     "class_id": "ACT_GUARD_AR272",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR272]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -826,7 +826,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR28": {
     "class_id": "ACT_GUARD_AR28",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR28]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -867,7 +867,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR3": {
     "class_id": "ACT_GUARD_AR3",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR3]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -908,7 +908,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR30": {
     "class_id": "ACT_GUARD_AR30",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR30]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -949,7 +949,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR31": {
     "class_id": "ACT_GUARD_AR31",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR31]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -990,7 +990,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR34": {
     "class_id": "ACT_GUARD_AR34",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR34]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1031,7 +1031,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR36": {
     "class_id": "ACT_GUARD_AR36",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR36]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1072,7 +1072,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR38": {
     "class_id": "ACT_GUARD_AR38",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR38]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1113,7 +1113,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR39": {
     "class_id": "ACT_GUARD_AR39",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR39]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1154,7 +1154,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR4": {
     "class_id": "ACT_GUARD_AR4",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR4]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1195,7 +1195,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR40": {
     "class_id": "ACT_GUARD_AR40",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR40]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1236,7 +1236,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR408": {
     "class_id": "ACT_GUARD_AR408",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR408]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1277,7 +1277,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR44": {
     "class_id": "ACT_GUARD_AR44",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR44]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1318,7 +1318,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR48": {
     "class_id": "ACT_GUARD_AR48",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR48]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1359,7 +1359,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR49": {
     "class_id": "ACT_GUARD_AR49",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR49]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1400,7 +1400,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR53": {
     "class_id": "ACT_GUARD_AR53",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR53]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1441,7 +1441,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR54": {
     "class_id": "ACT_GUARD_AR54",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR54]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1482,7 +1482,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR56": {
     "class_id": "ACT_GUARD_AR56",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR56]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1523,7 +1523,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR57": {
     "class_id": "ACT_GUARD_AR57",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR57]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1564,7 +1564,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR6": {
     "class_id": "ACT_GUARD_AR6",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR6]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1605,7 +1605,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR60": {
     "class_id": "ACT_GUARD_AR60",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR60]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1646,7 +1646,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR62": {
     "class_id": "ACT_GUARD_AR62",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR62]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1687,7 +1687,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR63": {
     "class_id": "ACT_GUARD_AR63",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR63]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1728,7 +1728,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR65": {
     "class_id": "ACT_GUARD_AR65",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR65]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1769,7 +1769,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR67": {
     "class_id": "ACT_GUARD_AR67",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR67]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1810,7 +1810,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR68": {
     "class_id": "ACT_GUARD_AR68",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR68]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1851,7 +1851,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR72": {
     "class_id": "ACT_GUARD_AR72",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR72]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1892,7 +1892,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR76": {
     "class_id": "ACT_GUARD_AR76",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR76]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1933,7 +1933,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR78": {
     "class_id": "ACT_GUARD_AR78",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR78]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -1974,7 +1974,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR8": {
     "class_id": "ACT_GUARD_AR8",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR8]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2015,7 +2015,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR80": {
     "class_id": "ACT_GUARD_AR80",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR80]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2056,7 +2056,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR88": {
     "class_id": "ACT_GUARD_AR88",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR88]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2097,7 +2097,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR9": {
     "class_id": "ACT_GUARD_AR9",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR9]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2138,7 +2138,7 @@ export const ACTION_MASTERS = {
   "ACT_GUARD_AR98": {
     "class_id": "ACT_GUARD_AR98",
     "display_name": "体勢（基本）",
-    "description": "[ACT_GUARD_AR98]",
+    "description": "PPを払って構え直す体勢。APの壁を張り直し、自らの減衰・灼け・封印を弱める。思考を待たずに構えられるが、発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2179,7 +2179,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR117": {
     "class_id": "ACT_HEAVY_AR117",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR117]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2220,7 +2220,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR12": {
     "class_id": "ACT_HEAVY_AR12",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR12]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2261,7 +2261,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR136": {
     "class_id": "ACT_HEAVY_AR136",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR136]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2302,7 +2302,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR15": {
     "class_id": "ACT_HEAVY_AR15",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR15]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -2343,7 +2343,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR17": {
     "class_id": "ACT_HEAVY_AR17",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR17]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2384,7 +2384,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR18": {
     "class_id": "ACT_HEAVY_AR18",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR18]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2425,7 +2425,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR19": {
     "class_id": "ACT_HEAVY_AR19",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR19]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2466,7 +2466,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR20": {
     "class_id": "ACT_HEAVY_AR20",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR20]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2507,7 +2507,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR204": {
     "class_id": "ACT_HEAVY_AR204",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR204]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2548,7 +2548,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR24": {
     "class_id": "ACT_HEAVY_AR24",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR24]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2589,7 +2589,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR27": {
     "class_id": "ACT_HEAVY_AR27",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR27]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2630,7 +2630,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR28": {
     "class_id": "ACT_HEAVY_AR28",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR28]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2671,7 +2671,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR3": {
     "class_id": "ACT_HEAVY_AR3",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR3]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2712,7 +2712,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR31": {
     "class_id": "ACT_HEAVY_AR31",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR31]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2753,7 +2753,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR335": {
     "class_id": "ACT_HEAVY_AR335",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR335]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2794,7 +2794,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR34": {
     "class_id": "ACT_HEAVY_AR34",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR34]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2835,7 +2835,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR36": {
     "class_id": "ACT_HEAVY_AR36",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR36]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2876,7 +2876,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR38": {
     "class_id": "ACT_HEAVY_AR38",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR38]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2917,7 +2917,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR39": {
     "class_id": "ACT_HEAVY_AR39",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR39]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2958,7 +2958,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR4": {
     "class_id": "ACT_HEAVY_AR4",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR4]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2999,7 +2999,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR40": {
     "class_id": "ACT_HEAVY_AR40",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR40]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3040,7 +3040,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR44": {
     "class_id": "ACT_HEAVY_AR44",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR44]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3081,7 +3081,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR49": {
     "class_id": "ACT_HEAVY_AR49",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR49]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3122,7 +3122,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR53": {
     "class_id": "ACT_HEAVY_AR53",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR53]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3163,7 +3163,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR57": {
     "class_id": "ACT_HEAVY_AR57",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR57]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3204,7 +3204,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR6": {
     "class_id": "ACT_HEAVY_AR6",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR6]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3245,7 +3245,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR60": {
     "class_id": "ACT_HEAVY_AR60",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR60]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3286,7 +3286,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR63": {
     "class_id": "ACT_HEAVY_AR63",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR63]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3327,7 +3327,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR65": {
     "class_id": "ACT_HEAVY_AR65",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR65]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3368,7 +3368,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR67": {
     "class_id": "ACT_HEAVY_AR67",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR67]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3409,7 +3409,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR68": {
     "class_id": "ACT_HEAVY_AR68",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR68]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3450,7 +3450,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR78": {
     "class_id": "ACT_HEAVY_AR78",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR78]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3491,7 +3491,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR8": {
     "class_id": "ACT_HEAVY_AR8",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR8]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3532,7 +3532,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR9": {
     "class_id": "ACT_HEAVY_AR9",
     "display_name": "武技（重撃）",
-    "description": "[ACT_HEAVY_AR9]",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3573,7 +3573,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR12": {
     "class_id": "ACT_MIND_AR12",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR12]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3614,7 +3614,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR136": {
     "class_id": "ACT_MIND_AR136",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR136]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3655,7 +3655,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR15": {
     "class_id": "ACT_MIND_AR15",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR15]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3696,7 +3696,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR17": {
     "class_id": "ACT_MIND_AR17",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR17]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3737,7 +3737,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR18": {
     "class_id": "ACT_MIND_AR18",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR18]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3778,7 +3778,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR19": {
     "class_id": "ACT_MIND_AR19",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR19]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3819,7 +3819,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR20": {
     "class_id": "ACT_MIND_AR20",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR20]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3860,7 +3860,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR204": {
     "class_id": "ACT_MIND_AR204",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR204]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3901,7 +3901,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR24": {
     "class_id": "ACT_MIND_AR24",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR24]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3942,7 +3942,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR27": {
     "class_id": "ACT_MIND_AR27",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR27]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3983,7 +3983,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR28": {
     "class_id": "ACT_MIND_AR28",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR28]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4024,7 +4024,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR3": {
     "class_id": "ACT_MIND_AR3",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR3]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4065,7 +4065,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR31": {
     "class_id": "ACT_MIND_AR31",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR31]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4106,7 +4106,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR34": {
     "class_id": "ACT_MIND_AR34",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR34]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4147,7 +4147,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR36": {
     "class_id": "ACT_MIND_AR36",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR36]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4188,7 +4188,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR38": {
     "class_id": "ACT_MIND_AR38",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR38]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4229,7 +4229,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR39": {
     "class_id": "ACT_MIND_AR39",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR39]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4270,7 +4270,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR4": {
     "class_id": "ACT_MIND_AR4",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR4]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4311,7 +4311,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR40": {
     "class_id": "ACT_MIND_AR40",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR40]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4352,7 +4352,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR44": {
     "class_id": "ACT_MIND_AR44",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR44]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4393,7 +4393,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR49": {
     "class_id": "ACT_MIND_AR49",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR49]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4434,7 +4434,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR53": {
     "class_id": "ACT_MIND_AR53",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR53]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4475,7 +4475,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR57": {
     "class_id": "ACT_MIND_AR57",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR57]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4516,7 +4516,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR6": {
     "class_id": "ACT_MIND_AR6",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR6]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4557,7 +4557,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR60": {
     "class_id": "ACT_MIND_AR60",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR60]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4598,7 +4598,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR63": {
     "class_id": "ACT_MIND_AR63",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR63]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4639,7 +4639,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR65": {
     "class_id": "ACT_MIND_AR65",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR65]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4680,7 +4680,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR67": {
     "class_id": "ACT_MIND_AR67",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR67]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4721,7 +4721,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR68": {
     "class_id": "ACT_MIND_AR68",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR68]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4762,7 +4762,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR78": {
     "class_id": "ACT_MIND_AR78",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR78]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4803,7 +4803,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR8": {
     "class_id": "ACT_MIND_AR8",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR8]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4844,7 +4844,7 @@ export const ACTION_MASTERS = {
   "ACT_MIND_AR9": {
     "class_id": "ACT_MIND_AR9",
     "display_name": "心気（基本）",
-    "description": "[ACT_MIND_AR9]",
+    "description": "HPを払って気を練る心気。VPを積み上げ、そのVPに応じてPPを引き上げる。思考の蓄えを要するが、発動の後は硬直なく思考へ戻る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -4885,7 +4885,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR12": {
     "class_id": "ACT_MUSOU_AR12",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR12]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -4926,7 +4926,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR136": {
     "class_id": "ACT_MUSOU_AR136",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR136]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -4967,7 +4967,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR15": {
     "class_id": "ACT_MUSOU_AR15",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR15]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5008,7 +5008,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR17": {
     "class_id": "ACT_MUSOU_AR17",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR17]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5049,7 +5049,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR18": {
     "class_id": "ACT_MUSOU_AR18",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR18]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5090,7 +5090,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR19": {
     "class_id": "ACT_MUSOU_AR19",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR19]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5131,7 +5131,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR20": {
     "class_id": "ACT_MUSOU_AR20",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR20]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5172,7 +5172,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR204": {
     "class_id": "ACT_MUSOU_AR204",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR204]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5213,7 +5213,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR24": {
     "class_id": "ACT_MUSOU_AR24",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR24]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5254,7 +5254,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR27": {
     "class_id": "ACT_MUSOU_AR27",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR27]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5295,7 +5295,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR28": {
     "class_id": "ACT_MUSOU_AR28",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR28]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5336,7 +5336,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR3": {
     "class_id": "ACT_MUSOU_AR3",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR3]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5377,7 +5377,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR31": {
     "class_id": "ACT_MUSOU_AR31",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR31]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5418,7 +5418,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR34": {
     "class_id": "ACT_MUSOU_AR34",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR34]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5459,7 +5459,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR36": {
     "class_id": "ACT_MUSOU_AR36",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR36]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5500,7 +5500,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR38": {
     "class_id": "ACT_MUSOU_AR38",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR38]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5541,7 +5541,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR39": {
     "class_id": "ACT_MUSOU_AR39",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR39]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5582,7 +5582,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR4": {
     "class_id": "ACT_MUSOU_AR4",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR4]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5623,7 +5623,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR40": {
     "class_id": "ACT_MUSOU_AR40",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR40]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5664,7 +5664,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR44": {
     "class_id": "ACT_MUSOU_AR44",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR44]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5705,7 +5705,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR49": {
     "class_id": "ACT_MUSOU_AR49",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR49]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5746,7 +5746,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR53": {
     "class_id": "ACT_MUSOU_AR53",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR53]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5787,7 +5787,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR57": {
     "class_id": "ACT_MUSOU_AR57",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR57]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5828,7 +5828,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR6": {
     "class_id": "ACT_MUSOU_AR6",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR6]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5869,7 +5869,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR60": {
     "class_id": "ACT_MUSOU_AR60",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR60]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5910,7 +5910,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR63": {
     "class_id": "ACT_MUSOU_AR63",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR63]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5951,7 +5951,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR65": {
     "class_id": "ACT_MUSOU_AR65",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR65]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -5992,7 +5992,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR67": {
     "class_id": "ACT_MUSOU_AR67",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR67]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6033,7 +6033,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR68": {
     "class_id": "ACT_MUSOU_AR68",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR68]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6074,7 +6074,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR78": {
     "class_id": "ACT_MUSOU_AR78",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR78]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6115,7 +6115,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR8": {
     "class_id": "ACT_MUSOU_AR8",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR8]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6156,7 +6156,7 @@ export const ACTION_MASTERS = {
   "ACT_MUSOU_AR9": {
     "class_id": "ACT_MUSOU_AR9",
     "display_name": "心気（無想）",
-    "description": "[ACT_MUSOU_AR9]",
+    "description": "思考を待たずに練る心気。VPは増えないが、いまのVPに応じてPPを引き上げる。HPを払い、発動の後に長い硬直が残る。自らの減衰・灼け・封印を弱める。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6238,7 +6238,7 @@ export const ACTION_MASTERS = {
   "ACT_ROOT_MARTIAL": {
     "class_id": "ACT_ROOT_MARTIAL",
     "display_name": "終焉の太刀",
-    "description": "[ACT_ROOT_MARTIAL]",
+    "description": "マスターが初めから持つ、尽きることのない武技。長い思考を要するが、放てば射程の内の敵を一刀で断つ。",
     "base_uses": -1,
     "inheritable": false,
     "is_root": true,
@@ -6279,7 +6279,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR117": {
     "class_id": "ACT_RUSH_AR117",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR117]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6320,7 +6320,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR12": {
     "class_id": "ACT_RUSH_AR12",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR12]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6361,7 +6361,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR136": {
     "class_id": "ACT_RUSH_AR136",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR136]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6402,7 +6402,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR15": {
     "class_id": "ACT_RUSH_AR15",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR15]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6443,7 +6443,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR17": {
     "class_id": "ACT_RUSH_AR17",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR17]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6484,7 +6484,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR18": {
     "class_id": "ACT_RUSH_AR18",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR18]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6525,7 +6525,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR19": {
     "class_id": "ACT_RUSH_AR19",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR19]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6566,7 +6566,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR20": {
     "class_id": "ACT_RUSH_AR20",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR20]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6607,7 +6607,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR204": {
     "class_id": "ACT_RUSH_AR204",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR204]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6648,7 +6648,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR24": {
     "class_id": "ACT_RUSH_AR24",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR24]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6689,7 +6689,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR27": {
     "class_id": "ACT_RUSH_AR27",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR27]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6730,7 +6730,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR28": {
     "class_id": "ACT_RUSH_AR28",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR28]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6771,7 +6771,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR31": {
     "class_id": "ACT_RUSH_AR31",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR31]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6812,7 +6812,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR34": {
     "class_id": "ACT_RUSH_AR34",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR34]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6853,7 +6853,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR36": {
     "class_id": "ACT_RUSH_AR36",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR36]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6894,7 +6894,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR38": {
     "class_id": "ACT_RUSH_AR38",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR38]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6935,7 +6935,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR39": {
     "class_id": "ACT_RUSH_AR39",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR39]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6976,7 +6976,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR4": {
     "class_id": "ACT_RUSH_AR4",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR4]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7017,7 +7017,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR40": {
     "class_id": "ACT_RUSH_AR40",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR40]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7058,7 +7058,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR44": {
     "class_id": "ACT_RUSH_AR44",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR44]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7099,7 +7099,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR49": {
     "class_id": "ACT_RUSH_AR49",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR49]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7140,7 +7140,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR53": {
     "class_id": "ACT_RUSH_AR53",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR53]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7181,7 +7181,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR57": {
     "class_id": "ACT_RUSH_AR57",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR57]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7222,7 +7222,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR6": {
     "class_id": "ACT_RUSH_AR6",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR6]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7263,7 +7263,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR60": {
     "class_id": "ACT_RUSH_AR60",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR60]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7304,7 +7304,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR63": {
     "class_id": "ACT_RUSH_AR63",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR63]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7345,7 +7345,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR65": {
     "class_id": "ACT_RUSH_AR65",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR65]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7386,7 +7386,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR67": {
     "class_id": "ACT_RUSH_AR67",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR67]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7427,7 +7427,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR68": {
     "class_id": "ACT_RUSH_AR68",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR68]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7468,7 +7468,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR78": {
     "class_id": "ACT_RUSH_AR78",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR78]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7509,7 +7509,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR8": {
     "class_id": "ACT_RUSH_AR8",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR8]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7550,7 +7550,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR9": {
     "class_id": "ACT_RUSH_AR9",
     "display_name": "武技（急襲）",
-    "description": "[ACT_RUSH_AR9]",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7591,7 +7591,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR106": {
     "class_id": "ACT_SLASH_AR106",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR106]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7632,7 +7632,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR114": {
     "class_id": "ACT_SLASH_AR114",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR114]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7673,7 +7673,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR117": {
     "class_id": "ACT_SLASH_AR117",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR117]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7714,7 +7714,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR12": {
     "class_id": "ACT_SLASH_AR12",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR12]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7755,7 +7755,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR120": {
     "class_id": "ACT_SLASH_AR120",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR120]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7796,7 +7796,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR126": {
     "class_id": "ACT_SLASH_AR126",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR126]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7837,7 +7837,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR130": {
     "class_id": "ACT_SLASH_AR130",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR130]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7878,7 +7878,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR134": {
     "class_id": "ACT_SLASH_AR134",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR134]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7919,7 +7919,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR136": {
     "class_id": "ACT_SLASH_AR136",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR136]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7960,7 +7960,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR15": {
     "class_id": "ACT_SLASH_AR15",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR15]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8001,7 +8001,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR156": {
     "class_id": "ACT_SLASH_AR156",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR156]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8042,7 +8042,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR16": {
     "class_id": "ACT_SLASH_AR16",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR16]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8083,7 +8083,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR17": {
     "class_id": "ACT_SLASH_AR17",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR17]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8124,7 +8124,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR18": {
     "class_id": "ACT_SLASH_AR18",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR18]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8165,7 +8165,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR19": {
     "class_id": "ACT_SLASH_AR19",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR19]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8206,7 +8206,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR20": {
     "class_id": "ACT_SLASH_AR20",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR20]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8247,7 +8247,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR204": {
     "class_id": "ACT_SLASH_AR204",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR204]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8288,7 +8288,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR24": {
     "class_id": "ACT_SLASH_AR24",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR24]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8329,7 +8329,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR27": {
     "class_id": "ACT_SLASH_AR27",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR27]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8370,7 +8370,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR272": {
     "class_id": "ACT_SLASH_AR272",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR272]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8411,7 +8411,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR28": {
     "class_id": "ACT_SLASH_AR28",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR28]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8452,7 +8452,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR3": {
     "class_id": "ACT_SLASH_AR3",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR3]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8493,7 +8493,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR30": {
     "class_id": "ACT_SLASH_AR30",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR30]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8534,7 +8534,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR31": {
     "class_id": "ACT_SLASH_AR31",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR31]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8575,7 +8575,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR34": {
     "class_id": "ACT_SLASH_AR34",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR34]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8616,7 +8616,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR36": {
     "class_id": "ACT_SLASH_AR36",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR36]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8657,7 +8657,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR38": {
     "class_id": "ACT_SLASH_AR38",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR38]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8698,7 +8698,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR39": {
     "class_id": "ACT_SLASH_AR39",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR39]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8739,7 +8739,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR4": {
     "class_id": "ACT_SLASH_AR4",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR4]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8780,7 +8780,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR40": {
     "class_id": "ACT_SLASH_AR40",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR40]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8821,7 +8821,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR408": {
     "class_id": "ACT_SLASH_AR408",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR408]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8862,7 +8862,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR44": {
     "class_id": "ACT_SLASH_AR44",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR44]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8903,7 +8903,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR48": {
     "class_id": "ACT_SLASH_AR48",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR48]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8944,7 +8944,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR49": {
     "class_id": "ACT_SLASH_AR49",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR49]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8985,7 +8985,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR53": {
     "class_id": "ACT_SLASH_AR53",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR53]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9026,7 +9026,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR54": {
     "class_id": "ACT_SLASH_AR54",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR54]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9067,7 +9067,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR56": {
     "class_id": "ACT_SLASH_AR56",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR56]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9108,7 +9108,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR57": {
     "class_id": "ACT_SLASH_AR57",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR57]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9149,7 +9149,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR6": {
     "class_id": "ACT_SLASH_AR6",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR6]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9190,7 +9190,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR60": {
     "class_id": "ACT_SLASH_AR60",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR60]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9231,7 +9231,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR62": {
     "class_id": "ACT_SLASH_AR62",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR62]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9272,7 +9272,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR63": {
     "class_id": "ACT_SLASH_AR63",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR63]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9313,7 +9313,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR65": {
     "class_id": "ACT_SLASH_AR65",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR65]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9354,7 +9354,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR67": {
     "class_id": "ACT_SLASH_AR67",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR67]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9395,7 +9395,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR68": {
     "class_id": "ACT_SLASH_AR68",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR68]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9436,7 +9436,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR72": {
     "class_id": "ACT_SLASH_AR72",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR72]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9477,7 +9477,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR76": {
     "class_id": "ACT_SLASH_AR76",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR76]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9518,7 +9518,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR78": {
     "class_id": "ACT_SLASH_AR78",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR78]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9559,7 +9559,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR8": {
     "class_id": "ACT_SLASH_AR8",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR8]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9600,7 +9600,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR80": {
     "class_id": "ACT_SLASH_AR80",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR80]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9641,7 +9641,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR88": {
     "class_id": "ACT_SLASH_AR88",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR88]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9682,7 +9682,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR9": {
     "class_id": "ACT_SLASH_AR9",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR9]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9723,7 +9723,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR98": {
     "class_id": "ACT_SLASH_AR98",
     "display_name": "武技（基本）",
-    "description": "[ACT_SLASH_AR98]",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9764,7 +9764,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_BREAK_ASHAL": {
     "class_id": "ACT_SPEC_BREAK_ASHAL",
     "display_name": "使徒の断罪",
-    "description": "[ACT_SPEC_BREAK_ASHAL]",
+    "description": "使徒が下す、壁ごと断つ一撃。自陣のどこからでも敵陣の後列まで届き、命中すれば拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -9805,7 +9805,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_BREAK_VOLG": {
     "class_id": "ACT_SPEC_BREAK_VOLG",
     "display_name": "腑分けの刃",
-    "description": "[ACT_SPEC_BREAK_VOLG]",
+    "description": "厚いAPの壁をも裂く、解剖の刃。自陣のどこからでも敵陣の後列まで届き、命中すれば拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10276,7 +10276,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR108": {
     "class_id": "ACT_SPEC_CLAW_AR108",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR108]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10317,7 +10317,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR112": {
     "class_id": "ACT_SPEC_CLAW_AR112",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR112]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10358,7 +10358,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR124": {
     "class_id": "ACT_SPEC_CLAW_AR124",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR124]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10399,7 +10399,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR136": {
     "class_id": "ACT_SPEC_CLAW_AR136",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR136]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10440,7 +10440,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR144": {
     "class_id": "ACT_SPEC_CLAW_AR144",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR144]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10481,7 +10481,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR152": {
     "class_id": "ACT_SPEC_CLAW_AR152",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR152]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10522,7 +10522,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR156": {
     "class_id": "ACT_SPEC_CLAW_AR156",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR156]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10563,7 +10563,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR16": {
     "class_id": "ACT_SPEC_CLAW_AR16",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR16]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10604,7 +10604,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR160": {
     "class_id": "ACT_SPEC_CLAW_AR160",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR160]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10645,7 +10645,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR176": {
     "class_id": "ACT_SPEC_CLAW_AR176",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR176]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10686,7 +10686,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR196": {
     "class_id": "ACT_SPEC_CLAW_AR196",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR196]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10727,7 +10727,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR212": {
     "class_id": "ACT_SPEC_CLAW_AR212",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR212]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10768,7 +10768,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR228": {
     "class_id": "ACT_SPEC_CLAW_AR228",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR228]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10809,7 +10809,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR24": {
     "class_id": "ACT_SPEC_CLAW_AR24",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR24]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10850,7 +10850,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR240": {
     "class_id": "ACT_SPEC_CLAW_AR240",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR240]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10891,7 +10891,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR252": {
     "class_id": "ACT_SPEC_CLAW_AR252",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR252]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10932,7 +10932,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR260": {
     "class_id": "ACT_SPEC_CLAW_AR260",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR260]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10973,7 +10973,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR268": {
     "class_id": "ACT_SPEC_CLAW_AR268",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR268]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11014,7 +11014,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR272": {
     "class_id": "ACT_SPEC_CLAW_AR272",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR272]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11055,7 +11055,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR312": {
     "class_id": "ACT_SPEC_CLAW_AR312",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR312]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11096,7 +11096,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR32": {
     "class_id": "ACT_SPEC_CLAW_AR32",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR32]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11137,7 +11137,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR36": {
     "class_id": "ACT_SPEC_CLAW_AR36",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR36]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11178,7 +11178,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR48": {
     "class_id": "ACT_SPEC_CLAW_AR48",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR48]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11219,7 +11219,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR544": {
     "class_id": "ACT_SPEC_CLAW_AR544",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR544]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11260,7 +11260,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR60": {
     "class_id": "ACT_SPEC_CLAW_AR60",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR60]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11301,7 +11301,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR68": {
     "class_id": "ACT_SPEC_CLAW_AR68",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR68]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11342,7 +11342,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR72": {
     "class_id": "ACT_SPEC_CLAW_AR72",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR72]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11383,7 +11383,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR76": {
     "class_id": "ACT_SPEC_CLAW_AR76",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR76]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11424,7 +11424,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR80": {
     "class_id": "ACT_SPEC_CLAW_AR80",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR80]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11465,7 +11465,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR816": {
     "class_id": "ACT_SPEC_CLAW_AR816",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR816]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11506,7 +11506,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR96": {
     "class_id": "ACT_SPEC_CLAW_AR96",
     "display_name": "爪牙（特殊）",
-    "description": "[ACT_SPEC_CLAW_AR96]",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11935,7 +11935,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_DRAIN_PP_CALVA": {
     "class_id": "ACT_SPEC_DRAIN_PP_CALVA",
     "display_name": "腐る術式",
-    "description": "[ACT_SPEC_DRAIN_PP_CALVA]",
+    "description": "隣り合う敵を打ち、命中すればPPを腐らせて大きく削る。PPを失った者は、PPを払う武技や体勢を放てなくなる。拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11976,7 +11976,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_DRAIN_VP_ISH": {
     "class_id": "ACT_SPEC_DRAIN_VP_ISH",
     "display_name": "破滅の旋律",
-    "description": "[ACT_SPEC_DRAIN_VP_ISH]",
+    "description": "隣り合う敵を打ち、命中すればVPを大きく削る。VPを失った者は、心気で引き上げられるPPが少なくなる。拍断ちを与える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -12312,7 +12312,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_SWARM_ASHAL": {
     "class_id": "ACT_SPEC_SWARM_ASHAL",
     "display_name": "虚穴の招来",
-    "description": "[ACT_SPEC_SWARM_ASHAL]",
+    "description": "VPを払い、虚穴から常より大きな眷属を自陣の空いたマスへ呼び出す召喚。指示したその場で現れ、前の仮身は消える。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -12394,7 +12394,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR12": {
     "class_id": "ACT_SUMMON_AR12",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR12]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12435,7 +12435,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR136": {
     "class_id": "ACT_SUMMON_AR136",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR136]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12476,7 +12476,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR15": {
     "class_id": "ACT_SUMMON_AR15",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR15]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12517,7 +12517,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR17": {
     "class_id": "ACT_SUMMON_AR17",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR17]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12558,7 +12558,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR18": {
     "class_id": "ACT_SUMMON_AR18",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR18]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12599,7 +12599,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR19": {
     "class_id": "ACT_SUMMON_AR19",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR19]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12640,7 +12640,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR20": {
     "class_id": "ACT_SUMMON_AR20",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR20]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12681,7 +12681,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR204": {
     "class_id": "ACT_SUMMON_AR204",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR204]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12722,7 +12722,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR24": {
     "class_id": "ACT_SUMMON_AR24",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR24]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12763,7 +12763,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR28": {
     "class_id": "ACT_SUMMON_AR28",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR28]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12804,7 +12804,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR31": {
     "class_id": "ACT_SUMMON_AR31",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR31]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12845,7 +12845,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR34": {
     "class_id": "ACT_SUMMON_AR34",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR34]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12886,7 +12886,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR36": {
     "class_id": "ACT_SUMMON_AR36",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR36]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12927,7 +12927,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR38": {
     "class_id": "ACT_SUMMON_AR38",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR38]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12968,7 +12968,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR39": {
     "class_id": "ACT_SUMMON_AR39",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR39]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13009,7 +13009,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR4": {
     "class_id": "ACT_SUMMON_AR4",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR4]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13050,7 +13050,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR40": {
     "class_id": "ACT_SUMMON_AR40",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR40]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13091,7 +13091,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR44": {
     "class_id": "ACT_SUMMON_AR44",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR44]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13132,7 +13132,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR49": {
     "class_id": "ACT_SUMMON_AR49",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR49]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13173,7 +13173,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR53": {
     "class_id": "ACT_SUMMON_AR53",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR53]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13214,7 +13214,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR57": {
     "class_id": "ACT_SUMMON_AR57",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR57]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13255,7 +13255,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR6": {
     "class_id": "ACT_SUMMON_AR6",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR6]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13296,7 +13296,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR60": {
     "class_id": "ACT_SUMMON_AR60",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR60]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13337,7 +13337,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR63": {
     "class_id": "ACT_SUMMON_AR63",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR63]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13378,7 +13378,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR65": {
     "class_id": "ACT_SUMMON_AR65",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR65]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13419,7 +13419,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR67": {
     "class_id": "ACT_SUMMON_AR67",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR67]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13460,7 +13460,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR68": {
     "class_id": "ACT_SUMMON_AR68",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR68]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13501,7 +13501,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR78": {
     "class_id": "ACT_SUMMON_AR78",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR78]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13542,7 +13542,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR8": {
     "class_id": "ACT_SUMMON_AR8",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR8]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13583,7 +13583,7 @@ export const ACTION_MASTERS = {
   "ACT_SUMMON_AR9": {
     "class_id": "ACT_SUMMON_AR9",
     "display_name": "召喚（基本）",
-    "description": "[ACT_SUMMON_AR9]",
+    "description": "VPを払い、自陣の空いたマスへ仮身を呼び出す召喚。思考も構えも要さず、指示したその場で現れる。前の仮身は消える。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -13624,7 +13624,7 @@ export const ACTION_MASTERS = {
   "ACT_SWAP_SINGLE": {
     "class_id": "ACT_SWAP_SINGLE",
     "display_name": "隊列交代",
-    "description": "[ACT_SWAP_SINGLE]",
+    "description": "自陣の前列と後列を入れ替える。思考も構えも要さず、指示したその場で行え、回数に限りはない。",
     "base_uses": -1,
     "inheritable": false,
     "is_root": false,

@@ -5,6 +5,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ACTION_DESCRIPTIONS, KIND_DESCRIPTIONS } from './authoring/action-descriptions.js';
 import { ATTENDANTS } from './authoring/attendants.js';
 import { BOOKS } from './authoring/books.js';
 import { ECHOES } from './authoring/echoes.js';
@@ -16,6 +17,7 @@ import { STRINGS } from './authoring/strings.js';
 import { SCENES } from './authoring/scenes.js';
 import { SCRIPTS } from './authoring/scripts.js';
 import {
+  applyActionDescriptions,
   buildAttendantRecords,
   buildAiProfileRecords,
   buildAssetRecords,
@@ -126,7 +128,14 @@ function main() {
   const heroInit = generateHeroInitActions();
   actionGroups.push(heroInit.records);
 
-  writeGenerated('action-masters.ts', serializeRecordMap('ACTION_MASTERS', 'ActionMasterRecord', mergeActionRecords(actionGroups)));
+  writeGenerated(
+    'action-masters.ts',
+    serializeRecordMap(
+      'ACTION_MASTERS',
+      'ActionMasterRecord',
+      applyActionDescriptions(mergeActionRecords(actionGroups), KIND_DESCRIPTIONS, ACTION_DESCRIPTIONS),
+    ),
+  );
   writeGenerated('enemy-masters.ts', serializeRecordMap('ENEMY_MASTERS', 'EnemyMasterRecord', enemyMasters));
   writeGenerated('creature-masters.ts', serializeRecordMap('CREATURE_MASTERS', 'CreatureMasterRecord', creatureMasters));
   writeGenerated('scene-masters.ts', serializeRecordMap('SCENE_MASTERS', 'SceneMasterRecord', buildSceneRecords(SCENES)));
