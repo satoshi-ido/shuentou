@@ -28,7 +28,7 @@ import {
 } from '../engine/game/intermission.js';
 import { canUndo, rollbackBattle, rollbackIntermission, rollbackOrders, undo } from '../engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../engine/game/save.js';
-import type { GameContext, GameSession } from '../engine/game/session.js';
+import { autosave, type GameContext, type GameSession } from '../engine/game/session.js';
 import { executableActions } from '../engine/decision.js';
 import { inheritPool, previewInherit, type InheritTarget } from '../engine/progress/inherit.js';
 import { canEnterTransition, canSettleIntermission } from '../engine/progress/refill.js';
@@ -567,9 +567,10 @@ const screenHandlers: ScreenHandlers = {
     render();
   },
   onCloseOverlay: () => {
-    // ［既読の管理］初出の自動提示を読み終えた時点で既読とする。
+    // ［既読の管理］初出の自動提示を読み終えた時点で既読とし、保存する（[M-META-SAVEDATA]［保存契機］）。
     if (overlay === 'FIRST_SIGHT' && firstSightHelpId !== null) {
       requireSession().data.meta.help_seen[firstSightHelpId] = true;
+      autosave(requireSession(), ctx);
       firstSightHelpId = null;
       overlay = 'NONE';
       presentFirstSight();

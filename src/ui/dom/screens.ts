@@ -3,6 +3,7 @@
 
 import type { HelpMasterRecord } from '../../data/types.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
+import type { WatchDefaultMode } from '../../engine/watch.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
 import { HERO_MAX_HP_CHANGE } from '../view/screen-view.js';
@@ -595,6 +596,16 @@ export function renderEnding(handlers: ScreenHandlers): HTMLElement {
 const TEXT_SPEEDS: readonly TextSpeed[] = ['SLOW', 'NORMAL', 'FAST', 'INSTANT'];
 const PLAYBACK_SPEEDS: readonly PlaybackSpeed[] = ['PAUSE', 'X1', 'X2', 'X3'];
 
+// [M-UI-CONFIG]［選択肢の表示名］列挙値の識別子を画面に出さない。
+const PLAYBACK_SPEED_LABELS: Readonly<Record<PlaybackSpeed, string>> = { PAUSE: '停止', X1: '等速', X2: '2倍速', X3: '3倍速' };
+const TEXT_SPEED_LABELS: Readonly<Record<TextSpeed, string>> = { SLOW: '遅い', NORMAL: '普通', FAST: '速い', INSTANT: '瞬時' };
+const WATCH_DEFAULT_LABELS: Readonly<Record<WatchDefaultMode, string>> = {
+  BY_SYSTEM: '既定の条件',
+  ALL_OFF: 'すべて切る',
+  ALL_ON: 'すべて入れる',
+};
+const SIMPLIFY_LABELS: Readonly<Record<'OFF' | 'ON', string>> = { OFF: 'しない', ON: 'する' };
+
 // [M-UI-CONFIG] 表示・音響設定。端末ローカル設定であり、セーブデータに含めない。
 // [M-DATA-HELPMASTER] 解説の初出自動提示。読み終えたら閉じ、次の1件へ進む。
 export function renderFirstSightOverlay(
@@ -632,29 +643,33 @@ export function renderConfigOverlay(config: DisplayConfig, handlers: ScreenHandl
   root.append(volume('BGM音量', config.bgmVolume, (next) => ({ ...config, bgmVolume: next })));
   root.append(volume('SE音量', config.seVolume, (next) => ({ ...config, seVolume: next })));
 
-  const choice = <T extends string>(label: string, values: readonly T[], current: T, apply: (next: T) => DisplayConfig): HTMLElement => {
+  const choice = <T extends string>(
+    label: string,
+    values: readonly T[],
+    labels: Readonly<Record<T, string>>,
+    current: T,
+    apply: (next: T) => DisplayConfig,
+  ): HTMLElement => {
     const row = element('div', 'config-row');
     row.append(element('span', 'config-label', label));
     for (const value of values) {
-      row.append(button(`config-choice${value === current ? ' config-on' : ''}`, value, () => handlers.onConfigChange(apply(value))));
+      row.append(button(`config-choice${value === current ? ' config-on' : ''}`, labels[value], () => handlers.onConfigChange(apply(value))));
     }
     return row;
   };
-  root.append(choice('バトル再生速度の既定', PLAYBACK_SPEEDS, config.defaultPlaybackSpeed, (next) => ({ ...config, defaultPlaybackSpeed: next })));
-  root.append(choice('テキスト送り速度', TEXT_SPEEDS, config.textSpeed, (next) => ({ ...config, textSpeed: next })));
+  root.append(choice('バトル再生速度の既定', PLAYBACK_SPEEDS, PLAYBACK_SPEED_LABELS, config.defaultPlaybackSpeed, (next) => ({ ...config, defaultPlaybackSpeed: next })));
+  root.append(choice('テキスト送り速度', TEXT_SPEEDS, TEXT_SPEED_LABELS, config.textSpeed, (next) => ({ ...config, textSpeed: next })));
 
-  const simplify = element('div', 'config-row');
-  simplify.append(element('span', 'config-label', '演出の簡略化'));
-  simplify.append(
-    button('config-choice', config.simplifyEffects ? 'ON' : 'OFF', () =>
-      handlers.onConfigChange({ ...config, simplifyEffects: !config.simplifyEffects }),
-    ),
+  root.append(
+    choice('演出の簡略化', ['OFF', 'ON'] as const, SIMPLIFY_LABELS, config.simplifyEffects ? 'ON' : 'OFF', (next) => ({
+      ...config,
+      simplifyEffects: next === 'ON',
+    })),
   );
-  root.append(simplify);
 
   // [M-UI-CONFIG]「監視トグルの既定」BY_SYSTEM は系統別の既定（[M-UI-WATCH]［既定の監視条件］）。
   root.append(
-    choice('監視トグルの既定', WATCH_DEFAULT_MODES, config.watchDefault, (next) => ({ ...config, watchDefault: next })),
+    choice('監視トグルの既定', WATCH_DEFAULT_MODES, WATCH_DEFAULT_LABELS, config.watchDefault, (next) => ({ ...config, watchDefault: next })),
   );
 
   root.append(button('primary', '閉じる', handlers.onCloseOverlay));
