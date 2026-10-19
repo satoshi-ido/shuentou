@@ -37,10 +37,12 @@ export function runP7Landing(state: BattleState, recoveryCompleteIds: readonly s
   }
 
   // #1・#3 非実行アクションおよび満了アクションの消滅（実行中のアクションを除く）。
+  // 消滅対象がないステップが大半であるため、該当があるユニットに限り配列を作り直す。
+  const discarded = (unit: Unit, instance: ActionInstance): boolean => !isActiveInstance(unit, instance) && shouldDiscard(instance);
   for (const unit of state.units) {
-    if (unit === null) {
+    if (unit === null || !unit.acts.some((instance) => discarded(unit, instance))) {
       continue;
     }
-    unit.acts = unit.acts.filter((instance) => isActiveInstance(unit, instance) || !shouldDiscard(instance));
+    unit.acts = unit.acts.filter((instance) => !discarded(unit, instance));
   }
 }

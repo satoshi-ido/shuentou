@@ -32,15 +32,22 @@ import { isActTransition, refillCapacity, refillPool } from '../../src/engine/pr
 import { sceneByOrder } from '../../src/engine/run/masters.js';
 import type { BattleState } from '../../src/engine/types.js';
 import { referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
+import { playSceneWithRetry, type SceneAttempts } from './perturb.js';
 import {
   chooseByRole,
   chooseInherit,
+  beforeVesselScene,
   chooseMindRefill,
+  missingBreaker,
+  mindShort,
+  ROLE_MIND_USES,
   createRun,
   HARD_STEP_CAP,
+  hpGainSince,
   MASTERS,
   mindUsesLeft,
   needsBossSacrifice,
+  needsHpRaise,
   needsSacrifice,
   playScene,
   ROLE_HP_STALE_INTERMISSIONS,
@@ -66,6 +73,8 @@ export interface AllocContext {
   readonly pool: readonly InheritTarget[];
   readonly picked: readonly InheritTarget[];
   readonly start: { readonly holdsStance: boolean; readonly holdsSummon: boolean };
+  // 次に挑むシーンのアクト。
+  readonly act: number;
 }
 
 export interface BuildProfile {
@@ -74,6 +83,8 @@ export interface BuildProfile {
   readonly sacrifices: readonly SacrificePlan[];
   readonly policy: RefPolicy;
   readonly allocate: (ctx: AllocContext) => InheritTarget | null;
+  // 維持規則の［体力の維持］で、戦闘方針によらず体力の途絶（直近の回で最大HP加算なし）も読み替えの対象とする。
+  readonly hpStale?: boolean;
 }
 
 function recordOf(classId: string): ActionRecord | undefined {
@@ -232,7 +243,10 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 体勢を保持していなければ全枠を最大展開APの体勢へ。保持していれば与バフ量合計が最大の心気へ。
     id: 'BP-02',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_07', 'ATTENDANT_12', 'ATTENDANT_15'],
-    sacrifices: [{ act: 4, count: 1 }],
+    sacrifices: [
+      { act: 3, count: 1 },
+      { act: 4, count: 2 },
+    ],
     policy: 'DEFENSE',
     allocate: ({ pool, start }) => {
       const stance = bestBy(pool, isStance, (record) => [record.params.deploy_ap]);
@@ -246,22 +260,37 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     // 従者02は常に最大HP加算。他は加算VPが最大の心気へ統合する。
     id: 'BP-03',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_02', 'ATTENDANT_08', 'ATTENDANT_09'],
-    sacrifices: [{ act: 3, count: 1 }],
+    sacrifices: [
+      { act: 3, count: 1 },
+      { act: 5, count: 1 },
+    ],
     policy: 'BALANCE',
     allocate: ({ attendantId, pool }) =>
       attendantId === 'ATTENDANT_02' ? maxHp(pool) : bestBy(pool, isMind, (record) => [record.params.gain_vp]),
   },
   {
-    // 各従者が自身の係数が寄与する項目を持つ別スロットへ分散する（同一インターミッションの重複を避ける）。
+    // 各従者が自身の係数が寄与する項目（心気を除く）を、互いに異なる系統の別スロットへ分散する。
     id: 'BP-04',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_11', 'ATTENDANT_12', 'ATTENDANT_13', 'ATTENDANT_14'],
-    sacrifices: [{ act: 4, count: 3 }],
+    sacrifices: [
+      { act: 3, count: 2 },
+      { act: 4, count: 3 },
+    ],
     policy: 'BALANCE',
     allocate: ({ attendantId, pool, picked }) => {
       const attendant = attendantOf(attendantId);
       let best: { target: InheritTarget; score: number } | null = null;
       for (const target of pool) {
         if (target.kind === 'ACTION' && picked.some((entry) => sameTarget(entry, target))) {
+          continue;
+        }
+        // 心気は維持規則（［役割充足による選択］）が補うため、配分の対象としない。
+        if (target.kind === 'ACTION' && isMind(recordOf(target.class_id)!)) {
+          continue;
+        }
+        // 他の従者が選んだ項目と同じ系統（inherit_ratio の系統）は除く。除かないと、係数の多くが攻撃・打点に
+        // 寄与するため実質的に武技の別スロットへの分散となり、継承の構成が BP-01 と重なる（分別性）。
+        if (picked.some((entry) => inheritSystem(entry) === inheritSystem(target))) {
           continue;
         }
         const score = coefficientScore(attendant, target);
@@ -273,12 +302,13 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
     },
   },
   {
-    // 従者10は常に最大攻撃力の武技へ。召喚を保持していなければ他の1枠が召喚を確保する。
+    // 従者10は常に最大攻撃力の武技へ。召喚を保持していなければ他の1枠で召喚を選ぶ。その他の枠は、アクト3以降は
+    // 最大HP加算、アクト2までは BP-01 の規則による。
     id: 'BP-05',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_10'],
-    sacrifices: [],
+    sacrifices: [{ act: 3, count: 2 }],
     policy: 'ATTACK',
-    allocate: ({ attendantId, pool, picked, start }) => {
+    allocate: ({ attendantId, pool, picked, start, act }) => {
       if (attendantId === 'ATTENDANT_10') {
         return bestBy(pool, isMartial, byAtk);
       }
@@ -289,29 +319,46 @@ export const BUILD_PROFILES: readonly BuildProfile[] = [
           return summon;
         }
       }
-      return bestBy(pool, isMartial, byAtk);
+      return (act >= 3 ? maxHp(pool) : null) ?? bestBy(pool, isMartial, byAtk);
     },
   },
   {
-    // 浄化率・剥奪率を持つアクションを優先。無ければ最大HP加算。
+    // 浄化率・剥奪率を持つアクションを優先し、同一インターミッションでは剥奪と浄化を交互に選ぶ。無ければ最大HP加算。
     id: 'BP-06',
     finalParty: ['ATTENDANT_01', 'ATTENDANT_14', 'ATTENDANT_15'],
-    sacrifices: [{ act: 4, count: 1 }],
+    sacrifices: [
+      { act: 2, count: 1 },
+      { act: 3, count: 2 },
+      { act: 4, count: 1 },
+    ],
     policy: 'DEFENSE',
-    allocate: ({ pool }) =>
-      bestBy(
-        pool,
-        (record) => record.params.purify_rate > 0 || record.params.strip_rate > 0,
-        (record) => [Math.max(record.params.purify_rate, record.params.strip_rate)],
-      ) ?? maxHp(pool),
+    // 防御型の維持規則は体力の途絶を判定しないため、最大HPが第4幕まで伸びず、低い到達時HPで 4-06 に詰む。
+    hpStale: true,
+    // 同一インターミッションで既に剥奪率を持つアクションを選んでいれば剥奪率を持たない側を、選んでいなければ
+    // 剥奪率を持つ側を優先する（最初の枠は剥奪側）。交互にしないと浄化率を持つ心気に偏り、BP-03 と重なる。
+    allocate: ({ pool, picked }) => {
+      const stripPicked = picked.some(
+        (entry) => entry.kind === 'ACTION' && (recordOf(entry.class_id)?.params.strip_rate ?? 0) > 0,
+      );
+      return (
+        bestBy(
+          pool,
+          (record) => record.params.purify_rate > 0 || record.params.strip_rate > 0,
+          (record) => [
+            stripPicked === record.params.strip_rate > 0 ? 0 : 1,
+            Math.max(record.params.purify_rate, record.params.strip_rate),
+          ],
+        ) ?? maxHp(pool)
+      );
+    },
   },
   {
-    // 全枠を単一の武技（急襲）スロットへ統合。
+    // 全枠を単一の召喚スロットへ統合。プールに召喚が無ければ武技（急襲）へ。
     id: 'BP-07',
     finalParty: ['ATTENDANT_03', 'ATTENDANT_04', 'ATTENDANT_06'],
     sacrifices: [{ act: 2, count: 1, target: RINA }],
     policy: 'ATTACK',
-    allocate: ({ pool }) => bestBy(pool, isRush, byAtk),
+    allocate: ({ pool }) => bestBy(pool, isSummon, () => [0]) ?? bestBy(pool, isRush, byAtk),
   },
 ];
 
@@ -355,20 +402,20 @@ function actFinalOrder(act: number): number {
   return order;
 }
 
-// [V-TEST-REFAI]［役割充足による選択］最大HP加算が途絶したインターミッションの連続回数（周回ごと）。
-const HP_GAIN_SINCE = new WeakMap<object, number>();
-
 const isRanged = (record: ActionRecord): boolean => !record.is_root && record.params.range >= 2 && record.params.atk > 0;
 
 // [V-TEST-REFAI] 戦闘方針の維持規則。インターミッション開始時の判定を保持し、枠ごとに維持の対象を返す
-// （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → リソース生成手段 →
+// （該当しなければ null）。攻撃型・防御型の読み替えはそれぞれ1枠に限り、体力 → 壁割り → リソース生成手段 →
 // 射程の順に優先する。バランス型は枠ごとに［役割充足による選択］を判定する。
-export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy) {
+export function maintenanceRules(run: GameSession['data']['run'], policy: RefPolicy, hpStale = false) {
   const hpBase = sceneByOrder(MASTERS, sceneOf(run.current_scene_id).order - 1).hp_bonus_base ?? 0;
-  const since = HP_GAIN_SINCE.get(run) ?? 0;
+  const since = hpGainSince(run);
   let hpGained = false;
-  let raiseHp = run.hero_max_hp < hpBase;
-  let refillMind = mindUsesLeft(run) <= 1;
+  // [V-TEST-REFAI]［体力の維持］攻撃型は途絶（直近の回で最大HP加算なし）も含む。
+  let raiseHp = needsHpRaise(run, policy, since) || (hpStale && since >= ROLE_HP_STALE_INTERMISSIONS);
+  let needBreaker = missingBreaker(run);
+  const shortMind = mindShort(run, inheritPool(run, MASTERS));
+  let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || shortMind;
   let needRange = !holds(run, isRanged);
   return {
     next(pool: readonly InheritTarget[]): InheritTarget | null {
@@ -378,11 +425,37 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
       if (policy === 'PASSIVE') {
         return null;
       }
+      // [V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑む回は体力に先立てる。
+      if (needBreaker !== null && beforeVesselScene(run)) {
+        const breakerId = needBreaker;
+        const breaker = pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === breakerId);
+        if (breaker !== undefined) {
+          needBreaker = null;
+          return breaker;
+        }
+      }
+      // [V-TEST-REFAI]［体力の維持］「心気の出力の優先」：途絶のみで読み替えが成立する回は、心気の出力の不足を先立てる。
+      if (raiseHp && refillMind && shortMind && run.hero_max_hp >= hpBase) {
+        refillMind = false;
+        const mind = chooseMindRefill(pool);
+        if (mind !== null) {
+          return mind;
+        }
+      }
       if (raiseHp) {
         raiseHp = false;
         const hp = maxHp(pool);
         if (hp !== null) {
           return hp;
+        }
+      }
+      // [V-TEST-REFAI]［壁割りの維持］
+      if (needBreaker !== null) {
+        const breakerId = needBreaker;
+        needBreaker = null;
+        const breaker = pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === breakerId);
+        if (breaker !== undefined) {
+          return breaker;
         }
       }
       if (refillMind) {
@@ -401,19 +474,19 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
     record(target: InheritTarget): void {
       hpGained = hpGained || target.kind === 'MAX_HP';
     },
-    settle(): void {
-      if (policy === 'BALANCE') {
-        HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
-      }
-    },
   };
 }
 
-// アクトごとに実行した供犠の数（周回ごと）。
-const SACRIFICES_DONE = new WeakMap<object, Record<number, number>>();
+// 当該アクトで実行した供犠の数。再挑戦のロールバックはステートを複製するため、当該アクトの最初の
+// インターミッションのスナップショットとの比較で求める。
+function sacrificesInAct(run: GameSession['data']['run'], act: number): number {
+  const start = run.im_snapshots.find((snapshot) => sceneOf(snapshot.state.current_scene_id).act === act);
+  return run.sacrificed.length - (start?.state.sacrificed.length ?? 0);
+}
 
 // ［供犠スケジュール］時機：当該アクト内で［供犠の実行］の条件が成立した最初のインターミッション。
-// 残りのインターミッション数が残りの供犠数に達した場合は強制する。アクト移行の段では行わない。
+// 残りのインターミッション数が残りの供犠数に達した場合は強制する。予定を使い切った後は、追加の閾値または
+// ボス前の供犠の条件が成立したインターミッションで供犠する（[V-TEST-BUILD-PROFILES]「供犠の時機」）。アクト移行の段では行わない。
 export function scheduledSacrifice(
   profile: BuildProfile,
   run: GameSession['data']['run'],
@@ -423,13 +496,18 @@ export function scheduledSacrifice(
   }
   const next = sceneOf(run.current_scene_id);
   const plan = profile.sacrifices.find((entry) => entry.act === next.act);
+  // 予定の供犠を使い切った後（予定が無い場合を含む）も、追加の閾値（現在HP × 2 < 最大HP）またはボス前の供犠の
+  // 条件が成立したインターミッションで供犠する。
+  const thresholdOnly = () =>
+    run.hero_hp * 2 < run.hero_max_hp || needsBossSacrifice(run)
+      ? chooseSacrificeTarget(profile, { act: next.act, count: 1 }, run.party.map((slot) => slot.attendant_id))
+      : null;
   if (plan === undefined) {
-    return null;
+    return thresholdOnly();
   }
-  const done = SACRIFICES_DONE.get(run)?.[next.act] ?? 0;
-  const remaining = plan.count - done;
+  const remaining = plan.count - sacrificesInAct(run, next.act);
   if (remaining <= 0) {
-    return null;
+    return thresholdOnly();
   }
   const intermissionsLeft = actFinalOrder(next.act) - next.order + 1;
   const due = needsSacrifice(run) || needsBossSacrifice(run) || remaining >= intermissionsLeft;
@@ -475,11 +553,12 @@ export function playBuildIntermission(
   ctx: GameContext,
   profile: BuildProfile,
   turn: number,
-): { readonly mergeMax: number | null; readonly sacrificed: string | null } {
+): { readonly mergeMax: number | null; readonly sacrificed: string | null; readonly picks: readonly InheritTarget[] } {
   const run = session.data.run;
   const start = { holdsStance: holds(run, isStance), holdsSummon: holds(run, isSummon) };
   const picks: InheritTarget[] = [];
-  const maintenance = maintenanceRules(run, profile.policy);
+  const act = sceneOf(run.current_scene_id).act;
+  const maintenance = maintenanceRules(run, profile.policy, profile.hpStale);
   for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
     if (member.inherit_state !== 'UNUSED') {
       continue;
@@ -487,23 +566,18 @@ export function playBuildIntermission(
     const pool = inheritPool(run, MASTERS);
     const target =
       maintenance.next(pool) ??
-      profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start }) ??
-      chooseInherit(pool, profile.policy, turn);
+      profile.allocate({ attendantId: member.attendant_id, pool, picked: picks, start, act }) ??
+      chooseInherit(pool, profile.policy, turn, run);
     if (target !== null) {
       confirmInherit(session, ctx, member.attendant_id, target);
       maintenance.record(target);
       picks.push(target);
     }
   }
-  maintenance.settle();
 
   const victim = scheduledSacrifice(profile, run);
   if (victim !== null) {
-    const act = sceneOf(run.current_scene_id).act;
     confirmSacrifice(session, ctx, victim);
-    const done = SACRIFICES_DONE.get(run) ?? {};
-    done[act] = (done[act] ?? 0) + 1;
-    SACRIFICES_DONE.set(run, done);
   }
 
   if (isActTransition(run, MASTERS)) {
@@ -517,7 +591,39 @@ export function playBuildIntermission(
     }
   }
   settleIntermission(session, ctx);
-  return { mergeMax: mergeMax(picks), sacrificed: victim };
+  return { mergeMax: mergeMax(picks), sacrificed: victim, picks };
+}
+
+// [V-TEST-BUILD-METRICS] inherit_ratio の系統。最大HP加算、および FLAG_SUMMON・FLAG_STANCE・FLAG_MIND・FLAG_MARTIAL の
+// うちこの順で最初に持つもの。いずれも持たない項目はその他。
+export const INHERIT_SYSTEMS = ['MARTIAL', 'STANCE', 'MIND', 'SUMMON', 'OTHER', 'MAX_HP'] as const;
+export type InheritSystem = (typeof INHERIT_SYSTEMS)[number];
+
+export function inheritSystem(target: InheritTarget): InheritSystem {
+  if (target.kind === 'MAX_HP') {
+    return 'MAX_HP';
+  }
+  const flags = flagsOf(recordOf(target.class_id)!);
+  for (const [flag, system] of [
+    ['FLAG_SUMMON', 'SUMMON'],
+    ['FLAG_STANCE', 'STANCE'],
+    ['FLAG_MIND', 'MIND'],
+    ['FLAG_MARTIAL', 'MARTIAL'],
+  ] as const) {
+    if (flags.includes(flag)) {
+      return system;
+    }
+  }
+  return 'OTHER';
+}
+
+// [V-TEST-BUILD-METRICS] inherit_ratio：実行した継承（継承枠1件を1回）の系統別の比（INHERIT_SYSTEMS の順）。
+export function inheritRatio(picks: readonly InheritTarget[]): number[] | null {
+  if (picks.length === 0) {
+    return null;
+  }
+  const counts = INHERIT_SYSTEMS.map((system) => picks.filter((pick) => inheritSystem(pick) === system).length);
+  return counts.map((count) => count / picks.length);
 }
 
 export interface BuildSceneRecord {
@@ -527,6 +633,8 @@ export interface BuildSceneRecord {
   readonly counts: readonly number[];
   // 当該シーンの直前インターミッションの merge_max（1-01 は null）。
   readonly mergeMaxBefore: number | null;
+  // 当該シーンの直前インターミッションで実行した継承（inherit_ratio の元。1-01 は空）。
+  readonly picksBefore: readonly InheritTarget[];
   readonly party: readonly string[];
   // 当該シーン開始時の主人公の現在HP・最大HP。
   readonly heroHp: readonly [number, number];
@@ -547,6 +655,7 @@ export function playBuildRun(
   const { session, ctx } = createRun();
   const scenes: BuildSceneRecord[] = [];
   let mergeBefore: number | null = null;
+  let picksBefore: readonly InheritTarget[] = [];
   for (let turn = 0; turn < lastOrder; turn += 1) {
     const holder: { state: BattleState | null } = { state: null };
     const party = session.data.run.party.map((slot) => slot.attendant_id);
@@ -562,14 +671,53 @@ export function playBuildRun(
       HARD_STEP_CAP,
     );
     const counts = holder.state === null ? [0, 0, 0, 0] : [...holder.state.mirror_tally.counts];
-    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, party, heroHp });
+    scenes.push({ outcome, counts, mergeMaxBefore: mergeBefore, picksBefore, party, heroHp });
     if (!outcome.measured || outcome.result !== 'WIN') {
       return { profileId: profile.id, scenes, completed: false };
     }
     if (turn + 1 >= lastOrder) {
       break;
     }
-    mergeBefore = playBuildIntermission(session, ctx, profile, turn).mergeMax;
+    const intermission = playBuildIntermission(session, ctx, profile, turn);
+    mergeBefore = intermission.mergeMax;
+    picksBefore = intermission.picks;
   }
   return { profileId: profile.id, scenes, completed: true };
+}
+
+export interface BuildRetryRunOutcome {
+  readonly profileId: string;
+  readonly scenes: readonly SceneAttempts[];
+  // 1-01〜lastOrder を突破したか。false のとき、scenes の末尾が詰んだシーン（21件すべてで突破できない）。
+  readonly completed: boolean;
+  // [V-TEST-BUILD-PROPERTY] 3（分別性）の比較の範囲：各インターミッションで実行した継承（inherit_ratio の元）と
+  // merge_max（継承を実行しなかったインターミッションは含めない）。
+  readonly picks: readonly InheritTarget[];
+  readonly mergeMaxes: readonly number[];
+}
+
+// [V-TEST-BUILD-PROPERTY] 1（完走性）の再挑戦込みの通しプレイ。敗北したシーンは重み摂動の次の件へ切り替えて
+// バトル開始時ロールバックで再挑戦し（[V-TEST-NONFUNC] D-13 と同じ手段：playSceneWithRetry）、21件すべてで
+// 突破できないシーンで打ち切る。
+export function playBuildRunWithRetry(profile: BuildProfile, lastOrder = 30): BuildRetryRunOutcome {
+  const { session, ctx } = createRun();
+  const scenes: SceneAttempts[] = [];
+  const picks: InheritTarget[] = [];
+  const mergeMaxes: number[] = [];
+  for (let turn = 0; turn < lastOrder; turn += 1) {
+    const attempt = playSceneWithRetry(session, ctx, profile.policy);
+    scenes.push(attempt);
+    if (attempt.outcome.result !== 'WIN') {
+      return { profileId: profile.id, scenes, completed: false, picks, mergeMaxes };
+    }
+    if (turn + 1 >= lastOrder) {
+      break;
+    }
+    const intermission = playBuildIntermission(session, ctx, profile, turn);
+    picks.push(...intermission.picks);
+    if (intermission.mergeMax !== null) {
+      mergeMaxes.push(intermission.mergeMax);
+    }
+  }
+  return { profileId: profile.id, scenes, completed: true, picks, mergeMaxes };
 }

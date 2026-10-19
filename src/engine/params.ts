@@ -38,8 +38,13 @@ const DECREASING_PARAM_IDS: readonly ParamId[] = [
   'decay_ap',
 ];
 
+// 実効値の導出のたびに引くため、配列の走査ではなく表で引く。
+const IS_DECREASING: Readonly<Partial<Record<ParamId, true>>> = Object.fromEntries(
+  DECREASING_PARAM_IDS.map((id) => [id, true]),
+);
+
 export function isDecreasingParam(id: ParamId): boolean {
-  return DECREASING_PARAM_IDS.includes(id);
+  return IS_DECREASING[id] === true;
 }
 
 // 全17項目 0.00（centi: 0）の辞書を生成する（[M-STATE-UNIT] 被バフ量・被デバフ量の初期値）。

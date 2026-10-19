@@ -11,8 +11,8 @@ import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import { applyMove } from '../../src/ai/apply.js';
 import { cloneState } from '../../src/ai/clone.js';
 import { evaluate, quiescenceMateScore } from '../../src/ai/evaluate.js';
-import { MATE_TH } from '../../src/ai/constants.js';
-import { decideActionDetailed, readyToFire } from '../../src/ai/search.js';
+import { MATE_TH, TTK_MAX } from '../../src/ai/constants.js';
+import { decideActionDetailed, leafExtensionLimit, readyToFire } from '../../src/ai/search.js';
 import { referenceProfile } from '../../src/ai/profile.js';
 import { runQuiescence } from '../../src/ai/quiesce.js';
 import { ttk } from '../../src/ai/ttk.js';
@@ -309,9 +309,15 @@ describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
     return { state, hero, breakId: hero.acts[0].instance_id };
   }
 
-  it('前列がクリーチャーのときは、実行可能でも発射しない', () => {
+  it('前列がクリーチャーで後列のマスターが射程外のときは、実行可能でも発射しない', () => {
     const { state, hero, breakId } = position({ creatureFront: true, masterAp: 0, elapsed: 17 });
     expect(readyToFire(state, hero, breakId)).toBe('WAIT');
+  });
+
+  it('前列がクリーチャーでも、後列のマスターが射程内なら発射する（武技は射程内のすべての敵に命中する）', () => {
+    const { state, hero, breakId } = position({ creatureFront: true, masterAp: 0, elapsed: 17 });
+    hero.acts[0] = { ...hero.acts[0], base_params: { ...hero.acts[0].base_params, range: 2 } };
+    expect(readyToFire(state, hero, breakId)).toBe('FIRE');
   });
 
   it('前列のマスターの防御力が実効攻撃力を上回るときは発射しない', () => {
@@ -324,7 +330,7 @@ describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
     expect(readyToFire(state, hero, breakId)).toBe('WAIT');
   });
 
-  it('実行可能で、射程内の前列のマスターに命中するときに発射する', () => {
+  it('実行可能で、射程内のマスターに命中するときに発射する', () => {
     const { state, hero, breakId } = position({ creatureFront: false, masterAp: 40, elapsed: 17 });
     expect(readyToFire(state, hero, breakId)).toBe('FIRE');
   });
@@ -332,6 +338,35 @@ describe('[A-SEARCH-NODE]［待機手の約定］発射の判定', () => {
   it('アクションインスタンスが存在しない約定は解消する', () => {
     const { state, hero } = position({ creatureFront: false, masterAp: 0, elapsed: 17 });
     expect(readyToFire(state, hero, 'IID_MISSING')).toBe('DROP');
+  });
+});
+
+describe('[A-SEARCH-NODE]［待機手の約定］葉での延長の上限', () => {
+  // 決め手は必要思考17。上限は残っている約定のうち「必要思考の残り + 1」の最大値（TTK_MAX を超えない）。
+  const BREAK = martialAction('HERO_BREAK', { atk: 40, dmg_hp: 5000, step_thought: 17, step_startup: 9, step_recovery: 30 });
+  const LONG = martialAction('HERO_LONG', { atk: 40, dmg_hp: 5000, step_thought: 5000, step_startup: 9, step_recovery: 30 });
+
+  function limitOf(acts: readonly ActionMasterRecord[], elapsed: number, waitIndex = 0) {
+    const { state, hero } = duel(acts, [MIND]);
+    hero.elapsed_thought = elapsed;
+    return leafExtensionLimit(state, { [hero.unit_id]: { instanceId: hero.acts[waitIndex].instance_id, since: state.step } });
+  }
+
+  it('必要思考の残り + 1 ステップまで進める（経過思考10 → 残り7 → 8）', () => {
+    expect(limitOf([BREAK], 10)).toBe(8);
+  });
+
+  it('必要思考が満ちていれば1ステップ（発射の判定）で解消する', () => {
+    expect(limitOf([BREAK], 17)).toBe(1);
+  });
+
+  it('TTK_MAX を超えない', () => {
+    expect(limitOf([LONG], 0)).toBe(TTK_MAX);
+  });
+
+  it('約定が無ければ延長しない', () => {
+    const { state } = duel([BREAK], [MIND]);
+    expect(leafExtensionLimit(state, {})).toBe(0);
   });
 });
 

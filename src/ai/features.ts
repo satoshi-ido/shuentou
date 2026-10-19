@@ -9,7 +9,7 @@
 // 書き戻し（[I-PLAN-WORKFLOW]）を検討すること。
 
 import { effectiveAtk, effectiveChargePpCenti, effectiveCostPp, effectiveCostVp, effectiveDmgHpCenti, effectiveRange } from '../engine/effective.js';
-import { executableActions } from '../engine/decision.js';
+import { hasExecutableAction } from '../engine/decision.js';
 import { hasFlag } from '../engine/flags.js';
 import { partnerSlotOf } from '../engine/resolve/partner.js';
 import { PARAM_IDS } from '../engine/params.js';
@@ -29,7 +29,7 @@ function masterOfSide(state: BattleState, side: Side): Unit | undefined {
 // [A-EVAL-TEMPO] 行動可能到達度（1ユニット分）。
 function tempoContribution(state: BattleState, unit: Unit): number {
   if (unit.state === 'THOUGHT') {
-    if (executableActions(state, unit).length > 0) {
+    if (hasExecutableAction(state, unit)) {
       return SCALE;
     }
     if (unit.acts.length === 0) {

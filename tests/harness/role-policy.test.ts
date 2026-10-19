@@ -2,7 +2,18 @@
 
 import { describe, expect, it } from 'vitest';
 import type { InheritTarget } from '../../src/engine/progress/inherit.js';
-import { breakerForScene, chooseByRole, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
+import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
+import { referenceProfile } from '../../src/ai/profile.js';
+import {
+  battleProfileFor,
+  beforeVesselScene,
+  breakerForScene,
+  chooseByRole,
+  chooseMindRefill,
+  missingBreaker,
+  mindShort,
+  ROLE_HP_STALE_INTERMISSIONS,
+} from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const held = (masterRef: string, usesLeft: number, sysFlags: string[] = []) => ({
@@ -64,5 +75,77 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
     };
     const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), action('ACT_HEAVY_AR9')];
     expect(chooseByRole(run, pool, 212)).toBeNull();
+  });
+});
+
+describe('[V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」', () => {
+  const ZOL_VOD = 'ACT_SPEC_BREAK_ZOL_VOD';
+  const member = (attendantId: string, inheritState = 'UNUSED') => ({ attendant_id: attendantId, inherit_state: inheritState });
+  const run = (sceneId: string, usesLeft: number, party: ReturnType<typeof member>[]) => ({
+    current_scene_id: sceneId,
+    hero_max_hp: 1000,
+    hero_acts: [MIND_FULL, held(ZOL_VOD, usesLeft)],
+    party,
+  });
+  const pool: InheritTarget[] = [{ kind: 'MAX_HP' }, action(ZOL_VOD)];
+
+  it('依代のシーンの直前のシーン（5-10）に挑む回に限る', () => {
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_5_10' })).toBe(true);
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_5_09' })).toBe(false);
+    expect(beforeVesselScene({ current_scene_id: 'SCENE_4_08' })).toBe(false);
+  });
+
+  it('判定の残り使用回数は、未継承の同行従者が継承した場合の実効初期使用回数の最大とする', () => {
+    // 従者01 の使用回数係数450 → 5回、従者11 の300 → 3回（基礎使用回数1回）。
+    expect(missingBreaker(run('SCENE_5_10', 4, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBe(ZOL_VOD);
+    expect(missingBreaker(run('SCENE_5_10', 5, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBeNull();
+    expect(missingBreaker(run('SCENE_5_10', 2, [member('ATTENDANT_01', 'SPENT'), member('ATTENDANT_11')]))).toBe(ZOL_VOD);
+    expect(missingBreaker(run('SCENE_5_10', 3, [member('ATTENDANT_01', 'SPENT'), member('ATTENDANT_11')]))).toBeNull();
+    expect(missingBreaker(run('SCENE_5_09', 2, [member('ATTENDANT_01'), member('ATTENDANT_11')]))).toBeNull();
+  });
+
+  it('［役割充足による選択］では当該回に限り壁割りを体力に先立てる', () => {
+    const party = [member('ATTENDANT_01'), member('ATTENDANT_11')];
+    expect(chooseByRole(run('SCENE_5_10', 2, party), pool, 2000)).toEqual(action(ZOL_VOD));
+    expect(chooseByRole(run('SCENE_5_09', 1, party), pool, 2000)).toEqual({ kind: 'MAX_HP' });
+  });
+});
+
+describe('[V-TEST-REFAI]「体勢への減点」の方針別の適用', () => {
+  it('防御型の戦闘では体勢の減点を外し、他の方針は与えた重みのまま用いる', () => {
+    const base = referenceProfile();
+    expect(base.actionBonus.STANCE).toBe(BONUS_REFAI_STANCE);
+    expect(battleProfileFor('DEFENSE', base).actionBonus.STANCE).toBe(0);
+    for (const policy of ['ATTACK', 'BALANCE'] as const) {
+      expect(battleProfileFor(policy, base)).toBe(base);
+    }
+  });
+});
+
+describe('[V-TEST-REFAI]［心気の出力］', () => {
+  // 3-01 の後（次に挑むシーンは 3-02。壁割り担当 ACT_SPEC_BREAK_ASHAL の PP コスト12）。
+  const runBefore302 = (heroActs: ReturnType<typeof held>[]) => ({ current_scene_id: 'SCENE_3_02', hero_acts: heroActs });
+  const HELD_AR4 = held('ACT_MIND_AR4', 30, ['FLAG_MIND']); // 心気1回の PP 2.32
+
+  it('保持する心気で壁割りを賄えず、2回で賄える高出力の心気がプールにあれば不足とする', () => {
+    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR12')])).toBe(true); // 8.04 × 2 ≥ 12
+  });
+
+  it('プールの心気が2回でも賄えない小刻みな更新であれば不足としない', () => {
+    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR9')])).toBe(false); // 5.22 × 2 < 12
+  });
+
+  it('2回後の PP は [M-RESOLVE-MIND] の目標PPと同じく四捨五入して壁割りの PP コストと比べる', () => {
+    // 4-01 の後（次に挑むシーンは 4-02。壁割り担当 ACT_SPEC_BREAK_ZEFAL の PP コスト26）。
+    const runBefore402 = { current_scene_id: 'SCENE_4_02', hero_acts: [held('ACT_MIND_AR12', 45, ['FLAG_MIND'])] };
+    expect(mindShort(runBefore402, [action('ACT_MIND_AR20')])).toBe(true); // round(12.95 × 2) = 26 ≥ 26
+  });
+
+  it('保持する心気が1回で壁割りを賄えれば不足としない', () => {
+    expect(mindShort(runBefore302([held('ACT_MIND_AR19', 30, ['FLAG_MIND'])]), [action('ACT_MIND_AR24')])).toBe(false); // 12.65 ≥ 12
+  });
+
+  it('プールの心気は心気1回の PP が最大のものを選ぶ', () => {
+    expect(chooseMindRefill([action('ACT_MIND_AR9'), action('ACT_MIND_AR12'), action('ACT_MIND_AR8')])).toEqual(action('ACT_MIND_AR12'));
   });
 });

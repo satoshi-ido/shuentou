@@ -21,7 +21,7 @@ describe('mindUsesLeft', () => {
     expect(mindUsesLeft({ hero_acts: [act('ACT_MIND_AR3', 1), act('ACT_MUSOU_AR3', 2)] })).toBe(3);
   });
 
-  it('心気を保持しないとき0となり、読み替えの条件（1以下）を満たす', () => {
+  it('心気を保持しないとき0となり、読み替えの条件（5未満）を満たす', () => {
     expect(mindUsesLeft({ hero_acts: [act('ACT_SLASH_AR3', 9), act('ACT_HEAVY_AR15', 7)] })).toBe(0);
   });
 
@@ -41,6 +41,15 @@ describe('chooseMindRefill', () => {
   it('加算VPを持たない無想より基本を優先する', () => {
     expect(ACTION_MASTERS.ACT_MUSOU_AR3.params.gain_vp).toBe(0);
     expect(chooseMindRefill([target('ACT_MUSOU_AR3'), target('ACT_MIND_AR3')])).toEqual(target('ACT_MIND_AR3'));
+  });
+
+  it('PPコストを要する心気（特殊の自己強化等）は PP 0 から実行できないため選ばない', () => {
+    const costly = ACTION_MASTERS.ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN.params;
+    expect(costly.cost_pp).toBeGreaterThan(0);
+    expect(costly.gain_vp * costly.charge_pp).toBeGreaterThan(ACTION_MASTERS.ACT_MIND_AR24.params.gain_vp * ACTION_MASTERS.ACT_MIND_AR24.params.charge_pp);
+    const pool = [target('ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN'), target('ACT_MIND_AR24')];
+    expect(chooseMindRefill(pool)).toEqual(target('ACT_MIND_AR24'));
+    expect(chooseMindRefill([target('ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN')])).toBeNull();
   });
 
   it('最大HP加算および心気以外しかない場合は null を返し、本来の規則へ委ねる', () => {

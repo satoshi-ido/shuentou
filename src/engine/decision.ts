@@ -71,6 +71,11 @@ export function executableActions(state: BattleState, unit: Unit): ActionInstanc
   return unit.acts.filter((action) => isActionExecutable(state, unit, action));
 }
 
+// 実行可能なアクションを1件以上持つか（executableActions(...).length > 0 と同値で、最初の1件で打ち切る）。
+export function hasExecutableAction(state: BattleState, unit: Unit): boolean {
+  return unit.state === 'THOUGHT' && unit.acts.some((action) => isActionExecutable(state, unit, action));
+}
+
 // book は定跡を参照した決定主体が返す更新後の定跡進行状態（[A-BOOK-SEMANTICS]）。[M-PIPE-P8-ORDER] の
 // 呼び出し側が BattleState へ反映する。
 // source は決定の出所（[A-BOOK-SEMANTICS] の定跡 HIT か [A-SEARCH-ALGORITHM] の探索か）。

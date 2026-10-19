@@ -5,7 +5,8 @@ import { describe, expect, it } from 'vitest';
 import type { Unit } from '../../src/engine/types.js';
 import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import { applyMove } from '../../src/ai/apply.js';
-import { BONUS_DEFAULT_PASS, RESWAP_PENALTY } from '../../src/ai/constants.js';
+import { BONUS_DEFAULT_PASS } from '../../src/ai/constants.js';
+import { defaultProfile } from '../../src/ai/profile.js';
 import { generateMoves, isReswap, reswapPenaltyOf, tagsOf, type AiMove } from '../../src/ai/movegen.js';
 import { createDuel, makeAction, martialAction, moveUnit, NO_SUMMON_DEPS, placeUnit } from './fixtures.js';
 
@@ -57,25 +58,35 @@ describe('[A-PROFILE-BONUS] 再交代の判定', () => {
     return { state, master, creature, swapOf };
   }
 
-  it('直前のステップで交代した実行者の隊列交代は再交代とし、パスと同じ減点を課す', () => {
+  it('交代の後に他のアクションを実行していない実行者の隊列交代は再交代とし、パスより1大きい減点を課す', () => {
     const { state, creature, swapOf } = afterSwap(1);
-    expect(creature.elapsed_thought).toBe(1);
     expect(isReswap(state, creature, swapOf(creature))).toBe(true);
-    expect(RESWAP_PENALTY).toBe(BONUS_DEFAULT_PASS);
-    expect(reswapPenaltyOf(state, creature, swapOf(creature))).toBe(RESWAP_PENALTY);
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), defaultProfile())).toBe(BONUS_DEFAULT_PASS - 1);
   });
 
-  it('相方が直前のステップで交代した場合も再交代とする', () => {
+  it('減点はプロファイルのパスの値（上書きを含む）に従う', () => {
+    const { state, creature, swapOf } = afterSwap(1);
+    const prof = { ...defaultProfile(), actionBonus: { PASS: -700 } };
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), prof)).toBe(-701);
+  });
+
+  it('相方が交代の後に他のアクションを実行していない場合も再交代とする', () => {
     const { state, master, swapOf } = afterSwap(1);
     expect(isReswap(state, master, swapOf(master))).toBe(true);
   });
 
-  it('交代から2ステップ以上経過した組の隊列交代は再交代としない', () => {
-    const { state, master, creature, swapOf } = afterSwap(2);
-    expect(creature.elapsed_thought).toBe(2);
+  it('経過したステップ数を問わず再交代とする（3ステップごとの往復も捉える）', () => {
+    const { state, master, creature, swapOf } = afterSwap(40);
+    expect(creature.elapsed_thought).toBe(40);
+    expect(isReswap(state, creature, swapOf(creature))).toBe(true);
+    expect(isReswap(state, master, swapOf(master))).toBe(true);
+  });
+
+  it('交代の後に他のアクションを実行した組の隊列交代は再交代としない', () => {
+    const { state, creature, swapOf } = afterSwap(1);
+    creature.last_act = { ...creature.last_act!, class_id: 'ACT_WAIT', sys_flags: [] };
     expect(isReswap(state, creature, swapOf(creature))).toBe(false);
-    expect(isReswap(state, master, swapOf(master))).toBe(false);
-    expect(reswapPenaltyOf(state, creature, swapOf(creature))).toBe(0);
+    expect(reswapPenaltyOf(state, creature, swapOf(creature), defaultProfile())).toBe(0);
   });
 
   it('隊列交代以外の手とパスは再交代としない', () => {
@@ -117,6 +128,28 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
     const rootUnit = findUnit(root, 'MINE');
     rootUnit.acts = [{ ...unit.acts[0], instance_id: 'IID_ROOT', master_ref: 'ACT_ROOT_MARTIAL', base_params: { ...unit.acts[0].base_params, cost_pp: 0, step_thought: 550 } }];
     expect(labels(generateMoves(root, rootUnit, true))).toEqual(['PASS']);
+  });
+
+  it('相手陣営のマスターが射程外の場合は待機手としない（思考を待っても発射されない）', () => {
+    const { state, unit } = hero([WAITABLE]);
+    const enemy = findUnit(state, 'FOE');
+    moveUnit(state, enemy, 3);
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+    placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 2, maxHp: 10, acts: [MIND_SLOW], counter: { instance_id_seq: 50 } });
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+  });
+
+  it('前列がクリーチャーでも、後列のマスターが射程内なら待機手とする', () => {
+    const { state, unit } = hero([martialAction('ACT_REACH', { atk: 40, range: 2, step_thought: 20, step_startup: 5 })]);
+    moveUnit(state, findUnit(state, 'FOE'), 3);
+    placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 2, maxHp: 10, acts: [MIND_SLOW], counter: { instance_id_seq: 50 } });
+    expect(labels(generateMoves(state, unit, true))).toEqual(['WAIT:ACT_REACH', 'PASS']);
+  });
+
+  it('実効攻撃力が相手陣営のマスターの現在の防御力に満たない場合は待機手としない', () => {
+    const { state, unit } = hero([WAITABLE]);
+    findUnit(state, 'FOE').ap = 100;
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
   });
 
   it('待機手のボーナスはパスと同じ既定値・上書きに従う', () => {

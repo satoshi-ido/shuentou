@@ -1,4 +1,4 @@
-// [V-TEST-BUILD-PROFILES] ビルドプロファイルの編成列・供犠対象・継承配分規則と、[V-TEST-BUILD-METRICS] merge_max。
+// [V-TEST-BUILD-PROFILES] ビルドプロファイルの編成列・供犠対象・継承配分規則と、[V-TEST-BUILD-METRICS] merge_max・inherit_ratio。
 
 import { describe, expect, it } from 'vitest';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
@@ -10,10 +10,16 @@ import {
   chooseRefill,
   chooseSacrificeTarget,
   coefficientScore,
+  INHERIT_SYSTEMS,
+  inheritRatio,
+  inheritSystem,
   maintenanceRules,
   mergeMax,
+  playBuildRunWithRetry,
+  scheduledSacrifice,
   type AllocContext,
 } from './build-profiles.js';
+import { createRun, ROLE_HP_STALE_INTERMISSIONS } from './runner.js';
 
 const action = (classId: string): InheritTarget => ({ kind: 'ACTION', class_id: classId });
 const MAX_HP: InheritTarget = { kind: 'MAX_HP' };
@@ -53,17 +59,18 @@ const ctx = (partial: Partial<AllocContext>): AllocContext => ({
   pool: [],
   picked: [],
   start: { holdsStance: false, holdsSummon: false },
+  act: 1,
   ...partial,
 });
 
 describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］', () => {
   const finals: Record<string, string[]> = {
     'BP-01': ['01', '03', '05', '10', '11'],
-    'BP-02': ['01', '02', '07', '12', '15'],
-    'BP-03': ['01', '02', '08', '09', '11'],
+    'BP-02': ['01', '07', '11', '12', '15'],
+    'BP-03': ['01', '02', '08', '09'],
     'BP-04': ['01', '11', '12', '13', '14'],
-    'BP-05': ['01', '02', '04', '10', '11'],
-    'BP-06': ['01', '02', '04', '14', '15'],
+    'BP-05': ['01', '07', '08', '10', '11'],
+    'BP-06': ['01', '07', '08', '14', '15'],
     'BP-07': ['03', '04', '06', '07', '11'],
   };
   for (const [id, expected] of Object.entries(finals)) {
@@ -86,7 +93,25 @@ describe('[V-TEST-BUILD-PROFILES]［編成列］［供犠スケジュール］',
 
   it('供犠「なし」のプロファイルは供犠スケジュールを持たない', () => {
     expect(buildProfileOf('BP-01').sacrifices).toEqual([]);
-    expect(buildProfileOf('BP-05').sacrifices).toEqual([]);
+  });
+
+  it('予定を使い切った後（予定が無い場合を含む）も、追加の閾値またはボス前の供犠の条件が成立すれば供犠する', () => {
+    // BP-01 は予定を持たない。3-03 の前（アクト移行の段ではない）、同行従者3名。
+    const run = {
+      ...createRun().session.data.run,
+      current_scene_id: 'SCENE_3_03',
+      party: ['ATTENDANT_01', 'ATTENDANT_03', 'ATTENDANT_04'].map((attendant_id) => ({ attendant_id })),
+      sacrificed: [],
+      im_snapshots: [],
+      hero_max_hp: 300,
+    } as unknown as Parameters<typeof scheduledSacrifice>[1];
+    // 現在HP × 2 < 最大HP のとき、最終編成外の従者01以外を従者ID降順で選ぶ。
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 149 })).toBe('ATTENDANT_04');
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...run, hero_hp: 150 })).toBeNull();
+    // ボス前（3-06 の前）は、現在HPが最大HP未満であれば供犠する。
+    const boss = { ...run, current_scene_id: 'SCENE_3_06' };
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...boss, hero_hp: 299 })).toBe('ATTENDANT_04');
+    expect(scheduledSacrifice(buildProfileOf('BP-01'), { ...boss, hero_hp: 300 })).toBeNull();
   });
 
   it('7件のプロファイルを持つ', () => {
@@ -129,7 +154,7 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_08', pool }))).toEqual(action('ACT_SPEC_BUFF_WALL_SERG'));
   });
 
-  it('BP-04 は係数が寄与する項目数で選び、同一インターミッションで選ばれた項目を避ける', () => {
+  it('BP-04 は係数が寄与する項目数で選び、同一インターミッションで選ばれた項目と同じ系統を避ける', () => {
     // 従者11：atkRate・usesRate。武技は2項目、体勢は usesRate の1項目。
     expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_HEAVY_AR12'))).toBe(2);
     expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_GUARD_AR12'))).toBe(1);
@@ -137,22 +162,36 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     const pool = [action('ACT_GUARD_AR12'), action('ACT_HEAVY_AR12'), action('ACT_HEAVY_AR117')];
     const bp = buildProfileOf('BP-04');
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    // 他の従者が武技を選んでいれば、別の武技（ACT_HEAVY_AR117）ではなく別の系統（体勢）を選ぶ。
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool, picked: [action('ACT_HEAVY_AR12')] }))).toEqual(
-      action('ACT_HEAVY_AR117'),
+      action('ACT_GUARD_AR12'),
     );
   });
 
-  it('BP-05 は召喚を保持していなければ1枠で召喚を確保し、従者10は常に武技を選ぶ', () => {
-    const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12')];
+  it('BP-04 は心気を配分の対象としない', () => {
+    // 従者11の usesRate は心気にも寄与するが、心気は維持規則が補うため除く。
+    expect(coefficientScore(attendants.ATTENDANT_11, action('ACT_MIND_AR12'))).toBeGreaterThan(0);
+    const bp = buildProfileOf('BP-04');
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool: [action('ACT_MIND_AR12')] }))).toBeNull();
+    expect(
+      bp.allocate(ctx({ attendantId: 'ATTENDANT_11', pool: [action('ACT_MIND_AR12'), action('ACT_GUARD_AR12')] })),
+    ).toEqual(action('ACT_GUARD_AR12'));
+  });
+
+  it('BP-05 は召喚を保持していなければ1枠で召喚を選び、従者10は常に武技、その他はアクト3以降に最大HP加算を選ぶ', () => {
+    const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12'), MAX_HP];
     const bp = buildProfileOf('BP-05');
-    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    const held = { holdsStance: false, holdsSummon: true };
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool, act: 3 }))).toEqual(action('ACT_HEAVY_AR12'));
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool }))).toEqual(action('ACT_SUMMON_AR12'));
+    // 同一インターミッションで召喚を選んだ後、および召喚を保持しているときは召喚を選ばない。
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_04', pool, picked: [action('ACT_SUMMON_AR12')] }))).toEqual(
       action('ACT_HEAVY_AR12'),
     );
-    expect(
-      bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: { holdsStance: false, holdsSummon: true } })),
-    ).toEqual(action('ACT_HEAVY_AR12'));
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held }))).toEqual(action('ACT_HEAVY_AR12'));
+    // アクト3以降のその他の枠は最大HP加算。
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held, act: 2 }))).toEqual(action('ACT_HEAVY_AR12'));
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held, act: 3 }))).toEqual(MAX_HP);
   });
 
   it('BP-06 は浄化率・剥奪率を持つアクションを選び、無ければ最大HP加算を選ぶ', () => {
@@ -163,9 +202,19 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
     expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12'), MAX_HP] }))).toEqual(MAX_HP);
   });
 
-  it('BP-07 は急襲（思考0・防御効率あり）の武技を選び、重撃・斬撃を選ばない', () => {
-    const pool = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
-    expect(buildProfileOf('BP-07').allocate(ctx({ pool }))).toEqual(action('ACT_RUSH_AR12'));
+  it('BP-06 は同一インターミッションで剥奪と浄化を交互に選ぶ（最初の枠は剥奪）', () => {
+    // ACT_HEAVY_AR12 は剥奪率50、ACT_GUARD_AR12 は浄化率50。
+    const pool = [action('ACT_GUARD_AR12'), action('ACT_HEAVY_AR12')];
+    const bp = buildProfileOf('BP-06');
+    expect(bp.allocate(ctx({ pool }))).toEqual(action('ACT_HEAVY_AR12'));
+    expect(bp.allocate(ctx({ pool, picked: [action('ACT_HEAVY_AR12')] }))).toEqual(action('ACT_GUARD_AR12'));
+  });
+
+  it('BP-07 は召喚を選び、プールに召喚が無ければ急襲（思考0・防御効率あり）の武技を選ぶ', () => {
+    const bp = buildProfileOf('BP-07');
+    const martial = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
+    expect(bp.allocate(ctx({ pool: [...martial, action('ACT_SUMMON_AR12')] }))).toEqual(action('ACT_SUMMON_AR12'));
+    expect(bp.allocate(ctx({ pool: martial }))).toEqual(action('ACT_RUSH_AR12'));
   });
 });
 
@@ -177,7 +226,7 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
   });
   // 1-02 の後（直前にクリアしたシーンは 1-02）。
   const runOf = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
-    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs }) as never;
+    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
   const RANGED = held('ACT_RUSH_AR20', 3);
   const MIND = held('ACT_MIND_AR12', 5, ['FLAG_MIND']);
   const pool = [action('ACT_HEAVY_AR117'), action('ACT_MIND_AR12'), action('ACT_RUSH_AR117'), MAX_HP];
@@ -188,8 +237,8 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(rules.next(pool)).toBeNull();
   });
 
-  it('攻撃型は心気の残り使用回数が1以下なら1枠だけ心気を選ぶ', () => {
-    const rules = maintenanceRules(runOf(10_000, [held('ACT_MIND_AR12', 1, ['FLAG_MIND']), RANGED]), 'ATTACK');
+  it('攻撃型は心気の残り使用回数が5未満なら1枠だけ心気を選ぶ', () => {
+    const rules = maintenanceRules(runOf(10_000, [held('ACT_MIND_AR12', 4, ['FLAG_MIND']), RANGED]), 'ATTACK');
     expect(rules.next(pool)).toEqual(action('ACT_MIND_AR12'));
     expect(rules.next(pool)).toBeNull();
   });
@@ -201,8 +250,73 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(rules.next(pool)).toBeNull();
   });
 
+  it('攻撃型に限り、最大HP加算の途絶が続くときも1枠だけ最大HP加算を選ぶ', () => {
+    // 最大HP10000は hp_bonus_base を上回るため、途絶（直近 ROLE_HP_STALE_INTERMISSIONS 回に加算なし）の判定のみが働く。
+    const staleRun = (stale: number) =>
+      ({
+        current_scene_id: 'SCENE_2_01',
+        hero_hp: 10_000,
+        hero_max_hp: 10_000,
+        hero_acts: [MIND, RANGED],
+        im_snapshots: Array.from({ length: stale + 1 }, (_, order) => ({ order, state: { hero_max_hp: 10_000 } })),
+      }) as never;
+    const rules = maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'ATTACK');
+    expect(rules.next(pool)).toEqual(MAX_HP);
+    expect(rules.next(pool)).toBeNull();
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'ATTACK').next(pool)).toBeNull();
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'DEFENSE').next(pool)).toBeNull();
+    // BP-06 は防御型であっても途絶を判定する（hpStale）。
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'DEFENSE', true).next(pool)).toEqual(MAX_HP);
+    expect(maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS - 1), 'DEFENSE', true).next(pool)).toBeNull();
+  });
+
+  it('［体力の維持］「心気の出力の優先」：途絶のみで体力を読み替える回は、心気の出力の不足を先に満たす', () => {
+    // 5-05 の後（次に挑むシーンは 5-06。担当 ACT_SPEC_BREAK_ZOL_VOD の PP コスト51、5-05 の hp_bonus_base は392）。
+    // 保持する ACT_MIND_AR53 は1回で賄えず、プールの ACT_MIND_AR57 は2回で賄える。
+    const run505 = (heroMaxHp: number) =>
+      ({
+        current_scene_id: 'SCENE_5_06',
+        hero_hp: heroMaxHp,
+        hero_max_hp: heroMaxHp,
+        hero_acts: [held('ACT_MIND_AR53', 27, ['FLAG_MIND']), held('ACT_SPEC_BREAK_ZOL_VOD', 3), RANGED],
+        im_snapshots: Array.from({ length: ROLE_HP_STALE_INTERMISSIONS + 1 }, (_, order) => ({ order, state: { hero_max_hp: heroMaxHp } })),
+      }) as never;
+    const pool505 = [action('ACT_MIND_AR57'), action('ACT_SUMMON_AR57'), MAX_HP];
+    const rules = maintenanceRules(run505(1339), 'ATTACK');
+    expect(rules.next(pool505)).toEqual(action('ACT_MIND_AR57'));
+    expect(rules.next(pool505)).toEqual(MAX_HP);
+    // 最大HPが hp_bonus_base を下回る回は従来どおり体力を先に選ぶ。
+    expect(maintenanceRules(run505(300), 'ATTACK').next(pool505)).toEqual(MAX_HP);
+  });
+
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
     expect(maintenanceRules(runOf(10_000, [MIND, RANGED]), 'DEFENSE').next(pool)).toBeNull();
+  });
+
+  // [V-TEST-REFAI]［壁割りの維持］2-01 の後（次に挑むシーンは 2-02。担当は ACT_SPEC_BREAK_VOLG）。
+  const BREAKER = 'ACT_SPEC_BREAK_VOLG';
+  const runBefore202 = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
+    ({ current_scene_id: 'SCENE_2_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
+  const breakerPool = [action('ACT_HEAVY_AR117'), action(BREAKER), action('ACT_MIND_AR12'), MAX_HP];
+
+  it('攻撃型・防御型は次のシーンの壁割りを保持しなければ1枠だけ当該アクションを選ぶ', () => {
+    for (const policy of ['ATTACK', 'DEFENSE'] as const) {
+      const rules = maintenanceRules(runBefore202(10_000, [MIND, RANGED]), policy);
+      expect(rules.next(breakerPool)).toEqual(action(BREAKER));
+      expect(rules.next(breakerPool)).toBeNull();
+    }
+  });
+
+  it('壁割りの維持は体力の維持に劣後する', () => {
+    const rules = maintenanceRules(runBefore202(60, [MIND, RANGED]), 'ATTACK');
+    expect(rules.next(breakerPool)).toEqual(MAX_HP);
+    expect(rules.next(breakerPool)).toEqual(action(BREAKER));
+  });
+
+  it('壁割りを残り使用回数2以上で保持していれば選ばず、1回以下なら選ぶ', () => {
+    const withUses = (uses: number) => maintenanceRules(runBefore202(10_000, [MIND, RANGED, held(BREAKER, uses)]), 'ATTACK');
+    expect(withUses(2).next(breakerPool)).toBeNull();
+    expect(withUses(1).next(breakerPool)).toEqual(action(BREAKER));
   });
 });
 
@@ -218,5 +332,44 @@ describe('[V-TEST-BUILD-METRICS] merge_max', () => {
 
   it('継承がなければ値を持たない', () => {
     expect(mergeMax([])).toBeNull();
+  });
+});
+
+describe('[V-TEST-BUILD-METRICS] inherit_ratio', () => {
+  it('系統は召喚・体勢・心気・武技の順で最初に持つフラグにより、最大HP加算は独立に数える', () => {
+    expect(inheritSystem(action('ACT_SUMMON_AR12'))).toBe('SUMMON');
+    expect(inheritSystem(action('ACT_GUARD_AR12'))).toBe('STANCE');
+    expect(inheritSystem(action('ACT_MIND_AR12'))).toBe('MIND');
+    expect(inheritSystem(action('ACT_HEAVY_AR12'))).toBe('MARTIAL');
+    expect(inheritSystem(MAX_HP)).toBe('MAX_HP');
+  });
+
+  it('継承枠1件を1回として系統別の比を返す（統合した枠も枠ごとに数える）', () => {
+    const ratio = inheritRatio([action('ACT_HEAVY_AR12'), action('ACT_HEAVY_AR12'), action('ACT_MIND_AR12'), MAX_HP]);
+    expect(INHERIT_SYSTEMS).toEqual(['MARTIAL', 'STANCE', 'MIND', 'SUMMON', 'OTHER', 'MAX_HP']);
+    expect(ratio).toEqual([0.5, 0, 0.25, 0, 0, 0.25]);
+  });
+
+  it('継承がなければ値を持たない', () => {
+    expect(inheritRatio([])).toBeNull();
+  });
+});
+
+describe('[V-TEST-BUILD-PROPERTY] 1 再挑戦込みの通しプレイ', () => {
+  it('突破したシーンは再挑戦せず、挑戦回数と決着させた摂動を記録する', () => {
+    const run = playBuildRunWithRetry(buildProfileOf('BP-01'), 1);
+    expect(run.completed).toBe(true);
+    expect(run.scenes).toHaveLength(1);
+    expect(run.scenes[0].outcome.result).toBe('WIN');
+    expect(run.scenes[0].attempts).toBe(1);
+    expect(run.scenes[0].profileId).toBe('BASE');
+  });
+
+  it('分別性の比較の範囲として、インターミッションごとの継承と merge_max を記録する', () => {
+    const run = playBuildRunWithRetry(buildProfileOf('BP-01'), 2);
+    expect(run.scenes).toHaveLength(2);
+    expect(run.picks.length).toBeGreaterThan(0);
+    expect(run.mergeMaxes).toHaveLength(1);
+    expect(run.mergeMaxes[0]).toBe(mergeMax(run.picks));
   });
 });

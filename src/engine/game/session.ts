@@ -2,7 +2,7 @@
 // セーブデータ1件を単位とする操作の共通手続き：確定操作の記録・保留の決済・オートセーブ。
 
 import type { DecisionProvider } from '../decision.js';
-import type { SideLoopState } from '../pipeline/p8-decision.js';
+import type { ExecutedAction, SideLoopState } from '../pipeline/p8-decision.js';
 import type { RewindPendingType, SaveData } from '../meta/types.js';
 import type { StepDeps } from '../pipeline/step.js';
 import type { GameMasters } from '../run/masters.js';
@@ -22,6 +22,11 @@ export interface GameContext {
 export interface PendingStep {
   preDone: boolean;
   loop: SideLoopState;
+  // [A-LATE-5-10] 決定順の反転時、当該ステップの時間停止判定とプレイヤー指示を終えたとき true。
+  mineDone?: boolean;
+  // [A-LATE-5-10]「時間停止トリガー2」直前のステップで最初に実行された敵アクション。次のステップの
+  // 時間停止判定で消費する。判定は時間停止に先立つため、時間停止中に非Nullで残ることはない。
+  carried?: ExecutedAction | null;
 }
 
 export interface GameSession {

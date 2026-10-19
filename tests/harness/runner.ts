@@ -28,16 +28,19 @@ import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settl
 import { evalCallCount, resetEvalCallCount } from '../../src/ai/evaluate.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
-import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
+import type { SaveData } from '../../src/engine/meta/types.js';
+import { inheritPool, previewInherit, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import { deriveSysFlags } from '../../src/engine/flags.js';
 import { INFINITE_USES } from '../../src/engine/params.js';
 import { isActTransition, refillCapacity, refillPool } from '../../src/engine/progress/refill.js';
 import { sceneByOrder, type GameMasters } from '../../src/engine/run/masters.js';
 import type { StepDeps } from '../../src/engine/pipeline/step.js';
+import type { ActionParams } from '../../src/data/types.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
 import { buildEffectiveProfile, referenceProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 import { ROLE_HP_STALE_INTERMISSIONS } from '../../src/ai/refai.js';
+import { roundDiv } from '../../src/num/helpers.js';
 
 export const MASTERS: GameMasters = {
   actions: ACTION_MASTERS,
@@ -140,7 +143,7 @@ export interface SceneOutcome {
 }
 
 // [V-TEST-NONFUNC]［測定の打ち切り］1試行1シーンあたりの E(state) 呼び出し回数の上限。
-export const EVAL_CALL_LIMIT = 1_000_000;
+export const EVAL_CALL_LIMIT = 10_000_000;
 
 // 決着上限を超えても計測を続けるための安全弁。無限ループの検出そのものは within が担う。
 export const HARD_STEP_CAP = 20000;
@@ -185,6 +188,11 @@ function playOneOperation(
   return resumeTime(session, ctx, next);
 }
 
+// [V-TEST-REFAI]「体勢への減点」防御型の戦闘では適用しない（STANCE = 0）。他の方針は与えた重みのまま用いる。
+export function battleProfileFor(policy: RefPolicy, profile: EffectiveProfile): EffectiveProfile {
+  return policy === 'DEFENSE' ? { ...profile, actionBonus: { ...profile.actionBonus, STANCE: 0 } } : profile;
+}
+
 // 観測子を与えた場合は [M-UI-PLAYBACK] の歩進上限を1に絞り、ステップ境界ごとに観測点を通す
 // （実バトルと同じ進行経路のまま計測するため、別の駆動系を作らない）。
 export function advanceOptionsFor(observe?: StepObserver): AdvanceOptions {
@@ -213,6 +221,9 @@ export function driveBattle(
   // 確定しており、以降を進めても判定は変わらない。expected_length を持たないシーン（5-11）は
   // D-02 の対象外（[M-TMPL-VESSEL]）であり上限を導けないため、安全弁のみを用いる。
   const abortStep = abortAt ?? (scene.expected_length === null ? HARD_STEP_CAP : limit);
+  // [A-LATE-5-10]「探索木内の順序」参照プレイヤーAIの探索も、決定順を反転するシーンでは自軍 → 敵軍の順に並べる。
+  const battleProfile = battleProfileFor(policy, playerProfile);
+  const profile: EffectiveProfile = scene.deferred_decision ? { ...battleProfile, deferredDecision: true } : battleProfile;
 
   let result = initial;
   // [V-TEST-NONFUNC]［測定の打ち切り］シーンごとに計数を始める。
@@ -237,7 +248,7 @@ export function driveBattle(
       result === 'RUNNING'
         ? // 観測時の1歩進行（maxSteps）から再開する場合も、同じステップの手動停止要求を引き継ぐ。
           resumeBattle(session, ctx, policy === 'PASSIVE' || state === null ? options : { ...options, stopAtStep: state.step })
-        : playOneOperation(session, ctx, policy, options, playerProfile);
+        : playOneOperation(session, ctx, policy, options, profile);
     // 勝利時はバトルクリア共通決済（[M-PROG-CLEAR]）が run.battle_state を破棄する。進行は同じ
     // BattleState を更新し続けるため、呼び出し前に保持した参照から決着ステップを読む（破棄後の
     // run.battle_state を引くと、時間停止を挟まず決着した区間が数えられず、最後の停止位置になる）。
@@ -269,7 +280,16 @@ export function playScene(
 }
 
 // [V-TEST-REFAI]「継承の選択規則」。
-export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy, turn: number): InheritTarget | null {
+export function chooseInherit(
+  pool: readonly InheritTarget[],
+  policy: RefPolicy,
+  turn: number,
+  run: GameSession['data']['run'],
+): InheritTarget | null {
+  if (policy === 'ATTACK') {
+    // [V-TEST-REFAI]［攻撃型の武技の選択］1サイクルあたりの与ダメージが最大の武技を選ぶ。
+    return chooseAttackDps(run, pool);
+  }
   const actions = pool.filter((target): target is { kind: 'ACTION'; class_id: string } => target.kind === 'ACTION');
   const maxHp = pool.find((target) => target.kind === 'MAX_HP') ?? null;
   const paramOf = (target: { class_id: string }, key: 'atk' | 'dmg_hp' | 'deploy_ap' | 'gain_vp') =>
@@ -277,17 +297,6 @@ export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy,
   const flagged = (target: { class_id: string }, key: 'atk' | 'deploy_ap' | 'charge_pp') =>
     paramOf(target as { class_id: string }, key as 'atk' | 'deploy_ap') > 0;
 
-  if (policy === 'ATTACK') {
-    // 常に最大実効攻撃力の武技を選ぶ。同値なら最大HPダメージ。
-    const martial = actions.filter((target) => flagged(target, 'atk'));
-    if (martial.length === 0) {
-      return maxHp;
-    }
-    return martial.reduce((best, target) => {
-      const byAtk = paramOf(target, 'atk') - paramOf(best, 'atk');
-      return byAtk > 0 || (byAtk === 0 && paramOf(target, 'dmg_hp') > paramOf(best, 'dmg_hp')) ? target : best;
-    });
-  }
   if (policy === 'DEFENSE') {
     // 常に最大展開APの体勢を選ぶ。無ければ最大HP加算。
     const stances = actions.filter((target) => flagged(target, 'deploy_ap'));
@@ -316,7 +325,7 @@ export function chooseInherit(pool: readonly InheritTarget[], policy: RefPolicy,
 // 役割は枠ごとに、直前の枠の継承を反映した手持ちで判定する。すべて充足していれば循環選択に従う。
 const ROLE_BREAKER_USES = 2;
 const ROLE_RANGED_USES = 3;
-const ROLE_MIND_USES = 5;
+export const ROLE_MIND_USES = 5;
 const BREAKER_IDS: readonly string[] = BREAKERS.map((breaker) => breaker.class_id);
 
 type ActionRecord = (typeof ACTION_MASTERS)[keyof typeof ACTION_MASTERS];
@@ -344,6 +353,57 @@ export function breakerForScene(sceneId: string): string | null {
   return best?.class_id ?? null;
 }
 
+interface BreakerRun {
+  current_scene_id: string;
+  hero_acts: readonly { master_ref: string; uses_left: number }[];
+  // 未指定は同行従者なし（判定の残り使用回数は既定の2）。
+  party?: readonly { attendant_id: string; inherit_state: string }[];
+}
+
+// [V-TEST-REFAI]［壁割りの維持］「5-10 の前の補充」次に挑むシーンが依代のシーンの直前のシーンであるとき真。
+export function beforeVesselScene(run: { current_scene_id: string }): boolean {
+  const next = SCENE_MASTERS[run.current_scene_id as keyof typeof SCENE_MASTERS];
+  if (next === undefined) {
+    return false;
+  }
+  const afterNext = sceneByOrder(MASTERS, next.order + 1);
+  return afterNext !== undefined && afterNext.enemy_id === VESSEL_ENEMY_ID;
+}
+
+// [V-TEST-REFAI]［壁割りの維持］判定に用いる残り使用回数。依代のシーンの直前のシーンに挑むインターミッションでは、
+// 未継承の同行従者が当該壁割りを継承した場合の実効初期使用回数（[M-INHERIT-MERGE]）の最大とする。
+function breakerUsesRequired(run: BreakerRun, breakerId: string): number {
+  if (!beforeVesselScene(run)) {
+    return ROLE_BREAKER_USES;
+  }
+  const baseUses = recordOf(breakerId)!.base_uses;
+  let required = ROLE_BREAKER_USES;
+  for (const slot of run.party ?? []) {
+    if (slot.inherit_state !== 'UNUSED') {
+      continue;
+    }
+    const attendant = ATTENDANT_MASTERS[slot.attendant_id as keyof typeof ATTENDANT_MASTERS];
+    const usesRate: number = (attendant.coeffs as { usesRate?: number }).usesRate ?? USES_RATE_DEFAULT;
+    required = Math.max(required, roundDiv(baseUses * usesRate, USES_RATE_DEFAULT * USES_RATE_DEFAULT));
+  }
+  return required;
+}
+
+// 使用回数係数の既定値（centi、[M-INHERIT-MERGE]）。
+const USES_RATE_DEFAULT = 100;
+
+// [V-TEST-REFAI]［壁割りの維持］次に挑むシーンのカバー区間を担当する壁割りを、判定の残り使用回数で
+// 保持していないとき、そのクラスID。保持している、または担当がないときは null。
+export function missingBreaker(run: BreakerRun): string | null {
+  const breakerId = breakerForScene(run.current_scene_id);
+  if (breakerId === null) {
+    return null;
+  }
+  const required = breakerUsesRequired(run, breakerId);
+  const held = run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, required));
+  return held ? null : breakerId;
+}
+
 // 反復射程：射程2以上の武技のうち、マスター根源武技と壁割り担当を除くもの。
 function isSustainedRanged(record: ActionRecord): boolean {
   return (
@@ -352,14 +412,25 @@ function isSustainedRanged(record: ActionRecord): boolean {
 }
 
 // [V-TEST-REFAI]［役割充足による選択］最大HP加算を最後に継承してから経過したインターミッション数（周回ごと）。
-const HP_GAIN_SINCE = new WeakMap<object, number>();
+// 再挑戦のロールバックはステートを複製するため、ステートの外に保持せずインターミッションスナップショットから求める。
+// 最大HPは継承でのみ変わるため、隣り合うスナップショットの最大HPが等しければ前のインターミッションに加算は無い。
+export function hpGainSince(run: GameSession['data']['run']): number {
+  const snapshots = run.im_snapshots;
+  let since = 0;
+  for (let index = snapshots.length - 1; index > 0; index -= 1) {
+    if (snapshots[index].state.hero_max_hp > snapshots[index - 1].state.hero_max_hp) {
+      break;
+    }
+    since += 1;
+  }
+  return since;
+}
 
 // 途絶とみなす回数は [M-GUARD-LETHAL] と共有するため参照プレイヤーAIのモジュールに置く。
 export { ROLE_HP_STALE_INTERMISSIONS };
 
 export function chooseByRole(
-  run: {
-    current_scene_id: string;
+  run: BreakerRun & {
     hero_max_hp: number;
     hero_acts: readonly { master_ref: string; uses_left: number; sys_flags: readonly string[] }[];
   },
@@ -369,6 +440,12 @@ export function chooseByRole(
   hpStale = false,
 ): InheritTarget | null {
   const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
+  const breakerId = missingBreaker(run);
+  const breaker = breakerId === null ? undefined : actions.find((entry) => entry.class_id === breakerId);
+  // 「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは、壁割りを体力に先立てる。
+  if (breaker !== undefined && beforeVesselScene(run)) {
+    return breaker;
+  }
   // 1. 体力：最大HPが hp_bonus_base を下回るとき、または最大HPの加算が長く途絶えているとき。
   if (run.hero_max_hp < hpBonusBase || hpStale) {
     const hp = pool.find((entry) => entry.kind === 'MAX_HP');
@@ -377,15 +454,8 @@ export function chooseByRole(
     }
   }
   // 2. 壁割り
-  const breakerId = breakerForScene(run.current_scene_id);
-  if (
-    breakerId !== null &&
-    !run.hero_acts.some((act) => act.master_ref === breakerId && hasUses(act.uses_left, ROLE_BREAKER_USES))
-  ) {
-    const breaker = actions.find((entry) => entry.class_id === breakerId);
-    if (breaker !== undefined) {
-      return breaker;
-    }
+  if (breaker !== undefined) {
+    return breaker;
   }
   // 3. 反復射程
   const holdsRanged = run.hero_acts.some((act) => {
@@ -404,8 +474,8 @@ export function chooseByRole(
       return best.entry;
     }
   }
-  // 4. 心気
-  if (mindUsesLeft(run) < ROLE_MIND_USES) {
+  // 4. 心気（残り使用回数、または心気1回の出力が次の壁割りに足りないとき）
+  if (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, pool)) {
     const mind = chooseMindRefill(pool);
     if (mind !== null) {
       return mind;
@@ -430,22 +500,68 @@ export function mindUsesLeft(run: { hero_acts: readonly { sys_flags: readonly st
   return total;
 }
 
-// 継承プールの FLAG_MIND を持つ項目のうち加算VPが最大のもの（同値ならプールの走査順で最初のもの）。
+// 心気1回（VP 0 から）で得る PP の100倍：gain_vp × charge_pp（centi）。[M-RESOLVE-MIND] の PP = VP × 充填率による。
+function mindYieldCenti(classId: string): number {
+  const record = ACTION_MASTERS[classId as keyof typeof ACTION_MASTERS];
+  if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
+    return -1;
+  }
+  // [V-TEST-REFAI]［心気の出力］PPコストを要する心気は PP 0 から実行できないため、心気1回のPPを持たない。
+  if (record.params.cost_pp > 0) {
+    return -1;
+  }
+  return record.params.gain_vp * record.params.charge_pp;
+}
+
+// 継承プールの FLAG_MIND を持つ項目のうち、心気1回の PP が最大のもの（同値ならプールの走査順で最初のもの）。
 export function chooseMindRefill(pool: readonly InheritTarget[]): InheritTarget | null {
-  let best: { target: InheritTarget; gainVp: number } | null = null;
+  let best: { target: InheritTarget; yieldCenti: number } | null = null;
   for (const target of pool) {
     if (target.kind !== 'ACTION') {
       continue;
     }
-    const record = ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS];
-    if (record === undefined || !deriveSysFlags(record.params).includes('FLAG_MIND')) {
+    const yieldCenti = mindYieldCenti(target.class_id);
+    if (yieldCenti < 0) {
       continue;
     }
-    if (best === null || record.params.gain_vp > best.gainVp) {
-      best = { target, gainVp: record.params.gain_vp };
+    if (best === null || yieldCenti > best.yieldCenti) {
+      best = { target, yieldCenti };
     }
   }
   return best?.target ?? null;
+}
+
+// [V-TEST-REFAI]［心気の出力］保持する心気のいずれも、次に挑むシーンの壁割り担当の PP コストを心気1回
+// （VP 0 から）で賄えず、かつ継承プールに、より出力が高く MIND_SHORT_USES 回で賄える心気があるとき真。
+const MIND_SHORT_USES = 2;
+export function mindShort(
+  run: { current_scene_id: string; hero_acts: readonly { master_ref: string; uses_left: number }[] },
+  pool: readonly InheritTarget[],
+): boolean {
+  const breakerId = breakerForScene(run.current_scene_id);
+  const breaker = breakerId === null ? undefined : ACTION_MASTERS[breakerId as keyof typeof ACTION_MASTERS];
+  if (breaker === undefined) {
+    return false;
+  }
+  let held = -1;
+  for (const act of run.hero_acts) {
+    if (act.uses_left !== 0) {
+      held = Math.max(held, mindYieldCenti(act.master_ref));
+    }
+  }
+  // 壁割りの PP コストとの比較は、[M-RESOLVE-MIND] の目標PPと同じく四捨五入した値で行う。
+  if (held >= 0 && roundDiv(held, 100) >= breaker.params.cost_pp) {
+    return false;
+  }
+  const offer = chooseMindRefill(pool);
+  if (offer === null || offer.kind !== 'ACTION') {
+    return false;
+  }
+  // 出力が上回り、かつ2回で壁割りの PP コストを賄える心気に限る（VP は心気のたびに累積するため、
+  // 2回後の PP は round(2 × gain_vp × charge_pp)）。
+  // 出力が上回るだけの心気まで選ぶと、壁割りに届かない小刻みな更新が継承枠を占め、他の役割が痩せる。
+  const offered = mindYieldCenti(offer.class_id);
+  return offered > held && roundDiv(offered * MIND_SHORT_USES, 100) >= breaker.params.cost_pp;
 }
 
 // [V-TEST-REFAI]［供犠の実行］対象は同行従者のうち従者01（リナ）以外を従者ID降順に並べた先頭。
@@ -466,7 +582,10 @@ export function needsSacrifice(run: { hero_hp: number; hero_max_hp: number }): b
   return run.hero_hp * 3 < run.hero_max_hp;
 }
 
-// [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーンであり、
+// [M-TMPL-VESSEL] 5-11 の依代。
+const VESSEL_ENEMY_ID = 'ENEMY_VESSEL';
+
+// [V-TEST-REFAI]［供犠の実行］「ボス前の供犠」次に挑むシーンが当該アクトの最終シーン、または依代のシーンの直前のシーンであり、
 // 現在HPが最大HP未満であるとき、閾値に依らず供犠する。インターミッションの時点で
 // current_scene_id は次に挑むシーンを指す。
 export function needsBossSacrifice(run: {
@@ -480,7 +599,9 @@ export function needsBossSacrifice(run: {
   }
   const afterNext = sceneByOrder(MASTERS, next.order + 1);
   const isActFinal = afterNext === undefined || afterNext.act !== next.act;
-  return isActFinal && run.hero_hp < run.hero_max_hp;
+  // 依代のシーン（[M-END-SCENE511]、5-11）はクリア決済のない結末であり、その直前（5-10）を実質の最終ボスとして扱う。
+  const beforeVessel = afterNext !== undefined && afterNext.enemy_id === VESSEL_ENEMY_ID;
+  return (isActFinal || beforeVessel) && run.hero_hp < run.hero_max_hp;
 }
 
 // [V-TEST-REFAI]［体力の維持］判定に用いる、直前にクリアしたシーン。継承プールの提示元と同じである。
@@ -489,27 +610,85 @@ function clearedSceneOf(run: { current_scene_id: string }) {
   return sceneByOrder(MASTERS, current.order - 1);
 }
 
+// [V-TEST-REFAI]［効果のない継承の除外］継承しても主人公の手持ちが変わらない項目（既存スロットへの統合で
+// 基礎値がいずれも改善せず、実効初期使用回数が当該スロットの残り使用回数を上回らないもの）を継承プールから除く。
+export function usefulPool(run: GameSession['data']['run'], attendantId: string): InheritTarget[] {
+  return inheritPool(run, MASTERS).filter((target) => {
+    const preview = previewInherit(run, MASTERS, attendantId, target);
+    if (preview.kind !== 'MERGE') {
+      return true;
+    }
+    const existing = run.hero_acts.find((action) => action.instance_id === preview.existingInstanceId);
+    return preview.improved.length > 0 || (existing !== undefined && existing.uses_left < preview.usesInitial);
+  });
+}
+
+// [V-TEST-REFAI]［体力の維持］攻撃型・防御型の読み替えの判定。最大HPが直前にクリアしたシーンの
+// hp_bonus_base を下回るとき、および攻撃型に限り直近 ROLE_HP_STALE_INTERMISSIONS 回のインターミッションで
+// 最大HP加算を継承していないとき（[M-GUARD-LETHAL] の前提）に真。since は途絶の続いた回数。
+export function needsHpRaise(run: { current_scene_id: string; hero_max_hp: number }, policy: RefPolicy, since: number): boolean {
+  return run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0) || (policy === 'ATTACK' && since >= ROLE_HP_STALE_INTERMISSIONS);
+}
+
+// [V-TEST-REFAI]［攻撃型の武技の選択］PPの補充に要する歩数を含む1サイクルあたりの与ダメージが最大の武技。
+// 同値はプールの走査順で最初のもの。武技が無ければ最大HP加算。
+const NO_MIND_REFILL_STEPS = 1e9;
+export function chooseAttackDps(
+  run: { hero_acts: readonly { uses_left: number; sys_flags: readonly string[]; base_params: ActionParams }[] },
+  pool: readonly InheritTarget[],
+): InheritTarget | null {
+  // 主人公の心気（PPコスト0、残り使用回数0を除く）のうち、PP1あたりの歩数が最小のもの（［心気の出力］の心気1回のPP）。
+  let stepsPerPp = Number.POSITIVE_INFINITY;
+  for (const act of run.hero_acts) {
+    const params = act.base_params;
+    if (act.uses_left === 0 || params.cost_pp > 0 || !act.sys_flags.includes('FLAG_MIND')) {
+      continue;
+    }
+    const ppPerUse = (params.gain_vp * params.charge_pp) / 100;
+    if (ppPerUse > 0) {
+      stepsPerPp = Math.min(stepsPerPp, (params.step_thought + params.step_startup) / ppPerUse);
+    }
+  }
+  let best: { target: InheritTarget; score: number } | null = null;
+  for (const target of pool) {
+    if (target.kind !== 'ACTION') {
+      continue;
+    }
+    const record = ACTION_MASTERS[target.class_id as keyof typeof ACTION_MASTERS];
+    if (record === undefined || record.is_root || record.params.atk <= 0 || record.params.dmg_hp <= 0) {
+      continue;
+    }
+    const params = record.params;
+    const refill =
+      params.cost_pp > 0 ? (Number.isFinite(stepsPerPp) ? params.cost_pp * stepsPerPp : NO_MIND_REFILL_STEPS) : 0;
+    const score = params.dmg_hp / (params.step_thought + params.step_startup + params.step_recovery + refill + 1);
+    if (best === null || score > best.score) {
+      best = { target, score };
+    }
+  }
+  return best?.target ?? pool.find((target) => target.kind === 'MAX_HP') ?? null;
+}
+
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
 export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
   const run = session.data.run;
   if (policy === 'BALANCE') {
     // [V-TEST-REFAI]［役割充足による選択］体力の役割は、最大HP加算の途絶が続くときにも未充足とする。
-    const since = HP_GAIN_SINCE.get(run) ?? 0;
+    const since = hpGainSince(run);
     let hpGained = false;
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
-      const pool = inheritPool(run, MASTERS);
+      const pool = usefulPool(run, member.attendant_id);
       const stale: boolean = !hpGained && since >= ROLE_HP_STALE_INTERMISSIONS;
       const target: InheritTarget | null =
-        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn);
+        chooseByRole(run, pool, clearedSceneOf(run).hp_bonus_base ?? 0, stale) ?? chooseInherit(pool, policy, turn, run);
       if (target !== null) {
         confirmInherit(session, ctx, member.attendant_id, target);
         hpGained = hpGained || target.kind === 'MAX_HP';
       }
     }
-    HP_GAIN_SINCE.set(run, hpGained ? 0 : since + 1);
   } else if (policy !== 'PASSIVE') {
     // [V-TEST-REFAI]［体力の維持］［リソース生成手段の維持］いずれも判定はインターミッション開始時に
     // 1度だけ行い、読み替えはそれぞれ当該インターミッションの継承枠1件に限る。体力が優先する。
@@ -520,17 +699,26 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         const master = ACTION_MASTERS[act.master_ref as keyof typeof ACTION_MASTERS];
         return master !== undefined && !master.is_root && master.params.range >= 2 && master.params.atk > 0;
       });
-    let raiseHp = run.hero_max_hp < (clearedSceneOf(run).hp_bonus_base ?? 0);
-    let refillMind = (policy === 'ATTACK' || policy === 'DEFENSE') && mindUsesLeft(run) <= 1;
+    let raiseHp = needsHpRaise(run, policy, hpGainSince(run));
+    let refillMind =
+      (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS)));
+    // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する（依代のシーンの直前のシーンに挑む回は体力に先立てる）。
+    let needBreaker = missingBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
       }
-      const pool = inheritPool(run, MASTERS);
-      const hp = raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
-      const refill = hp === null && refillMind ? chooseMindRefill(pool) : null;
+      const pool = usefulPool(run, member.attendant_id);
+      // ［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは体力に先立てる。
+      const breakerFirst = beforeVesselScene(run);
+      const breakerOf = () =>
+        needBreaker !== null ? (pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === needBreaker) ?? null) : null;
+      const early = breakerFirst ? breakerOf() : null;
+      const hp = early === null && raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
+      const breaker = early ?? (hp === null ? breakerOf() : null);
+      const refill = hp === null && breaker === null && refillMind ? chooseMindRefill(pool) : null;
       const ranged =
-        hp === null && refill === null && needRange
+        hp === null && breaker === null && refill === null && needRange
           ? (pool
               .filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION')
               .filter((entry) => {
@@ -544,12 +732,19 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
                 return a > b ? entry : best;
               }, null) ?? null)
           : null;
-      const target = hp ?? refill ?? ranged ?? chooseInherit(pool, policy, turn);
+      const target =
+        hp ??
+        breaker ??
+        refill ??
+        ranged ??
+        chooseInherit(pool, policy, turn, run);
       if (target === null) {
         continue;
       }
       if (hp !== null) {
         raiseHp = false;
+      } else if (breaker !== null) {
+        needBreaker = null;
       } else if (refill !== null) {
         refillMind = false;
       } else if (ranged !== null) {
@@ -594,8 +789,9 @@ export interface RunOutcome {
   readonly completed: boolean;
 }
 
-// 新規セッションと、そのセッションを引く文脈の組。
-export function createRun(): { session: GameSession; ctx: HarnessContext } {
+// 新規セッションと、そのセッションを引く文脈の組。data を与えると、その周回データ（シーン開始前の
+// 保存）から再開する（[V-TEST-REFAI]［シーン単位の勝率測定］の到達局面）。
+export function createRun(data?: SaveData): { session: GameSession; ctx: HarnessContext } {
   let started: GameSession | null = null;
   const ctx = createHarnessContext(() => {
     if (started === null) {
@@ -603,7 +799,7 @@ export function createRun(): { session: GameSession; ctx: HarnessContext } {
     }
     return started;
   });
-  const session = newGameSession(ctx);
+  const session: GameSession = data === undefined ? newGameSession(ctx) : { data, battle_start_run: null };
   started = session;
   return { session, ctx };
 }

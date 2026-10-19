@@ -11,7 +11,7 @@ import type { BattleOutcome } from '../engine/pipeline/p5-discard.js';
 import type { StepDeps } from '../engine/pipeline/step.js';
 import type { BattleState, Side, Unit } from '../engine/types.js';
 import { floorDiv } from '../num/helpers.js';
-import { cloneState } from './clone.js';
+import { cloneBattleState } from './clone.js';
 import { MATE, QMATE } from './constants.js';
 import { clamp, signedRoundDiv } from './fixed.js';
 import {
@@ -28,7 +28,7 @@ import {
 } from './features.js';
 import { type FeatureKey, BASE_WEIGHTS, type EffectiveProfile, weightMultOf } from './profile.js';
 import { runQuiescence } from './quiesce.js';
-import { ttk, xSurvival } from './ttk.js';
+import { newTtkCache, ttk, xSurvival } from './ttk.js';
 import { SCALE } from './constants.js';
 
 const INT32_MAX = 2147483647;
@@ -108,10 +108,10 @@ export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number
 }
 
 // [A-SEARCH-QUIESCE]［評価対象］［決着の確認］葉ノードの評価値と、その値が「敗れる側に決定点が
-// 現れた決着」であるか（確認の延長の対象であるか）を返す。
+// 現れた決着」であるとき（確認の延長の対象であるとき）の敗れる側を返す。対象でなければ null。
 export interface LeafEvaluation {
   readonly value: number;
-  readonly refutableSettlement: boolean;
+  readonly refutableLoser: Side | null;
 }
 
 // [V-TEST-NONFUNC]［測定の打ち切り］通しプレイの測定は、1試行1シーンあたりの E(state) の
@@ -135,22 +135,22 @@ export function evaluateLeafPosition(
 ): LeafEvaluation {
   evalCalls += 1;
   if (masterOf(state, 'FOE') === undefined) {
-    return { value: -MATE, refutableSettlement: false };
+    return { value: -MATE, refutableLoser: null };
   }
   if (masterOf(state, 'MINE') === undefined) {
-    return { value: MATE, refutableSettlement: false };
+    return { value: MATE, refutableLoser: null };
   }
 
   // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
   // 完了効果（心気のVP・PP、体勢のAP、武技の着弾・スタン）は静止局面のステートに反映済みとなる。
   // 延長中に決着した局面は「静止探索中の決着」のスコアで評価する（ply は葉ノードの値）。state は変更しない。
-  const quiet = cloneState(state);
-  const { trace, outcome, decided, firstDecision } = runQuiescence(quiet, deps);
+  const quiet = cloneBattleState(state);
+  const { trace, outcome, decided, firstDecision, thoughtLost } = runQuiescence(quiet, deps);
   if (outcome !== 'NONE') {
     // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、呼び出し側が
-    // 決定点1つ分の延長で確認する。
+    // 敗れる側の決定点1つ分の延長で確認する。
     const loser = outcome === 'WIN' ? 'FOE' : 'MINE';
-    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableSettlement: decided[loser] };
+    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableLoser: decided[loser] ? loser : null };
   }
   const foeMaster = masterOf(quiet, 'FOE');
   const mineMaster = masterOf(quiet, 'MINE');
@@ -158,13 +158,16 @@ export function evaluateLeafPosition(
     throw new Error('静止探索が決着を返さずにマスターが消滅した');
   }
   // 延長したステップ数 q。トレースは葉ノードを添字0として記録されている。
-  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1 };
+  const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1, cache: newTtkCache(), thoughtDeny: prof.thoughtDeny, landingWait: prof.landingWait };
   // [A-EVAL-TTK]［延長中の決定点からの計画］延長中に決定点を持った陣営は、その時点からの計画と比べて小さい方を採る。
   let tp = ttk(mineMaster, foeMaster, inputs);
   let te = ttk(foeMaster, mineMaster, inputs);
   const mineFirst = firstDecision.MINE;
   if (mineFirst !== null && mineFirst.index < inputs.offset) {
-    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index }));
+    // ［延長中の妨害］延長中に主人公のマスターが経過思考を失った最初の添字を、決定点からの計画の妨害に数える。
+    const lost = prof.traceDeny ? thoughtLost.MINE.find((index) => index > mineFirst.index) : undefined;
+    const traceDeny = lost === undefined ? undefined : lost - mineFirst.index;
+    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index, traceDeny }));
   }
   const foeFirst = firstDecision.FOE;
   if (foeFirst !== null && foeFirst.index < inputs.offset) {
@@ -180,5 +183,5 @@ export function evaluateLeafPosition(
     const effectiveWeight = signedRoundDiv(weight * mult, 100);
     total += signedRoundDiv(effectiveWeight * x, SCALE);
   }
-  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableSettlement: false };
+  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableLoser: null };
 }

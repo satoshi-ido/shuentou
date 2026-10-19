@@ -42,6 +42,13 @@ describe('[V-TEST-REFAI]［供犠の実行］「ボス前の供犠」', () => {
     expect(needsBossSacrifice({ current_scene_id: 'SCENE_3_05', hero_hp: 163, hero_max_hp: 284 })).toBe(false);
     expect(needsBossSacrifice({ current_scene_id: 'SCENE_2_03', hero_hp: 92, hero_max_hp: 284 })).toBe(false);
   });
+
+  it('依代のシーン（5-11）の直前の 5-10 もボスとして扱う', () => {
+    // 5-11 は依代との結末のシーン（[M-END-SCENE511]）であり、実質の最終ボスは 5-10 である。
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_5_10', hero_hp: 908, hero_max_hp: 1688 })).toBe(true);
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_5_10', hero_hp: 1688, hero_max_hp: 1688 })).toBe(false);
+    expect(needsBossSacrifice({ current_scene_id: 'SCENE_5_09', hero_hp: 908, hero_max_hp: 1688 })).toBe(false);
+  });
 });
 
 describe('[V-TEST-REFAI]「体勢への減点」', () => {
