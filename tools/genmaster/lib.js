@@ -616,3 +616,28 @@ export function buildScriptRecords(scripts, scenes) {
   }
   return result;
 }
+
+// [S-ECHO-SCHEMA] 残響マスタ。トリガー条件値の型を種別に照らし、script_id が脚本マスタに存在することを検査する。
+export function buildEchoRecords(echoes, scriptRecords) {
+  const result = {};
+  for (const entry of echoes) {
+    if (result[entry.echo_id] !== undefined) {
+      throw new Error(`残響IDの重複: ${entry.echo_id}`);
+    }
+    const param = entry.trigger_param;
+    const paramOk =
+      entry.trigger_kind === 'A'
+        ? typeof param === 'string'
+        : entry.trigger_kind === 'C'
+          ? Number.isInteger(param)
+          : param === null;
+    if (!paramOk) {
+      throw new Error(`トリガー条件値が種別 ${entry.trigger_kind} に合わない: ${entry.echo_id}`);
+    }
+    if (entry.script_id !== null && scriptRecords[entry.script_id] === undefined) {
+      throw new Error(`残響 ${entry.echo_id} の脚本が脚本マスタにない: ${entry.script_id}`);
+    }
+    result[entry.echo_id] = { ...entry };
+  }
+  return result;
+}

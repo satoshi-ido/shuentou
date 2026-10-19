@@ -12,6 +12,8 @@
 import { executableActions, hasExecutableAction, type DecisionProvider } from '../decision.js';
 import { createBattleState } from '../battle.js';
 import { instantiateActionList } from '../instantiate.js';
+import { fireSceneClearEchoes } from '../meta/echo.js';
+import { recordSceneCleared } from '../meta/foreknown.js';
 import type { BattleOutcome } from '../pipeline/p5-discard.js';
 import { executeAction, newSideLoopState, runSideDecisionLoop, type ExecutedAction } from '../pipeline/p8-decision.js';
 import { runPreDecision } from '../pipeline/step.js';
@@ -93,7 +95,10 @@ function instructableUnits(state: BattleState): Unit[] {
 function finish(session: GameSession, ctx: GameContext, outcome: Exclude<BattleOutcome, 'NONE'>): BattleResult {
   session.pending_step = null;
   if (outcome === 'WIN') {
+    const cleared = sceneOf(ctx.masters, session.data.run.current_scene_id);
     settleBattleClear(session.data.run, ctx.masters);
+    recordSceneCleared(session.data.meta, cleared.order);
+    session.cleared_echoes = fireSceneClearEchoes(session.data.meta, session.data.run, ctx.masters, cleared.scene_id);
     session.battle_start_run = null;
     autosave(session, ctx); // ［保存契機］バトルクリア共通決済の完了時（スナップショット記録の後）
   }

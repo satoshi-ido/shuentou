@@ -88,7 +88,7 @@ describe('[I-ENV-WORKER] 探索ワーカーとの往復', () => {
     const mind = hero.acts.find((a) => a.master_ref === 'ACT_MIND_AR3')!;
     // 指示確定 → アンドゥで停止時点へ戻す。
     instruct(session, ctx, hero.unit_id, mind.instance_id);
-    undo(session);
+    undo(session, ctx);
     client.invalidate();
     expect(session.pending_step ?? null).toBeNull();
     expect(resumeBattle(session, ctx)).not.toBe('WIN');

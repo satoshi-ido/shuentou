@@ -4,6 +4,7 @@ import type {
   ActionMasterRecord,
   BookMasterRecord,
   BreakerRecord,
+  EchoMasterRecord,
   AttendantMasterRecord,
   CreatureMasterRecord,
   EnemyMasterRecord,
@@ -20,10 +21,11 @@ export interface GameMasters {
   readonly creatures: Readonly<Record<string, CreatureMasterRecord>>;
   readonly attendants: Readonly<Record<string, AttendantMasterRecord>>;
   readonly heroInitActions: readonly string[];
+  // [S-ECHO-SCHEMA] 残響マスタ。[M-META-COUNTERS] echo_unlocked の要素集合はその echo_id の全件。
+  readonly echoes: Readonly<Record<string, EchoMasterRecord>>;
   // 辞書型ステートの要素集合。[M-STATE-RUNSTATE] cross_unlocked は交差残響マスタの cross_id、
-  // [M-META-COUNTERS] echo_unlocked は残響マスタの echo_id、help_seen は解説マスタの help_id の全件。
+  // help_seen は解説マスタの help_id の全件。
   readonly crossIds: readonly string[];
-  readonly echoIds: readonly string[];
   readonly helpIds: readonly string[];
 }
 

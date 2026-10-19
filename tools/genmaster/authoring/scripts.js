@@ -39,8 +39,19 @@ function ridealong(scriptId, trigger) {
   return { script_id: scriptId, trigger, anchor: null, order: 1, branch_group: null, condition: null, replay_on_rollback: true };
 }
 
-// [M-META-ECHO]［トリガー種別と判定タイミング］種別A の対象従者。02 は scripts-acts-1-2.js に置く。
-const ECHO_A_ATTENDANTS = ['03', '04', '06', '07', '10', '11', '12', '13', '14', '15'];
+// [S-RETAINER-03]・[S-RETAINER-05]［版と脚本レコード］既知版と初見版を branch_group で切り替える。
+function echoVersions(number, trigger, knownVariable) {
+  const version = (suffix, value) => ({
+    ...ridealong(`SCRIPT_ECHO_${number}_${suffix}`, trigger),
+    branch_group: `ECHO_${number}`,
+    condition: `${knownVariable} == ${value}`,
+  });
+  return [version('KNOWN', 'True'), version('UNKNOWN', 'False')];
+}
+
+// [M-META-ECHO]［トリガー種別と判定タイミング］種別A の対象従者。02 は scripts-acts-1-2.js に置き、
+// 版を持つ 03 は下の echoVersions で置く。
+const ECHO_A_ATTENDANTS = ['04', '06', '07', '10', '11', '12', '13', '14', '15'];
 
 // [S-CROSS-02-03]〜[S-CROSS-12-13]。IDの形式は [S-CROSS-ID]。
 const CROSS_PAIRS = ['02_03', '03_05', '03_15', '04_06', '07_15', '10_11', '11_12', '12_13'];
@@ -51,6 +62,7 @@ export const SCRIPTS = [
   ...SCRIPTS_ACTS_1_2,
   // 種別A の残響（[M-META-ECHO]）。
   ...ECHO_A_ATTENDANTS.map((number) => ridealong(`SCRIPT_ECHO_${number}`, 'SCENE_CLEAR')),
+  ...echoVersions('03', 'SCENE_CLEAR', 'ForeknownAt[SCENE_1_02]'),
 
   // ［INTERMISSION_ENTER］交差残響（[S-CROSS-DESIGN]）と種別C の残響（従者08）。
   ...CROSS_PAIRS.map((pair) => ridealong(`SCRIPT_CROSS_${pair}`, 'INTERMISSION_ENTER')),
@@ -64,7 +76,7 @@ export const SCRIPTS = [
   actTitle(3, 'ACT_TRANSITION', '2', 'アクト3：裏切りの環'),
   actTitle(4, 'ACT_TRANSITION', '3', 'アクト4：虚穴'),
   actTitle(5, 'ACT_TRANSITION', '4', 'アクト5：終わらない黄昏'),
-  ridealong('SCRIPT_ECHO_05', 'ACT_TRANSITION'),
+  ...echoVersions('05', 'ACT_TRANSITION', 'ForeclearedAt[SCENE_2_04]'),
 
   // ［ENDING］anchor は分岐記号（[M-END-BRANCH]）。
   { script_id: 'SCRIPT_END_A', trigger: 'ENDING', anchor: 'a', order: 1, branch_group: null, condition: null, replay_on_rollback: true },

@@ -176,6 +176,17 @@ export interface HelpMasterRecord {
   readonly order: number; // 同一 category 内の並び順
 }
 
+// [S-ECHO-SCHEMA] 残響マスタ。trigger_kind は [M-META-ECHO]［トリガー種別と判定タイミング］の種別。
+export type EchoTriggerKind = 'A' | 'B' | 'C' | 'D';
+
+export interface EchoMasterRecord {
+  readonly echo_id: string; // 体系は [S-ECHO-ID]
+  readonly attendant_id: string;
+  readonly trigger_kind: EchoTriggerKind;
+  readonly trigger_param: string | number | null; // 種別AはシーンID、種別Cは閾値、種別B・Dは Null
+  readonly script_id: string | null; // Null は［本文を持たない開示］
+}
+
 // [M-DATA-ASSETMASTER]
 export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTION' | 'SCENE' | 'SCRIPT' | 'GLOBAL';
 export type AssetSlot = 'PORTRAIT' | 'PLATE' | 'ICON' | 'BGM' | 'SE';

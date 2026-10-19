@@ -1,5 +1,6 @@
 // [M-META-SAVEDATA] [I-STATE-SNAPSHOT] ニューゲーム・ロード。
 
+import { applyRewindKnowledge } from '../meta/foreknown.js';
 import type { SaveData } from '../meta/types.js';
 import { cloneRun } from '../run/snapshot.js';
 import { createNewGame, SAVE_VERSION } from '../run/newgame.js';
@@ -34,6 +35,7 @@ export function loadGame(serialized: string, ctx: GameContext, options: StartOpt
   }
   // ［バトル中の保存を行わない］直近のバトル開始時セーブからの再開は ROLLBACK_BATTLE の保留を立てる。
   markPending(session, 'ROLLBACK_BATTLE');
+  applyRewindKnowledge(data.run, ctx.masters); // [M-STATE-RUNSTATE]【巻き戻し後の既知】ロード時に同じ追加を行う
   // [M-UI-CONFIG]「監視トグルの既定」は端末ローカル設定でありセーブに含まれない。バトル中のセーブは
   // 常にステップ0の生成直後（[M-META-SAVEDATA]）であるため、再開の時点で現在の設定を適用する。
   if (options.watchDefault !== undefined && data.run.battle_state !== null) {

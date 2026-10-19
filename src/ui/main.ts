@@ -4,6 +4,7 @@ import { createCreatureFactory } from '../engine/creature.js';
 // 再生ループ（[M-UI-PLAYBACK]）の上で進行する。
 
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';
+import { ECHO_MASTERS } from '../data/generated/echo-masters.js';
 import { ASSET_MASTERS } from '../data/generated/asset-masters.js';
 import { ATTENDANT_MASTERS } from '../data/generated/attendant-masters.js';
 import { BREAKERS } from '../data/generated/breaker-masters.js';
@@ -106,7 +107,7 @@ const masters: GameMasters = {
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
   crossIds: [],
-  echoIds: [],
+  echoes: ECHO_MASTERS,
   helpIds: Object.keys(HELP_MASTERS),
 };
 
@@ -462,7 +463,7 @@ const screenHandlers: ScreenHandlers = {
     }
     notice = '';
     playSe('UI_CANCEL'); // [M-DATA-AUDIO-CUE] UI_CANCEL：アンドゥ実行時
-    undo(requireSession());
+    undo(requireSession(), ctx);
     client?.invalidate();
     focusedInstanceId = null;
     selectedInstanceId = null;
@@ -488,7 +489,7 @@ const screenHandlers: ScreenHandlers = {
       .map(() => resolveString('STR_CONFIRM_ROLLBACK_IM_ROW'));
     openConfirm('STR_CONFIRM_ROLLBACK_IM', rows, () => {
       leaveBattle();
-      rollbackIntermission(requireSession(), order);
+      rollbackIntermission(requireSession(), ctx, order);
       render();
     });
   },

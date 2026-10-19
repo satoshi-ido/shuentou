@@ -197,12 +197,10 @@ describe('[S-SCRIPT-RECORDS] 要求集合との対応', () => {
     const authored = Object.keys(scripts);
     const missing = Object.keys(required).filter((scriptId) => !authored.includes(scriptId));
     const extra = authored.filter((scriptId) => required[scriptId] === undefined);
-    expect(missing).toHaveLength(94);
+    expect(missing).toHaveLength(90);
     expect(extra.sort()).toEqual([
       'SCRIPT_CROSS_03_05',
       'SCRIPT_CROSS_07_15',
-      'SCRIPT_ECHO_03',
-      'SCRIPT_ECHO_05',
       'SCRIPT_END_A',
       'SCRIPT_END_C2_TAIL_INTACT',
       'SCRIPT_END_C2_TAIL_REWOUND',

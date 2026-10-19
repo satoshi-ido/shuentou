@@ -1,6 +1,7 @@
 // 進行・巻き戻し・セーブ検証用の共通フィクスチャ。マスタは全30シーン分の生成物（[I-PLAN-MILESTONE] M5）。
 
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
+import { ECHO_MASTERS } from '../../src/data/generated/echo-masters.js';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
 import { BREAKERS } from '../../src/data/generated/breaker-masters.js';
 import { BOOK_MASTERS } from '../../src/data/generated/book-masters.js';
@@ -24,7 +25,7 @@ export const MASTERS: GameMasters = {
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
   crossIds: [],
-  echoIds: [],
+  echoes: ECHO_MASTERS,
   helpIds: [],
 };
 
@@ -97,4 +98,12 @@ export function playBattle(session: GameSession, ctx: GameContext, maxOperations
     result = playOneOperation(session, ctx);
   }
   return result;
+}
+
+// [M-STATE-RUNSTATE]【巻き戻し後の既知】巻き戻しは既知シーンを加えるため、巻き戻しの前後でステートを比べる
+// 検査では既知の2項目を除いて文字列化する。既知の追加そのものは tests/engine/foreknown.test.ts が検査する。
+const KNOWLEDGE_KEYS = ['foreknown_scenes', 'forecleared_scenes'];
+
+export function jsonWithoutKnowledge(value: unknown): string {
+  return JSON.stringify(value, (key, entry: unknown) => (KNOWLEDGE_KEYS.includes(key) ? undefined : entry));
 }

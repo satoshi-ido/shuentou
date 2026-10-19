@@ -409,18 +409,36 @@ export const SCRIPT_MASTERS = {
       }
     ]
   },
-  "SCRIPT_ECHO_03": {
-    "script_id": "SCRIPT_ECHO_03",
+  "SCRIPT_ECHO_03_KNOWN": {
+    "script_id": "SCRIPT_ECHO_03_KNOWN",
     "trigger": "SCENE_CLEAR",
     "anchor": null,
     "order": 1,
-    "branch_group": null,
-    "condition": null,
+    "branch_group": "ECHO_03",
+    "condition": "ForeknownAt[SCENE_1_02] == True",
     "replay_on_rollback": true,
     "lines": [
       {
         "speaker": null,
-        "text": "[SCRIPT_ECHO_03]",
+        "text": "[SCRIPT_ECHO_03_KNOWN]",
+        "directives": [
+          "WAIT_INPUT"
+        ]
+      }
+    ]
+  },
+  "SCRIPT_ECHO_03_UNKNOWN": {
+    "script_id": "SCRIPT_ECHO_03_UNKNOWN",
+    "trigger": "SCENE_CLEAR",
+    "anchor": null,
+    "order": 1,
+    "branch_group": "ECHO_03",
+    "condition": "ForeknownAt[SCENE_1_02] == False",
+    "replay_on_rollback": true,
+    "lines": [
+      {
+        "speaker": null,
+        "text": "[SCRIPT_ECHO_03_UNKNOWN]",
         "directives": [
           "WAIT_INPUT"
         ]
@@ -445,18 +463,36 @@ export const SCRIPT_MASTERS = {
       }
     ]
   },
-  "SCRIPT_ECHO_05": {
-    "script_id": "SCRIPT_ECHO_05",
+  "SCRIPT_ECHO_05_KNOWN": {
+    "script_id": "SCRIPT_ECHO_05_KNOWN",
     "trigger": "ACT_TRANSITION",
     "anchor": null,
     "order": 1,
-    "branch_group": null,
-    "condition": null,
+    "branch_group": "ECHO_05",
+    "condition": "ForeclearedAt[SCENE_2_04] == True",
     "replay_on_rollback": true,
     "lines": [
       {
         "speaker": null,
-        "text": "[SCRIPT_ECHO_05]",
+        "text": "[SCRIPT_ECHO_05_KNOWN]",
+        "directives": [
+          "WAIT_INPUT"
+        ]
+      }
+    ]
+  },
+  "SCRIPT_ECHO_05_UNKNOWN": {
+    "script_id": "SCRIPT_ECHO_05_UNKNOWN",
+    "trigger": "ACT_TRANSITION",
+    "anchor": null,
+    "order": 1,
+    "branch_group": "ECHO_05",
+    "condition": "ForeclearedAt[SCENE_2_04] == False",
+    "replay_on_rollback": true,
+    "lines": [
+      {
+        "speaker": null,
+        "text": "[SCRIPT_ECHO_05_UNKNOWN]",
         "directives": [
           "WAIT_INPUT"
         ]

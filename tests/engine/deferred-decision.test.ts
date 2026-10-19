@@ -144,7 +144,7 @@ describe('[A-LATE-5-10] アンドゥ後の再開', () => {
     const replay = drive('SCENE_5_10', 29);
     // 29手目の後に1手進め、アンドゥで戻してから同じ1手を与え直す。
     operate(replay.session, replay.ctx);
-    undo(replay.session);
+    undo(replay.session, replay.ctx);
     operate(replay.session, replay.ctx);
     expect(replay.session.data.run.battle_state).toEqual(straight.session.data.run.battle_state);
   });

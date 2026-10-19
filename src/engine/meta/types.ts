@@ -15,6 +15,8 @@ export interface MetaCounters {
   obsolete_name_revealed: boolean;
   help_seen: Record<string, boolean>;
   enshrine_anchor: Record<string, EnshrineAnchor | null>;
+  furthest_order: number;
+  furthest_cleared_order: number;
 }
 
 export type RewindPendingType = 'NONE' | 'UNDO' | 'ROLLBACK_BATTLE' | 'ROLLBACK_INTERMISSION';

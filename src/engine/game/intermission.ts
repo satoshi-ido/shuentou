@@ -1,6 +1,8 @@
 // [M-INHERIT-POOL] [M-PROG-SACRIFICE] [M-PROG-REFILL] [M-META-COUNTERS] [M-META-SAVEDATA]
 // インターミッションの操作（確定操作3〜5・アクト移行の段への移行・インターミッション決済の確定）。
 
+import { fireSacrificeConfirmEcho } from '../meta/echo.js';
+import { enterSceneIntro } from '../meta/foreknown.js';
 import { applyInherit, canInherit, type InheritTarget } from '../progress/inherit.js';
 import {
   applyEnterTransition,
@@ -20,6 +22,15 @@ export function confirmInherit(session: GameSession, ctx: GameContext, attendant
   }
   beginConfirmOperation(session, 3, ctx);
   applyInherit(session.data.run, ctx.masters, attendantId, target);
+}
+
+// [M-META-ECHO] 種別D：供犠の確定ダイアログの表示時。発火した echo_id を返し、表示側が確定ダイアログに先立って再生する。
+// 確定操作に含めない。
+export function openSacrificeConfirm(session: GameSession, ctx: GameContext, attendantId: string): string | null {
+  if (!canSacrifice(session.data.run, attendantId)) {
+    throw new Error(`供犠を実行できない: ${attendantId}`);
+  }
+  return fireSacrificeConfirmEcho(session.data.meta, ctx.masters, attendantId);
 }
 
 // 確定操作4：供犠の確定。
@@ -64,5 +75,6 @@ export function settleIntermission(session: GameSession, ctx: GameContext): void
   }
   commitOnOperation(session, 'SETTLEMENT', ctx);
   applySettleIntermission(session.data.run);
+  enterSceneIntro(session.data.meta, session.data.run, ctx.masters); // 次のシーンのバトル開始前演出フェーズの開始
   autosave(session, ctx); // ［保存契機］インターミッション決済の確定時
 }

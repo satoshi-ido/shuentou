@@ -102,7 +102,7 @@ describe('[M-DATA-PAUSE-REASON] 停止事由レコード', () => {
     expect(mind).toBeDefined();
     instruct(session, ctx, hero.unit_id, mind!.instance_id);
     expect(battle(session).pause_reason).not.toBeNull();
-    undo(session);
+    undo(session, ctx);
     expect(battle(session).pause_reason).toEqual(before);
   });
 

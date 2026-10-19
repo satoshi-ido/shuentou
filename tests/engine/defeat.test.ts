@@ -9,7 +9,7 @@ import { resumeTime, startBattle, type BattleResult } from '../../src/engine/gam
 import { newGameSession } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
-import { MASTERS, type Recorder } from './game-fixtures.js';
+import { jsonWithoutKnowledge, MASTERS, type Recorder } from './game-fixtures.js';
 import { executableActions, type Decision } from '../../src/engine/decision.js';
 import { createCreatureFactory } from '../../src/engine/creature.js';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
@@ -123,7 +123,7 @@ describe('[M-REWIND-ROLLBACK] 敗北からのバトル開始時ロールバッ�
     const { session, ctx } = setup();
     // ステップ0へ復元したうえで最初の時間停止まで進めるため、開幕の局面と一致することを確かめる。
     let result = startBattle(session, ctx);
-    const opening = JSON.stringify(session.data.run);
+    const opening = jsonWithoutKnowledge(session.data.run);
     const openingStep = battleOf(session).step;
     for (let i = 0; i < 4000 && result === 'PAUSED'; i += 1) {
       result = resumeTime(session, ctx);
@@ -132,7 +132,7 @@ describe('[M-REWIND-ROLLBACK] 敗北からのバトル開始時ロールバッ�
     expect(battleOf(session).step).toBeGreaterThan(openingStep);
 
     expect(rollbackBattle(session, ctx)).toBe('PAUSED');
-    expect(JSON.stringify(session.data.run)).toBe(opening);
+    expect(jsonWithoutKnowledge(session.data.run)).toBe(opening);
     const state = battleOf(session);
     expect(state.step).toBe(openingStep);
     const hero = state.units.find((unit): unit is Unit => unit?.side === 'MINE' && unit.unit_kind === 'MASTER');
@@ -166,7 +166,7 @@ describe('[M-REWIND-ROLLBACK] 敗北からのバトル開始時ロールバッ�
     playUntilLoss(session, ctx);
     rollbackBattle(session, ctx);
     expect(recorder.saves.length).toBeGreaterThanOrEqual(before);
-    expect(session.data.save_version).toBe(4);
+    expect(session.data.save_version).toBe(5);
     expect(session.data.run.current_scene_id).toBe('SCENE_1_01');
   });
 
@@ -185,6 +185,6 @@ describe('[M-REWIND-ROLLBACK] 敗北から過去インターミッションへ�
     playUntilLoss(session, ctx);
     // 1-01 の敗北時点ではまだクリア実績がないため、復帰先の候補は存在しない。
     expect(rollbackOrders(session)).toEqual([]);
-    expect(() => rollbackIntermission(session, 1)).toThrow('復帰先のインターミッションがない');
+    expect(() => rollbackIntermission(session, ctx, 1)).toThrow('復帰先のインターミッションがない');
   });
 });

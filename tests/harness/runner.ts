@@ -6,6 +6,7 @@
 // 方針が定めるのは継承の選択規則と従者構成であり、探索の設定は depth 3 / node 10,000 で共通である。
 
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
+import { ECHO_MASTERS } from '../../src/data/generated/echo-masters.js';
 import { AI_PROFILE_MASTERS } from '../../src/data/generated/ai-profile-masters.js';
 import { ATTENDANT_MASTERS } from '../../src/data/generated/attendant-masters.js';
 import { BREAKERS } from '../../src/data/generated/breaker-masters.js';
@@ -52,7 +53,7 @@ export const MASTERS: GameMasters = {
   attendants: ATTENDANT_MASTERS,
   heroInitActions: HERO_INIT_ACTIONS,
   crossIds: [],
-  echoIds: [],
+  echoes: ECHO_MASTERS,
   helpIds: [],
 };
 

@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ATTENDANTS } from './authoring/attendants.js';
 import { BOOKS } from './authoring/books.js';
+import { ECHOES } from './authoring/echoes.js';
 import { ENEMIES } from './authoring/enemies.js';
 import { AI_PROFILES } from './authoring/profiles.js';
 import { ASSETS } from './authoring/assets.js';
@@ -19,6 +20,7 @@ import {
   buildAiProfileRecords,
   buildAssetRecords,
   buildBookRecord,
+  buildEchoRecords,
   buildHelpRecords,
   buildScriptRecords,
   buildStringRecords,
@@ -167,10 +169,11 @@ function main() {
   writeGenerated('asset-masters.ts', serializeRecordMap('ASSET_MASTERS', 'AssetMasterRecord', buildAssetRecords(ASSETS)));
 
   // [S-SCRIPT-SCHEMA]・[S-SCRIPT-RECORDS]。本文は [I-PLAN-TEXT] のプレースホルダ。
-  writeGenerated(
-    'script-masters.ts',
-    serializeRecordMap('SCRIPT_MASTERS', 'ScriptMasterRecord', buildScriptRecords(SCRIPTS, SCENES)),
-  );
+  const scriptRecords = buildScriptRecords(SCRIPTS, SCENES);
+  writeGenerated('script-masters.ts', serializeRecordMap('SCRIPT_MASTERS', 'ScriptMasterRecord', scriptRecords));
+
+  // [S-ECHO-SCHEMA] 残響マスタ。
+  writeGenerated('echo-masters.ts', serializeRecordMap('ECHO_MASTERS', 'EchoMasterRecord', buildEchoRecords(ECHOES, scriptRecords)));
 
   // [A-PROFILE-SCHEMA] AIプロファイルマスタ。
   writeGenerated(

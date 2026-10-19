@@ -35,6 +35,8 @@ export interface RunState {
   sacrificed: string[]; // 従者ID昇順
   enshrined_count: number;
   cross_unlocked: Record<string, boolean>;
+  foreknown_scenes: string[]; // シーンID昇順
+  forecleared_scenes: string[]; // シーンID昇順
   mirror_stats: MirrorStats | null;
   battle_state: BattleState | null;
   history_stack: HistoryEntry[];

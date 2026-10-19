@@ -2,11 +2,12 @@
 // ニューゲーム時の初期値によるステート生成。
 
 import { instantiateActionList } from '../instantiate.js';
+import { enterSceneIntro } from '../meta/foreknown.js';
 import type { MetaCounters, RewindPending, SaveData } from '../meta/types.js';
 import { sceneByOrder, type GameMasters } from './masters.js';
 import type { RunState } from './state.js';
 
-export const SAVE_VERSION = 4; // [M-META-SAVEDATA]［データバージョン］BattleState に鏡像統計を追加
+export const SAVE_VERSION = 5; // [M-META-SAVEDATA]［データバージョン］既知シーン・最遠到達の記録を追加
 const HERO_INIT_MAX_HP = 60; // [M-DATA-HERO-INIT]
 
 function allFalse(keys: readonly string[]): Record<string, boolean> {
@@ -38,6 +39,8 @@ export function createInitialRun(masters: GameMasters): RunState {
     sacrificed: [],
     enshrined_count: 0,
     cross_unlocked: allFalse(masters.crossIds),
+    foreknown_scenes: [],
+    forecleared_scenes: [],
     mirror_stats: null,
     battle_state: null,
     history_stack: [],
@@ -52,11 +55,13 @@ export function createInitialMeta(masters: GameMasters): MetaCounters {
   }
   return {
     total_rewind_count: 0,
-    echo_unlocked: allFalse(masters.echoIds),
+    echo_unlocked: allFalse(Object.keys(masters.echoes).sort()),
     playthrough_count: 1,
     obsolete_name_revealed: false,
     help_seen: allFalse(masters.helpIds),
     enshrine_anchor: enshrineAnchor,
+    furthest_order: 0,
+    furthest_cleared_order: 0,
   };
 }
 
@@ -65,10 +70,8 @@ export function createInitialPending(): RewindPending {
 }
 
 export function createNewGame(masters: GameMasters): SaveData {
-  return {
-    save_version: SAVE_VERSION,
-    meta: createInitialMeta(masters),
-    pending: createInitialPending(),
-    run: createInitialRun(masters),
-  };
+  const meta = createInitialMeta(masters);
+  const run = createInitialRun(masters);
+  enterSceneIntro(meta, run, masters); // 1-01 のバトル開始前演出フェーズの開始
+  return { save_version: SAVE_VERSION, meta, pending: createInitialPending(), run };
 }

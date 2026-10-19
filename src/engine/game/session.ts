@@ -36,6 +36,8 @@ export interface GameSession {
   // 直近のバトル開始時点のラン進行ステート。phase == BATTLE の間のみ非Null。
   // バトル開始時ロールバックの復帰先であり、同区間のオートセーブが保存するラン進行ステートでもある。
   battle_start_run: RunState | null;
+  // [M-META-ECHO] 直近のバトルクリアで発火した種別Aの残響の echo_id。表示側が SCENE_CLEAR の後に再生する。
+  cleared_echoes?: string[];
 }
 
 // [M-STATE-HISTORY]［保存契機］の番号。SETTLEMENT はインターミッション決済の確定。

@@ -35,6 +35,8 @@ export function assembleRun(
     sacrificed: progress.sacrificed,
     enshrined_count: progress.enshrined_count,
     cross_unlocked: progress.cross_unlocked,
+    foreknown_scenes: progress.foreknown_scenes,
+    forecleared_scenes: progress.forecleared_scenes,
     mirror_stats: progress.mirror_stats,
     battle_state: progress.battle_state,
     history_stack: historyStack,
@@ -56,6 +58,8 @@ function progressOf(run: RunState): RunProgress {
     sacrificed: run.sacrificed,
     enshrined_count: run.enshrined_count,
     cross_unlocked: run.cross_unlocked,
+    foreknown_scenes: run.foreknown_scenes,
+    forecleared_scenes: run.forecleared_scenes,
     mirror_stats: run.mirror_stats,
     battle_state: run.battle_state,
   };
@@ -75,6 +79,8 @@ export function toHistoryEntry(run: RunState): HistoryEntry {
       sacrificed: progress.sacrificed,
       enshrined_count: progress.enshrined_count,
       cross_unlocked: progress.cross_unlocked,
+      foreknown_scenes: progress.foreknown_scenes,
+      forecleared_scenes: progress.forecleared_scenes,
       mirror_stats: progress.mirror_stats,
       battle_state: progress.battle_state,
     };

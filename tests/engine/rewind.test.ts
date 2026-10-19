@@ -15,7 +15,7 @@ import {
 import { rollbackBattle, rollbackIntermission, undo } from '../../src/engine/game/rewind.js';
 import { loadGame, newGameSession, peekSave } from '../../src/engine/game/save.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
-import { createContext, playBattle, playOneOperation, scriptedFoe } from './game-fixtures.js';
+import { createContext, jsonWithoutKnowledge, playBattle, playOneOperation, scriptedFoe } from './game-fixtures.js';
 
 function setup() {
   const recorder = { saves: [] as string[] };
@@ -31,7 +31,7 @@ function setup() {
   return { recorder, ctx, session: newGameSession(ctx), foeCalls: () => foeCalls };
 }
 
-const runJson = (session: GameSession): string => JSON.stringify(session.data.run);
+const runJson = (session: GameSession): string => jsonWithoutKnowledge(session.data.run);
 
 describe('[M-REWIND-UNDO] アンドゥ', () => {
   it('バトル中の確定操作を1操作単位で巻き戻し、敵軍AIを再計算しない', () => {
@@ -41,7 +41,7 @@ describe('[M-REWIND-UNDO] アンドゥ', () => {
       const before = runJson(session);
       expect(playOneOperation(session, ctx)).toBe('PAUSED');
       const calls = foeCalls();
-      undo(session);
+      undo(session, ctx);
       expect(foeCalls()).toBe(calls);
       expect(runJson(session)).toBe(before);
       expect(playOneOperation(session, ctx)).toBe('PAUSED');
@@ -57,7 +57,7 @@ describe('[M-REWIND-UNDO] アンドゥ', () => {
     settleIntermission(session, ctx);
     expect(session.data.run.phase).toBe('PRE_BATTLE');
     expect(session.data.run.history_stack).toHaveLength(1);
-    undo(session);
+    undo(session, ctx);
     expect(runJson(session)).toBe(beforeInherit);
   });
 
@@ -88,8 +88,8 @@ describe('[M-META-PENDING] [M-META-COMMIT] 巻き戻しの保留と確定', () =
     startBattle(session, ctx);
     playOneOperation(session, ctx);
     playOneOperation(session, ctx);
-    undo(session);
-    undo(session);
+    undo(session, ctx);
+    undo(session, ctx);
     expect(session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'UNDO' });
     expect(session.data.meta.total_rewind_count).toBe(0);
     playOneOperation(session, ctx);
@@ -102,7 +102,7 @@ describe('[M-META-PENDING] [M-META-COMMIT] 巻き戻しの保留と確定', () =
     startBattle(session, ctx);
     const battleStartSave = JSON.parse(recorder.saves[0] ?? '');
     playOneOperation(session, ctx);
-    undo(session);
+    undo(session, ctx);
     playOneOperation(session, ctx);
     const commitSave = JSON.parse(recorder.saves.at(-1) ?? '');
     expect(recorder.saves).toHaveLength(2);
@@ -116,7 +116,7 @@ describe('[M-META-PENDING] [M-META-COMMIT] 巻き戻しの保留と確定', () =
     playBattle(session, ctx);
     settleIntermission(session, ctx);
     playBattle(session, ctx);
-    rollbackIntermission(session, 2);
+    rollbackIntermission(session, ctx, 2);
     enterTransition(session, ctx);
     confirmRefill(session, ctx, 'ATTENDANT_02');
     // 補充確定は ROLLBACK_INTERMISSION の確定イベントではないが、enshrine_anchor の記録で
@@ -146,12 +146,12 @@ describe('[M-REWIND-ROLLBACK] ロールバック', () => {
     settleIntermission(session, ctx);
     playBattle(session, ctx);
     expect(session.data.run.im_snapshots.map((entry) => entry.order)).toEqual([1, 2]);
-    rollbackIntermission(session, 1);
+    rollbackIntermission(session, ctx, 1);
     const { run } = session.data;
     expect(run.im_snapshots.map((entry) => entry.order)).toEqual([1]);
     expect(run.history_stack).toEqual([]);
-    expect(JSON.stringify({ ...run, history_stack: undefined, im_snapshots: undefined })).toBe(
-      JSON.stringify({ ...snapshot?.state, history_stack: undefined, im_snapshots: undefined }),
+    expect(jsonWithoutKnowledge({ ...run, history_stack: undefined, im_snapshots: undefined })).toBe(
+      jsonWithoutKnowledge({ ...snapshot?.state, history_stack: undefined, im_snapshots: undefined }),
     );
     expect(session.data.pending.rewind_pending_type).toBe('ROLLBACK_INTERMISSION');
   });
@@ -172,16 +172,16 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     expect(loaded.session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'ROLLBACK_BATTLE' });
   });
 
-  it('現行の save_version は 4 であり、そのセーブはロードできる', () => {
+  it('現行の save_version は 5 であり、そのセーブはロードできる', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    expect(data.save_version).toBe(4);
+    expect(data.save_version).toBe(5);
     expect(loadGame(JSON.stringify(data), ctx).ok).toBe(true);
   });
 
   // 1: 初期版。2: BattleState に監視トグル・停止事由・定跡の項目を加えた版（instance_id_seq の追加前）。
-  it.each([1, 2, 3])('旧版 save_version %i のセーブはマイグレーションせずロードを拒否する', (oldVersion) => {
+  it.each([1, 2, 3, 4])('旧版 save_version %i のセーブはマイグレーションせずロードを拒否する', (oldVersion) => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
@@ -269,16 +269,16 @@ function playWithRewinds(ctx: GameContext, recorder: { saves: string[] }): GameS
   for (let i = 0; i < 3; i += 1) {
     playOneOperation(session, ctx);
   }
-  undo(session);
+  undo(session, ctx);
   let result = playOneOperation(session, ctx);
   while (result === 'PAUSED') {
     result = playOneOperation(session, ctx);
   }
   confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_SLASH_AR3' });
-  undo(session);
+  undo(session, ctx);
   confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'MAX_HP' });
   settleIntermission(session, ctx);
-  undo(session);
+  undo(session, ctx);
   confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'MAX_HP' });
   settleIntermission(session, ctx);
 
@@ -288,12 +288,12 @@ function playWithRewinds(ctx: GameContext, recorder: { saves: string[] }): GameS
   }
   rollbackBattle(session, ctx);
   resumeTime(session, ctx);
-  undo(session);
+  undo(session, ctx);
   result = 'PAUSED';
   while (result === 'PAUSED') {
     result = playOneOperation(session, ctx);
   }
-  rollbackIntermission(session, 1);
+  rollbackIntermission(session, ctx, 1);
   confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'MAX_HP' });
   settleIntermission(session, ctx);
   expect(playBattle(session, ctx)).toBe('WIN');
