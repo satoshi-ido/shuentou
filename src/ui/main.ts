@@ -267,10 +267,10 @@ function syncBgm(): void {
     currentBgm = assetId ?? '';
   }
 
-  // 【戦闘の合奏】バトル進行中に限り、シーンの譜を重低音の拍に合わせて鳴らす。時間停止中は止め、拍だけを残す。
+  // 【戦闘の合奏】バトルの間、シーンの譜を重低音の拍に合わせて鳴らす。時間停止中も止めない。
   const inBattle = session !== null && screenOf(session.data.run) === 'BATTLE' && script === null;
   const sceneId = session?.data.run.current_scene_id ?? '';
-  const score = inBattle && battleResult === 'RUNNING' ? SCENE_SCORES[sceneId] : undefined;
+  const score = inBattle ? SCENE_SCORES[sceneId] : undefined;
   const nextEnsembleScene = score === undefined ? null : sceneId;
   if (nextEnsembleScene !== ensembleScene) {
     ensembleScene = nextEnsembleScene;
