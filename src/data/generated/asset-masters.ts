@@ -27,59 +27,59 @@ export const ASSET_MASTERS = {
     "cue": "ENDING",
     "path": "art/audio/bgm-ending.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_CAK": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_CAK",
+  "ASSET_BGM_ENSEMBLE_BELL": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_BELL",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "CAK",
-    "path": "art/audio/bgm-ensemble-cak.mp3"
+    "variant": "BELL",
+    "path": "art/audio/bgm-ensemble-bell.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_CAK_LOW": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_CAK_LOW",
+  "ASSET_BGM_ENSEMBLE_CHANT": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "CAK_LOW",
-    "path": "art/audio/bgm-ensemble-cak-low.mp3"
+    "variant": "CHANT",
+    "path": "art/audio/bgm-ensemble-chant.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_GANGSA": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_GANGSA",
+  "ASSET_BGM_ENSEMBLE_CHANT_BASS": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT_BASS",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "GANGSA",
-    "path": "art/audio/bgm-ensemble-gangsa.mp3"
+    "variant": "CHANT_BASS",
+    "path": "art/audio/bgm-ensemble-chant-bass.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_GONG": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_GONG",
+  "ASSET_BGM_ENSEMBLE_CHANT_LOW": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT_LOW",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "GONG",
-    "path": "art/audio/bgm-ensemble-gong.mp3"
+    "variant": "CHANT_LOW",
+    "path": "art/audio/bgm-ensemble-chant-low.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_PUNG": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_PUNG",
+  "ASSET_BGM_ENSEMBLE_DULCIMER": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_DULCIMER",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "PUNG",
-    "path": "art/audio/bgm-ensemble-pung.mp3"
+    "variant": "DULCIMER",
+    "path": "art/audio/bgm-ensemble-dulcimer.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_SARON": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_SARON",
+  "ASSET_BGM_ENSEMBLE_DULCIMER_HIGH": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_DULCIMER_HIGH",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "SARON",
-    "path": "art/audio/bgm-ensemble-saron.mp3"
+    "variant": "DULCIMER_HIGH",
+    "path": "art/audio/bgm-ensemble-dulcimer-high.mp3"
   },
   "ASSET_BGM_INTERMISSION": {
     "asset_id": "ASSET_BGM_INTERMISSION",

@@ -272,7 +272,7 @@ export class WebAudioDriver extends RecordingAudioDriver {
   }
 
   // 【戦闘の合奏】重低音の一打（when）から始まる1拍の区切りに、譜の前半または後半の一打を、
-  // 区切りごとの再生の速さ（鍵盤は音の高さ）で予約する。
+  // 区切りごとの再生の速さ（打弦は音の高さ）で予約する。
   private scheduleEnsemble(when: number): void {
     const parts = this.ensemble;
     if (parts === null) {

@@ -63,13 +63,13 @@ export const ASSETS = [
   // 重ねず戦闘の合奏を一打ずつ鳴らす。INTERMISSION・CALM・ENDING・ENSEMBLE は GLOBAL が持つ。
   { asset_id: 'ASSET_BGM_PULSE', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'PULSE', path: 'art/audio/bgm-pulse.mp3' },
   { asset_id: 'ASSET_BGM_CALM', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'CALM', path: 'art/audio/bgm-calm.mp3' },
-  // 戦闘の合奏の一打（[M-DATA-AUDIO-CUE]【戦闘の合奏】）。variant で声部を区別する。鍵盤は D の一音。
-  { asset_id: 'ASSET_BGM_ENSEMBLE_CAK', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CAK', path: 'art/audio/bgm-ensemble-cak.mp3' },
-  { asset_id: 'ASSET_BGM_ENSEMBLE_CAK_LOW', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CAK_LOW', path: 'art/audio/bgm-ensemble-cak-low.mp3' },
-  { asset_id: 'ASSET_BGM_ENSEMBLE_PUNG', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'PUNG', path: 'art/audio/bgm-ensemble-pung.mp3' },
-  { asset_id: 'ASSET_BGM_ENSEMBLE_SARON', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'SARON', path: 'art/audio/bgm-ensemble-saron.mp3' },
-  { asset_id: 'ASSET_BGM_ENSEMBLE_GANGSA', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'GANGSA', path: 'art/audio/bgm-ensemble-gangsa.mp3' },
-  { asset_id: 'ASSET_BGM_ENSEMBLE_GONG', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'GONG', path: 'art/audio/bgm-ensemble-gong.mp3' },
+  // 戦闘の合奏の一打（[M-DATA-AUDIO-CUE]【戦闘の合奏】）。variant で声部を区別する。打弦と鐘は D の一音。
+  { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT', path: 'art/audio/bgm-ensemble-chant.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT_LOW', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT_LOW', path: 'art/audio/bgm-ensemble-chant-low.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT_BASS', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT_BASS', path: 'art/audio/bgm-ensemble-chant-bass.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_DULCIMER', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'DULCIMER', path: 'art/audio/bgm-ensemble-dulcimer.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_DULCIMER_HIGH', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'DULCIMER_HIGH', path: 'art/audio/bgm-ensemble-dulcimer-high.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_BELL', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'BELL', path: 'art/audio/bgm-ensemble-bell.mp3' },
   { asset_id: 'ASSET_BGM_ENDING', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENDING', path: 'art/audio/bgm-ending.mp3' },
   { asset_id: 'ASSET_BGM_INTERMISSION', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'INTERMISSION', path: 'art/audio/bgm-intermission.mp3' },
   // SE（発火契機ごとに1件）
