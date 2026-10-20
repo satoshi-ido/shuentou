@@ -62,6 +62,8 @@ export interface PlateView {
   readonly thought: number; // 思考中ステートの蓄積ステップ数
   readonly chips: readonly ChipView[];
   readonly running: RunningCardView | null;
+  readonly figure: string | null; // 立ち絵の実体のURL。Null はプレースホルダ
+  readonly isCreature: boolean;
 }
 
 // ［実効消費コスト］払えないリソースは short で示し、一覧上で見分けられるようにする。
@@ -181,6 +183,8 @@ export interface UnitNaming {
   readonly actionName: (action: ActionInstance) => string;
   // [M-STATE-ACTIONMASTER] 効果説明（UI表示専用）。未執筆のレコードはプレースホルダ（[I-PLAN-TEXT]）。
   readonly actionDescription?: (action: ActionInstance) => string | null;
+  // [I-PLAN-ASSETS] 盤面の立ち絵の実体（表示アセットマスタの STANDING）。Null はプレースホルダの人形。
+  readonly figure?: (unit: Unit) => string | null;
 }
 
 function plateOf(unit: Unit, naming: UnitNaming): PlateView {
@@ -200,6 +204,8 @@ function plateOf(unit: Unit, naming: UnitNaming): PlateView {
     thought: unit.elapsed_thought,
     chips: chipsOf(unit),
     running: runningOf(unit, naming.actionName),
+    figure: naming.figure?.(unit) ?? null,
+    isCreature: unit.unit_kind === 'CREATURE',
   };
 }
 

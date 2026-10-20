@@ -19,11 +19,20 @@ function element(tag: string, className: string, text?: string): HTMLElement {
   return node;
 }
 
-// 背景の色相は表示アセットの実体が入るまでのプレースホルダ（[I-PLAN-ASSETS]）。
-export function renderScriptScreen(view: ScriptView, backgroundHue: number, handlers: ScriptHandlers): HTMLElement {
+// 背景（[S-SCRIPT-SCHEMA]「背景」）。実体の無い間は色相によるプレースホルダ（[I-PLAN-ASSETS]）を描き、
+// 実体があれば画像を重ねる。
+export interface ScriptBackdrop {
+  readonly hue: number;
+  readonly url: string | null;
+}
+
+export function renderScriptScreen(view: ScriptView, backdrop: ScriptBackdrop, handlers: ScriptHandlers): HTMLElement {
   const root = element('div', `script-screen${view.lantern ? ' lantern' : ''}${view.fadeIn ? ' fade-in' : ''}`);
   const background = element('div', 'script-bg');
-  background.style.setProperty('--script-hue', String(backgroundHue));
+  background.style.setProperty('--script-hue', String(backdrop.hue));
+  if (backdrop.url !== null) {
+    background.style.setProperty('--script-image', `url("${backdrop.url}")`);
+  }
   root.append(background);
 
   if (view.titleCard !== null) {

@@ -16,6 +16,7 @@ interface QueuedLine {
   readonly text: string;
   readonly directives: readonly ScriptDirective[];
   readonly lantern: boolean;
+  readonly background: string | null; // 当該行の時点の背景の asset_id。Null は発火点の既定の背景
 }
 
 export interface ShownLine {
@@ -30,6 +31,8 @@ export interface ScriptView {
   readonly titleCard: string | null; // ACT_TITLE_CARD の行を提示しているとき、その本文
   readonly fadeIn: boolean; // 頁の始まりが FADE_IN を持つ
   readonly waiting: boolean; // 本文がすべて現れ、左クリックを待っている
+  // [S-SCRIPT-SCHEMA]「背景」現在の行の背景の asset_id。Null は発火点の既定（シーンの戦闘背景など）。
+  readonly background: string | null;
 }
 
 // 飛ばした行のうち、音と進行に関わるものは実行する（[M-UI-SCRIPT]【飛ばす】）。
@@ -63,13 +66,17 @@ export class ScriptPlayer {
     let recordIndex = 0;
     for (const segment of segments) {
       for (const record of segment.records) {
+        // [S-SCRIPT-SCHEMA]「背景」省略した行は直前の背景を保ち、レコードの最初の行で省略した場合は既定とする。
+        let background: string | null = null;
         for (const line of record.lines) {
+          background = line.background ?? background;
           this.queue.push({
             recordIndex,
             speaker: line.speaker,
             text: line.text,
             directives: line.directives,
             lantern: segment.lantern,
+            background,
           });
         }
         recordIndex += 1;
@@ -165,7 +172,14 @@ export class ScriptPlayer {
     const line = this.current;
     const lantern = line?.lantern ?? false;
     if (line !== undefined && line.directives.includes('ACT_TITLE_CARD')) {
-      return { lines: [], lantern, titleCard: line.text, fadeIn: line.directives.includes('FADE_IN'), waiting: true };
+      return {
+        lines: [],
+        lantern,
+        titleCard: line.text,
+        fadeIn: line.directives.includes('FADE_IN'),
+        waiting: true,
+        background: line.background,
+      };
     }
     const lines: ShownLine[] = this.queue.slice(this.pageStart, this.index).map((shown) => ({
       speaker: shown.speaker,
@@ -182,6 +196,7 @@ export class ScriptPlayer {
       titleCard: null,
       fadeIn: head?.directives.includes('FADE_IN') ?? false,
       waiting: line !== undefined && this.lineComplete && line.directives.includes('WAIT_INPUT'),
+      background: line?.background ?? null,
     };
   }
 }

@@ -16,7 +16,15 @@ import { HERO_INIT_ACTIONS, HERO_INIT_UNIT } from '../data/generated/hero-init.j
 import { SCENE_MASTERS } from '../data/generated/scene-masters.js';
 import { SCRIPT_MASTERS } from '../data/generated/script-masters.js';
 import { STRING_MASTERS } from '../data/generated/string-masters.js';
-import type { ActionMasterRecord, EnemyMasterRecord, HelpMasterRecord, SceneMasterRecord, ScriptDirective, ScriptMasterRecord } from '../data/types.js';
+import type {
+  ActionMasterRecord,
+  AssetMasterRecord,
+  EnemyMasterRecord,
+  HelpMasterRecord,
+  SceneMasterRecord,
+  ScriptDirective,
+  ScriptMasterRecord,
+} from '../data/types.js';
 import { instruct, resumeBattle, resumeTime, setWatch, startBattle, type AdvanceOptions, type BattleResult } from '../engine/game/battle.js';
 import {
   confirmInherit,
@@ -35,10 +43,12 @@ import { canEnterTransition, canSettleIntermission } from '../engine/progress/re
 import { canSacrifice } from '../engine/progress/sacrifice.js';
 import type { GameMasters } from '../engine/run/masters.js';
 import type { BattleCue } from '../engine/cue.js';
-import { conditionReader } from '../engine/script/condition.js';
+import { conditionReader, evaluateCondition } from '../engine/script/condition.js';
 import { scriptById, scriptsAt } from '../engine/script/select.js';
 import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/types.js';
 import { placeholderHue } from './assets/placeholder.js';
+import { assetUrl, assetUrlById, pickAsset, type AssetCondition } from './assets/resolve.js';
+import { setFigureLookup } from './dom/art.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
@@ -168,7 +178,7 @@ let notice = ''; // 一度だけ提示するシステム文言（履歴が空で
 let resultText = ''; // [M-PIPE-P5-DISCARD] 決着の提示。バトルを離れるまで残す。
 let firstSightHelpId: string | null = null; // [M-DATA-HELPMASTER] 初出自動提示の対象
 // [M-UI-SCRIPT] 提示中の脚本。提示の間、背後の画面は操作を受け付けない。
-let script: { readonly player: ScriptPlayer; readonly hue: number; readonly onDone: () => void } | null = null;
+let script: { readonly player: ScriptPlayer; readonly hue: number; readonly sceneId: string; readonly onDone: () => void } | null = null;
 let introShown = false; // 現在の PRE_BATTLE で開幕の脚本を提示したか。PRE_BATTLE を離れると戻す。
 const cueTracker = new BattleCueTracker();
 let dueCues: string[] = []; // [S-SCRIPT-TRIGGER]【バトル中の契機】成立して再生を待つ契機の anchor
@@ -286,7 +296,55 @@ const naming: UnitNaming = {
   roleName: (unit: Unit) => (unit.side === 'MINE' ? HERO_INIT_UNIT.role_name : (enemies[currentScene().enemy_id]?.role_name ?? null)),
   actionName: (action: ActionInstance) => actionName(action.master_ref),
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
+  // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公と敵マスター。仮身は造形を引けるまでプレースホルダとする。
+  figure: (unit: Unit) =>
+    unit.unit_kind !== 'MASTER'
+      ? null
+      : unit.side === 'MINE'
+        ? figureOf('HERO', null)
+        : figureOf('ENEMY', currentScene().enemy_id),
 };
+
+// ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
+
+// 差分の条件式（[M-DATA-ASSETMASTER]【差分の選択】）。ランの開始前は基準の画を用いる。
+function assetTest(): AssetCondition | null {
+  return session === null ? null : (condition) => evaluateCondition(condition, conditionReader(session as GameSession, masters));
+}
+
+function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null): string | null {
+  return assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
+}
+setFigureLookup(figureOf);
+
+// CSS の url() に渡す参照先。相対のままではスタイルシートの位置から解決されるため、文書の位置を基準に絶対化する。
+function absoluteUrl(url: string | null): string | null {
+  return url === null ? null : new URL(url, document.baseURI).href;
+}
+
+function cssUrl(url: string): string {
+  return `url("${absoluteUrl(url)}")`;
+}
+
+// シーンの戦闘背景（variant が Null の画）。
+function sceneBackgroundUrl(sceneId: string): string | null {
+  return assetUrl(pickAsset(ASSET_MASTERS, 'SCENE', sceneId, 'BACKGROUND', null));
+}
+
+// 画面の背景。インターミッションと補充は直前にクリアしたシーンの戦闘背景を暗くして用いる（[S-BG-INTERMISSION]）。
+function screenBackgroundUrl(): string | null {
+  if (session === null) {
+    return assetUrlById(ASSET_MASTERS, 'ASSET_BG_TITLE');
+  }
+  const { run } = session.data;
+  const scene = scenes[run.current_scene_id];
+  const screen = screenOf(run);
+  if (screen === 'INTERMISSION' || screen === 'REFILL') {
+    const previous = Object.values(scenes).find((candidate) => candidate.order === scene.order - 1);
+    return previous === undefined ? null : sceneBackgroundUrl(previous.scene_id);
+  }
+  return sceneBackgroundUrl(scene.scene_id);
+}
 
 // ── [M-UI-SCRIPT] 脚本の提示 ──
 
@@ -326,7 +384,13 @@ function drawScript(): void {
     return;
   }
   scriptRoot.append(
-    renderScriptScreen(script.player.view(), script.hue, {
+    renderScriptScreen(
+      script.player.view(),
+      {
+        hue: script.hue,
+        url: absoluteUrl(assetUrlById(ASSET_MASTERS, script.player.view().background) ?? sceneBackgroundUrl(script.sceneId)),
+      },
+      {
       onAdvance: () => {
         script?.player.click();
         afterScriptInput();
@@ -398,7 +462,7 @@ function playScript(segments: readonly ScriptSegment[], sceneId: string, onDone:
     onDone();
     return;
   }
-  script = { player, hue: sceneHue(sceneId), onDone };
+  script = { player, hue: sceneHue(sceneId), sceneId, onDone };
   runDirectives(player.currentDirectives);
   drawScript();
   ensureScriptLoop();
@@ -419,13 +483,19 @@ function presentIntro(): void {
 }
 
 // [S-SCRIPT-TRIGGER]【バトル中の契機】表示側の契機判定。成立した契機は再生済みとして控え、再生を待たせる。
-const cueAt = (state: BattleState): boolean => {
-  const due = cueTracker.take(state, requireSession().data.run.current_scene_id, scripts);
-  dueCues = due;
-  return due.length > 0;
-};
+// バトル中のセーブからの再開ではセッションが作られる前に歩進するため、シーンはセーブから与える。
+const cueAtFor =
+  (sceneId: string) =>
+  (state: BattleState): boolean => {
+    const due = cueTracker.take(state, sceneId, scripts);
+    dueCues = due;
+    return due.length > 0;
+  };
 
-const advanceOptions = (maxSteps: number): AdvanceOptions => ({ maxSteps: Math.max(maxSteps, 1), cueAt });
+const advanceOptions = (maxSteps: number, sceneId: string = requireSession().data.run.current_scene_id): AdvanceOptions => ({
+  maxSteps: Math.max(maxSteps, 1),
+  cueAt: cueAtFor(sceneId),
+});
 
 function cueSegments(anchors: readonly string[]): ScriptSegment[] {
   return anchors.map((anchor) => triggerSegment('BATTLE_CUE', anchor));
@@ -547,7 +617,7 @@ const screenHandlers: ScreenHandlers = {
     }
     cueTracker.reset(); // バトル中のセーブからの再開はステップ0の生成直後から
     const loaded = loadGame(serialized, ctx, {
-      ...advanceOptions(stepsPerFrame(config.defaultPlaybackSpeed)),
+      ...advanceOptions(stepsPerFrame(config.defaultPlaybackSpeed), saved.run.current_scene_id),
       watchDefault: config.watchDefault,
     });
     if (!loaded.ok) {
@@ -1046,7 +1116,12 @@ function render(): void {
   presentIntro(); // [S-SCRIPT-TRIGGER] SCENE_INTRO。初出の解説は開幕の脚本を終えてから提示する。
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();
-  screenRoot.append(renderScreen());
+  const screenNode = renderScreen();
+  const backgroundUrl = screenBackgroundUrl();
+  if (backgroundUrl !== null) {
+    screenNode.style.setProperty('--screen-image', cssUrl(backgroundUrl));
+  }
+  screenRoot.append(screenNode);
   const overlayNode = renderOverlay();
   if (overlayNode !== null) {
     screenRoot.append(overlayNode); // 画面を遷移させず重ねて提示する。同時に開くのは1件に限る。

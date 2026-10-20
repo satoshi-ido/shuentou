@@ -189,7 +189,7 @@ export interface EchoMasterRecord {
 
 // [M-DATA-ASSETMASTER]
 export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTION' | 'SCENE' | 'SCRIPT' | 'GLOBAL';
-export type AssetSlot = 'PORTRAIT' | 'PLATE' | 'ICON' | 'BGM' | 'SE';
+export type AssetSlot = 'PORTRAIT' | 'STANDING' | 'PLATE' | 'ICON' | 'BACKGROUND' | 'BGM' | 'SE';
 // [M-DATA-AUDIO-CUE]
 export type AudioCueKey =
   | 'BATTLE'
@@ -209,6 +209,8 @@ export interface AssetMasterRecord {
   readonly owner_id: string | null; // owner_kind が HERO・GLOBAL のとき Null
   readonly slot: AssetSlot;
   readonly cue: AudioCueKey | null; // slot が BGM・SE のとき非Null
+  readonly variant?: string | null; // 同じ所有者・スロットの差分を区別する名（UPPER_SNAKE）。基準の画は Null
+  readonly condition?: string | null; // 差分を選ぶ条件式（[S-SCRIPT-CONDITION]）。基準の画は Null
   readonly path: string;
 }
 
@@ -242,6 +244,8 @@ export interface ScriptLineRecord {
   readonly speaker: string | null; // Null は地の文
   readonly text: string;
   readonly directives: readonly ScriptDirective[];
+  readonly background?: string | null; // BACKGROUND スロットの asset_id。省略した行は直前の背景を保つ
+  readonly figures?: readonly string[] | null; // STANDING スロットの asset_id。現行の提示では用いない（[M-UI-SCRIPT]）
 }
 
 // [S-SCRIPT-SCHEMA] 脚本マスタのレコード。

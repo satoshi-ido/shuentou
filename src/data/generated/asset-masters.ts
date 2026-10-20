@@ -3,6 +3,14 @@
 import type { AssetMasterRecord } from '../types.js';
 
 export const ASSET_MASTERS = {
+  "ASSET_ASHAL_STANDING": {
+    "asset_id": "ASSET_ASHAL_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal.png"
+  },
   "ASSET_BGM_1_01": {
     "asset_id": "ASSET_BGM_1_01",
     "owner_kind": "SCENE",
@@ -27,6 +35,161 @@ export const ASSET_MASTERS = {
     "cue": "INTERMISSION",
     "path": "placeholder/bgm/intermission"
   },
+  "ASSET_BG_1_01": {
+    "asset_id": "ASSET_BG_1_01",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_01",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/1-01.jpg"
+  },
+  "ASSET_BG_1_01_IGNITE": {
+    "asset_id": "ASSET_BG_1_01_IGNITE",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_01",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "IGNITE",
+    "path": "art/bg/1-01-ignite.jpg"
+  },
+  "ASSET_BG_1_01_OPENING": {
+    "asset_id": "ASSET_BG_1_01_OPENING",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_01",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "OPENING",
+    "path": "art/bg/1-01-opening.jpg"
+  },
+  "ASSET_BG_1_02": {
+    "asset_id": "ASSET_BG_1_02",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_02",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/1-02.jpg"
+  },
+  "ASSET_BG_1_02_AFTER": {
+    "asset_id": "ASSET_BG_1_02_AFTER",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_02",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "AFTER",
+    "path": "art/bg/1-02-after.jpg"
+  },
+  "ASSET_BG_1_02_GATE": {
+    "asset_id": "ASSET_BG_1_02_GATE",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_02",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "GATE",
+    "path": "art/bg/1-02-gate.jpg"
+  },
+  "ASSET_BG_1_02_HEARTH": {
+    "asset_id": "ASSET_BG_1_02_HEARTH",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_1_02",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "HEARTH",
+    "path": "art/bg/1-02-hearth.jpg"
+  },
+  "ASSET_BG_2_01": {
+    "asset_id": "ASSET_BG_2_01",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_01",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/2-01.jpg"
+  },
+  "ASSET_BG_2_01_INN": {
+    "asset_id": "ASSET_BG_2_01_INN",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_01",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "INN",
+    "path": "art/bg/2-01-inn.jpg"
+  },
+  "ASSET_BG_2_02": {
+    "asset_id": "ASSET_BG_2_02",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_02",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/2-02.jpg"
+  },
+  "ASSET_BG_2_03": {
+    "asset_id": "ASSET_BG_2_03",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_03",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/2-03.jpg"
+  },
+  "ASSET_BG_2_04": {
+    "asset_id": "ASSET_BG_2_04",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "path": "art/bg/2-04.jpg"
+  },
+  "ASSET_BG_2_04_AFTER": {
+    "asset_id": "ASSET_BG_2_04_AFTER",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "AFTER",
+    "path": "art/bg/2-04-after.jpg"
+  },
+  "ASSET_BG_2_04_AFTER_UNKNOWN": {
+    "asset_id": "ASSET_BG_2_04_AFTER_UNKNOWN",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "AFTER_UNKNOWN",
+    "path": "art/bg/2-04-after-unknown.jpg"
+  },
+  "ASSET_BG_2_04_ARCHIVE": {
+    "asset_id": "ASSET_BG_2_04_ARCHIVE",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "ARCHIVE",
+    "path": "art/bg/2-04-archive.jpg"
+  },
+  "ASSET_BG_2_04_SKETCH": {
+    "asset_id": "ASSET_BG_2_04_SKETCH",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "SKETCH",
+    "path": "art/bg/2-04-sketch.jpg"
+  },
+  "ASSET_BG_TITLE": {
+    "asset_id": "ASSET_BG_TITLE",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BACKGROUND",
+    "cue": null,
+    "variant": "TITLE",
+    "path": "art/bg/title.jpg"
+  },
+  "ASSET_CALVA_STANDING": {
+    "asset_id": "ASSET_CALVA_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva.png"
+  },
   "ASSET_DORN_PLATE": {
     "asset_id": "ASSET_DORN_PLATE",
     "owner_kind": "ENEMY",
@@ -42,6 +205,22 @@ export const ASSET_MASTERS = {
     "slot": "PORTRAIT",
     "cue": null,
     "path": "placeholder/portrait/dorn"
+  },
+  "ASSET_DORN_STANDING": {
+    "asset_id": "ASSET_DORN_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn.png"
+  },
+  "ASSET_GARUD_STANDING": {
+    "asset_id": "ASSET_GARUD_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_02",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/garud.png"
   },
   "ASSET_HERO_PLATE": {
     "asset_id": "ASSET_HERO_PLATE",
@@ -59,12 +238,31 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "placeholder/portrait/hero"
   },
+  "ASSET_HERO_STANDING": {
+    "asset_id": "ASSET_HERO_STANDING",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero.png"
+  },
+  "ASSET_HERO_STANDING_COAT_ACT2": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2.png"
+  },
   "ASSET_ICON_MARTIAL": {
     "asset_id": "ASSET_ICON_MARTIAL",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "ICON",
     "cue": null,
+    "variant": "MARTIAL",
     "path": "placeholder/icons#martial"
   },
   "ASSET_ICON_MIND": {
@@ -73,6 +271,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "ICON",
     "cue": null,
+    "variant": "MIND",
     "path": "placeholder/icons#mind"
   },
   "ASSET_ICON_STANCE": {
@@ -81,6 +280,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "ICON",
     "cue": null,
+    "variant": "STANCE",
     "path": "placeholder/icons#stance"
   },
   "ASSET_ICON_SUMMON": {
@@ -89,6 +289,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "ICON",
     "cue": null,
+    "variant": "SUMMON",
     "path": "placeholder/icons#summon"
   },
   "ASSET_ICON_SWAP": {
@@ -97,7 +298,24 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "ICON",
     "cue": null,
+    "variant": "SWAP",
     "path": "placeholder/icons#swap"
+  },
+  "ASSET_ISH_STANDING": {
+    "asset_id": "ASSET_ISH_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish.png"
+  },
+  "ASSET_KAI_STANDING": {
+    "asset_id": "ASSET_KAI_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_04",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/kai.png"
   },
   "ASSET_LEF_PLATE": {
     "asset_id": "ASSET_LEF_PLATE",
@@ -114,6 +332,38 @@ export const ASSET_MASTERS = {
     "slot": "PORTRAIT",
     "cue": null,
     "path": "placeholder/portrait/lef"
+  },
+  "ASSET_LEF_STANDING": {
+    "asset_id": "ASSET_LEF_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef.png"
+  },
+  "ASSET_MIREILLE_STANDING": {
+    "asset_id": "ASSET_MIREILLE_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_03",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/mireille.png"
+  },
+  "ASSET_RINA_STANDING": {
+    "asset_id": "ASSET_RINA_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_01",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rina.png"
+  },
+  "ASSET_SERVIS_STANDING": {
+    "asset_id": "ASSET_SERVIS_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_05",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/servis.png"
   },
   "ASSET_SE_ACTION_MARTIAL": {
     "asset_id": "ASSET_SE_ACTION_MARTIAL",
@@ -186,5 +436,21 @@ export const ASSET_MASTERS = {
     "slot": "SE",
     "cue": "WATCH_PAUSE",
     "path": "placeholder/se/watch-pause"
+  },
+  "ASSET_TOTO_STANDING": {
+    "asset_id": "ASSET_TOTO_STANDING",
+    "owner_kind": "ATTENDANT",
+    "owner_id": "ATTENDANT_06",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/toto.png"
+  },
+  "ASSET_VOLG_STANDING": {
+    "asset_id": "ASSET_VOLG_STANDING",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg.png"
   },
 } as const satisfies Record<string, AssetMasterRecord>;

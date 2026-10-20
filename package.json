@@ -16,7 +16,8 @@
     "id": "node tools/docindex/index.js",
     "audit": "node tools/audit/index.js",
     "desktop": "vite build && electron desktop/main.js",
-    "package": "vite build && node desktop/package.js"
+    "package": "vite build && node desktop/package.js",
+    "art": "electron art/import.js"
   },
   "devDependencies": {
     "@electron/packager": "^20.3.0",

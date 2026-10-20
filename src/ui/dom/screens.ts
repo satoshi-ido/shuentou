@@ -6,6 +6,7 @@ import type { InheritTarget } from '../../engine/progress/inherit.js';
 import type { WatchDefaultMode } from '../../engine/watch.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
+import { figureNode, figureUrl } from './art.js';
 import { HERO_MAX_HP_CHANGE } from '../view/screen-view.js';
 import type {
   DictionaryEntry,
@@ -276,17 +277,15 @@ const INHERIT_STATE_LABEL: Readonly<Record<PartySlotView['inheritState'], string
   FORFEITED: '枠を失効',
 };
 
-function figure(className: string): HTMLElement {
-  const node = element('div', className);
-  node.append(element('div', 'head'));
-  node.append(element('div', 'body'));
-  return node;
+// 従者の立ち絵（[S-LOOK-PRINCIPLE]）。実体が無ければプレースホルダの人形。
+function attendantFigure(attendantId: string): HTMLElement {
+  return figureNode('figure', figureUrl('ATTENDANT', attendantId));
 }
 
 // 壇に並ぶ従者1名。クリックで選択し、継承先・供犠の対象とする。
 function partyMember(slot: PartySlotView, selected: boolean, handlers: ScreenHandlers): HTMLElement {
   const node = element('div', `pm${selected ? ' sel' : ''}`);
-  node.append(figure('figure'));
+  node.append(attendantFigure(slot.attendantId));
   const plate = element('div', 'pmp');
   plate.append(element('div', 'pmn', slot.name));
   plate.append(element('div', 'pmt', `〈${slot.epithet}〉`));
@@ -335,7 +334,7 @@ export function renderIntermission(
   const fallen = element('div', 'fallenwrap');
   for (const lost of view.fallen) {
     const node = element('div', 'pm fallen');
-    node.append(figure('figure'));
+    node.append(attendantFigure(lost.attendantId));
     const plate = element('div', 'pmp');
     plate.append(element('div', 'pmn', lost.name));
     plate.append(element('div', 'pmt', `〈${lost.epithet}〉`));
@@ -450,7 +449,13 @@ function stageFigure(kind: string, label: string, tag: string, attendantId?: str
   if (attendantId !== undefined) {
     node.dataset.attendant = attendantId;
   }
-  node.append(kind === 'slot' ? element('div', 'ghost') : figure('figure'));
+  node.append(
+    kind === 'slot'
+      ? element('div', 'ghost')
+      : attendantId === undefined
+        ? figureNode('figure', figureUrl('HERO', null))
+        : attendantFigure(attendantId),
+  );
   node.append(element('div', 'rlabel', label));
   node.append(element('div', 'rtag', tag));
   return node;

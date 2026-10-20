@@ -15,6 +15,7 @@ const LAYOUT_ZONES = {
   'tools/genmaster': ['src/num', 'src/data'],
   'tools/docindex': [],
   desktop: [],
+  art: [],
 };
 const ALL_ZONES = Object.keys(LAYOUT_ZONES);
 
@@ -101,9 +102,9 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['tools/**/*.{ts,js}', 'tests/**/*.js', '*.config.js', 'desktop/**/*.js'],
+    files: ['tools/**/*.{ts,js}', 'tests/**/*.js', '*.config.js', 'desktop/**/*.js', 'art/**/*.js'],
     languageOptions: {
-      globals: { process: 'readonly', console: 'readonly', URL: 'readonly', Response: 'readonly' },
+      globals: { process: 'readonly', console: 'readonly', URL: 'readonly', Response: 'readonly', Buffer: 'readonly' },
     },
   },
   {
@@ -113,7 +114,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['src/**/*.{ts,js}', 'tools/**/*.{ts,js}', 'desktop/**/*.js'],
+    files: ['src/**/*.{ts,js}', 'tools/**/*.{ts,js}', 'desktop/**/*.js', 'art/**/*.js'],
     plugins: { import: importPlugin },
     rules: {
       'import/no-restricted-paths': ['error', { zones: dependencyDirectionZones }],
@@ -131,7 +132,7 @@ export default tseslint.config(
     ...deterministicLayerRestriction,
   },
   {
-    files: ['src/ui/**/*.{ts,js}'],
+    files: ['src/ui/**/*.{ts,js}', 'art/**/*.js'],
     ...randomRestriction,
   },
 );

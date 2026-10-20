@@ -3,3 +3,6 @@ docs/id-index.json
 dist/
 release/
 docs/script-ids.json
+
+# [I-ENV-LAYOUT] 表示アセットの取り込み元（生成した画像の原本）はリポジトリに置かない
+art-src/

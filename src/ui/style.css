@@ -1824,3 +1824,65 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* 脚本の層は空のときクリックを遮らない。提示中は .script-screen が入力を受ける。 */
 .script-root { position: absolute; inset: 0; pointer-events: none; }
 .script-root > * { pointer-events: auto; }
+
+/* ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
+   背景は入口が画面の根に --screen-image（脚本は --script-image）を与える。実体の無い間は none となり、
+   下に重ねたプレースホルダの層がそのまま見える。立ち絵は .figure-img（読み込めなければ人形に戻る）。 */
+.figure-img {
+  display: block;
+  width: auto;
+  height: 150px;
+  max-width: 100%;
+  object-fit: contain;
+  object-position: bottom center;
+  pointer-events: none;
+  user-select: none;
+}
+.bcol.master .figure-img { height: 158px; transform: none; }
+.bcol-mine .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
+.bcol-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
+.pm .figure-img { height: 132px; margin-bottom: 6px; }
+.pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }
+.pm.fallen .figure-img { filter: grayscale(1); opacity: 0.4; }
+.rfig .figure-img { height: 118px; margin-bottom: 5px; }
+.rfig.dead .figure-img { filter: grayscale(1); opacity: 0.34; }
+.rfig.dead.hl .figure-img { filter: grayscale(0.35); opacity: 0.78; }
+
+/* 戦闘背景は 1280×720 の画を、地面の帯（[S-BG-PRINCIPLE]、y 336〜456）が立ち絵の足元に来る位置に置く。 */
+.field-bg {
+  background:
+    linear-gradient(180deg, rgba(8, 7, 11, 0.25) 0%, rgba(8, 7, 11, 0.15) 60%, rgba(8, 7, 11, 0.55) 100%),
+    var(--screen-image, none) center -205px / 1280px 720px no-repeat,
+    radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.14), transparent 70%),
+    radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.16), transparent 70%),
+    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);
+}
+
+.screen-title,
+.screen-pre-battle {
+  background:
+    linear-gradient(180deg, rgba(8, 7, 11, 0.35), rgba(8, 7, 11, 0.7)),
+    var(--screen-image, none) center / cover no-repeat;
+}
+
+/* インターミッションと補充は、直前のシーンの戦闘背景を暗く落とす（[S-BG-INTERMISSION]）。 */
+.imfield {
+  background:
+    linear-gradient(180deg, rgba(8, 7, 11, 0.72), rgba(8, 7, 11, 0.86)),
+    var(--screen-image, none) center / cover no-repeat,
+    radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.1), transparent 70%),
+    radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.12), transparent 70%),
+    linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);
+}
+.screen-refill {
+  background:
+    linear-gradient(180deg, rgba(8, 7, 11, 0.8), rgba(8, 7, 11, 0.9)),
+    var(--screen-image, none) center / cover no-repeat;
+}
+
+.script-bg {
+  background:
+    linear-gradient(rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.72)),
+    var(--script-image, none) center / cover no-repeat,
+    radial-gradient(ellipse at 50% 70%, hsl(var(--script-hue) 30% 26%), hsl(var(--script-hue) 24% 9%) 70%);
+}

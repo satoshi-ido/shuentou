@@ -3,6 +3,7 @@
 // 配置は 予兆線（上段）／戦域・行動統合盤（中段）／判定プレビューと再生操作（下段）の3段構成とする。
 
 import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
+import { figureNode } from './art.js';
 import type { PlaybackSpeed } from '../config.js';
 import { formatCenti, INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
@@ -482,10 +483,7 @@ function renderColumn(
   const cell = element('div', 'cell');
   const stamps = element('div', 'stamps');
   cell.append(stamps);
-  const figure = element('div', 'figure');
-  figure.append(element('div', 'head'));
-  figure.append(element('div', 'body'));
-  cell.append(figure);
+  cell.append(figureNode(`figure${plate?.isCreature === true ? ' creature' : ''}`, plate?.figure ?? null));
   cell.append(element('div', 'ground'));
   const plateNode = plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate, null);
   cell.append(plateNode);

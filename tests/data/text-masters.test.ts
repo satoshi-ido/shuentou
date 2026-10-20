@@ -2,6 +2,7 @@
 // [M-DATA-HELPS] が確定する要求集合と、[M-DATA-ASSETMASTER] の条件付必須を検査する。
 // プレースホルダはレコードの存在を満たすが本文の完成を意味しないため、残存件数を別に数える。
 
+import { existsSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import mainSource from '../../src/ui/main.ts?raw';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
@@ -14,6 +15,7 @@ import type {
   CreatureMasterRecord,
   EnemyMasterRecord,
   HelpMasterRecord,
+  ScriptMasterRecord,
   StringMasterRecord,
 } from '../../src/data/types.js';
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
@@ -21,6 +23,7 @@ import { CREATURE_MASTERS } from '../../src/data/generated/creature-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
 import { HERO_INIT_ACTIONS } from '../../src/data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
+import { SCRIPT_MASTERS } from '../../src/data/generated/script-masters.js';
 import { BUNDLE_KEYS, COMMON_KEYS, isPlaceholderText, resolveHelp, resolveText } from '../../src/ui/text.js';
 
 const strings: Readonly<Record<string, StringMasterRecord>> = STRING_MASTERS;
@@ -197,6 +200,42 @@ describe('[M-DATA-ASSETMASTER] 表示アセットマスタ', () => {
   it('系統アイコンは5種（心気・武技・体勢・召喚・隊列交代）を備える', () => {
     const icons = Object.values(assets).filter((record) => record.slot === 'ICON');
     expect(icons).toHaveLength(5);
+  });
+
+  // ［差分の選択］同じ所有者・スロットには基準の画（variant が Null）が高々1件あり、差分の名は UPPER_SNAKE。
+  it('差分の名は UPPER_SNAKE で、同じ所有者・スロットの基準の画は高々1件である', () => {
+    const bases: Record<string, number> = {};
+    for (const record of Object.values(assets)) {
+      const variant = record.variant ?? null;
+      if (variant !== null) {
+        expect(variant, record.asset_id).toMatch(/^[A-Z][A-Z0-9_]*$/);
+        continue;
+      }
+      const key = `${record.owner_kind}/${record.owner_id}/${record.slot}/${record.cue}`;
+      bases[key] = (bases[key] ?? 0) + 1;
+    }
+    expect(Object.entries(bases).filter(([, count]) => count > 1)).toEqual([]);
+  });
+
+  // [S-SCRIPT-SCHEMA]「背景」脚本の行が指す背景は BACKGROUND スロットのレコードである。
+  it('脚本の行の background は BACKGROUND スロットの asset_id を指す', () => {
+    const scriptRecords: Readonly<Record<string, ScriptMasterRecord>> = SCRIPT_MASTERS;
+    for (const record of Object.values(scriptRecords)) {
+      for (const line of record.lines) {
+        if ((line.background ?? null) !== null) {
+          expect(assets[line.background ?? '']?.slot, record.script_id).toBe('BACKGROUND');
+        }
+      }
+    }
+  });
+
+  // [I-PLAN-ASSETS]【実体の投入】実体の置き場所（src/ui/public/）に、レコードの指す画が揃っているかを数える。
+  // 揃うまでは件数を出力するのみとし、M9 の受け入れ（[I-PLAN-SUBMISSION]【M9 の受け入れ線】4）で0件を確かめる。
+  it('立ち絵と背景の実体の残存件数を数える', () => {
+    const art = Object.values(assets).filter((record) => record.path.startsWith('art/'));
+    const missing = art.filter((record) => !existsSync(new URL(`../../src/ui/public/${record.path}`, import.meta.url)));
+    console.log(`表示アセットの実体：${art.length - missing.length} / ${art.length}（未投入 ${missing.length}）`);
+    expect(art.length).toBeGreaterThan(0);
   });
 });
 
