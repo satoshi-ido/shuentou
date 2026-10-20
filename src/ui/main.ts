@@ -57,7 +57,7 @@ import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-scre
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
-import { DRUMS, SCENE_RHYTHMS, type Rhythm } from './audio/rhythm.js';
+import { readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -192,8 +192,7 @@ let dueCues: string[] = []; // [S-SCRIPT-TRIGGER]【バトル中の契機】成�
 let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴らし直さない）
 let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
-let layerDucked = false;
-let rhythmScene: string | null = null; // 打楽器の型を鳴らしているシーン
+let ensembleScene: string | null = null; // 戦闘の合奏を鳴らしているシーン
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
 function playSe(cue: AudioCue): void {
@@ -203,13 +202,13 @@ function playSe(cue: AudioCue): void {
   }
 }
 
-// 打楽器の型を、打楽器（variant）ごとの資産IDへ写す。資産の無い打楽器は鳴らさない。
-function drumAssetsOf(rhythm: Rhythm): Record<string, string> {
-  const result: Record<string, string> = {};
-  for (const drum of DRUMS) {
-    const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'DRUM' && candidate.variant === drum);
+// 【戦闘の合奏】譜を、声部（variant）ごとの資産IDと区切りごとの再生の速さへ写す。資産の無い声部は鳴らさない。
+function ensembleOf(score: Score): Record<string, (number | null)[]> {
+  const result: Record<string, (number | null)[]> = {};
+  for (const voice of VOICES) {
+    const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'ENSEMBLE' && candidate.variant === voice);
     if (record !== undefined) {
-      result[record.asset_id] = rhythm[drum];
+      result[record.asset_id] = readScore(voice, score[voice]);
     }
   }
   return result;
@@ -233,7 +232,7 @@ function layerCue(): AudioCue | null {
   }
   switch (screen) {
     case 'BATTLE':
-      return 'BATTLE';
+      return null; // バトルは層を重ねず、戦闘の合奏を鳴らす（【戦闘の合奏】）
     case 'INTERMISSION':
     case 'REFILL':
       return 'INTERMISSION';
@@ -268,19 +267,14 @@ function syncBgm(): void {
     currentBgm = assetId ?? '';
   }
 
-  // 時間停止中は層を下げ打楽器を止め、重低音の拍だけを残す。
-  const ducked = cue === 'BATTLE' && script === null && battleResult !== 'RUNNING';
-  if (ducked !== layerDucked) {
-    layerDucked = ducked;
-    audio.duckLayer(ducked);
-  }
-  // 【打楽器の型】バトル進行中に限り、シーンの型を重低音の拍に合わせて鳴らす。
-  const drumScene = cue === 'BATTLE' && script === null && !ducked ? (session?.data.run.current_scene_id ?? null) : null;
-  const rhythm = drumScene === null ? undefined : SCENE_RHYTHMS[drumScene];
-  const nextRhythmScene = rhythm === undefined ? null : drumScene;
-  if (nextRhythmScene !== rhythmScene) {
-    rhythmScene = nextRhythmScene;
-    audio.setRhythm(rhythm === undefined ? null : drumAssetsOf(rhythm));
+  // 【戦闘の合奏】バトル進行中に限り、シーンの譜を重低音の拍に合わせて鳴らす。時間停止中は止め、拍だけを残す。
+  const inBattle = session !== null && screenOf(session.data.run) === 'BATTLE' && script === null;
+  const sceneId = session?.data.run.current_scene_id ?? '';
+  const score = inBattle && battleResult === 'RUNNING' ? SCENE_SCORES[sceneId] : undefined;
+  const nextEnsembleScene = score === undefined ? null : sceneId;
+  if (nextEnsembleScene !== ensembleScene) {
+    ensembleScene = nextEnsembleScene;
+    audio.setEnsemble(score === undefined ? null : ensembleOf(score));
   }
 }
 let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者

@@ -89,11 +89,11 @@ describe('[I-PLAN-ASSETS] プレースホルダ', () => {
   it('空実装の音声ドライバは音量設定と SILENCE の呼び出し経路を記録する', () => {
     const audio = new RecordingAudioDriver();
     audio.setVolumes(30, 70);
-    audio.playBgm('BATTLE', 'ASSET_BGM_1_01');
+    audio.playBgm('CALM', 'ASSET_BGM_CALM');
     audio.playSe('HIT', 'ASSET_SE_HIT');
     audio.silence();
     expect(audio.events).toEqual([
-      { kind: 'BGM', cue: 'BATTLE', assetId: 'ASSET_BGM_1_01', volume: 30 },
+      { kind: 'BGM', cue: 'CALM', assetId: 'ASSET_BGM_CALM', volume: 30 },
       { kind: 'SE', cue: 'HIT', assetId: 'ASSET_SE_HIT', volume: 70 },
       { kind: 'SILENCE' },
     ]);

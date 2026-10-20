@@ -192,7 +192,7 @@ describe('[M-DATA-ASSETMASTER] 表示アセットマスタ', () => {
 
   it('[M-DATA-AUDIO-CUE] の各発火契機に対応するアセットを持つ', () => {
     const cues = Object.values(assets).map((record) => record.cue);
-    for (const cue of ['BATTLE', 'INTERMISSION', 'ACTION_TRIGGER', 'HIT', 'MISS', 'UNIT_DESTROY', 'WATCH_PAUSE', 'UI_CONFIRM', 'UI_CANCEL']) {
+    for (const cue of ['PULSE', 'ENSEMBLE', 'CALM', 'INTERMISSION', 'ACTION_TRIGGER', 'HIT', 'MISS', 'UNIT_DESTROY', 'WATCH_PAUSE', 'UI_CONFIRM', 'UI_CANCEL']) {
       expect(cues, cue).toContain(cue);
     }
   });

@@ -59,22 +59,18 @@ export const ASSETS = [
   { asset_id: 'ASSET_ICON_STANCE', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'STANCE', path: 'art/icons.svg#stance' },
   { asset_id: 'ASSET_ICON_SUMMON', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SUMMON', path: 'art/icons.svg#summon' },
   { asset_id: 'ASSET_ICON_SWAP', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SWAP', path: 'art/icons.svg#swap' },
-  // BGM（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音の一打（PULSE）と、状況に応じて重ねる層。層の BATTLE はシーン、
-  // INTERMISSION・CALM・ENDING は GLOBAL が持つ。
+  // BGM（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音の一打（PULSE）と、状況に応じて重ねる層。バトルは層を
+  // 重ねず戦闘の合奏を一打ずつ鳴らす。INTERMISSION・CALM・ENDING・ENSEMBLE は GLOBAL が持つ。
   { asset_id: 'ASSET_BGM_PULSE', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'PULSE', path: 'art/audio/bgm-pulse.mp3' },
   { asset_id: 'ASSET_BGM_CALM', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'CALM', path: 'art/audio/bgm-calm.mp3' },
-  // 打楽器の一打（[M-DATA-AUDIO-CUE]【打楽器の型】）。variant で打楽器を区別する。
-  { asset_id: 'ASSET_BGM_DRUM_KICK', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'DRUM', variant: 'KICK', path: 'art/audio/bgm-drum-kick.mp3' },
-  { asset_id: 'ASSET_BGM_DRUM_TOM', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'DRUM', variant: 'TOM', path: 'art/audio/bgm-drum-tom.mp3' },
-  { asset_id: 'ASSET_BGM_DRUM_FRAME', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'DRUM', variant: 'FRAME', path: 'art/audio/bgm-drum-frame.mp3' },
-  { asset_id: 'ASSET_BGM_DRUM_METAL', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'DRUM', variant: 'METAL', path: 'art/audio/bgm-drum-metal.mp3' },
+  // 戦闘の合奏の一打（[M-DATA-AUDIO-CUE]【戦闘の合奏】）。variant で声部を区別する。鍵盤は D の一音。
+  { asset_id: 'ASSET_BGM_ENSEMBLE_CAK', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CAK', path: 'art/audio/bgm-ensemble-cak.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_CAK_LOW', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CAK_LOW', path: 'art/audio/bgm-ensemble-cak-low.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_PUNG', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'PUNG', path: 'art/audio/bgm-ensemble-pung.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_SARON', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'SARON', path: 'art/audio/bgm-ensemble-saron.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_GANGSA', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'GANGSA', path: 'art/audio/bgm-ensemble-gangsa.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_GONG', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'GONG', path: 'art/audio/bgm-ensemble-gong.mp3' },
   { asset_id: 'ASSET_BGM_ENDING', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENDING', path: 'art/audio/bgm-ending.mp3' },
-  { asset_id: 'ASSET_BGM_1_01', owner_kind: 'SCENE', owner_id: 'SCENE_1_01', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-1-01.mp3' },
-  { asset_id: 'ASSET_BGM_1_02', owner_kind: 'SCENE', owner_id: 'SCENE_1_02', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-1-02.mp3' },
-  { asset_id: 'ASSET_BGM_2_01', owner_kind: 'SCENE', owner_id: 'SCENE_2_01', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-2-01.mp3' },
-  { asset_id: 'ASSET_BGM_2_02', owner_kind: 'SCENE', owner_id: 'SCENE_2_02', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-2-02.mp3' },
-  { asset_id: 'ASSET_BGM_2_03', owner_kind: 'SCENE', owner_id: 'SCENE_2_03', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-2-03.mp3' },
-  { asset_id: 'ASSET_BGM_2_04', owner_kind: 'SCENE', owner_id: 'SCENE_2_04', slot: 'BGM', cue: 'BATTLE', path: 'art/audio/bgm-2-04.mp3' },
   { asset_id: 'ASSET_BGM_INTERMISSION', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'INTERMISSION', path: 'art/audio/bgm-intermission.mp3' },
   // SE（発火契機ごとに1件）
   { asset_id: 'ASSET_SE_HIT', owner_kind: 'GLOBAL', owner_id: null, slot: 'SE', cue: 'HIT', path: 'art/audio/se-hit.mp3' },

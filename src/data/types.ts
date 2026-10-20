@@ -193,10 +193,9 @@ export type AssetSlot = 'PORTRAIT' | 'STANDING' | 'PLATE' | 'ICON' | 'BACKGROUND
 // [M-DATA-AUDIO-CUE]
 export type AudioCueKey =
   | 'PULSE'
-  | 'BATTLE'
   | 'INTERMISSION'
   | 'CALM'
-  | 'DRUM'
+  | 'ENSEMBLE'
   | 'ENDING'
   | 'SCRIPT'
   | 'ACTION_TRIGGER'

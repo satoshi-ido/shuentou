@@ -34,10 +34,7 @@ describe('[M-DATA-AUDIO-CUE] 契機と資産の対応', () => {
     expect(globalAssetOf('WATCH_PAUSE', ASSET_MASTERS)).toBe('ASSET_SE_WATCH_PAUSE');
   });
 
-  it('BGM はシーンに紐づく資産を選び、インターミッションは共通の資産を選ぶ', () => {
-    expect(bgmAssetOf('BATTLE', 'SCENE_1_01', ASSET_MASTERS)).toBe('ASSET_BGM_1_01');
-    expect(bgmAssetOf('BATTLE', 'SCENE_1_02', ASSET_MASTERS)).toBe('ASSET_BGM_1_02');
-    expect(bgmAssetOf('BATTLE', 'SCENE_9_99', ASSET_MASTERS)).toBeNull();
+  it('インターミッションの層は共通の資産を選ぶ', () => {
     expect(bgmAssetOf('INTERMISSION', 'SCENE_1_01', ASSET_MASTERS)).toBe('ASSET_BGM_INTERMISSION');
   });
 
@@ -51,10 +48,10 @@ describe('[M-DATA-AUDIO-CUE] 契機と資産の対応', () => {
   it('[M-UI-CONFIG] 音量設定は以後の再生に適用される', () => {
     const driver = new RecordingAudioDriver();
     driver.setVolumes(40, 10);
-    driver.playBgm('BATTLE', 'ASSET_BGM_1_01');
+    driver.playBgm('CALM', 'ASSET_BGM_CALM');
     driver.playSe('HIT', 'ASSET_SE_HIT');
     expect(driver.events).toEqual([
-      { kind: 'BGM', cue: 'BATTLE', assetId: 'ASSET_BGM_1_01', volume: 40 },
+      { kind: 'BGM', cue: 'CALM', assetId: 'ASSET_BGM_CALM', volume: 40 },
       { kind: 'SE', cue: 'HIT', assetId: 'ASSET_SE_HIT', volume: 10 },
     ]);
   });

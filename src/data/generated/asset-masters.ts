@@ -11,54 +11,6 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ashal.png"
   },
-  "ASSET_BGM_1_01": {
-    "asset_id": "ASSET_BGM_1_01",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_1_01",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-1-01.mp3"
-  },
-  "ASSET_BGM_1_02": {
-    "asset_id": "ASSET_BGM_1_02",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_1_02",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-1-02.mp3"
-  },
-  "ASSET_BGM_2_01": {
-    "asset_id": "ASSET_BGM_2_01",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_2_01",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-2-01.mp3"
-  },
-  "ASSET_BGM_2_02": {
-    "asset_id": "ASSET_BGM_2_02",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_2_02",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-2-02.mp3"
-  },
-  "ASSET_BGM_2_03": {
-    "asset_id": "ASSET_BGM_2_03",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_2_03",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-2-03.mp3"
-  },
-  "ASSET_BGM_2_04": {
-    "asset_id": "ASSET_BGM_2_04",
-    "owner_kind": "SCENE",
-    "owner_id": "SCENE_2_04",
-    "slot": "BGM",
-    "cue": "BATTLE",
-    "path": "art/audio/bgm-2-04.mp3"
-  },
   "ASSET_BGM_CALM": {
     "asset_id": "ASSET_BGM_CALM",
     "owner_kind": "GLOBAL",
@@ -67,42 +19,6 @@ export const ASSET_MASTERS = {
     "cue": "CALM",
     "path": "art/audio/bgm-calm.mp3"
   },
-  "ASSET_BGM_DRUM_FRAME": {
-    "asset_id": "ASSET_BGM_DRUM_FRAME",
-    "owner_kind": "GLOBAL",
-    "owner_id": null,
-    "slot": "BGM",
-    "cue": "DRUM",
-    "variant": "FRAME",
-    "path": "art/audio/bgm-drum-frame.mp3"
-  },
-  "ASSET_BGM_DRUM_KICK": {
-    "asset_id": "ASSET_BGM_DRUM_KICK",
-    "owner_kind": "GLOBAL",
-    "owner_id": null,
-    "slot": "BGM",
-    "cue": "DRUM",
-    "variant": "KICK",
-    "path": "art/audio/bgm-drum-kick.mp3"
-  },
-  "ASSET_BGM_DRUM_METAL": {
-    "asset_id": "ASSET_BGM_DRUM_METAL",
-    "owner_kind": "GLOBAL",
-    "owner_id": null,
-    "slot": "BGM",
-    "cue": "DRUM",
-    "variant": "METAL",
-    "path": "art/audio/bgm-drum-metal.mp3"
-  },
-  "ASSET_BGM_DRUM_TOM": {
-    "asset_id": "ASSET_BGM_DRUM_TOM",
-    "owner_kind": "GLOBAL",
-    "owner_id": null,
-    "slot": "BGM",
-    "cue": "DRUM",
-    "variant": "TOM",
-    "path": "art/audio/bgm-drum-tom.mp3"
-  },
   "ASSET_BGM_ENDING": {
     "asset_id": "ASSET_BGM_ENDING",
     "owner_kind": "GLOBAL",
@@ -110,6 +26,60 @@ export const ASSET_MASTERS = {
     "slot": "BGM",
     "cue": "ENDING",
     "path": "art/audio/bgm-ending.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_CAK": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_CAK",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "CAK",
+    "path": "art/audio/bgm-ensemble-cak.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_CAK_LOW": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_CAK_LOW",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "CAK_LOW",
+    "path": "art/audio/bgm-ensemble-cak-low.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_GANGSA": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_GANGSA",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "GANGSA",
+    "path": "art/audio/bgm-ensemble-gangsa.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_GONG": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_GONG",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "GONG",
+    "path": "art/audio/bgm-ensemble-gong.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_PUNG": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_PUNG",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "PUNG",
+    "path": "art/audio/bgm-ensemble-pung.mp3"
+  },
+  "ASSET_BGM_ENSEMBLE_SARON": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_SARON",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "SARON",
+    "path": "art/audio/bgm-ensemble-saron.mp3"
   },
   "ASSET_BGM_INTERMISSION": {
     "asset_id": "ASSET_BGM_INTERMISSION",
