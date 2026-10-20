@@ -71,7 +71,7 @@ export interface Unit {
 }
 
 // [M-UI-WATCH] 監視条件5種。キーの並びは同項「同時成立時の提示順序」③に一致させる。
-export const WATCH_KINDS = ['READY', 'STUN', 'HIT_FRONT', 'HIT_BACK', 'EVADE'] as const;
+export const WATCH_KINDS = ['STUN', 'HIT_FRONT', 'HIT_BACK', 'EVADE_FRONT', 'EVADE_BACK'] as const;
 export type WatchKind = (typeof WATCH_KINDS)[number];
 export type WatchFlags = Record<WatchKind, boolean>;
 

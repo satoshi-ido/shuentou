@@ -156,12 +156,12 @@ describe('[M-UI-HUD] ビューモデル', () => {
   it('アクションカードは実効値・監視トグルの状態を持ち、既定値のコストを描画しない', () => {
     const { state, hero } = duel();
     hero.elapsed_thought = 20;
-    state.watching[hero.acts[0].instance_id] = { ...allWatchFlags(false), READY: true };
+    state.watching[hero.acts[0].instance_id] = { ...allWatchFlags(false), STUN: true };
     const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
     const mind = view.cards.find((card) => card.name === 'MIND')!;
     expect(mind).toMatchObject({ rank: 0, executable: true, uses: '10 / 10', stepThought: 20, stepStartup: 10, stepRecovery: 5 });
     expect(mind.costs).toEqual([]); // コスト0は描画しない
-    expect(mind.watch.find((toggle) => toggle.kind === 'READY')).toMatchObject({ on: true, status: 'MET', symbol: '可' });
+    expect(mind.watch.find((toggle) => toggle.kind === 'STUN')).toMatchObject({ on: true, status: 'MET', symbol: '止' });
     expect(mind.watch.find((toggle) => toggle.kind === 'HIT_FRONT')).toMatchObject({ on: false, status: 'NA' });
     const hit = view.cards.find((card) => card.name === 'HIT')!;
     expect(hit.costs).toEqual([{ label: 'PP', value: 2, short: true }]); // PP0 では払えない

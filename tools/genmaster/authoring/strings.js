@@ -131,12 +131,12 @@ export const STRINGS = [
   { string_id: 'STR_PAUSE_WATCH_MET', context: ['UNIT', 'ACTION', 'PAUSE'], text: '{UnitName}の{ActionName}が『{WatchLabel}』になった。' },
   { string_id: 'STR_PAUSE_MANUAL', context: [], text: '時を止めた。' },
   // ［監視条件ラベル］[M-DATA-PAUSE-REASON]。いずれも context は空配列である。
-  { string_id: 'STR_WATCH_READY', context: [], text: '実行可能' },
   // [M-DATA-PAUSE-REASON]「STR_WATCH_STUN の本文は『拍断ち』とする」。
   { string_id: 'STR_WATCH_STUN', context: [], text: '拍断ち' },
   { string_id: 'STR_WATCH_HIT_FRONT', context: [], text: '前列命中' },
   { string_id: 'STR_WATCH_HIT_BACK', context: [], text: '後列命中' },
-  { string_id: 'STR_WATCH_EVADE', context: [], text: '回避' },
+  { string_id: 'STR_WATCH_EVADE_FRONT', context: [], text: '前列回避' },
+  { string_id: 'STR_WATCH_EVADE_BACK', context: [], text: '後列回避' },
   { string_id: 'STR_WATCH_NA', context: [], text: '対象外' },
   { string_id: 'STR_WATCH_IDLE', context: [], text: '待機' },
 ];

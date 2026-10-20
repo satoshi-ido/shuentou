@@ -36,13 +36,13 @@ const FOE_FRONT_IDX = 2;
 const FOE_BACK_IDX = 3;
 
 export function allWatchFlags(value: boolean): WatchFlags {
-  return { READY: value, STUN: value, HIT_FRONT: value, HIT_BACK: value, EVADE: value };
+  return { STUN: value, HIT_FRONT: value, HIT_BACK: value, EVADE_FRONT: value, EVADE_BACK: value };
 }
 
-// [M-UI-WATCH]［既定の監視条件］『回避』は系統を問わず ON。これに加えて武技は『前列命中』
+// [M-UI-WATCH]［既定の監視条件］『前列回避』『後列回避』は系統を問わず ON。これに加えて武技は『前列命中』
 // 『後列命中』を、それ以外は『スタン』を ON とする。
 export function defaultWatchFlags(action: ActionInstance): WatchFlags {
-  const base = { ...allWatchFlags(false), EVADE: true };
+  const base = { ...allWatchFlags(false), EVADE_FRONT: true, EVADE_BACK: true };
   if (hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
     return { ...base, HIT_FRONT: true, HIT_BACK: true };
   }
@@ -235,7 +235,7 @@ function stunStatus(state: BattleState, unit: Unit, action: ActionInstance, exec
   return { status: interruptedBeforeFiring(state, unit, action, deps) ? 'UNMET' : 'MET', remainingSteps: threat };
 }
 
-// [M-UI-WATCH]『回避』の回避手段。
+// [M-UI-WATCH]『前列回避』『後列回避』の回避手段。
 function hasEvadeMeans(action: ActionInstance): boolean {
   const flags = action.sys_flags;
   return (
@@ -266,13 +266,22 @@ function threatHits(state: BattleState, threat: Threat, unitId: string): { reado
   return { fires: true, hits: inRange && effectiveAtk(foe, action) >= currentDefense(target) };
 }
 
-function evadeStatus(state: BattleState, unit: Unit, action: ActionInstance, executable: boolean, deps: StepDeps): WatchEvaluation {
+// [M-UI-WATCH]『前列回避』『後列回避』：敵陣の当該列（rowIdx）にいる敵の脅威だけを数え、その被弾を免れうるか。
+function evadeStatus(
+  state: BattleState,
+  unit: Unit,
+  action: ActionInstance,
+  executable: boolean,
+  deps: StepDeps,
+  rowIdx: number,
+): WatchEvaluation {
   if (!hasEvadeMeans(action)) {
     return NEVER;
   }
   const threats = foeStartupActions(
     state,
     (foe, foeAction) =>
+      foe.pos_idx === rowIdx &&
       hasFlag(foeAction.sys_flags, 'FLAG_MARTIAL') &&
       Math.abs(foe.pos_idx - unit.pos_idx) <= effectiveRange(foe, foeAction) &&
       effectiveAtk(foe, foeAction) >= currentDefense(unit),
@@ -318,11 +327,11 @@ function evadeStatus(state: BattleState, unit: Unit, action: ActionInstance, exe
 export function evaluateActionWatch(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): ActionWatchEvaluation {
   const executable = executableActions(state, unit).includes(action);
   return {
-    READY: { status: executable ? 'MET' : 'UNMET', remainingSteps: 0 },
     STUN: stunStatus(state, unit, action, executable, deps),
     HIT_FRONT: hitStatus(unit, action, state.units[FOE_FRONT_IDX] ?? null, executable),
     HIT_BACK: hitStatus(unit, action, state.units[FOE_BACK_IDX] ?? null, executable),
-    EVADE: evadeStatus(state, unit, action, executable, deps),
+    EVADE_FRONT: evadeStatus(state, unit, action, executable, deps, FOE_FRONT_IDX),
+    EVADE_BACK: evadeStatus(state, unit, action, executable, deps, FOE_BACK_IDX),
   };
 }
 

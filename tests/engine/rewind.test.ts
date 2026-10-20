@@ -172,11 +172,11 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     expect(loaded.session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'ROLLBACK_BATTLE' });
   });
 
-  it('現行の save_version は 7 であり、そのセーブはロードできる', () => {
+  it('現行の save_version は 8 であり、そのセーブはロードできる', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    expect(data.save_version).toBe(7);
+    expect(data.save_version).toBe(8);
     expect(loadGame(JSON.stringify(data), ctx).ok).toBe(true);
   });
 
@@ -350,7 +350,7 @@ describe('[M-UI-CONFIG] 監視トグルの既定の再適用', () => {
     const hero = state?.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE');
     const martial = hero?.acts.find((action) => action.master_ref === 'ACT_SLASH_AR3');
     const mind = hero?.acts.find((action) => action.master_ref === 'ACT_MIND_AR3');
-    expect(state?.watching[martial?.instance_id ?? '']).toMatchObject({ HIT_FRONT: true, HIT_BACK: true, EVADE: true, STUN: false });
-    expect(state?.watching[mind?.instance_id ?? '']).toMatchObject({ STUN: true, EVADE: true, HIT_FRONT: false });
+    expect(state?.watching[martial?.instance_id ?? '']).toMatchObject({ HIT_FRONT: true, HIT_BACK: true, EVADE_FRONT: true, EVADE_BACK: true, STUN: false });
+    expect(state?.watching[mind?.instance_id ?? '']).toMatchObject({ STUN: true, EVADE_FRONT: true, EVADE_BACK: true, HIT_FRONT: false });
   });
 });

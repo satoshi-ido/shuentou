@@ -7,7 +7,7 @@ import type { MetaCounters, RewindPending, SaveData } from '../meta/types.js';
 import { sceneByOrder, type GameMasters } from './masters.js';
 import type { RunState } from './state.js';
 
-export const SAVE_VERSION = 7; // [M-META-SAVEDATA]［データバージョン］ユニットのクリーチャーID、召喚のクラスIDの分岐を追加
+export const SAVE_VERSION = 8; // [M-META-SAVEDATA]［データバージョン］監視条件の『実行可能』を廃し、『回避』を前列・後列に分ける
 const HERO_INIT_MAX_HP = 60; // [M-DATA-HERO-INIT]
 
 function allFalse(keys: readonly string[]): Record<string, boolean> {

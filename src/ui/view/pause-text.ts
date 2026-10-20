@@ -15,11 +15,11 @@ export const PAUSE_REASON_STRING_ID: Readonly<Record<PauseReasonCode, string>> =
 
 // [M-DATA-PAUSE-REASON]［監視条件ラベル］監視条件と非対象状態に対応する文言ID。
 export const WATCH_LABEL_STRING_ID: Readonly<Record<WatchKind | 'NA' | 'IDLE', string>> = {
-  READY: 'STR_WATCH_READY',
   STUN: 'STR_WATCH_STUN',
   HIT_FRONT: 'STR_WATCH_HIT_FRONT',
   HIT_BACK: 'STR_WATCH_HIT_BACK',
-  EVADE: 'STR_WATCH_EVADE',
+  EVADE_FRONT: 'STR_WATCH_EVADE_FRONT',
+  EVADE_BACK: 'STR_WATCH_EVADE_BACK',
   NA: 'STR_WATCH_NA',
   IDLE: 'STR_WATCH_IDLE',
 };

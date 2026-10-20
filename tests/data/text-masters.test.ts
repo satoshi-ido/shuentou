@@ -76,11 +76,11 @@ const REQUIRED_STRINGS: readonly (readonly [string, readonly ContextBundle[]])[]
   ['STR_PAUSE_WATCH_MET', ['UNIT', 'ACTION', 'PAUSE']],
   ['STR_PAUSE_MANUAL', []],
   // [M-DATA-PAUSE-REASON]［監視条件ラベル］
-  ['STR_WATCH_READY', []],
   ['STR_WATCH_STUN', []],
   ['STR_WATCH_HIT_FRONT', []],
   ['STR_WATCH_HIT_BACK', []],
-  ['STR_WATCH_EVADE', []],
+  ['STR_WATCH_EVADE_FRONT', []],
+  ['STR_WATCH_EVADE_BACK', []],
   ['STR_WATCH_NA', []],
   ['STR_WATCH_IDLE', []],
 ];

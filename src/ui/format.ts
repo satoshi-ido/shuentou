@@ -20,7 +20,7 @@ export const SYMBOL = {
   range: '射',
 } as const;
 
-export const WATCH_SYMBOL = { READY: '可', STUN: '止', HIT_FRONT: '中前', HIT_BACK: '中後', EVADE: '避' } as const;
+export const WATCH_SYMBOL = { STUN: '止', HIT_FRONT: '中前', HIT_BACK: '中後', EVADE_FRONT: '避前', EVADE_BACK: '避後' } as const;
 
 // [M-STATE-PARAMIDS]「表示名」列。
 export const PARAM_LABEL: Readonly<Record<string, string>> = {

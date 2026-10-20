@@ -37,19 +37,19 @@ function battle(session: ReturnType<typeof sessionWith>['session']): BattleState
 }
 
 describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-01）', () => {
-  it('『実行可能』をONにした心気（基本）が蓄積を終えたステップで停止し、事由を記録する', () => {
+  it('『スタン』をONにした心気（基本）が実行可能となったステップで停止し、事由を記録する', () => {
     const { session, ctx } = sessionWith(passiveFoe);
     startBattle(session, ctx, { watchDefault: 'ALL_OFF', maxSteps: 1 });
     const state = battle(session);
     const hero = findUnit(state, 'MINE');
-    setWatch(session, actionOf(hero, 'ACT_MIND_AR3').instance_id, 'READY', true);
+    setWatch(session, actionOf(hero, 'ACT_MIND_AR3').instance_id, 'STUN', true);
     expect(resumeBattle(session, ctx)).toBe('PAUSED');
     expect(state.step).toBe(147); // [V-NUM-OPENING] 心気（基本）の必要思考147
     expect(state.pause_reason).toEqual({
       code: 'WATCH_MET',
       unit_id: hero.unit_id,
       instance_id: actionOf(hero, 'ACT_MIND_AR3').instance_id,
-      watch_kind: 'READY',
+      watch_kind: 'STUN',
       remaining_steps: 0,
     });
   });
@@ -60,7 +60,7 @@ describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-0
     const state = battle(session);
     const hero = findUnit(state, 'MINE');
     for (const action of hero.acts) {
-      setWatch(session, action.instance_id, 'READY', true); // 既に充足している条件をONへ切り替える
+      setWatch(session, action.instance_id, 'STUN', true); // 既に充足している条件をONへ切り替える
     }
     const step = state.step;
     expect(resumeTime(session, ctx, { stopAtStep: step + 5 })).toBe('PAUSED');
@@ -75,7 +75,7 @@ describe('[M-UI-WATCH] 立ち上がりエッジによる自動時間停止（1-0
     const hero = findUnit(state, 'MINE');
     expect(state.step).toBe(150);
     expect(state.pause_reason?.code).toBe('MANUAL_PAUSE');
-    expect(state.watch_prev_met[actionOf(hero, 'ACT_MIND_AR3').instance_id].READY).toBe(true);
+    expect(state.watch_prev_met[actionOf(hero, 'ACT_MIND_AR3').instance_id].STUN).toBe(true);
   });
 });
 
@@ -144,9 +144,9 @@ describe('[M-UI-WATCH] 充足判定', () => {
     const COSTLY = martialAction('HERO_COSTLY', { atk: 20, range: 1, dmg_hp: 100, cost_pp: 5, step_startup: 5 });
     const { state, hero, enemy } = duel([COSTLY], [MIND]);
     enemy.ap = 0; // 実効防御力0：攻撃力20は命中見込みを満たす
-    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ READY: 'UNMET', HIT_FRONT: 'UNMET' });
+    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ STUN: 'UNMET', HIT_FRONT: 'UNMET' });
     hero.pp = 5; // 実効消費PPを満たすと、同じ局面で命中見込みも充足へ変わる
-    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ READY: 'MET', HIT_FRONT: 'MET' });
+    expect(statusOf(state, hero, 'HERO_COSTLY')).toMatchObject({ STUN: 'MET', HIT_FRONT: 'MET' });
   });
 
   it('『スタン』：中断されずに発動できるとき充足、先に着弾すれば未充足。対象外を持たない', () => {
@@ -166,18 +166,30 @@ describe('[M-UI-WATCH] 充足判定', () => {
     expect(statusOf(none.state, none.hero, 'HERO_SLOW').STUN).toBe('UNMET');
   });
 
-  it('『回避』：脅威の発動までに防御が成立すれば充足、間に合わなければ未充足、脅威がなければ待機、手段がなければ対象外', () => {
+  it('『前列回避』：脅威の発動までに防御が成立すれば充足、間に合わなければ未充足、脅威がなければ待機、手段がなければ対象外', () => {
     const FAST_GUARD = makeAction('HERO_FAST_GUARD', { deploy_ap: 50, step_startup: 2, step_recovery: 20 });
     const SLOW_GUARD = makeAction('HERO_SLOW_GUARD', { deploy_ap: 50, step_startup: 8, step_recovery: 20 });
     const STRIKE = martialAction('FOE_STRIKE', { atk: 30, dmg_hp: 500, step_startup: 10, step_recovery: 5 });
     const threatened = duel([FAST_GUARD, SLOW_GUARD, MIND], [STRIKE]);
     setStartup(threatened.enemy, 'FOE_STRIKE', 5); // 残り5
     const evaluation = evaluateActionWatch(threatened.state, threatened.hero, actionOf(threatened.hero, 'HERO_FAST_GUARD'), NO_SUMMON_DEPS);
-    expect(evaluation.EVADE).toEqual({ status: 'MET', remainingSteps: 5 });
-    expect(statusOf(threatened.state, threatened.hero, 'HERO_SLOW_GUARD').EVADE).toBe('UNMET');
-    expect(statusOf(threatened.state, threatened.hero, 'ACT_MIND').EVADE).toBe('NA');
+    expect(evaluation.EVADE_FRONT).toEqual({ status: 'MET', remainingSteps: 5 });
+    expect(evaluation.EVADE_BACK).toEqual({ status: 'IDLE', remainingSteps: 0 }); // 後列に脅威はない
+    expect(statusOf(threatened.state, threatened.hero, 'HERO_SLOW_GUARD').EVADE_FRONT).toBe('UNMET');
+    expect(statusOf(threatened.state, threatened.hero, 'ACT_MIND')).toMatchObject({ EVADE_FRONT: 'NA', EVADE_BACK: 'NA' });
     const calm = duel([FAST_GUARD], [STRIKE]);
-    expect(statusOf(calm.state, calm.hero, 'HERO_FAST_GUARD').EVADE).toBe('IDLE');
+    expect(statusOf(calm.state, calm.hero, 'HERO_FAST_GUARD').EVADE_FRONT).toBe('IDLE');
+  });
+
+  it('『前列回避』『後列回避』：脅威の出どころの列ごとに独立して判定し、他方の列の脅威による命中は問わない', () => {
+    const FAST_GUARD = makeAction('HERO_FAST_GUARD', { deploy_ap: 50, step_startup: 2, step_recovery: 20 });
+    const STRIKE = martialAction('FOE_STRIKE', { atk: 30, dmg_hp: 500, range: 2, step_startup: 10, step_recovery: 5 });
+    const QUICK_STRIKE = martialAction('FOE_QUICK_STRIKE', { atk: 30, dmg_hp: 500, range: 2, step_startup: 10, step_recovery: 5 });
+    const { state, hero, enemy } = duel([FAST_GUARD], [STRIKE]);
+    const creature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 3, maxHp: 10, acts: [QUICK_STRIKE], counter: { instance_id_seq: 50 } });
+    setStartup(enemy, 'FOE_STRIKE', 5); // 前列：残り5（防御の成立が間に合う）
+    setStartup(creature, 'FOE_QUICK_STRIKE', 9); // 後列：残り1（防御の成立が間に合わない）
+    expect(statusOf(state, hero, 'HERO_FAST_GUARD')).toMatchObject({ EVADE_FRONT: 'MET', EVADE_BACK: 'UNMET' });
   });
 
   it('途中で生成されたインスタンスは系統別の既定で登録し、破棄されたキーは削除する', () => {
@@ -188,12 +200,12 @@ describe('[M-UI-WATCH] 充足判定', () => {
     placeUnit(state, { side: 'MINE', kind: 'CREATURE', pos: 0, maxHp: 10, acts: [MIND], counter: { instance_id_seq: 70 } });
     syncWatchKeys(state);
     expect(state.watching[removed]).toBeUndefined();
-    // ［既定の監視条件］心気は『スタン』と『回避』が ON。watch_prev_met はエッジの基準なので全要素 False。
-    expect(state.watching.IID0070).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
+    // ［既定の監視条件］心気は『スタン』と『前列回避』『後列回避』が ON。watch_prev_met はエッジの基準なので全要素 False。
+    expect(state.watching.IID0070).toEqual({ ...allWatchFlags(false), STUN: true, EVADE_FRONT: true, EVADE_BACK: true });
     expect(state.watch_prev_met.IID0070).toEqual(allWatchFlags(false));
   });
 
-  it('［既定の監視条件］『回避』は系統を問わず ON、武技は『前列命中』『後列命中』、それ以外は『スタン』を加える', () => {
+  it('［既定の監視条件］『前列回避』『後列回避』は系統を問わず ON、武技は『前列命中』『後列命中』、それ以外は『スタン』を加える', () => {
     const HIT = martialAction('HERO_HIT', { atk: 10, dmg_hp: 100, step_startup: 5 });
     const { state, hero } = duel([HIT, MIND], [MIND]);
     syncWatchKeys(state);
@@ -201,9 +213,10 @@ describe('[M-UI-WATCH] 充足判定', () => {
       ...allWatchFlags(false),
       HIT_FRONT: true,
       HIT_BACK: true,
-      EVADE: true,
+      EVADE_FRONT: true,
+      EVADE_BACK: true,
     });
-    expect(state.watching[actionOf(hero, 'ACT_MIND').instance_id]).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
+    expect(state.watching[actionOf(hero, 'ACT_MIND').instance_id]).toEqual({ ...allWatchFlags(false), STUN: true, EVADE_FRONT: true, EVADE_BACK: true });
   });
 
   it('[M-UI-CONFIG]「監視トグルの既定」BY_SYSTEM は系統別、ALL_OFF / ALL_ON は5条件へ一律に適用する', () => {
@@ -216,8 +229,8 @@ describe('[M-UI-WATCH] 充足判定', () => {
     applyWatchDefault(state, 'ALL_OFF');
     expect(flagsOf('HERO_HIT')).toEqual(allWatchFlags(false));
     applyWatchDefault(state, 'BY_SYSTEM');
-    expect(flagsOf('HERO_HIT')).toEqual({ ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true, EVADE: true });
-    expect(flagsOf('ACT_MIND')).toEqual({ ...allWatchFlags(false), STUN: true, EVADE: true });
+    expect(flagsOf('HERO_HIT')).toEqual({ ...allWatchFlags(false), HIT_FRONT: true, HIT_BACK: true, EVADE_FRONT: true, EVADE_BACK: true });
+    expect(flagsOf('ACT_MIND')).toEqual({ ...allWatchFlags(false), STUN: true, EVADE_FRONT: true, EVADE_BACK: true });
   });
 
   it('同時成立時はマスインデックス → アクション配列インデックス → 条件の順で並べる', () => {
@@ -230,12 +243,9 @@ describe('[M-UI-WATCH] 充足判定', () => {
     }
     const edges = detectWatchEdges(state, NO_SUMMON_DEPS);
     expect(edges.map((edge) => [edge.unitId, edge.instanceId, edge.kind])).toEqual([
-      [creature.unit_id, 'IID0070', 'READY'],
       [creature.unit_id, 'IID0070', 'STUN'],
-      ['U0000', 'IID0000', 'READY'],
       ['U0000', 'IID0000', 'STUN'],
       ['U0000', 'IID0000', 'HIT_FRONT'],
-      ['U0000', 'IID0001', 'READY'],
       ['U0000', 'IID0001', 'STUN'],
     ]);
     expect(detectWatchEdges(state, NO_SUMMON_DEPS)).toEqual([]);

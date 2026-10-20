@@ -324,9 +324,14 @@ export const STRING_MASTERS = {
     "text": "取り消せる操作がない。",
     "context": []
   },
-  "STR_WATCH_EVADE": {
-    "string_id": "STR_WATCH_EVADE",
-    "text": "回避",
+  "STR_WATCH_EVADE_BACK": {
+    "string_id": "STR_WATCH_EVADE_BACK",
+    "text": "後列回避",
+    "context": []
+  },
+  "STR_WATCH_EVADE_FRONT": {
+    "string_id": "STR_WATCH_EVADE_FRONT",
+    "text": "前列回避",
     "context": []
   },
   "STR_WATCH_HIT_BACK": {
@@ -347,11 +352,6 @@ export const STRING_MASTERS = {
   "STR_WATCH_NA": {
     "string_id": "STR_WATCH_NA",
     "text": "対象外",
-    "context": []
-  },
-  "STR_WATCH_READY": {
-    "string_id": "STR_WATCH_READY",
-    "text": "実行可能",
     "context": []
   },
   "STR_WATCH_STUN": {

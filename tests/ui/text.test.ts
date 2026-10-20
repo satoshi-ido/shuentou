@@ -88,10 +88,10 @@ describe('[M-DATA-PAUSE-REASON] 事由文言の解決', () => {
     const { state, hero } = duel();
     const text = pauseReasonText(
       state,
-      { code: 'WATCH_MET', unit_id: hero.unit_id, instance_id: hero.acts[0].instance_id, watch_kind: 'READY', remaining_steps: 0 },
+      { code: 'WATCH_MET', unit_id: hero.unit_id, instance_id: hero.acts[0].instance_id, watch_kind: 'STUN', remaining_steps: 0 },
       sources,
     );
-    expect(text).toContain(strings.resolve(WATCH_LABEL_STRING_ID.READY));
+    expect(text).toContain(strings.resolve(WATCH_LABEL_STRING_ID.STUN));
   });
 
   it('STEP0_READY・MANUAL_PAUSE は束を供給しない', () => {

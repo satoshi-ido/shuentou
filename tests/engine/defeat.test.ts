@@ -166,7 +166,7 @@ describe('[M-REWIND-ROLLBACK] 敗北からのバトル開始時ロールバッ�
     playUntilLoss(session, ctx);
     rollbackBattle(session, ctx);
     expect(recorder.saves.length).toBeGreaterThanOrEqual(before);
-    expect(session.data.save_version).toBe(7);
+    expect(session.data.save_version).toBe(8);
     expect(session.data.run.current_scene_id).toBe('SCENE_1_01');
   });
 
