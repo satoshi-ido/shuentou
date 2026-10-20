@@ -63,12 +63,13 @@ export const ASSETS = [
   // 重ねず戦闘の合奏を一打ずつ鳴らす。INTERMISSION・CALM・ENDING・ENSEMBLE は GLOBAL が持つ。
   { asset_id: 'ASSET_BGM_PULSE', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'PULSE', path: 'art/audio/bgm-pulse.mp3' },
   { asset_id: 'ASSET_BGM_CALM', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'CALM', path: 'art/audio/bgm-calm.mp3' },
-  // 戦闘の合奏の一打（[M-DATA-AUDIO-CUE]【戦闘の合奏】）。variant で声部を区別する。打弦と鐘は D の一音。
+  // 戦闘の合奏の一打（[M-DATA-AUDIO-CUE]【戦闘の合奏】）。variant で声部を区別する。打弦・弦・鐘は D の一音。
   { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT', path: 'art/audio/bgm-ensemble-chant.mp3' },
   { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT_LOW', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT_LOW', path: 'art/audio/bgm-ensemble-chant-low.mp3' },
   { asset_id: 'ASSET_BGM_ENSEMBLE_CHANT_BASS', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'CHANT_BASS', path: 'art/audio/bgm-ensemble-chant-bass.mp3' },
   { asset_id: 'ASSET_BGM_ENSEMBLE_DULCIMER', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'DULCIMER', path: 'art/audio/bgm-ensemble-dulcimer.mp3' },
   { asset_id: 'ASSET_BGM_ENSEMBLE_DULCIMER_HIGH', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'DULCIMER_HIGH', path: 'art/audio/bgm-ensemble-dulcimer-high.mp3' },
+  { asset_id: 'ASSET_BGM_ENSEMBLE_STRINGS', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'STRINGS', path: 'art/audio/bgm-ensemble-strings.mp3' },
   { asset_id: 'ASSET_BGM_ENSEMBLE_BELL', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENSEMBLE', variant: 'BELL', path: 'art/audio/bgm-ensemble-bell.mp3' },
   { asset_id: 'ASSET_BGM_ENDING', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'ENDING', path: 'art/audio/bgm-ending.mp3' },
   { asset_id: 'ASSET_BGM_INTERMISSION', owner_kind: 'GLOBAL', owner_id: null, slot: 'BGM', cue: 'INTERMISSION', path: 'art/audio/bgm-intermission.mp3' },

@@ -57,7 +57,7 @@ import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-scre
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
-import { readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
+import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -207,7 +207,15 @@ function ensembleOf(score: Score): Record<string, (number | null)[]> {
   const result: Record<string, (number | null)[]> = {};
   for (const voice of VOICES) {
     const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'ENSEMBLE' && candidate.variant === voice);
-    if (record !== undefined) {
+    if (record === undefined) {
+      continue;
+    }
+    if (CHORDAL.includes(voice)) {
+      // 和音は根音・3度・5度を、同じ資産を別々の高さで同時に鳴らす（声部の鍵に「#番号」を付ける）。
+      for (const tone of [0, 1, 2]) {
+        result[`${record.asset_id}#${tone}`] = readScore(voice, score[voice], tone);
+      }
+    } else {
       result[record.asset_id] = readScore(voice, score[voice]);
     }
   }

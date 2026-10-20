@@ -23,7 +23,8 @@ export interface AudioDriver {
   // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
   duckLayer(ducked: boolean): void; // 時間停止中は層だけを下げる
-  // 戦闘の合奏の譜（資産ID → 区切りごとの再生の速さ。休みは Null）。重低音の拍に合わせて鳴らす。Null なら止める。
+  // 戦闘の合奏の譜（声部の鍵 → 区切りごとの再生の速さ。休みは Null）。重低音の拍に合わせて鳴らす。Null なら止める。
+  // 声部の鍵は資産ID。1つの資産を同時に複数の高さで鳴らす声部は「資産ID#番号」とする。
   setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void;
   playSe(cue: AudioCue, assetId: string): void; // 重複再生を認める
   silence(): void; // 層を止める。重低音は止めない
@@ -88,6 +89,11 @@ const DUCKED_GAIN = 0.3;
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
 const SCHEDULER_TICK_MS = 100;
 const STEPS_PER_PULSE = 16; // 【戦闘の合奏】重低音の1拍の区切りの数
+
+// 合奏の声部の鍵。和音のように1つの資産を同時に複数の高さで鳴らす声部は、資産IDに「#番号」を付けて分ける。
+function baseAssetId(key: string): string {
+  return key.split('#')[0] ?? key;
+}
 
 interface Layer {
   readonly assetId: string;
@@ -177,7 +183,8 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.ensembleOrigin = this.pulseCount; // 次に予約する一打から譜を数える
     }
     this.ensemble = parts;
-    for (const assetId of Object.keys(parts ?? {})) {
+    for (const key of Object.keys(parts ?? {})) {
+      const assetId = baseAssetId(key);
       void this.load(assetId).then((buffer) => {
         if (buffer !== null) {
           this.ready[assetId] = buffer;
@@ -271,22 +278,23 @@ export class WebAudioDriver extends RecordingAudioDriver {
     }
   }
 
-  // 【戦闘の合奏】重低音の一打（when）から始まる1拍の区切りに、譜の前半または後半の一打を、
-  // 区切りごとの再生の速さ（打弦は音の高さ）で予約する。
+  // 【戦闘の合奏】重低音の一打（when）から始まる1拍の区切りに、譜のうち当該の拍に当たる一打を、
+  // 区切りごとの再生の速さ（打弦・弦は音の高さ）で予約する。譜は拍数ぶんの長さを持ち、繰り返す。
   private scheduleEnsemble(when: number): void {
     const parts = this.ensemble;
     if (parts === null) {
       return;
     }
-    const half = (this.pulseCount - this.ensembleOrigin) % 2;
     const step = this.pulseInterval / STEPS_PER_PULSE;
-    for (const [assetId, steps] of Object.entries(parts)) {
-      const buffer = this.ready[assetId];
+    for (const [key, steps] of Object.entries(parts)) {
+      const buffer = this.ready[baseAssetId(key)];
+      const pulses = Math.max(1, Math.floor(steps.length / STEPS_PER_PULSE));
       if (buffer === undefined) {
         continue;
       }
+      const beat = (this.pulseCount - this.ensembleOrigin) % pulses;
       for (let index = 0; index < STEPS_PER_PULSE; index += 1) {
-        const rate = steps[half * STEPS_PER_PULSE + index] ?? null;
+        const rate = steps[beat * STEPS_PER_PULSE + index] ?? null;
         if (rate !== null) {
           this.playOnce(buffer, this.duckGain as GainNode, when + index * step, rate);
         }

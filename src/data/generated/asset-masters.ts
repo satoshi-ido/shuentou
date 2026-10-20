@@ -81,6 +81,15 @@ export const ASSET_MASTERS = {
     "variant": "DULCIMER_HIGH",
     "path": "art/audio/bgm-ensemble-dulcimer-high.mp3"
   },
+  "ASSET_BGM_ENSEMBLE_STRINGS": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_STRINGS",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENSEMBLE",
+    "variant": "STRINGS",
+    "path": "art/audio/bgm-ensemble-strings.mp3"
+  },
   "ASSET_BGM_INTERMISSION": {
     "asset_id": "ASSET_BGM_INTERMISSION",
     "owner_kind": "GLOBAL",
