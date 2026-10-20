@@ -17,7 +17,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_1_01",
     "slot": "BGM",
     "cue": "BATTLE",
-    "path": "placeholder/bgm/1-01"
+    "path": "art/audio/bgm-1-01.mp3"
   },
   "ASSET_BGM_1_02": {
     "asset_id": "ASSET_BGM_1_02",
@@ -25,7 +25,39 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_1_02",
     "slot": "BGM",
     "cue": "BATTLE",
-    "path": "placeholder/bgm/1-02"
+    "path": "art/audio/bgm-1-02.mp3"
+  },
+  "ASSET_BGM_2_01": {
+    "asset_id": "ASSET_BGM_2_01",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_01",
+    "slot": "BGM",
+    "cue": "BATTLE",
+    "path": "art/audio/bgm-2-01.mp3"
+  },
+  "ASSET_BGM_2_02": {
+    "asset_id": "ASSET_BGM_2_02",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_02",
+    "slot": "BGM",
+    "cue": "BATTLE",
+    "path": "art/audio/bgm-2-02.mp3"
+  },
+  "ASSET_BGM_2_03": {
+    "asset_id": "ASSET_BGM_2_03",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_03",
+    "slot": "BGM",
+    "cue": "BATTLE",
+    "path": "art/audio/bgm-2-03.mp3"
+  },
+  "ASSET_BGM_2_04": {
+    "asset_id": "ASSET_BGM_2_04",
+    "owner_kind": "SCENE",
+    "owner_id": "SCENE_2_04",
+    "slot": "BGM",
+    "cue": "BATTLE",
+    "path": "art/audio/bgm-2-04.mp3"
   },
   "ASSET_BGM_INTERMISSION": {
     "asset_id": "ASSET_BGM_INTERMISSION",
@@ -33,7 +65,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "BGM",
     "cue": "INTERMISSION",
-    "path": "placeholder/bgm/intermission"
+    "path": "art/audio/bgm-intermission.mp3"
   },
   "ASSET_BG_1_01": {
     "asset_id": "ASSET_BG_1_01",
@@ -371,7 +403,7 @@ export const ASSET_MASTERS = {
     "owner_id": "ACT_SLASH_AR3",
     "slot": "SE",
     "cue": "ACTION_TRIGGER",
-    "path": "placeholder/se/martial"
+    "path": "art/audio/se-action-martial.mp3"
   },
   "ASSET_SE_ACTION_MIND": {
     "asset_id": "ASSET_SE_ACTION_MIND",
@@ -379,7 +411,7 @@ export const ASSET_MASTERS = {
     "owner_id": "ACT_MIND_AR3",
     "slot": "SE",
     "cue": "ACTION_TRIGGER",
-    "path": "placeholder/se/mind"
+    "path": "art/audio/se-action-mind.mp3"
   },
   "ASSET_SE_ACTION_STANCE": {
     "asset_id": "ASSET_SE_ACTION_STANCE",
@@ -387,7 +419,23 @@ export const ASSET_MASTERS = {
     "owner_id": "ACT_GUARD_AR3",
     "slot": "SE",
     "cue": "ACTION_TRIGGER",
-    "path": "placeholder/se/stance"
+    "path": "art/audio/se-action-stance.mp3"
+  },
+  "ASSET_SE_ACTION_SUMMON": {
+    "asset_id": "ASSET_SE_ACTION_SUMMON",
+    "owner_kind": "ACTION",
+    "owner_id": "ACT_SUMMON_AR4",
+    "slot": "SE",
+    "cue": "ACTION_TRIGGER",
+    "path": "art/audio/se-action-summon.mp3"
+  },
+  "ASSET_SE_ACTION_SWAP": {
+    "asset_id": "ASSET_SE_ACTION_SWAP",
+    "owner_kind": "ACTION",
+    "owner_id": "ACT_SWAP_SINGLE",
+    "slot": "SE",
+    "cue": "ACTION_TRIGGER",
+    "path": "art/audio/se-action-swap.mp3"
   },
   "ASSET_SE_HIT": {
     "asset_id": "ASSET_SE_HIT",
@@ -395,7 +443,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "HIT",
-    "path": "placeholder/se/hit"
+    "path": "art/audio/se-hit.mp3"
   },
   "ASSET_SE_MISS": {
     "asset_id": "ASSET_SE_MISS",
@@ -403,7 +451,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "MISS",
-    "path": "placeholder/se/miss"
+    "path": "art/audio/se-miss.mp3"
   },
   "ASSET_SE_UI_CANCEL": {
     "asset_id": "ASSET_SE_UI_CANCEL",
@@ -411,7 +459,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "UI_CANCEL",
-    "path": "placeholder/se/cancel"
+    "path": "art/audio/se-ui-cancel.mp3"
   },
   "ASSET_SE_UI_CONFIRM": {
     "asset_id": "ASSET_SE_UI_CONFIRM",
@@ -419,7 +467,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "UI_CONFIRM",
-    "path": "placeholder/se/confirm"
+    "path": "art/audio/se-ui-confirm.mp3"
   },
   "ASSET_SE_UNIT_DESTROY": {
     "asset_id": "ASSET_SE_UNIT_DESTROY",
@@ -427,7 +475,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "UNIT_DESTROY",
-    "path": "placeholder/se/destroy"
+    "path": "art/audio/se-unit-destroy.mp3"
   },
   "ASSET_SE_WATCH_PAUSE": {
     "asset_id": "ASSET_SE_WATCH_PAUSE",
@@ -435,7 +483,7 @@ export const ASSET_MASTERS = {
     "owner_id": null,
     "slot": "SE",
     "cue": "WATCH_PAUSE",
-    "path": "placeholder/se/watch-pause"
+    "path": "art/audio/se-watch-pause.mp3"
   },
   "ASSET_TOTO_STANDING": {
     "asset_id": "ASSET_TOTO_STANDING",

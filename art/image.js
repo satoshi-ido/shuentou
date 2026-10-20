@@ -106,11 +106,14 @@ export function crop16x9(width, height, offsetY = 0) {
   return { x: 0, y: Math.round((spare * (1 + offsetY)) / 2), width, height: cropHeight };
 }
 
-// asset_id から取り込み先のファイル名と種別を決める。ASSET_BG_* は背景、*_STANDING* は立ち絵。
+// asset_id から取り込み先のファイル名と種別を決める。ASSET_BG_* は背景、ASSET_BGM_*・ASSET_SE_* は音声、*_STANDING* は立ち絵。
 export function targetOf(assetId) {
   const name = assetId.replace(/^ASSET_/, '').toLowerCase().replace(/_/g, '-');
   if (/^ASSET_BG_/.test(assetId)) {
     return { kind: 'BACKGROUND', file: `bg/${name.replace(/^bg-/, '')}.jpg` };
+  }
+  if (/^ASSET_(BGM|SE)_/.test(assetId)) {
+    return { kind: 'AUDIO', file: `audio/${name}.mp3` };
   }
   if (/_STANDING(_|$)/.test(assetId)) {
     return { kind: 'STANDING', file: `standing/${name.replace('-standing', '')}.png` };

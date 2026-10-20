@@ -56,7 +56,7 @@ import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
-import { RecordingAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
+import { HtmlAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -153,8 +153,11 @@ stageElement.append(screenRoot, effects.root, scriptRoot);
 
 // [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
 // [M-DATA-AUDIO-CUE] 発火契機は演出と音響の双方へ配る（探索・未来予測では受け口を与えない）。
-// [I-PLAN-ASSETS] 音源を持たない空実装。音量設定の適用と cue の発火契機を本番と同じ経路で通す。
-const audio: AudioDriver = new RecordingAudioDriver();
+// [I-PLAN-ASSETS] 音声の実体を鳴らす。実体の無い資産は鳴らさず、呼び出しの経路は空実装と同じに通す。
+const audio: AudioDriver = new HtmlAudioDriver((assetId) => {
+  const url = assetUrlById(ASSET_MASTERS, assetId);
+  return url === null ? null : new URL(url, document.baseURI).href;
+});
 
 const battleDeps = {
   ...stepDeps,
@@ -168,6 +171,7 @@ const battleDeps = {
 };
 
 let config: DisplayConfig = loadConfig(window.localStorage);
+audio.setVolumes(config.bgmVolume, config.seVolume); // [M-UI-CONFIG] 起動時の音量
 let session: GameSession | null = null;
 let client: AiDecisionClient | null = null;
 let overlay: OverlayKind = 'NONE';

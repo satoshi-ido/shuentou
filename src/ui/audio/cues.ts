@@ -11,12 +11,14 @@ const TRIGGER_ASSET: Readonly<Record<string, string>> = {
   FLAG_MARTIAL: 'ASSET_SE_ACTION_MARTIAL',
   FLAG_MIND: 'ASSET_SE_ACTION_MIND',
   FLAG_STANCE: 'ASSET_SE_ACTION_STANCE',
+  FLAG_SUMMON: 'ASSET_SE_ACTION_SUMMON',
+  FLAG_SWAP: 'ASSET_SE_ACTION_SWAP',
 };
 
 // 契機1件に対応する SE の資産ID。対応する資産がなければ鳴らさない。
 export function seAssetOf(cue: BattleCue, assets: Readonly<Record<string, AssetMasterRecord>>): string | null {
   if (cue.kind === 'ACTION_TRIGGER') {
-    for (const flag of ['FLAG_MARTIAL', 'FLAG_MIND', 'FLAG_STANCE'] as const) {
+    for (const flag of ['FLAG_MARTIAL', 'FLAG_MIND', 'FLAG_STANCE', 'FLAG_SUMMON', 'FLAG_SWAP'] as const) {
       if (hasFlag(cue.sysFlags, flag)) {
         return assetIdOf(TRIGGER_ASSET[flag] ?? '', assets);
       }

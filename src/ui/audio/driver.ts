@@ -57,3 +57,65 @@ export class RecordingAudioDriver implements AudioDriver {
     }
   }
 }
+
+// [I-PLAN-ASSETS]【実体の投入】実体を鳴らすドライバ。資産IDから実体のURLを引けない（実体が無い）場合は鳴らさない。
+// 呼び出しは記録も残し、空実装と同じ経路で検査できるようにする。BGM は1曲をループし、同じ資産は鳴らし直さない。
+export class HtmlAudioDriver extends RecordingAudioDriver {
+  private bgm: HTMLAudioElement | null = null;
+  private bgmAssetId = '';
+  private bgmGain = 0.8;
+  private seGain = 0.8;
+
+  constructor(private readonly urlOf: (assetId: string) => string | null) {
+    super();
+  }
+
+  override playBgm(cue: AudioCue, assetId: string): void {
+    super.playBgm(cue, assetId);
+    if (assetId === this.bgmAssetId && this.bgm !== null) {
+      return;
+    }
+    this.stopBgm();
+    const url = this.urlOf(assetId);
+    if (url === null) {
+      return;
+    }
+    const track = new Audio(url);
+    track.loop = true;
+    track.volume = this.bgmGain;
+    track.play().catch(() => undefined); // 自動再生が許されない環境では鳴らさない
+    this.bgm = track;
+    this.bgmAssetId = assetId;
+  }
+
+  override playSe(cue: AudioCue, assetId: string): void {
+    super.playSe(cue, assetId);
+    const url = this.urlOf(assetId);
+    if (url === null || this.seGain === 0) {
+      return;
+    }
+    const sound = new Audio(url);
+    sound.volume = this.seGain;
+    sound.play().catch(() => undefined);
+  }
+
+  override silence(): void {
+    super.silence();
+    this.stopBgm();
+  }
+
+  override setVolumes(bgm: number, se: number): void {
+    super.setVolumes(bgm, se);
+    this.bgmGain = Math.min(Math.max(bgm, 0), 100) / 100;
+    this.seGain = Math.min(Math.max(se, 0), 100) / 100;
+    if (this.bgm !== null) {
+      this.bgm.volume = this.bgmGain;
+    }
+  }
+
+  private stopBgm(): void {
+    this.bgm?.pause();
+    this.bgm = null;
+    this.bgmAssetId = '';
+  }
+}

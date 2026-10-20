@@ -1,11 +1,12 @@
-// [I-PLAN-ASSETS]【実体の投入】生成した画像を取り込む。Electron の主プロセスとして動かす。
+// [I-PLAN-ASSETS]【実体の投入】生成した画像と音声を取り込む。Electron の主プロセスとして動かす。
 //   pnpm art <取り込み元のフォルダ> [asset_id …]
 // 取り込み元の <asset_id>.png を読み、立ち絵は背景を除いて余白を詰め、512×768 の透明な枠の下端に置いた PNG に、
 // 背景は 16:9 に切り出して 1280×720 の JPEG にして、src/ui/public/art/ へ書き出す。
+// 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
 
 import { app, nativeImage } from 'electron';
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crop16x9, fitInto, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, targetOf } from './image.js';
@@ -46,8 +47,8 @@ function main() {
   const cropsFile = path.join(sourceDir, 'crops.json');
   const crops = existsSync(cropsFile) ? JSON.parse(readFileSync(cropsFile, 'utf8')) : {};
   const ids = readdirSync(sourceDir)
-    .filter((name) => /^ASSET_[A-Z0-9_]+\.png$/.test(name))
-    .map((name) => name.replace(/\.png$/, ''))
+    .filter((name) => /^ASSET_[A-Z0-9_]+\.(png|mp3)$/.test(name))
+    .map((name) => name.replace(/\.(png|mp3)$/, ''))
     .filter((id) => only.length === 0 || only.includes(id))
     .sort();
   for (const id of ids) {
@@ -56,13 +57,18 @@ function main() {
       console.log(`飛ばす（種別が分からない）：${id}`);
       continue;
     }
+    const out = path.join(OUT_DIR, target.file);
+    mkdirSync(path.dirname(out), { recursive: true });
+    if (target.kind === 'AUDIO') {
+      copyFileSync(path.join(sourceDir, `${id}.mp3`), out);
+      console.log(`${id} → art/${target.file}`);
+      continue;
+    }
     const source = nativeImage.createFromPath(path.join(sourceDir, `${id}.png`));
     if (source.isEmpty()) {
       throw new Error(`読めない：${id}`);
     }
     const data = target.kind === 'STANDING' ? importStanding(source) : importBackground(source, crops[id] ?? 0);
-    const out = path.join(OUT_DIR, target.file);
-    mkdirSync(path.dirname(out), { recursive: true });
     writeFileSync(out, data);
     console.log(`${id} → art/${target.file}（${Math.round(data.length / 1024)}KB）`);
   }
