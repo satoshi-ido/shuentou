@@ -1020,7 +1020,8 @@ export const SCRIPT_MASTERS = {
         "text": "それから、震える手でランタンを拾い上げる。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_01_IGNITE"
       },
       {
         "speaker": null,
@@ -1077,7 +1078,8 @@ export const SCRIPT_MASTERS = {
         "text": "赤黒い炎が、まだくすぶっている。グレンフィルの村は、もう村の形をしていない。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_01_OPENING"
       },
       {
         "speaker": null,
@@ -1207,7 +1209,8 @@ export const SCRIPT_MASTERS = {
         "text": "背後の砦からは、もう何の音もしない。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_02_AFTER"
       },
       {
         "speaker": null,
@@ -1264,7 +1267,8 @@ export const SCRIPT_MASTERS = {
         "text": "険しい山道にそびえる辺境の防衛線、ドルン砦。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_02_HEARTH"
       },
       {
         "speaker": null,
@@ -1373,7 +1377,8 @@ export const SCRIPT_MASTERS = {
         "text": "砦の主である辺境伯ドルンが、発狂した。防衛線は、内側から崩れ始める。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_02_GATE"
       },
       {
         "speaker": null,
@@ -1461,7 +1466,8 @@ export const SCRIPT_MASTERS = {
         "text": "大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_02_HEARTH"
       },
       {
         "speaker": "ガルド",
@@ -1563,7 +1569,8 @@ export const SCRIPT_MASTERS = {
         "text": "大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_1_02_HEARTH"
       },
       {
         "speaker": "ガルド",
@@ -1651,7 +1658,8 @@ export const SCRIPT_MASTERS = {
         "text": "街道の入口に、まだ戸を開けている宿場が一軒だけ残っている。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_01_INN"
       },
       {
         "speaker": null,
@@ -1714,7 +1722,8 @@ export const SCRIPT_MASTERS = {
         "text": "セインは鍵に手を触れずに、日の沈む街道へ出ていく。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_01"
       },
       {
         "speaker": null,
@@ -2003,7 +2012,8 @@ export const SCRIPT_MASTERS = {
         "text": "都市は沈黙する。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_AFTER"
       },
       {
         "speaker": null,
@@ -2028,7 +2038,8 @@ export const SCRIPT_MASTERS = {
         "text": "北門へ向かう途中、セインは瓦礫に塞がれた路地の口を通る。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_AFTER_UNKNOWN"
       },
       {
         "speaker": null,
@@ -2166,7 +2177,8 @@ export const SCRIPT_MASTERS = {
         "text": "北門までの道筋を確かめるため、セインはセルヴィスの案内で古文書館へ地図を取りに寄る。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_ARCHIVE"
       },
       {
         "speaker": null,
@@ -2208,14 +2220,16 @@ export const SCRIPT_MASTERS = {
         "text": "崩れかけた自由都市シャルムの、防衛中央広場。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04"
       },
       {
         "speaker": null,
         "text": "カイが石畳に、抜け道の略図を描いてみせる。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_SKETCH"
       },
       {
         "speaker": null,
@@ -2247,7 +2261,8 @@ export const SCRIPT_MASTERS = {
         "text": "北門までの道筋を確かめるため、セインはセルヴィスの案内で古文書館へ地図を取りに寄る。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_ARCHIVE"
       },
       {
         "speaker": null,
@@ -2282,14 +2297,16 @@ export const SCRIPT_MASTERS = {
         "text": "崩れかけた自由都市シャルムの、防衛中央広場。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04"
       },
       {
         "speaker": null,
         "text": "カイが石畳に、抜け道の略図を描いてみせる。",
         "directives": [
           "WAIT_INPUT"
-        ]
+        ],
+        "background": "ASSET_BG_2_04_SKETCH"
       },
       {
         "speaker": null,

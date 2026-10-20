@@ -7,6 +7,8 @@
 // 行は既定で入力を待つ（[S-SCRIPT-DIRECTIVE] WAIT_INPUT）。
 const narrate = (text) => ({ speaker: null, text, directives: ['WAIT_INPUT'] });
 const say = (speaker, text) => ({ speaker, text, directives: ['WAIT_INPUT'] });
+// [S-SCRIPT-SCHEMA]「背景」この行から背景を切り替える（docs/asset-brief.md の差分の画）。省略した行は直前の背景を保つ。
+const at = (background, line) => ({ ...line, background });
 
 function record(scriptId, trigger, anchor, order, lines, { branchGroup = null, condition = null } = {}) {
   return {
@@ -29,7 +31,7 @@ const SCENE_1_01 = [
     'SCENE_1_01',
     2,
     [
-      narrate('赤黒い炎が、まだくすぶっている。グレンフィルの村は、もう村の形をしていない。'),
+      at('ASSET_BG_1_01_OPENING', narrate('赤黒い炎が、まだくすぶっている。グレンフィルの村は、もう村の形をしていない。')),
       narrate('降り注ぐ灰の中、村の小さな祠の前で、セインは膝をついている。'),
       narrate('腕の中に、リナがいる。異形と化した祠守レフの爪に、胸を貫かれている。呼吸は、ついいましがた止まったばかりだった。'),
       narrate('セインは彼女の胸の傷を見ない。自分の両手を見ている。'),
@@ -53,7 +55,7 @@ const SCENE_1_01 = [
     'SCENE_1_01',
     3,
     [
-      narrate('それから、震える手でランタンを拾い上げる。'),
+      at('ASSET_BG_1_01_IGNITE', narrate('それから、震える手でランタンを拾い上げる。')),
       narrate('こらえていた息が、震えたまま火皿へかかる。'),
       narrate('火皿の赤が膨らみ、燈火が立つ。'),
     ],
@@ -74,7 +76,7 @@ const SCENE_1_01 = [
 // [S-SCENE-1-02]
 const SCENE_1_02 = [
   record('SCRIPT_SCENE_1_02_DECLARE', 'SCENE_INTRO', 'SCENE_1_02', 1, [
-    narrate('険しい山道にそびえる辺境の防衛線、ドルン砦。'),
+    at('ASSET_BG_1_02_HEARTH', narrate('険しい山道にそびえる辺境の防衛線、ドルン砦。')),
     narrate('砦へ逃げ込んだ辺境の民が、炉端で先の村の被害を語り合っている。セインもそこにいるが、会話には加わらない。'),
     narrate('泣き出した子に、老いた避難民が言い聞かせる。'),
     say('老いた避難民', '泣くな。環に還れば、また灯る。'),
@@ -95,7 +97,7 @@ const SCENE_1_02 = [
     'SCENE_1_02',
     2,
     [
-      narrate('大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。'),
+      at('ASSET_BG_1_02_HEARTH', narrate('大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。')),
       say('ガルド', '天疵へ降りるってのは、お前か。名は？'),
       say('セイン', 'セイン。'),
       say('セイン', '……ガルド。'),
@@ -117,7 +119,7 @@ const SCENE_1_02 = [
     'SCENE_1_02',
     2,
     [
-      narrate('大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。'),
+      at('ASSET_BG_1_02_HEARTH', narrate('大斧を担いだ髭の男が、天疵へ行くと答えた青年の前に立つ。')),
       say('ガルド', '天疵へ降りるってのは、お前か。名は？'),
       say('セイン', 'セイン。'),
       say('ガルド', 'ガルドだ。鉄鎖の頭をやってる。'),
@@ -131,7 +133,7 @@ const SCENE_1_02 = [
     { branchGroup: 'SCENE_1_02_MEET', condition: 'ForeknownAt[SCENE_1_02] == False' },
   ),
   record('SCRIPT_SCENE_1_02_INTRO', 'SCENE_INTRO', 'SCENE_1_02', 3, [
-    narrate('砦の主である辺境伯ドルンが、発狂した。防衛線は、内側から崩れ始める。'),
+    at('ASSET_BG_1_02_GATE', narrate('砦の主である辺境伯ドルンが、発狂した。防衛線は、内側から崩れ始める。')),
     narrate('広間から回廊を伝って、狂った主の号令が響く。それを受けた守備兵が、居住区から押し寄せてくる。'),
     narrate('砦の外へ出る道は、ドルンが立つ広間を抜けるほかにない。'),
     narrate('ミレイユは避難民を門扉の回廊側へ通し、広間の手前の回廊に身を寄せさせる。'),
@@ -149,7 +151,7 @@ const SCENE_1_02 = [
   record('SCRIPT_SCENE_1_02_CLEAR', 'SCENE_CLEAR', 'SCENE_1_02', 1, [
     narrate('ドルンが倒れる。セインは広間を抜けて、砦の外へ出る。'),
     narrate('回廊に身を寄せていた避難民が、その後に続く。'),
-    narrate('背後の砦からは、もう何の音もしない。'),
+    at('ASSET_BG_1_02_AFTER', narrate('背後の砦からは、もう何の音もしない。')),
     narrate('セインは山道を下りはじめる。'),
     narrate('炉端で子に言い聞かせていた老人が、砦を振り返る。'),
     say('老いた避難民', 'あの髭の男も、帳簿の娘も、わしより若かった。……環の順が違う。'),
@@ -160,7 +162,7 @@ const SCENE_1_02 = [
 const SCENE_2_01 = [
   record('SCRIPT_SCENE_2_01_INTRO', 'SCENE_INTRO', 'SCENE_2_01', 1, [
     narrate('シャルムへと続く並木道は、灰に覆われている。'),
-    narrate('街道の入口に、まだ戸を開けている宿場が一軒だけ残っている。'),
+    at('ASSET_BG_2_01_INN', narrate('街道の入口に、まだ戸を開けている宿場が一軒だけ残っている。')),
     narrate('日が傾いたころ、宿の主人がセインの提げた燈に目を留める。'),
     say('宿の主人', 'その燈、どこまで提げていくんだい。'),
     say('セイン', '天疵まで。'),
@@ -169,7 +171,7 @@ const SCENE_2_01 = [
     say('宿の主人', '……まあいい。燈を借りたら朝まで返すな、だ。'),
     narrate('主人は、空いた部屋の鍵を卓に置く。'),
     say('セイン', '礼を言う。'),
-    narrate('セインは鍵に手を触れずに、日の沈む街道へ出ていく。'),
+    at('ASSET_BG_2_01', narrate('セインは鍵に手を触れずに、日の沈む街道へ出ていく。')),
     narrate('白く乾いた灰の並木道に、腑分け師ヴォルグが立っている。'),
     narrate('ヴォルグが死体に瘴気を流し込むと、死体は使役体となって立ち上がる。倒しても、倒した端から、別の一体が起き上がる。'),
     narrate('街道の半ばで、少年の斥候がセインの前に立つ。避難の列を迎えに、シャルムから出てきたのだという。'),
@@ -223,14 +225,14 @@ const SCENE_2_03 = [
 
 // [S-SCENE-2-04]
 const SCENE_2_04_OPEN_COMMON_HEAD = [
-  narrate('北門までの道筋を確かめるため、セインはセルヴィスの案内で古文書館へ地図を取りに寄る。'),
+  at('ASSET_BG_2_04_ARCHIVE', narrate('北門までの道筋を確かめるため、セインはセルヴィスの案内で古文書館へ地図を取りに寄る。')),
   narrate('差し出された灯りを受け取り、棚を一つずつ見て回る。'),
   narrate('セルヴィスはセインの提げた燈に目を留め、何も言わずに後ろを歩く。'),
 ];
 const SCENE_2_04_STAGE = [
   narrate('第七棚は開かれない。二人は地図を携えて、広場へ向かう。'),
-  narrate('崩れかけた自由都市シャルムの、防衛中央広場。'),
-  narrate('カイが石畳に、抜け道の略図を描いてみせる。'),
+  at('ASSET_BG_2_04', narrate('崩れかけた自由都市シャルムの、防衛中央広場。')),
+  at('ASSET_BG_2_04_SKETCH', narrate('カイが石畳に、抜け道の略図を描いてみせる。')),
 ];
 
 const SCENE_2_04 = [
@@ -277,7 +279,7 @@ const SCENE_2_04 = [
     narrate('背後で、悲鳴が一つずつ止んでいく。'),
   ]),
   record('SCRIPT_SCENE_2_04_CLEAR', 'SCENE_CLEAR', 'SCENE_2_04', 1, [
-    narrate('都市は沈黙する。'),
+    at('ASSET_BG_2_04_AFTER', narrate('都市は沈黙する。')),
     narrate('セインは、冷たくなった瓦礫の中に立っている。'),
   ]),
   record(
@@ -286,7 +288,7 @@ const SCENE_2_04 = [
     'SCENE_2_04',
     2,
     [
-      narrate('北門へ向かう途中、セインは瓦礫に塞がれた路地の口を通る。'),
+      at('ASSET_BG_2_04_AFTER_UNKNOWN', narrate('北門へ向かう途中、セインは瓦礫に塞がれた路地の口を通る。')),
       narrate('カイが石畳に描いた路地の一本だった。避難の列の先頭が、そこで折り重なって倒れている。'),
       narrate('続いて、崩れた古文書館の前を通る。'),
       narrate('瓦礫の隙間に、最奥の棚の前で倒れたセルヴィスの袖口が見える。その棚の扉には「七」と刻まれている。'),

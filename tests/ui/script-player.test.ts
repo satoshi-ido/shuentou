@@ -97,6 +97,27 @@ describe('[M-UI-SCRIPT]【画面の構成】', () => {
   });
 });
 
+describe('[S-SCRIPT-SCHEMA]「背景」', () => {
+  it('省略した行は直前の背景を保ち、レコードの最初の行で省略すると既定（Null）に戻る', () => {
+    const player = new ScriptPlayer([
+      {
+        records: [
+          record('SCRIPT_A', [{ ...line('一'), background: 'ASSET_BG_X' }, line('二'), { ...line('三'), background: 'ASSET_BG_Y' }]),
+          record('SCRIPT_B', [line('四')]),
+        ],
+        lantern: false,
+      },
+    ]);
+    const seen: (string | null)[] = [];
+    while (!player.done) {
+      player.tick('INSTANT');
+      seen.push(player.view().background);
+      player.click();
+    }
+    expect(seen).toEqual(['ASSET_BG_X', 'ASSET_BG_X', 'ASSET_BG_Y', null]);
+  });
+});
+
 describe('[M-UI-SCRIPT]【飛ばす】', () => {
   it('残りを示さずに終え、飛ばした行の音と進行に関わる演出指示だけを返す', () => {
     const player = new ScriptPlayer([

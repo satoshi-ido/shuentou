@@ -620,7 +620,14 @@ export function buildScriptRecords(scripts, scenes) {
       branch_group: entry.branch_group,
       condition: entry.condition,
       replay_on_rollback: entry.replay_on_rollback,
-      lines: lines.map((line) => ({ speaker: line.speaker, text: line.text, directives: [...line.directives] })),
+      // [S-SCRIPT-SCHEMA]「背景」「立ち絵」は省略可。指定した行に限って写す。
+      lines: lines.map((line) => ({
+        speaker: line.speaker,
+        text: line.text,
+        directives: [...line.directives],
+        ...(line.background === undefined ? {} : { background: line.background }),
+        ...(line.figures === undefined ? {} : { figures: [...line.figures] }),
+      })),
     };
   };
 
