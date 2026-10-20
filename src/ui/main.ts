@@ -57,6 +57,7 @@ import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-scre
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
+import { DRUMS, SCENE_RHYTHMS, type Rhythm } from './audio/rhythm.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -192,6 +193,7 @@ let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴ら
 let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
 let layerDucked = false;
+let rhythmScene: string | null = null; // 打楽器の型を鳴らしているシーン
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
 function playSe(cue: AudioCue): void {
@@ -199,6 +201,18 @@ function playSe(cue: AudioCue): void {
   if (assetId !== null) {
     audio.playSe(cue, assetId);
   }
+}
+
+// 打楽器の型を、打楽器（variant）ごとの資産IDへ写す。資産の無い打楽器は鳴らさない。
+function drumAssetsOf(rhythm: Rhythm): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const drum of DRUMS) {
+    const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'DRUM' && candidate.variant === drum);
+    if (record !== undefined) {
+      result[record.asset_id] = rhythm[drum];
+    }
+  }
+  return result;
 }
 
 // [M-DATA-AUDIO-CUE]【BGM の構成】重低音の間隔（暫定値）。燈の中の声の間は延ばす。
@@ -254,11 +268,19 @@ function syncBgm(): void {
     currentBgm = assetId ?? '';
   }
 
-  // 時間停止中は層だけを下げ、重低音の拍を残す。
+  // 時間停止中は層を下げ打楽器を止め、重低音の拍だけを残す。
   const ducked = cue === 'BATTLE' && script === null && battleResult !== 'RUNNING';
   if (ducked !== layerDucked) {
     layerDucked = ducked;
     audio.duckLayer(ducked);
+  }
+  // 【打楽器の型】バトル進行中に限り、シーンの型を重低音の拍に合わせて鳴らす。
+  const drumScene = cue === 'BATTLE' && script === null && !ducked ? (session?.data.run.current_scene_id ?? null) : null;
+  const rhythm = drumScene === null ? undefined : SCENE_RHYTHMS[drumScene];
+  const nextRhythmScene = rhythm === undefined ? null : drumScene;
+  if (nextRhythmScene !== rhythmScene) {
+    rhythmScene = nextRhythmScene;
+    audio.setRhythm(rhythm === undefined ? null : drumAssetsOf(rhythm));
   }
 }
 let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者

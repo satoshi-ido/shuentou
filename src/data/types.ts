@@ -196,6 +196,7 @@ export type AudioCueKey =
   | 'BATTLE'
   | 'INTERMISSION'
   | 'CALM'
+  | 'DRUM'
   | 'ENDING'
   | 'SCRIPT'
   | 'ACTION_TRIGGER'

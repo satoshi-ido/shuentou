@@ -7,6 +7,7 @@ export type AudioCue =
   | 'BATTLE'
   | 'INTERMISSION'
   | 'CALM'
+  | 'DRUM'
   | 'ENDING'
   | 'SCRIPT'
   | 'ACTION_TRIGGER'
@@ -23,6 +24,8 @@ export interface AudioDriver {
   // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
   duckLayer(ducked: boolean): void; // 時間停止中は層だけを下げる
+  // 打楽器の型（資産ID → 16区切りの 'x' と '.'）。重低音の拍に合わせて鳴らす。Null なら止める。
+  setRhythm(rhythm: Readonly<Record<string, string>> | null): void;
   playSe(cue: AudioCue, assetId: string): void; // 重複再生を認める
   silence(): void; // 層を止める。重低音は止めない
   setVolumes(bgm: number, se: number): void;
@@ -32,6 +35,7 @@ export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
   | { readonly kind: 'PULSE'; readonly assetId: string | null; readonly intervalMs: number }
   | { readonly kind: 'DUCK'; readonly ducked: boolean }
+  | { readonly kind: 'RHYTHM'; readonly drums: readonly string[] }
   | { readonly kind: 'SILENCE' };
 
 // 長い再生でも際限なく積み上がらないよう、記録は直近のみを残す。
@@ -52,6 +56,10 @@ export class RecordingAudioDriver implements AudioDriver {
 
   duckLayer(ducked: boolean): void {
     this.record({ kind: 'DUCK', ducked });
+  }
+
+  setRhythm(rhythm: Readonly<Record<string, string>> | null): void {
+    this.record({ kind: 'RHYTHM', drums: rhythm === null ? [] : Object.keys(rhythm) });
   }
 
   playSe(cue: AudioCue, assetId: string): void {
@@ -80,6 +88,7 @@ const CROSSFADE_SEC = 1.5;
 const DUCKED_GAIN = 0.3;
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
 const SCHEDULER_TICK_MS = 100;
+const STEPS_PER_PULSE = 8; // 【打楽器の型】重低音の1拍の区切りの数
 
 interface Layer {
   readonly assetId: string;
@@ -103,6 +112,10 @@ export class WebAudioDriver extends RecordingAudioDriver {
   private pulseAssetId: string | null = null;
   private pulseInterval = 1.6;
   private nextPulse = 0;
+  private pulseCount = 0; // 予約した重低音の一打の数（打楽器の型の前半・後半を選ぶ）
+  private rhythm: Readonly<Record<string, string>> | null = null;
+  private rhythmOrigin = 0; // 型の1文字目に当たる一打の番号
+  private readonly ready: Record<string, AudioBuffer> = {}; // 読み込みを終えた打楽器の一打
   private scheduler: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly urlOf: (assetId: string) => string | null) {
@@ -156,6 +169,21 @@ export class WebAudioDriver extends RecordingAudioDriver {
     super.duckLayer(ducked);
     if (this.duckGain !== null && this.context !== null) {
       this.duckGain.gain.setTargetAtTime(ducked ? DUCKED_GAIN : 1, this.context.currentTime, 0.15);
+    }
+  }
+
+  override setRhythm(rhythm: Readonly<Record<string, string>> | null): void {
+    super.setRhythm(rhythm);
+    if (rhythm !== null && this.rhythm === null) {
+      this.rhythmOrigin = this.pulseCount; // 次に予約する一打から型を数える
+    }
+    this.rhythm = rhythm;
+    for (const assetId of Object.keys(rhythm ?? {})) {
+      void this.load(assetId).then((buffer) => {
+        if (buffer !== null) {
+          this.ready[assetId] = buffer;
+        }
+      });
     }
   }
 
@@ -238,7 +266,30 @@ export class WebAudioDriver extends RecordingAudioDriver {
     }
     while (this.nextPulse < context.currentTime + SCHEDULE_AHEAD_SEC) {
       this.playOnce(buffer, this.bgmGain as GainNode, this.nextPulse);
+      this.scheduleDrums(this.nextPulse);
+      this.pulseCount += 1;
       this.nextPulse += this.pulseInterval;
+    }
+  }
+
+  // 【打楽器の型】重低音の一打（when）から始まる1拍の8区切りに、型の前半または後半の一打を予約する。
+  private scheduleDrums(when: number): void {
+    const rhythm = this.rhythm;
+    if (rhythm === null) {
+      return;
+    }
+    const half = (this.pulseCount - this.rhythmOrigin) % 2;
+    const step = this.pulseInterval / STEPS_PER_PULSE;
+    for (const [assetId, pattern] of Object.entries(rhythm)) {
+      const buffer = this.ready[assetId];
+      if (buffer === undefined) {
+        continue;
+      }
+      for (let index = 0; index < STEPS_PER_PULSE; index += 1) {
+        if (pattern[half * STEPS_PER_PULSE + index] === 'x') {
+          this.playOnce(buffer, this.duckGain as GainNode, when + index * step);
+        }
+      }
     }
   }
 

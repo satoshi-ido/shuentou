@@ -67,6 +67,42 @@ export const ASSET_MASTERS = {
     "cue": "CALM",
     "path": "art/audio/bgm-calm.mp3"
   },
+  "ASSET_BGM_DRUM_FRAME": {
+    "asset_id": "ASSET_BGM_DRUM_FRAME",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "DRUM",
+    "variant": "FRAME",
+    "path": "art/audio/bgm-drum-frame.mp3"
+  },
+  "ASSET_BGM_DRUM_KICK": {
+    "asset_id": "ASSET_BGM_DRUM_KICK",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "DRUM",
+    "variant": "KICK",
+    "path": "art/audio/bgm-drum-kick.mp3"
+  },
+  "ASSET_BGM_DRUM_METAL": {
+    "asset_id": "ASSET_BGM_DRUM_METAL",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "DRUM",
+    "variant": "METAL",
+    "path": "art/audio/bgm-drum-metal.mp3"
+  },
+  "ASSET_BGM_DRUM_TOM": {
+    "asset_id": "ASSET_BGM_DRUM_TOM",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "DRUM",
+    "variant": "TOM",
+    "path": "art/audio/bgm-drum-tom.mp3"
+  },
   "ASSET_BGM_ENDING": {
     "asset_id": "ASSET_BGM_ENDING",
     "owner_kind": "GLOBAL",
