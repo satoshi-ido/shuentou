@@ -5,6 +5,7 @@
 import type { SystemIcon } from '../assets/placeholder.js';
 import { figureNode } from './art.js';
 import { systemIconNode } from './icons.js';
+import { countBack, rewoundSteps, slide, vanishedSegments, type UndoMotion } from './undo-motion.js';
 import type { PlaybackSpeed } from '../config.js';
 import { formatCenti, INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
@@ -154,7 +155,13 @@ function isNewSegment(base: Timeline | null, unitId: string, segment: TimelineSe
 }
 
 // base を与えると仮定展開の表示となり、差分を持つレーンだけを際立たせる（[M-UI-TIMELINE]）。
-function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[], base: Timeline | null = null): HTMLElement {
+// rewindFrom を与えると、アンドゥの直前のタイムラインから巻き戻すさまを示す（[M-REWIND-UNDO]【提示】）。
+function renderTimeline(
+  timeline: Timeline,
+  columns: readonly BoardColumnView[],
+  base: Timeline | null = null,
+  rewindFrom: Timeline | null = null,
+): HTMLElement {
   const box = element('div', `timeline${base === null ? '' : ' has-plan'}`);
   const lanes = element('div', 'lanes');
 
@@ -162,7 +169,13 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[],
   const labels = element('div', 'lane-labels');
   labels.append(element('div', 'hd', 'ユニット'));
   const grid = element('div', 'grid');
-  grid.append(renderRuler(timeline.start, span));
+  const ruler = renderRuler(timeline.start, span);
+  grid.append(ruler);
+  // 【タイムラインの巻き戻し】戻ったステップ数ぶん、適用前の位置から右向きに滑らせる（表示枠に対する割合）。
+  const shift = rewindFrom === null ? 0 : (rewoundSteps(rewindFrom, timeline, span) * 100) / span;
+  if (shift > 0) {
+    slide(ruler, [{ transform: `translateX(-${shift}%)` }, { transform: 'none' }]);
+  }
 
   for (const column of columns) {
     const plate = column.plate;
@@ -187,9 +200,25 @@ function renderTimeline(timeline: Timeline, columns: readonly BoardColumnView[],
         `seg seg-${segment.kind.toLowerCase()}${overflow ? ' overflow-right' : ''}${changed ? ' seg-new' : ''}`,
         segmentLabel(segment),
       );
-      seg.style.left = `${((segment.start - timeline.start) * 100) / span}%`;
+      const left = ((segment.start - timeline.start) * 100) / span;
+      seg.style.left = `${left}%`;
       seg.style.width = `${(segment.length * 100) / span}%`;
       lane.append(seg);
+      if (shift > 0) {
+        slide(seg, [{ left: `${left - shift}%` }, { left: `${left}%` }]);
+      }
+    }
+    // 【取り消された区間】適用前にあり復元後に無い区間を、薄い残像として滑らせながら消す。
+    if (rewindFrom !== null && plate !== null) {
+      for (const segment of vanishedSegments(rewindFrom, timeline, plate.unitId)) {
+        const from = ((segment.start - rewindFrom.start) * 100) / span;
+        const ghost = element('div', `seg seg-${segment.kind.toLowerCase()} seg-ghost`, segmentLabel(segment));
+        ghost.style.left = `${from + shift}%`;
+        ghost.style.width = `${(segment.length * 100) / span}%`;
+        ghost.style.opacity = '0';
+        lane.append(ghost);
+        slide(ghost, [{ left: `${from}%`, opacity: 0.6 }, { left: `${from + shift}%`, opacity: 0 }], () => ghost.remove());
+      }
     }
     if (laneChanged) {
       lane.classList.add('has-diff');
@@ -770,6 +799,23 @@ export interface BattleScreenState {
   readonly focusFor: (instanceId: string) => FocusPreview;
   // [M-UI-HUD]［判定語彙］相方に関する理由の文言（文言マスタ由来）。
   readonly lockText: (stringId: string, unitId: string | null) => string;
+  // [M-REWIND-UNDO]【提示】アンドゥを適用した直後の描画に限り、適用前の姿を与える。
+  readonly undoFrom?: UndoMotion | null;
+}
+
+// 【値の巻き戻し】ユニットプレートの HP・VP・PP・AP のうち変わった値を、適用前の値から数え戻す。
+function countBackPlate(node: HTMLElement, before: PlateView, after: PlateView): void {
+  const hp = node.querySelector<HTMLElement>('.hp');
+  if (hp !== null) {
+    const maxHp = after.hp.split(' / ')[1] ?? '';
+    countBack(hp, before.hpValue, after.hpValue, (value) => `${SYMBOL.hp} ${value} / ${maxHp}`);
+  }
+  for (const key of ['vp', 'pp', 'ap'] as const) {
+    const value = node.querySelector<HTMLElement>(`.${key} b`);
+    if (value !== null) {
+      countBack(value, before[key], after[key], String);
+    }
+  }
 }
 
 export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState, handlers: BattleScreenHandlers): void {
@@ -932,6 +978,18 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     focusOn(focusedColumn, focusedCard);
   } else {
     restore();
+    // [M-REWIND-UNDO]【提示】アンドゥの直後は、適用前の姿から復元後の姿へ巻き戻すさまを示す。
+    const undoFrom = screen.undoFrom ?? null;
+    if (undoFrom !== null) {
+      timelineHost.replaceChildren(renderTimeline(view.timeline, view.columns, null, undoFrom.timeline));
+      for (const column of view.columns) {
+        const node = plateNodes[column.posIdx];
+        const before = undoFrom.plates.find((plate) => plate.unitId === column.plate?.unitId);
+        if (node !== undefined && node !== null && before !== undefined && column.plate !== null) {
+          countBackPlate(node, before, column.plate);
+        }
+      }
+    }
   }
 
   // カードの上にカーソルがある間だけ注目する。再描画で要素が入れ替わっても、次の移動で復帰する。

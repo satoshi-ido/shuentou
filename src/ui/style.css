@@ -297,6 +297,19 @@ button:focus-visible {
 /* [M-UI-TIMELINE]「注目中のアクションの仮定展開」差分のある区間を際立たせ、変わらないレーンは沈める。 */
 .timeline.has-plan .lane:not(.has-diff) .seg { opacity: 0.5; }
 
+/* [M-REWIND-UNDO]【提示】取り消された区間の残像と、数え戻した値。 */
+.seg-ghost {
+  border-style: dashed;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes undo-changed {
+  from { color: #a9c8ea; text-shadow: 0 0 8px rgba(127, 168, 216, 0.8); }
+}
+
+.undo-changed { animation: undo-changed 0.8s ease-out; }
+
 .seg-new {
   border-color: var(--ember);
   color: #ffd9a0;
@@ -1947,3 +1960,13 @@ button:disabled { opacity: 0.4; cursor: default; }
 .dev-scene-select { margin-top: 12px; opacity: 0.7; }
 .scene-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; }
 .scene-select-item { text-align: left; padding: 6px 10px; }
+
+/* [M-META-COMMIT]【提示】回帰回数が増えたときの暗転。画面全体を覆い、提示の間の操作を受け止める。
+   明るさの推移は入口が Web Animations で与える。 */
+.blackout {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  background: #000;
+  opacity: 0;
+}

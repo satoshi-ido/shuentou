@@ -23,6 +23,9 @@ export interface AudioDriver {
   // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
   muffleLayers(muffled: boolean): void; // 時間が進んでいない間、層と合奏をこもらせる（重低音は変えない）
+  // [M-META-COMMIT]【提示】BGM を潜める。FAINT は層と合奏を途切れさせ重低音だけをごく小さく残し（巻き戻しの保留中）、
+  // SILENT は重低音を含めて途切れさせる（回帰の暗転）。いずれも重低音の拍は数え続ける。
+  hushBgm(hush: BgmHush): void;
   // 戦闘の合奏の譜（声部の鍵 → 区切りごとの再生の速さ。休みは Null）。重低音の拍に合わせて鳴らす。Null なら止める。
   // 声部の鍵は資産ID。1つの資産を同時に複数の高さで鳴らす声部は「資産ID#番号」とする。
   setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void;
@@ -31,10 +34,13 @@ export interface AudioDriver {
   setVolumes(bgm: number, se: number): void;
 }
 
+export type BgmHush = 'NONE' | 'FAINT' | 'SILENT';
+
 export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
   | { readonly kind: 'PULSE'; readonly assetId: string | null; readonly intervalMs: number }
   | { readonly kind: 'MUFFLE'; readonly muffled: boolean }
+  | { readonly kind: 'HUSH'; readonly hush: BgmHush }
   | { readonly kind: 'ENSEMBLE'; readonly parts: readonly string[] }
   | { readonly kind: 'SILENCE' };
 
@@ -56,6 +62,10 @@ export class RecordingAudioDriver implements AudioDriver {
 
   muffleLayers(muffled: boolean): void {
     this.record({ kind: 'MUFFLE', muffled });
+  }
+
+  hushBgm(hush: BgmHush): void {
+    this.record({ kind: 'HUSH', hush });
   }
 
   setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void {
@@ -87,6 +97,11 @@ export class RecordingAudioDriver implements AudioDriver {
 const CROSSFADE_SEC = 1.5;
 const MUFFLED_HZ = 800; // [M-UI-PLAYBACK]【静止中の演出】層と合奏をこもらせる低域通過の上限
 const MUFFLED_GAIN = 0.6; // こもらせる間の層と合奏の音量の倍率
+const FAINT_PULSE_GAIN = 0.15; // [M-META-COMMIT]【提示】巻き戻しの保留中に残す重低音の音量の倍率（ごく小さく）
+const FAINT_REVERB_GAIN = 0.35; // 巻き戻しの保留中に重低音へ加える残響の大きさ（遠くで鳴るように）
+const REVERB_SEC = 2.8; // 残響の長さ
+const DARKEN_TIME_CONSTANT = 0.02; // 途切れさせる時定数（約 0.06 秒で下がる）
+const BRIGHTEN_TIME_CONSTANT = 0.05; // 戻す時定数（約 0.15 秒で戻る）
 const OPEN_HZ = 20000; // こもらせない間の上限（可聴域の全体を通す）
 const MUFFLE_TIME_CONSTANT = 0.1; // 切り替えの時定数（約 0.3 秒で移る）
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
@@ -96,6 +111,30 @@ const ENSEMBLE_GAIN = 0.4; // 【戦闘の合奏】「音量」合奏全体の�
 const PULSE_DIP_GAIN = 0.5; // 重低音の一打ごとに層と合奏を下げる倍率
 const PULSE_DIP_RECOVER_SEC = 0.07; // 下げた層と合奏を戻す時定数（約 0.2 秒で戻る）
 const PULSE_HARMONICS_GAIN = 0.6; // 重低音に加える倍音（100〜300Hz）の大きさ
+
+// 潜める度合い（大きいほど静か）と、度合いごとの層・合奏と重低音の音量の倍率。
+const hushRank = (hush: BgmHush): number => ({ NONE: 0, FAINT: 1, SILENT: 2 })[hush];
+const layersGainOf = (hush: BgmHush): number => (hush === 'NONE' ? 1 : 0);
+const pulseGainOf = (hush: BgmHush): number => ({ NONE: 1, FAINT: FAINT_PULSE_GAIN, SILENT: 0 })[hush];
+const reverbGainOf = (hush: BgmHush): number => (hush === 'FAINT' ? FAINT_REVERB_GAIN : 0);
+
+// 残響の応答。減衰する雑音から作る。乱数 API は全層で禁じられているため（[I-ENV-TOOLING]）、固定の種の擬似乱数を用いる。
+function reverbImpulse(context: BaseAudioContext): AudioBuffer {
+  const length = Math.floor(context.sampleRate * REVERB_SEC);
+  const buffer = context.createBuffer(2, length, context.sampleRate);
+  let seed = 0x2545f491;
+  for (let channel = 0; channel < buffer.numberOfChannels; channel += 1) {
+    const data = buffer.getChannelData(channel);
+    for (let index = 0; index < length; index += 1) {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      const noise = (seed >>> 0) / 0xffffffff - 0.5;
+      data[index] = 2 * noise * (1 - index / length) ** 3;
+    }
+  }
+  return buffer;
+}
 
 // 合奏の声部の鍵。和音のように1つの資産を同時に複数の高さで鳴らす声部は、資産IDに「#番号」を付けて分ける。
 function baseAssetId(key: string): string {
@@ -119,6 +158,10 @@ export class WebAudioDriver extends RecordingAudioDriver {
   private muffle: BiquadFilterNode | null = null; // 層と合奏をこもらせる低域通過
   private muffleGain: GainNode | null = null; // こもらせる間、層と合奏の音量を抑える
   private muffled = false;
+  private hushLayers: GainNode | null = null; // 潜める間、層と合奏を途切れさせる
+  private hushPulse: GainNode | null = null; // 潜める間、重低音を小さくする（または途切れさせる）
+  private pulseReverb: GainNode | null = null; // 潜める間だけ重低音へ加える残響の戻り
+  private hush: BgmHush = 'NONE';
   private ensembleGain: GainNode | null = null;
   private pulseDip: GainNode | null = null; // 重低音の一打ごとに層と合奏を短く下げる
   private pulseOut: GainNode | null = null; // 重低音の入口（そのままの音と、倍音を加える経路へ分ける）
@@ -192,6 +235,18 @@ export class WebAudioDriver extends RecordingAudioDriver {
     }
   }
 
+  override hushBgm(hush: BgmHush): void {
+    super.hushBgm(hush);
+    const louder = hushRank(hush) < hushRank(this.hush);
+    this.hush = hush;
+    if (this.hushLayers !== null && this.hushPulse !== null && this.pulseReverb !== null && this.context !== null) {
+      const constant = louder ? BRIGHTEN_TIME_CONSTANT : DARKEN_TIME_CONSTANT;
+      this.hushLayers.gain.setTargetAtTime(layersGainOf(hush), this.context.currentTime, constant);
+      this.hushPulse.gain.setTargetAtTime(pulseGainOf(hush), this.context.currentTime, constant);
+      this.pulseReverb.gain.setTargetAtTime(reverbGainOf(hush), this.context.currentTime, constant);
+    }
+  }
+
   override setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void {
     super.setEnsemble(parts);
     if (parts !== null && this.ensemble === null) {
@@ -247,8 +302,14 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.bgmBus.attack.value = 0.003;
       this.bgmBus.release.value = 0.25;
       this.bgmBus.connect(this.bgmGain);
+      this.hushLayers = context.createGain();
+      this.hushLayers.gain.value = layersGainOf(this.hush);
+      this.hushLayers.connect(this.bgmBus);
+      this.hushPulse = context.createGain();
+      this.hushPulse.gain.value = pulseGainOf(this.hush);
+      this.hushPulse.connect(this.bgmBus);
       this.pulseDip = context.createGain();
-      this.pulseDip.connect(this.bgmBus);
+      this.pulseDip.connect(this.hushLayers);
       this.muffle = context.createBiquadFilter();
       this.muffle.type = 'lowpass';
       this.muffle.frequency.value = this.muffled ? MUFFLED_HZ : OPEN_HZ;
@@ -257,7 +318,16 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.muffleGain.gain.value = this.muffled ? MUFFLED_GAIN : 1;
       this.muffleGain.connect(this.pulseDip);
       this.muffle.connect(this.muffleGain);
-      this.pulseOut = this.createPulseOut(context, this.bgmBus);
+      this.pulseReverb = context.createGain();
+      this.pulseReverb.gain.value = reverbGainOf(this.hush);
+      this.pulseReverb.connect(this.bgmBus);
+      const reverb = context.createConvolver();
+      reverb.buffer = reverbImpulse(context);
+      reverb.connect(this.pulseReverb);
+      const pulseMix = context.createGain(); // 重低音（倍音を加えた後）を、そのままの経路と残響へ分ける
+      pulseMix.connect(this.hushPulse);
+      pulseMix.connect(reverb);
+      this.pulseOut = this.createPulseOut(context, pulseMix);
       this.ensembleGain = context.createGain();
       this.ensembleGain.gain.value = ENSEMBLE_GAIN;
       this.ensembleGain.connect(this.muffle);

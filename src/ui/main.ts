@@ -55,9 +55,10 @@ import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
+import type { UndoMotion } from './dom/undo-motion.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
-import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
+import { WebAudioDriver, type AudioCue, type AudioDriver, type BgmHush } from './audio/driver.js';
 import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
@@ -154,6 +155,75 @@ const scriptRoot = document.createElement('div');
 scriptRoot.className = 'script-root';
 stageElement.append(screenRoot, effects.root, scriptRoot);
 
+// [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
+const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
+const BLACKOUT_HOLD_MS = 250; // 暗いまま保つ時間
+const BLACKOUT_RISE_MS = 350; // 戻すのにかける時間
+let seenRewindCount: number | null = null; // 最後に描画した回帰回数（セッションが無い間は Null）
+let blackout: HTMLElement | null = null; // 提示中の暗転の層。提示の間は時間を進めず、操作を受け付けない
+let afterBlackout: (() => void)[] = []; // 提示の間に届いた進行（敵軍の応答など）。戻した後に行う
+
+// 回帰回数の増加を見て、暗転を始める。セッションの読み込み・終了による変化は増加とみなさない。
+function watchRewindCount(): void {
+  const count = session?.data.meta.total_rewind_count ?? null;
+  if (seenRewindCount !== null && count !== null && count > seenRewindCount) {
+    startBlackout();
+  }
+  seenRewindCount = count;
+}
+
+function startBlackout(): void {
+  if (blackout !== null) {
+    return;
+  }
+  const layer = document.createElement('div');
+  layer.className = 'blackout';
+  const total = BLACKOUT_FALL_MS + BLACKOUT_HOLD_MS + BLACKOUT_RISE_MS;
+  layer.animate(
+    [
+      { opacity: 0, easing: 'linear' },
+      { opacity: 1, offset: BLACKOUT_FALL_MS / total },
+      { opacity: 1, offset: (BLACKOUT_FALL_MS + BLACKOUT_HOLD_MS) / total, easing: 'ease-out' },
+      { opacity: 0 },
+    ],
+    { duration: total, fill: 'forwards' },
+  );
+  stageElement.append(layer);
+  blackout = layer;
+  window.setTimeout(endBlackout, total);
+}
+
+function endBlackout(): void {
+  blackout?.remove();
+  blackout = null;
+  syncBgmSilence(); // 暗転の終了とともに BGM を戻す
+  const pending = afterBlackout;
+  afterBlackout = [];
+  for (const run of pending) {
+    run();
+  }
+}
+
+// 巻き戻しの保留中（アンドゥ・ロールバックの実行から確定まで）は重低音だけをごく小さく残し、
+// 暗転の提示の間は重低音を含めて途切れさせる。変わったときだけ伝える。
+let bgmHush: BgmHush = 'NONE';
+function syncBgmSilence(): void {
+  const hush: BgmHush = blackout !== null ? 'SILENT' : (session?.data.pending.rewind_pending ?? false) ? 'FAINT' : 'NONE';
+  if (hush !== bgmHush) {
+    bgmHush = hush;
+    audio.hushBgm(hush);
+  }
+}
+
+// 暗転の提示の間は進行を待たせ、戻した後に行う。
+function whenLit(run: () => void): void {
+  if (blackout === null) {
+    run();
+  } else {
+    afterBlackout.push(run);
+  }
+}
+
 // [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
 // [M-DATA-AUDIO-CUE] 発火契機は演出と音響の双方へ配る（探索・未来予測では受け口を与えない）。
 // [I-PLAN-ASSETS] 音声の実体を鳴らす。実体の無い資産は鳴らさず、呼び出しの経路は空実装と同じに通す。
@@ -198,6 +268,7 @@ let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴ら
 let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
 let ensembleScene: string | null = null; // 戦闘の合奏を鳴らしているシーン
+let undoMotion: UndoMotion | null = null; // [M-REWIND-UNDO]【提示】アンドゥの直前の姿（次の描画で一度だけ用いる）
 let timeStopped = false; // [M-UI-PLAYBACK]【静止中の演出】を掛けているか
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
@@ -654,8 +725,11 @@ function attachClient(sceneId: string): void {
   client?.dispose();
   client = new AiDecisionClient(createAiWorkerPort(), sceneId, () => {
     // 応答後の再開も再生速度に従う（停止中は1ステップのみ進めて静止させる）。
-    stepForward(stepsPerFrame(loop.speed));
-    render();
+    // 回帰の暗転の間に届いた応答は、戻した後に進める（[M-META-COMMIT]【提示】）。
+    whenLit(() => {
+      stepForward(stepsPerFrame(loop.speed));
+      render();
+    });
   });
 }
 
@@ -854,9 +928,16 @@ const screenHandlers: ScreenHandlers = {
     }
     notice = '';
     playSe('UI_CANCEL'); // [M-DATA-AUDIO-CUE] UI_CANCEL：アンドゥ実行時
+    const before = requireSession().data.run.battle_state;
+    if (before !== null) {
+      const view = buildBattleView({ state: before, deps: stepDeps, naming, selectedInstanceId: null });
+      undoMotion = { timeline: view.timeline, plates: view.columns.flatMap((column) => (column.plate === null ? [] : [column.plate])) };
+    }
     undo(requireSession(), ctx);
     const restored = requireSession().data.run.battle_state;
-    if (restored !== null) {
+    if (restored === null) {
+      undoMotion = null; // バトルの外へ戻った場合は示さない
+    } else {
       cueTracker.rewindTo(restored.step); // 巻き戻した先より後に再生した契機は、再び通過すれば再生する
     }
     client?.invalidate();
@@ -893,6 +974,13 @@ const screenHandlers: ScreenHandlers = {
     });
   },
 };
+
+// アンドゥの直前の姿を取り出す（取り出したら消える）。
+function takeUndoMotion(): UndoMotion | null {
+  const motion = undoMotion;
+  undoMotion = null;
+  return motion;
+}
 
 // 一度だけ提示するシステム文言を取り出す（取り出したら消える）。
 function takeNotice(): string {
@@ -1059,6 +1147,7 @@ function renderBattle(): HTMLElement | null {
       noticeText: takeNotice(),
       resultText,
       selectedInstanceId,
+      undoFrom: takeUndoMotion(),
       focusedInstanceId,
       speed: loop.speed,
       stopped: battleResult === 'PAUSED',
@@ -1253,6 +1342,8 @@ function syncTimeStop(): void {
 function render(): void {
   syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
   syncTimeStop();
+  watchRewindCount(); // [M-META-COMMIT]【提示】
+  syncBgmSilence();
   presentIntro(); // [S-SCRIPT-TRIGGER] SCENE_INTRO。初出の解説は開幕の脚本を終えてから提示する。
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();
@@ -1275,7 +1366,7 @@ const loop = new PlaybackLoop(
     if (session === null || session.data.run.phase !== 'BATTLE') {
       return false;
     }
-    if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING') {
+    if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING' && blackout === null) {
       runAdvance(() => resumeBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(speed))));
       render();
     }
