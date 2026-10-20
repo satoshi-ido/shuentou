@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import type { AssetMasterRecord } from '../../src/data/types.js';
-import { SCALE_CENTS, readScore, SCENE_SCORES, SCORE_STEPS, VOICE_ASSET, VOICES } from '../../src/ui/audio/ensemble.js';
+import { SCALE_CENTS, readScore, SCENE_SCORES, SCORE_STEPS, VOICES } from '../../src/ui/audio/ensemble.js';
 
 const assets: Readonly<Record<string, AssetMasterRecord>> = ASSET_MASTERS;
 const rateOfCents = (cents: number): number => 2 ** (cents / 1200);
@@ -43,22 +43,12 @@ describe('[M-DATA-AUDIO-CUE] 戦闘の合奏', () => {
     expect(viFifth).toBeCloseTo(rateOfCents(1500), 6);
   });
 
-  it('低い弦の刻みは、和音の弦と同じ資産を1オクターブ下で鳴らす', () => {
-    expect(VOICE_ASSET.BASS_LINE).toBe('STRINGS');
-    expect(readScore('BASS_LINE', '1')[0]).toBeCloseTo(0.5, 6); // D3 の資産から D2
-  });
-
-  it('弦の旋律は、和音の弦と同じ資産を1オクターブ上で鳴らす', () => {
-    expect(VOICE_ASSET.MELODY).toBe('STRINGS');
-    expect(readScore('MELODY', '1')[0]).toBeCloseTo(2, 6); // D3 の資産から D4
-  });
-
   it('審査範囲の6シーンが譜を持ち、声部の鳴らす資産が ENSEMBLE にそろう', () => {
     expect(Object.keys(SCENE_SCORES).sort()).toEqual(['SCENE_1_01', 'SCENE_1_02', 'SCENE_2_01', 'SCENE_2_02', 'SCENE_2_03', 'SCENE_2_04']);
     const variants = Object.values(assets)
       .filter((record) => record.slot === 'BGM' && record.cue === 'ENSEMBLE')
       .map((record) => record.variant)
       .sort();
-    expect(variants).toEqual([...new Set(VOICES.map((voice) => VOICE_ASSET[voice]))].sort());
+    expect(variants).toEqual([...VOICES].sort());
   });
 });
