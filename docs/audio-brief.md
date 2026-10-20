@@ -20,6 +20,11 @@
 
 1つのツールで BGM と SE の両方を作れると、記録が簡単になる。
 
+**決定**：Stable Audio（Stability AI）を用い、BGM と SE の両方を作る。
+
+- 生成を始める日に、Stable Audio の利用規約とライセンスの条文で、用いるプランが商用での利用を認めること、生成物の権利の扱い、学習データについての説明を確かめ、`docs/ai-usage.md` に記録する。無料の版で作ったものは、商用の条件を満たすプランで作り直す。
+- 依頼文は英語で書く（本書 6）。3・4 の日本語の依頼文は、狙いを人が確かめるためのものとして残す。
+
 ## 2. 共通の決まり
 
 - **形式**：MP3（192kbps 以上）。ツールが MP3 を出せない場合は、生成を進める前に Claude Code に相談する（取り込みの道具は MP3 のみを扱う）。
@@ -70,3 +75,39 @@ Claude Code が次を行う。
 1. `art-src\` の音声を `pnpm art art-src` で `src/ui/public/art/audio/` に取り込む。
 2. 配布版で、場面ごとの BGM と SE を鳴らし、音量の差と、ループのつなぎ目を確かめる。
 3. `docs/ai-usage.md` の「表示アセット・音声」の表に、`asset_id` ごとの行を書く。
+
+## 6. Stable Audio 向けの依頼文
+
+Stable Audio には、次の英語の依頼文をそのまま送る。楽器・雰囲気・テンポを並べる書き方とし、作曲家名・作品名を含めない。
+
+- **長さの指定**：BGM は生成画面で 90 秒前後、SE は 1〜2 秒に設定する（SE は生成後に余分な無音を切ってよい）。
+- **ループ**：BGM はつなぎ目が目立たないものを選ぶ。何度か生成して、終わりと始まりの音量と響きが近いものを採る。
+- **書き出し**：MP3 で書き出す。
+
+### BGM
+
+| asset_id | Prompt |
+| :---- | :---- |
+| `ASSET_BGM_1_01` | Dark fantasy battle music, burning village at dusk, falling ash, sorrowful and tense, low strings, muffled war drums, distant small bells, mid tempo 88 BPM, instrumental, no vocals, seamless loop |
+| `ASSET_BGM_1_02` | Dark fantasy battle music, stone fortress hall at night, mad old general, heavy military drums, short brass motifs, agitated strings, a march rhythm slowly falling apart, 100 BPM, instrumental, no vocals, seamless loop |
+| `ASSET_BGM_2_01` | Dark fantasy battle music, dead trees covered in white ash, sunset road, eerie necromancer, dry percussion, low droning strings, creaking textures, 92 BPM, instrumental, no vocals, seamless loop |
+| `ASSET_BGM_2_02` | Dark fantasy battle music, ruined city market, a bard whose song breaks the will to fight, old plucked lute, repetitive lullaby melody that slowly distorts, wordless humming allowed, 84 BPM, instrumental, no lyrics, seamless loop |
+| `ASSET_BGM_2_03` | Dark fantasy battle music, wizard district under a cloudless bright sky, unsettling calm, glockenspiel and harp slowly invaded by dissonance, creeping low drones, 96 BPM, instrumental, no vocals, seamless loop |
+| `ASSET_BGM_2_04` | Dark fantasy boss battle music, collapsing city plaza, a praying girl with giant crystal arms, intense percussion and driving strings, a clear fragile high melody above, wordless choir allowed, 120 BPM, instrumental, no lyrics, seamless loop |
+| `ASSET_BGM_INTERMISSION` | Quiet dark fantasy interlude, gazing at a small lantern flame in the dark, remembering the lost, slow solo piano or soft plucked strings, gentle sustained strings, warm but lonely, 66 BPM, instrumental, no vocals, seamless loop |
+
+### SE
+
+| asset_id | Prompt |
+| :---- | :---- |
+| `ASSET_SE_HIT` | Sword striking armor and flesh, short heavy impact, single hit, game sound effect, no music |
+| `ASSET_SE_MISS` | Blade cutting through empty air, short whoosh, single swing, game sound effect, no music |
+| `ASSET_SE_UNIT_DESTROY` | Body collapsing to the ground with scattering ash, low short thud, game sound effect, no music |
+| `ASSET_SE_WATCH_PAUSE` | Single clear small bell chime with soft reverb, time stops, game UI sound effect, no music |
+| `ASSET_SE_UI_CONFIRM` | Small iron latch clicking shut, short dry click, game UI sound effect, no music |
+| `ASSET_SE_UI_CANCEL` | Soft cloth rustle pulled back, short gentle sound, game UI sound effect, no music |
+| `ASSET_SE_ACTION_MIND` | Deep breath followed by a small flame flaring up, short whoosh, game sound effect, no music |
+| `ASSET_SE_ACTION_MARTIAL` | Raising a sword, sharp short metallic scrape, game sound effect, no music |
+| `ASSET_SE_ACTION_STANCE` | Shield and armor being braced, heavy metal clank with a light thump, game sound effect, no music |
+| `ASSET_SE_ACTION_SUMMON` | Black smoke swirling as something takes shape, low eerie rumble, game sound effect, no music |
+| `ASSET_SE_ACTION_SWAP` | Cloak flapping and two quick footsteps, short movement sound, game sound effect, no music |
