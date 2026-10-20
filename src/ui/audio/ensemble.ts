@@ -38,10 +38,10 @@ const repeat = (beat: string): string => [beat, beat, beat, beat].join('|');
 
 export const SCENE_SCORES: Readonly<Record<string, Score>> = {
   // i–i–VI–V。低い弦が拍の裏を刻み、VI で B♭、V で A から C♯ へせり上がる。打弦は緊張の一音だけを置く。
-  // 声は 3+3+2 で刻み、低い声がその隙間を埋めて噛み合う。最後の拍で刻みを詰めて頭へ戻す。
+  // 声は拍の前半を 3+3 で刻み、後半の間に低い声が一打で答える。
   SCENE_1_01: {
-    CHANT: 'x..x..x.x..x..x.|x..x..x.x..x..x.|x..x..x.x..x..x.|x..x..x.x.x.x.x.',
-    CHANT_LOW: repeat('..x..x....x..x..'),
+    CHANT: repeat('x..x..x.........'),
+    CHANT_LOW: repeat('..........x.....'),
     CHANT_BASS: repeat('x...............'),
     DULCIMER: '................|........6.......|................|7...............',
     DULCIMER_HIGH: repeat('................'),
@@ -50,10 +50,10 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
     BELL: 'x...............|................|................|................',
   },
   // i–i–iv–V。付点で踏みしめる低い弦の行進。打弦は最後の V で導音を2度置く。
-  // 声は16分の裏をすべて刻み、低い声が弦と同じ 3+3+2 で踏む。最後の拍で刻みを詰めて頭へ戻す。
+  // 声は8分の裏を刻み、低い声が半拍ごとに踏んで、付点の弦と噛み合う。
   SCENE_1_02: {
-    CHANT: '.x.x.x.x.x.x.x.x|.x.x.x.x.x.x.x.x|.x.x.x.x.x.x.x.x|.x.x.x.x.xxxxxxx',
-    CHANT_LOW: repeat('x..x..x.x..x..x.'),
+    CHANT: repeat('.x...x...x...x..'),
+    CHANT_LOW: repeat('x.......x.......'),
     CHANT_BASS: repeat('x.......x.......'),
     DULCIMER: '................|................|................|7.......7.......',
     DULCIMER_HIGH: repeat('................'),
