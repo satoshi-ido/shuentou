@@ -44,7 +44,17 @@
 
 ## 表示アセット・音声
 
-未制作（プレースホルダ）。制作したものから `asset_id` ごとに、制作の手段（手作業・生成AI・素材集）、使用したツール、利用規約上の権利の根拠を記録する。
+制作したものから `asset_id` ごとに、制作の手段（手作業・生成AI・素材集）、使用したツール、利用規約上の権利の根拠を記録する。
 
 | `asset_id` | 制作の手段 | 使用したツール | 権利の根拠 |
 | :---- | :---- | :---- | :---- |
+| `ASSET_BGM_PULSE` | 生成AI（`docs/audio-brief.md` のプロンプト） | Stable Audio | |
+| `ASSET_BGM_CALM` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_INTERMISSION` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_DRUM_HIGH` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_DRUM_LOW` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_DRUM_BASS` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_DULCIMER` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_DULCIMER_HIGH` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_STRINGS` | 生成AI（同上） | Stable Audio | |
+| `ASSET_BGM_ENSEMBLE_BELL` | 生成AI（同上） | Stable Audio | |
