@@ -58,3 +58,14 @@
 | `ASSET_BGM_ENSEMBLE_DULCIMER_HIGH` | 生成AI（同上） | Stable Audio | |
 | `ASSET_BGM_ENSEMBLE_STRINGS` | 生成AI（同上） | Stable Audio | |
 | `ASSET_BGM_ENSEMBLE_BELL` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_HIT` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_MISS` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_UNIT_DESTROY` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_WATCH_PAUSE` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_UI_CONFIRM` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_UI_CANCEL` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_ACTION_MIND` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_ACTION_MARTIAL` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_ACTION_STANCE` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_ACTION_SUMMON` | 生成AI（同上） | Stable Audio | |
+| `ASSET_SE_ACTION_SWAP` | 生成AI（同上） | Stable Audio | |
