@@ -49,6 +49,7 @@ import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/typ
 import { placeholderHue } from './assets/placeholder.js';
 import { assetUrl, assetUrlById, pickAsset, type AssetCondition } from './assets/resolve.js';
 import { setFigureLookup } from './dom/art.js';
+import { sceneEntries, sceneJumpData, sceneSelectEnabled } from './dev/scene-select.js';
 import { lanternView } from './view/lantern-view.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
@@ -69,6 +70,7 @@ import {
   renderPreBattle,
   renderRefill,
   renderRollbackOverlay,
+  renderSceneSelectOverlay,
   renderTitle,
   type ConfirmDialog,
   type RollbackTarget,
@@ -170,6 +172,9 @@ const battleDeps = {
     }
   },
 };
+
+// [M-UI-SCREENS]［開発用のシーン選択］起動時の指定（?scene-select）があるときに限ってタイトルに出す。
+const SCENE_SELECT = sceneSelectEnabled(window.location.search);
 
 let config: DisplayConfig = loadConfig(window.localStorage);
 audio.setVolumes(config.bgmVolume, config.seVolume); // [M-UI-CONFIG] 起動時の音量
@@ -681,6 +686,10 @@ function presentFirstSight(): void {
 }
 
 const screenHandlers: ScreenHandlers = {
+  onOpenSceneSelect: () => {
+    overlay = 'SCENE_SELECT';
+    render();
+  },
   onNewGame: () => {
     const existing = window.localStorage.getItem(SAVE_KEY);
     const begin = (): void => {
@@ -1076,7 +1085,11 @@ function renderScreen(): HTMLElement {
   if (session === null) {
     // タイトルの提示に必要なのはセーブの有無と周回の終了のみ。ロード（バトル中の再開処理）は行わない。
     const serialized = window.localStorage.getItem(SAVE_KEY);
-    return renderTitle(titleView(serialized === null ? null : peekSave(serialized)), (id) => strings.resolve(id), screenHandlers);
+    return renderTitle(
+      { ...titleView(serialized === null ? null : peekSave(serialized)), sceneSelect: SCENE_SELECT },
+      (id) => strings.resolve(id),
+      screenHandlers,
+    );
   }
   const { run, meta } = requireSession().data;
   const scene = scenes[run.current_scene_id];
@@ -1171,6 +1184,18 @@ function rollbackTargets(): RollbackTarget[] {
 
 function renderOverlay(): HTMLElement | null {
   switch (overlay) {
+    case 'SCENE_SELECT':
+      return renderSceneSelectOverlay(
+        sceneEntries(masters),
+        (sceneId) => {
+          session = { data: sceneJumpData(masters, sceneId), battle_start_run: null };
+          overlay = 'NONE';
+          introShown = false;
+          autosave(session, ctx);
+          render();
+        },
+        screenHandlers,
+      );
     case 'CONFIG':
       return renderConfigOverlay(config, screenHandlers);
     case 'DICTIONARY':

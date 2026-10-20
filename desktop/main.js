@@ -24,7 +24,8 @@ function createWindow() {
     if (!url.startsWith(`${ORIGIN}/`)) event.preventDefault();
   });
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.loadURL(ENTRY_URL);
+  // 開発用のシーン選択（[M-UI-SCREENS]［開発用のシーン選択］）。起動引数 --scene-select を URL の指定へ写す。
+  window.loadURL(process.argv.includes('--scene-select') ? `${ENTRY_URL}?scene-select` : ENTRY_URL);
 }
 
 app.whenReady().then(() => {

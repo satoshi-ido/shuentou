@@ -38,6 +38,7 @@ export interface ScreenHandlers {
   readonly onUndo: () => void;
   readonly onRollbackBattle: () => void;
   readonly onRollbackIntermission: (order: number) => void;
+  readonly onOpenSceneSelect?: () => void; // 開発用のシーン選択（[M-UI-SCREENS]［開発用のシーン選択］）
 }
 
 function element(tag: string, className: string, text?: string): HTMLElement {
@@ -80,7 +81,28 @@ export function renderTitle(view: TitleView, strings: (id: string) => string, ha
   if (view.runClosed) {
     root.append(element('p', 'notice', strings('STR_TITLE_RUN_CLOSED')));
   }
+  if (view.sceneSelect === true && handlers.onOpenSceneSelect !== undefined) {
+    root.append(button('menu dev-scene-select', '開発用：シーン選択', handlers.onOpenSceneSelect));
+  }
   root.append(overlayBar(handlers));
+  return root;
+}
+
+// [M-UI-SCREENS]［開発用のシーン選択］選んだシーンのバトル開始前演出から始める。
+export function renderSceneSelectOverlay(
+  entries: readonly { readonly sceneId: string; readonly label: string }[],
+  onPick: (sceneId: string) => void,
+  handlers: ScreenHandlers,
+): HTMLElement {
+  const root = element('div', 'overlay overlay-scene-select');
+  root.append(element('h2', 'overlay-title', '開発用：シーン選択'));
+  root.append(element('p', 'notice', '主人公は初期の能力のまま、従者はそのアクトまでに加わる者を定員まで入れて始める。今のセーブは上書きされる。'));
+  const grid = element('div', 'scene-select-grid');
+  for (const entry of entries) {
+    grid.append(button('scene-select-item', entry.label, () => onPick(entry.sceneId)));
+  }
+  root.append(grid);
+  root.append(button('menu', '閉じる', handlers.onCloseOverlay));
   return root;
 }
 

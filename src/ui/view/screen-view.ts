@@ -8,7 +8,7 @@ import type { SaveData } from '../../engine/meta/types.js';
 import type { RunState } from '../../engine/run/state.js';
 
 export type ScreenKind = 'TITLE' | 'PRE_BATTLE' | 'BATTLE' | 'INTERMISSION' | 'REFILL' | 'ENDING';
-export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM' | 'ROLLBACK' | 'FIRST_SIGHT';
+export type OverlayKind = 'NONE' | 'CONFIG' | 'DICTIONARY' | 'CONFIRM' | 'ROLLBACK' | 'FIRST_SIGHT' | 'SCENE_SELECT';
 
 // [M-UI-SCREENS] 画面は phase から定まる。従者補充は INTERMISSION のうちアクト移行の段（[M-PROG-REFILL]）。
 export function screenOf(run: RunState): ScreenKind {
@@ -46,6 +46,7 @@ export function objectiveStringId(order: number): string | null {
 export interface TitleView {
   readonly hasSave: boolean;
   readonly runClosed: boolean; // 周回終了済みのセーブでは進行を再開できない（STR_TITLE_RUN_CLOSED）
+  readonly sceneSelect?: boolean; // 開発用のシーン選択を出すか（起動時の指定による）
 }
 
 export function titleView(save: SaveData | null): TitleView {
