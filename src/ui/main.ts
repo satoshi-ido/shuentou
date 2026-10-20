@@ -198,6 +198,7 @@ let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴ら
 let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
 let ensembleScene: string | null = null; // 戦闘の合奏を鳴らしているシーン
+let timeStopped = false; // [M-UI-PLAYBACK]【静止中の演出】を掛けているか
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
 function playSe(cue: AudioCue): void {
@@ -1230,8 +1231,28 @@ function renderOverlay(): HTMLElement | null {
   }
 }
 
+// [M-UI-PLAYBACK]【静止中の演出】バトルの時間が進んでいない間（自動時間停止中・再生速度 PAUSE で静止中）か。
+// 再生中の敵軍の応答待ちは一時的な待ちであり、含めない。
+function isTimeStopped(): boolean {
+  if (session === null || screenOf(session.data.run) !== 'BATTLE' || script !== null) {
+    return false;
+  }
+  return battleResult === 'PAUSED' || (loop.speed === 'PAUSE' && (battleResult === 'RUNNING' || battleResult === 'AWAIT_FOE'));
+}
+
+// 静止中は世界（戦闘背景と立ち絵）の彩度と明るさを落とし、層と合奏をこもらせる。変わったときだけ伝える。
+function syncTimeStop(): void {
+  const stopped = isTimeStopped();
+  screenRoot.classList.toggle('time-stopped', stopped);
+  if (stopped !== timeStopped) {
+    timeStopped = stopped;
+    audio.muffleLayers(stopped);
+  }
+}
+
 function render(): void {
   syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
+  syncTimeStop();
   presentIntro(); // [S-SCRIPT-TRIGGER] SCENE_INTRO。初出の解説は開幕の脚本を終えてから提示する。
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
   screenRoot.replaceChildren();

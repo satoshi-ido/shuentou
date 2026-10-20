@@ -22,7 +22,7 @@ export interface AudioDriver {
   setPulse(assetId: string | null, intervalMs: number): void;
   // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
-  duckLayer(ducked: boolean): void; // 時間停止中は層だけを下げる
+  muffleLayers(muffled: boolean): void; // 時間が進んでいない間、層と合奏をこもらせる（重低音は変えない）
   // 戦闘の合奏の譜（声部の鍵 → 区切りごとの再生の速さ。休みは Null）。重低音の拍に合わせて鳴らす。Null なら止める。
   // 声部の鍵は資産ID。1つの資産を同時に複数の高さで鳴らす声部は「資産ID#番号」とする。
   setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void;
@@ -34,7 +34,7 @@ export interface AudioDriver {
 export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
   | { readonly kind: 'PULSE'; readonly assetId: string | null; readonly intervalMs: number }
-  | { readonly kind: 'DUCK'; readonly ducked: boolean }
+  | { readonly kind: 'MUFFLE'; readonly muffled: boolean }
   | { readonly kind: 'ENSEMBLE'; readonly parts: readonly string[] }
   | { readonly kind: 'SILENCE' };
 
@@ -54,8 +54,8 @@ export class RecordingAudioDriver implements AudioDriver {
     this.record({ kind: 'BGM', cue, assetId, volume: this.bgmVolume });
   }
 
-  duckLayer(ducked: boolean): void {
-    this.record({ kind: 'DUCK', ducked });
+  muffleLayers(muffled: boolean): void {
+    this.record({ kind: 'MUFFLE', muffled });
   }
 
   setEnsemble(parts: Readonly<Record<string, readonly (number | null)[]>> | null): void {
@@ -85,7 +85,10 @@ export class RecordingAudioDriver implements AudioDriver {
 
 // 【BGM の構成】の暫定値。
 const CROSSFADE_SEC = 1.5;
-const DUCKED_GAIN = 0.3;
+const MUFFLED_HZ = 800; // [M-UI-PLAYBACK]【静止中の演出】層と合奏をこもらせる低域通過の上限
+const MUFFLED_GAIN = 0.6; // こもらせる間の層と合奏の音量の倍率
+const OPEN_HZ = 20000; // こもらせない間の上限（可聴域の全体を通す）
+const MUFFLE_TIME_CONSTANT = 0.1; // 切り替えの時定数（約 0.3 秒で移る）
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
 const SCHEDULER_TICK_MS = 100;
 const STEPS_PER_PULSE = 16; // 【戦闘の合奏】重低音の1拍の区切りの数
@@ -113,7 +116,9 @@ export class WebAudioDriver extends RecordingAudioDriver {
   private readonly buffers: Record<string, Promise<AudioBuffer | null>> = {};
   private bgmGain: GainNode | null = null;
   private seGain: GainNode | null = null;
-  private duckGain: GainNode | null = null;
+  private muffle: BiquadFilterNode | null = null; // 層と合奏をこもらせる低域通過
+  private muffleGain: GainNode | null = null; // こもらせる間、層と合奏の音量を抑える
+  private muffled = false;
   private ensembleGain: GainNode | null = null;
   private pulseDip: GainNode | null = null; // 重低音の一打ごとに層と合奏を短く下げる
   private pulseOut: GainNode | null = null; // 重低音の入口（そのままの音と、倍音を加える経路へ分ける）
@@ -167,7 +172,7 @@ export class WebAudioDriver extends RecordingAudioDriver {
       const gain = context.createGain();
       gain.gain.setValueAtTime(0, context.currentTime);
       gain.gain.linearRampToValueAtTime(1, context.currentTime + CROSSFADE_SEC);
-      gain.connect(this.duckGain as GainNode);
+      gain.connect(this.muffle as BiquadFilterNode);
       const source = context.createBufferSource();
       source.buffer = buffer;
       source.loop = true;
@@ -178,10 +183,12 @@ export class WebAudioDriver extends RecordingAudioDriver {
     });
   }
 
-  override duckLayer(ducked: boolean): void {
-    super.duckLayer(ducked);
-    if (this.duckGain !== null && this.context !== null) {
-      this.duckGain.gain.setTargetAtTime(ducked ? DUCKED_GAIN : 1, this.context.currentTime, 0.15);
+  override muffleLayers(muffled: boolean): void {
+    super.muffleLayers(muffled);
+    this.muffled = muffled;
+    if (this.muffle !== null && this.muffleGain !== null && this.context !== null) {
+      this.muffle.frequency.setTargetAtTime(muffled ? MUFFLED_HZ : OPEN_HZ, this.context.currentTime, MUFFLE_TIME_CONSTANT);
+      this.muffleGain.gain.setTargetAtTime(muffled ? MUFFLED_GAIN : 1, this.context.currentTime, MUFFLE_TIME_CONSTANT);
     }
   }
 
@@ -242,12 +249,18 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.bgmBus.connect(this.bgmGain);
       this.pulseDip = context.createGain();
       this.pulseDip.connect(this.bgmBus);
-      this.duckGain = context.createGain();
-      this.duckGain.connect(this.pulseDip);
+      this.muffle = context.createBiquadFilter();
+      this.muffle.type = 'lowpass';
+      this.muffle.frequency.value = this.muffled ? MUFFLED_HZ : OPEN_HZ;
+      this.muffle.Q.value = 0.7;
+      this.muffleGain = context.createGain();
+      this.muffleGain.gain.value = this.muffled ? MUFFLED_GAIN : 1;
+      this.muffleGain.connect(this.pulseDip);
+      this.muffle.connect(this.muffleGain);
       this.pulseOut = this.createPulseOut(context, this.bgmBus);
       this.ensembleGain = context.createGain();
       this.ensembleGain.gain.value = ENSEMBLE_GAIN;
-      this.ensembleGain.connect(this.duckGain);
+      this.ensembleGain.connect(this.muffle);
       this.seGain = context.createGain();
       this.seGain.gain.value = this.seLevel;
       this.seGain.connect(context.destination);

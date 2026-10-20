@@ -1849,6 +1849,22 @@ button:disabled { opacity: 0.4; cursor: default; }
 .rfig.dead .figure-img { filter: grayscale(1); opacity: 0.34; }
 .rfig.dead.hl .figure-img { filter: grayscale(0.35); opacity: 0.78; }
 
+/* [M-UI-PLAYBACK]【静止中の演出】バトルの時間が進んでいない間、UI を除く世界（戦闘背景と立ち絵）の彩度と明るさを落とす。
+   画面は描画のたびに作り直すため、度合いを常設の器（.screen-root）の登録済みカスタムプロパティに持たせて移す。
+   立ち絵の画像は陣営や選択の filter を持つため、その外側の器に掛ける。 */
+@property --time-stop {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+.screen-root { transition: --time-stop 0.3s ease-out; }
+.screen-root.time-stopped { --time-stop: 1; }
+.battle .field-bg,
+.battle .bcol:not(.bcol-empty) .cell > .figure,
+.battle .cell > .figure-wrap {
+  filter: grayscale(calc(var(--time-stop) * 0.6)) brightness(calc(1 - var(--time-stop) * 0.2));
+}
+
 /* 戦闘背景は 1280×720 の画を、地面の帯（[S-BG-PRINCIPLE]、y 336〜456）が立ち絵の足元に来る位置に置く。 */
 .field-bg {
   background:
