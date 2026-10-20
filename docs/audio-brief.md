@@ -33,13 +33,14 @@
 - **保存**：リポジトリの中の `art-src\` に、`asset_id` に `.mp3` を付けた名前で置く（例：`ASSET_BGM_1_01.mp3`）。
 - **記録**：生成した日付・ツール・依頼文を `art-src\log.txt` に1行ずつ残す。
 
-## 3. BGM（重低音1件・層8件）
+## 3. BGM（重低音1件・層8件・打楽器4件）
 
 BGM は、一定の間隔で鳴り続ける重低音の一打と、状況に応じて重ねる層の二重で構成する（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音は曲ではなく一打の音とし、プログラムが 1.6 秒ごとに鳴らす。層は打楽器を持たない持続音とし、重低音とぶつからないよう調を揃える。
 
 - **調**：すべて **D**（重低音の音高を D とし、層は D の短調か、D を主音とする旋法）。
 - **重低音**：1〜2 秒の一打。頭に無音を入れず、余韻は 1 秒以内に収める。拍子の感じを持たない、深い低音とする。
 - **層**：60〜120 秒。打楽器・拍・はっきりしたテンポを持たない。終わりから始まりへ切れ目なくつながる（ループする）もの。旋律はゆるやかにとどめ、重低音の拍の上に漂うようにする。
+- **打楽器**：バトル中の打楽器は、曲ではなく一打の音を4つ用意し、プログラムが重低音の拍に合わせて型どおりに鳴らす（[M-DATA-AUDIO-CUE]【打楽器の型】）。一打は 0.1〜0.5 秒、頭に無音を入れず、余韻を短くする。戦闘の層は打楽器を持たないままとする。
 - **音量**：層どうしの音量差を小さくする。重低音は、層の上でも聞こえ、層を覆わない大きさとする。
 
 | asset_id | 鳴る状況 | 狙い |
@@ -53,6 +54,10 @@ BGM は、一定の間隔で鳴り続ける重低音の一打と、状況に応�
 | `ASSET_BGM_2_02` | 2-02 のバトル | 歌で心を折る吟遊詩人。反復する子守歌のような撥弦が、ゆっくり歪む。言葉のないハミングは可 |
 | `ASSET_BGM_2_03` | 2-03 のバトル | 晴天の不穏。澄んだ鉄琴やハープの響きが、不協和にゆっくり侵される |
 | `ASSET_BGM_2_04` | 2-04 のバトル（ボス） | 崩れる都市と祈る少女。厚い弦の高まりの上に、澄んだ高音の旋律。言葉のない合唱は可 |
+| `ASSET_BGM_DRUM_KICK` | バトル中、打楽器の型どおり | 大太鼓の一打。深く短い打音 |
+| `ASSET_BGM_DRUM_TOM` | 同上 | 低い太鼓の一打。皮の鳴る、やや高い打音 |
+| `ASSET_BGM_DRUM_FRAME` | 同上 | 枠太鼓の一打。乾いた短い打音 |
+| `ASSET_BGM_DRUM_METAL` | 同上 | 金属の一打。鈍い鉄の打音と短い余韻 |
 
 - エンディングの曲（`ASSET_BGM_ENDING`）は審査範囲の外であり、本書の対象としない。
 
@@ -107,6 +112,10 @@ Stable Audio には、次の英語の依頼文をそのまま送る。楽器・�
 | `ASSET_BGM_2_02` | Dark fantasy ambient battle layer, a bard whose song breaks the will to fight, repetitive lullaby-like plucked lute slowly distorting, wordless humming, D dorian, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
 | `ASSET_BGM_2_03` | Dark fantasy ambient battle layer, unsettling calm under a cloudless sky, glockenspiel and harp resonance slowly invaded by dissonance, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
 | `ASSET_BGM_2_04` | Dark fantasy ambient boss battle layer, collapsing city and a praying girl, swelling dense strings with a clear fragile high melody above, wordless choir, D minor, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
+| `ASSET_BGM_DRUM_KICK` | Single deep war drum hit, short punchy low thump, dry, no reverb, one hit only, no music, sound effect |
+| `ASSET_BGM_DRUM_TOM` | Single low tom drum hit, skin resonance, short decay, dry, one hit only, no music, sound effect |
+| `ASSET_BGM_DRUM_FRAME` | Single frame drum hit, dry short slap, wooden rim, one hit only, no music, sound effect |
+| `ASSET_BGM_DRUM_METAL` | Single dull iron strike, short metallic hit with brief ring, one hit only, no music, sound effect |
 
 ### SE
 
