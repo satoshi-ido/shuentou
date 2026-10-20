@@ -48,6 +48,11 @@ describe('[M-DATA-AUDIO-CUE] 戦闘の合奏', () => {
     expect(readScore('BASS_LINE', '1')[0]).toBeCloseTo(0.5, 6); // D3 の資産から D2
   });
 
+  it('弦の旋律は、和音の弦と同じ資産を1オクターブ上で鳴らす', () => {
+    expect(VOICE_ASSET.MELODY).toBe('STRINGS');
+    expect(readScore('MELODY', '1')[0]).toBeCloseTo(2, 6); // D3 の資産から D4
+  });
+
   it('審査範囲の6シーンが譜を持ち、声部の鳴らす資産が ENSEMBLE にそろう', () => {
     expect(Object.keys(SCENE_SCORES).sort()).toEqual(['SCENE_1_01', 'SCENE_1_02', 'SCENE_2_01', 'SCENE_2_02', 'SCENE_2_03', 'SCENE_2_04']);
     const variants = Object.values(assets)
