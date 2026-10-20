@@ -89,6 +89,7 @@ const DUCKED_GAIN = 0.3;
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
 const SCHEDULER_TICK_MS = 100;
 const STEPS_PER_PULSE = 16; // 【戦闘の合奏】重低音の1拍の区切りの数
+const ENSEMBLE_GAIN = 0.4; // 【戦闘の合奏】「音量」合奏全体の、資産の音量に対する倍率
 
 // 合奏の声部の鍵。和音のように1つの資産を同時に複数の高さで鳴らす声部は、資産IDに「#番号」を付けて分ける。
 function baseAssetId(key: string): string {
@@ -110,6 +111,8 @@ export class WebAudioDriver extends RecordingAudioDriver {
   private bgmGain: GainNode | null = null;
   private seGain: GainNode | null = null;
   private duckGain: GainNode | null = null;
+  private ensembleGain: GainNode | null = null;
+  private bgmBus: DynamicsCompressorNode | null = null; // 音割れを防ぐ圧縮（BGM の音量の設定の手前）
   private bgmLevel = 0.8;
   private seLevel = 0.8;
   private layer: Layer | null = null;
@@ -225,8 +228,18 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.bgmGain = context.createGain();
       this.bgmGain.gain.value = this.bgmLevel;
       this.bgmGain.connect(context.destination);
+      this.bgmBus = context.createDynamicsCompressor();
+      this.bgmBus.threshold.value = -6;
+      this.bgmBus.knee.value = 6;
+      this.bgmBus.ratio.value = 8;
+      this.bgmBus.attack.value = 0.003;
+      this.bgmBus.release.value = 0.25;
+      this.bgmBus.connect(this.bgmGain);
       this.duckGain = context.createGain();
-      this.duckGain.connect(this.bgmGain);
+      this.duckGain.connect(this.bgmBus);
+      this.ensembleGain = context.createGain();
+      this.ensembleGain.gain.value = ENSEMBLE_GAIN;
+      this.ensembleGain.connect(this.duckGain);
       this.seGain = context.createGain();
       this.seGain.gain.value = this.seLevel;
       this.seGain.connect(context.destination);
@@ -271,7 +284,7 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.nextPulse = context.currentTime + 0.02;
     }
     while (this.nextPulse < context.currentTime + SCHEDULE_AHEAD_SEC) {
-      this.playOnce(buffer, this.bgmGain as GainNode, this.nextPulse);
+      this.playOnce(buffer, this.bgmBus as AudioNode, this.nextPulse);
       this.scheduleEnsemble(this.nextPulse);
       this.pulseCount += 1;
       this.nextPulse += this.pulseInterval;
@@ -296,13 +309,13 @@ export class WebAudioDriver extends RecordingAudioDriver {
       for (let index = 0; index < STEPS_PER_PULSE; index += 1) {
         const rate = steps[beat * STEPS_PER_PULSE + index] ?? null;
         if (rate !== null) {
-          this.playOnce(buffer, this.duckGain as GainNode, when + index * step, rate);
+          this.playOnce(buffer, this.ensembleGain as GainNode, when + index * step, rate);
         }
       }
     }
   }
 
-  private playOnce(buffer: AudioBuffer, destination: GainNode, when: number, rate = 1): void {
+  private playOnce(buffer: AudioBuffer, destination: AudioNode, when: number, rate = 1): void {
     const context = this.context as AudioContext;
     const source = context.createBufferSource();
     source.buffer = buffer;
