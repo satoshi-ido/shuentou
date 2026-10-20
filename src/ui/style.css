@@ -409,7 +409,7 @@ button:focus-visible {
   flex-direction: column;
   justify-content: flex-end;
   align-items: center;
-  padding-bottom: 44px;
+  padding-bottom: 4px;
   overflow: hidden;
 }
 
@@ -541,6 +541,14 @@ button:focus-visible {
   background: linear-gradient(180deg, rgba(14, 12, 19, 0) 0%, rgba(14, 12, 19, 0.82) 35%, rgba(14, 12, 19, 0.98) 90%, var(--bg-deep) 100%);
   border-bottom: 1px solid var(--line);
 }
+
+/* 立ち絵の足元はプレートの中央（表示名の右・リソースの左の空き）まで下ろす。
+   重なりは プレートの地 → 立ち絵と足元の光 → プレートの文字 の順とする（.plate は重なりの文脈を作らない）。 */
+.cell > .figure,
+.cell > .figure-wrap,
+.cell > .ground { position: relative; z-index: 1; }
+.plate > .pname,
+.plate > .pinfo { position: relative; z-index: 2; text-shadow: 0 0 3px var(--bg-deep), 0 0 6px var(--bg-deep); }
 
 .bcol-mine .plate { border-bottom: 2px solid var(--ember); }
 .bcol-foe .plate { border-bottom: 2px solid var(--miasma); }
@@ -1845,14 +1853,14 @@ button:disabled { opacity: 0.4; cursor: default; }
 .figure-img {
   display: block;
   width: auto;
-  height: 150px;
+  height: 190px;
   max-width: 100%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
   user-select: none;
 }
-.bcol.master .figure-img { height: 158px; transform: none; }
+.bcol.master .figure-img { height: 198px; transform: none; }
 .bcol-mine .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .bcol-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 .pm .figure-img { height: 132px; margin-bottom: 6px; }
