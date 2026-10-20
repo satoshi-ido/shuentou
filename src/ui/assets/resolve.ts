@@ -1,7 +1,8 @@
 // [M-DATA-ASSETMASTER]【差分の選択】表示する画の選択と、実体の参照先。
-// 実体の無い asset_id（path が art/ で始まらないもの）は Null を返し、呼び出し側がプレースホルダを描く（[I-PLAN-ASSETS]）。
+// 実体の無い asset_id（path が art/ で始まらないもの、または実体の目録に無いもの）は Null を返し、呼び出し側がプレースホルダを描く（[I-PLAN-ASSETS]）。
 
 import type { AssetMasterRecord, AssetOwnerKind, AssetSlot } from '../../data/types.js';
+import { ART_FILES } from './art-manifest.js';
 
 export type AssetCondition = (condition: string) => boolean;
 
@@ -21,9 +22,12 @@ export function pickAsset(
   return matched ?? owned.find((record) => (record.variant ?? null) === null) ?? null;
 }
 
-// 実体のURL（index.html からの相対）。プレースホルダの path は Null。
+// 実体のURL（index.html からの相対）。実体の目録（art/manifest.js）に無いもの・プレースホルダの path は Null。
 export function assetUrl(record: AssetMasterRecord | null): string | null {
-  return record !== null && record.path.startsWith('art/') ? record.path : null;
+  if (record === null || !record.path.startsWith('art/')) {
+    return null;
+  }
+  return ART_FILES.includes(record.path.split('#')[0] ?? '') ? record.path : null;
 }
 
 // asset_id で引く（脚本の行の background など）。

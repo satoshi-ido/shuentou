@@ -15,8 +15,8 @@
     "gen:master": "node tools/genmaster/index.js",
     "id": "node tools/docindex/index.js",
     "audit": "node tools/audit/index.js",
-    "desktop": "vite build && electron desktop/main.js",
-    "package": "vite build && node desktop/package.js",
+    "desktop": "node art/manifest.js && vite build && electron desktop/main.js",
+    "package": "node art/manifest.js && vite build && node desktop/package.js",
     "art": "electron art/import.js"
   },
   "devDependencies": {

@@ -2,7 +2,7 @@
 // [M-DATA-HELPS] が確定する要求集合と、[M-DATA-ASSETMASTER] の条件付必須を検査する。
 // プレースホルダはレコードの存在を満たすが本文の完成を意味しないため、残存件数を別に数える。
 
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import mainSource from '../../src/ui/main.ts?raw';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
@@ -24,6 +24,7 @@ import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
 import { HERO_INIT_ACTIONS } from '../../src/data/generated/hero-init.js';
 import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import { SCRIPT_MASTERS } from '../../src/data/generated/script-masters.js';
+import { ART_FILES } from '../../src/ui/assets/art-manifest.js';
 import { BUNDLE_KEYS, COMMON_KEYS, isPlaceholderText, resolveHelp, resolveText } from '../../src/ui/text.js';
 
 const strings: Readonly<Record<string, StringMasterRecord>> = STRING_MASTERS;
@@ -227,6 +228,18 @@ describe('[M-DATA-ASSETMASTER] 表示アセットマスタ', () => {
         }
       }
     }
+  });
+
+  // [I-PLAN-ASSETS]【実体の投入】実体の目録（art/manifest.js が生成）は、置き場所のファイルの一覧と一致する。
+  it('実体の目録は src/ui/public/art/ のファイルの一覧と一致する', () => {
+    const root = new URL('../../src/ui/public/', import.meta.url);
+    const list = (dir: string): string[] =>
+      existsSync(new URL(dir, root))
+        ? readdirSync(new URL(dir, root), { withFileTypes: true }).flatMap((entry) =>
+            entry.isDirectory() ? list(`${dir}${entry.name}/`) : [`${dir}${entry.name}`],
+          )
+        : [];
+    expect([...ART_FILES].sort()).toEqual(list('art/').sort());
   });
 
   // [I-PLAN-ASSETS]【実体の投入】実体の置き場所（src/ui/public/）に、レコードの指す画が揃っているかを数える。

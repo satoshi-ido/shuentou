@@ -9,6 +9,7 @@ import { app, nativeImage } from 'electron';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeManifest } from './manifest.js';
 import { crop16x9, fitInto, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, targetOf } from './image.js';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'ui', 'public', 'art');
@@ -77,6 +78,7 @@ function main() {
 app.whenReady().then(() => {
   try {
     main();
+    console.log(`実体の目録：${writeManifest()} 件`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
