@@ -30,17 +30,17 @@
 - **形式**：MP3（192kbps 以上）。ツールが MP3 を出せない場合は、生成を進める前に Claude Code に相談する（取り込みの道具は MP3 のみを扱う）。
 - **歌**：歌詞のある歌を入れない（作中の言葉と食い違うため）。声は、言葉を持たない合唱やハミングに限る。
 - **既存の作品**：依頼文に作曲家名・作品名・ゲーム名を入れない。「〇〇風」と書かない。
-- **保存**：リポジトリの中の `art-src\` に、`asset_id` に `.mp3` を付けた名前で置く（例：`ASSET_BGM_1_01.mp3`）。
+- **保存**：リポジトリの中の `art-src\` に、`asset_id` に `.mp3` を付けた名前で置く（例：`ASSET_BGM_PULSE.mp3`）。
 - **記録**：生成した日付・ツール・依頼文を `art-src\log.txt` に1行ずつ残す。
 
-## 3. BGM（重低音1件・層8件・打楽器4件）
+## 3. BGM（重低音1件・層2件・戦闘の合奏7件）
 
-BGM は、一定の間隔で鳴り続ける重低音の一打と、状況に応じて重ねる層の二重で構成する（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音は曲ではなく一打の音とし、プログラムが 1.6 秒ごとに鳴らす。層は打楽器を持たない持続音とし、重低音とぶつからないよう調を揃える。
+BGM は、一定の間隔で鳴り続ける重低音の一打を土台とする（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音は曲ではなく一打の音とし、プログラムが 1.6 秒ごとに鳴らす。バトル中は、男声合唱の掛け声・ハンマーダルシマー・聖堂の大鐘の一打を、プログラムが重低音の拍に合わせて譜どおりに鳴らす（【戦闘の合奏】）。バトル以外の画面では、打楽器を持たない持続音の層を重ねる。
 
 - **調**：すべて **D**（重低音の音高を D とし、層は D の短調か、D を主音とする旋法）。
-- **重低音**：1〜2 秒の一打。頭に無音を入れず、余韻は 1 秒以内に収める。拍子の感じを持たない、深い低音とする。
+- **重低音**：1〜2 秒の一打。頭に無音を入れず、余韻は 1 秒以内に収める。拍子の感じを持たない、深い低音とする。ノートPCや小さなスピーカーは 100Hz より低い音をほとんど鳴らせないため、低い基音（D2 付近）だけにせず、100〜300Hz の倍音と、打った瞬間の短い打撃の立ち上がりを含める。生成した音は、ノートPCのスピーカーでも聞こえることを確かめて採る。
 - **層**：60〜120 秒。打楽器・拍・はっきりしたテンポを持たない。終わりから始まりへ切れ目なくつながる（ループする）もの。旋律はゆるやかにとどめ、重低音の拍の上に漂うようにする。
-- **打楽器**：バトル中の打楽器は、曲ではなく一打の音を4つ用意し、プログラムが重低音の拍に合わせて型どおりに鳴らす（[M-DATA-AUDIO-CUE]【打楽器の型】）。一打は 0.1〜0.5 秒、頭に無音を入れず、余韻を短くする。戦闘の層は打楽器を持たないままとする。
+- **戦闘の合奏**：曲ではなく一打の音を7つ用意する。声は 0.1〜0.3 秒、打弦は 1〜1.5 秒、低い弦は 1.5〜2 秒、鐘は 3 秒前後とし、頭に無音を入れない。打弦・低い弦・鐘は **D の高さ**で作る（プログラムが再生の速さを変えて音階の各音にするため、元の音の高さが D からずれていると旋律全体がずれる。ずれていた場合は Claude Code が測って補正する）。
 - **音量**：層どうしの音量差を小さくする。重低音は、層の上でも聞こえ、層を覆わない大きさとする。
 
 | asset_id | 鳴る状況 | 狙い |
@@ -48,16 +48,13 @@ BGM は、一定の間隔で鳴り続ける重低音の一打と、状況に応�
 | `ASSET_BGM_PULSE` | エンディングを除くすべての画面で、1.6 秒ごと（燈の中の声の間は 3.2 秒ごと） | 作中の時を刻む確定した法則。心拍とも鐘ともつかない、深く乾いた低音の一打 |
 | `ASSET_BGM_CALM` | バトル開始前・脚本の提示 | 灰の降る静けさ。かすかな弦の持続音と、遠い風 |
 | `ASSET_BGM_INTERMISSION` | インターミッション・従者補充 | 燈を見つめる時間。温かいが寂しい、柔らかな持続音と、まばらな撥弦 |
-| `ASSET_BGM_1_01` | 1-01 のバトル | 焼けた村の夕暮れ。喪失感のある低い弦と、遠い小さな鐘の響き |
-| `ASSET_BGM_1_02` | 1-02 のバトル | 夜の砦。緊迫した弦の持続と、くぐもった金管の長い音 |
-| `ASSET_BGM_2_01` | 2-01 のバトル | 立ち枯れの並木と死体使い。軋む質感と、低く唸る持続音 |
-| `ASSET_BGM_2_02` | 2-02 のバトル | 歌で心を折る吟遊詩人。反復する子守歌のような撥弦が、ゆっくり歪む。言葉のないハミングは可 |
-| `ASSET_BGM_2_03` | 2-03 のバトル | 晴天の不穏。澄んだ鉄琴やハープの響きが、不協和にゆっくり侵される |
-| `ASSET_BGM_2_04` | 2-04 のバトル（ボス） | 崩れる都市と祈る少女。厚い弦の高まりの上に、澄んだ高音の旋律。言葉のない合唱は可 |
-| `ASSET_BGM_DRUM_KICK` | バトル中、打楽器の型どおり | 大太鼓の一打。深く短い打音 |
-| `ASSET_BGM_DRUM_TOM` | 同上 | 低い太鼓の一打。皮の鳴る、やや高い打音 |
-| `ASSET_BGM_DRUM_FRAME` | 同上 | 枠太鼓の一打。乾いた短い打音 |
-| `ASSET_BGM_DRUM_METAL` | 同上 | 金属の一打。鈍い鉄の打音と短い余韻 |
+| `ASSET_BGM_ENSEMBLE_CHANT` | バトル中、戦闘の合奏の譜どおり | 男声合唱の短く強い掛け声「ハッ」（高め）。修道士の詠唱を思わせる、鋭く短い一声 |
+| `ASSET_BGM_ENSEMBLE_CHANT_LOW` | 同上 | 同じく低めの掛け声。高めの声と噛み合わせる |
+| `ASSET_BGM_ENSEMBLE_CHANT_BASS` | 同上 | 低い男声の短い「ドム」。拍の頭を支える |
+| `ASSET_BGM_ENSEMBLE_DULCIMER` | 同上 | ハンマーダルシマーの一音。**D（D4）** の高さ。弦を叩いた硬い立ち上がりと、弦の余韻 |
+| `ASSET_BGM_ENSEMBLE_DULCIMER_HIGH` | 同上 | 同じくハンマーダルシマーの高い一音。**D（D5）** の高さ。明るく短い余韻 |
+| `ASSET_BGM_ENSEMBLE_STRINGS` | 同上 | 低い弦楽合奏（チェロ・コントラバス）の持続音の一音。**D（D3）** の高さ。弓で弾き始め、1.5〜2 秒で静かに消える。プログラムが3つの高さで同時に鳴らし、和音にする |
+| `ASSET_BGM_ENSEMBLE_BELL` | 同上 | 聖堂の大鐘の一打。**D（D2）** 付近の低い響きと、長い余韻 |
 
 - エンディングの曲（`ASSET_BGM_ENDING`）は審査範囲の外であり、本書の対象としない。
 
@@ -103,19 +100,16 @@ Stable Audio には、次の英語の依頼文をそのまま送る。楽器・�
 
 | asset_id | Prompt |
 | :---- | :---- |
-| `ASSET_BGM_PULSE` | Single deep sub-bass thump in low D, like a slow heartbeat or a distant muffled bell, one hit only, dry, short decay under one second, no melody, no music, sound effect |
+| `ASSET_BGM_PULSE` | Single deep thump in low D, like a slow heartbeat or a large muffled drum, with a clear attack and audible low-mid harmonics so it is heard on small laptop speakers, one hit only, dry, short decay under one second, no melody, no music, sound effect |
 | `ASSET_BGM_CALM` | Dark fantasy ambient layer, quiet ash falling, faint sustained strings and distant wind, D minor, no drums, no percussion, no beat, free tempo, slow evolving drone, instrumental, seamless loop |
 | `ASSET_BGM_INTERMISSION` | Dark fantasy ambient layer, gazing at a small lantern flame in the dark, warm but lonely, soft sustained strings with sparse plucked notes, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
-| `ASSET_BGM_1_01` | Dark fantasy ambient battle layer, burning village at dusk, sorrow and tension, low sustained strings, distant small bell resonance, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
-| `ASSET_BGM_1_02` | Dark fantasy ambient battle layer, stone fortress at night, tense tremolo strings and long muffled brass tones, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
-| `ASSET_BGM_2_01` | Dark fantasy ambient battle layer, dead trees covered in white ash, eerie necromancer, creaking textures and low growling drones, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
-| `ASSET_BGM_2_02` | Dark fantasy ambient battle layer, a bard whose song breaks the will to fight, repetitive lullaby-like plucked lute slowly distorting, wordless humming, D dorian, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
-| `ASSET_BGM_2_03` | Dark fantasy ambient battle layer, unsettling calm under a cloudless sky, glockenspiel and harp resonance slowly invaded by dissonance, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
-| `ASSET_BGM_2_04` | Dark fantasy ambient boss battle layer, collapsing city and a praying girl, swelling dense strings with a clear fragile high melody above, wordless choir, D minor, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
-| `ASSET_BGM_DRUM_KICK` | Single deep war drum hit, short punchy low thump, dry, no reverb, one hit only, no music, sound effect |
-| `ASSET_BGM_DRUM_TOM` | Single low tom drum hit, skin resonance, short decay, dry, one hit only, no music, sound effect |
-| `ASSET_BGM_DRUM_FRAME` | Single frame drum hit, dry short slap, wooden rim, one hit only, no music, sound effect |
-| `ASSET_BGM_DRUM_METAL` | Single dull iron strike, short metallic hit with brief ring, one hit only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_CHANT` | Single short shouted syllable "hah" by a medieval male monk choir, high and sharp, dry, one hit only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_CHANT_LOW` | Single short shouted syllable "hah" by a medieval male monk choir, lower and rounder, dry, one hit only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_CHANT_BASS` | Single short low male choir syllable "dom", deep bass voice, dry, one hit only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_DULCIMER` | Single struck hammered dulcimer note, medieval European folk instrument, pitch D4, crisp attack with ringing string decay, one note only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_DULCIMER_HIGH` | Single struck hammered dulcimer note, medieval European folk instrument, pitch D5, bright crisp attack with short ringing decay, one note only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_STRINGS` | Single sustained note by a low string section (cellos and basses), pitch D3, soft bowed attack, warm and dark, fades out within two seconds, one note only, no music, sound effect |
+| `ASSET_BGM_ENSEMBLE_BELL` | Single strike of a huge cathedral bell, low pitch around D2, deep resonant hum, long decay about three seconds, one hit only, no music, sound effect |
 
 ### SE
 
