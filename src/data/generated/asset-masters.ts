@@ -59,6 +59,22 @@ export const ASSET_MASTERS = {
     "cue": "BATTLE",
     "path": "art/audio/bgm-2-04.mp3"
   },
+  "ASSET_BGM_CALM": {
+    "asset_id": "ASSET_BGM_CALM",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "CALM",
+    "path": "art/audio/bgm-calm.mp3"
+  },
+  "ASSET_BGM_ENDING": {
+    "asset_id": "ASSET_BGM_ENDING",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "ENDING",
+    "path": "art/audio/bgm-ending.mp3"
+  },
   "ASSET_BGM_INTERMISSION": {
     "asset_id": "ASSET_BGM_INTERMISSION",
     "owner_kind": "GLOBAL",
@@ -66,6 +82,14 @@ export const ASSET_MASTERS = {
     "slot": "BGM",
     "cue": "INTERMISSION",
     "path": "art/audio/bgm-intermission.mp3"
+  },
+  "ASSET_BGM_PULSE": {
+    "asset_id": "ASSET_BGM_PULSE",
+    "owner_kind": "GLOBAL",
+    "owner_id": null,
+    "slot": "BGM",
+    "cue": "PULSE",
+    "path": "art/audio/bgm-pulse.mp3"
   },
   "ASSET_BG_1_01": {
     "asset_id": "ASSET_BG_1_01",

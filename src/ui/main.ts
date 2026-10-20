@@ -56,7 +56,7 @@ import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
-import { HtmlAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
+import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -154,7 +154,7 @@ stageElement.append(screenRoot, effects.root, scriptRoot);
 // [M-DATA-AUDIO-CUE] 発火契機の受け口。実バトルの進行にのみ与える（未来予測・探索には与えない）。
 // [M-DATA-AUDIO-CUE] 発火契機は演出と音響の双方へ配る（探索・未来予測では受け口を与えない）。
 // [I-PLAN-ASSETS] 音声の実体を鳴らす。実体の無い資産は鳴らさず、呼び出しの経路は空実装と同じに通す。
-const audio: AudioDriver = new HtmlAudioDriver((assetId) => {
+const audio: AudioDriver = new WebAudioDriver((assetId) => {
   const url = assetUrlById(ASSET_MASTERS, assetId);
   return url === null ? null : new URL(url, document.baseURI).href;
 });
@@ -188,7 +188,10 @@ let introShown = false; // 現在の PRE_BATTLE で開幕の脚本を提示し�
 const cueTracker = new BattleCueTracker();
 let dueCues: string[] = []; // [S-SCRIPT-TRIGGER]【バトル中の契機】成立して再生を待つ契機の anchor
 
-let currentBgm = ''; // 再生中の BGM 資産ID（同じ資産を鳴らし直さない）
+let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴らし直さない）
+let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
+let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
+let layerDucked = false;
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
 function playSe(cue: AudioCue): void {
@@ -198,19 +201,65 @@ function playSe(cue: AudioCue): void {
   }
 }
 
-// [M-DATA-AUDIO-CUE] BGM：バトル中は当該シーン、インターミッション中は共通の資産を鳴らす。
-function syncBgm(): void {
+// [M-DATA-AUDIO-CUE]【BGM の構成】重低音の間隔（暫定値）。燈の中の声の間は延ばす。
+const PULSE_INTERVAL_MS = 1600;
+const PULSE_SLOW_INTERVAL_MS = 3200;
+
+// 状況に応じて重ねる層。Null は層を鳴らさない（タイトル・燈の中の声）。
+function layerCue(): AudioCue | null {
   if (session === null) {
-    return;
+    return null;
   }
-  const { run } = session.data;
-  const cue: AudioCue | null = run.phase === 'BATTLE' ? 'BATTLE' : run.phase === 'INTERMISSION' ? 'INTERMISSION' : null;
-  const assetId = cue === null ? null : bgmAssetOf(cue, run.current_scene_id, ASSET_MASTERS);
-  if (cue === null || assetId === null || assetId === currentBgm) {
-    return;
+  const screen = screenOf(session.data.run);
+  if (screen === 'ENDING') {
+    return 'ENDING';
   }
-  currentBgm = assetId;
-  audio.playBgm(cue, assetId);
+  if (script !== null) {
+    return script.player.view().lantern ? null : 'CALM';
+  }
+  switch (screen) {
+    case 'BATTLE':
+      return 'BATTLE';
+    case 'INTERMISSION':
+    case 'REFILL':
+      return 'INTERMISSION';
+    default:
+      return 'CALM';
+  }
+}
+
+// [M-DATA-AUDIO-CUE]【BGM の構成】重低音はエンディングまで一定の間隔で鳴らし続け、状況に応じた層を重ねる。
+function syncBgm(): void {
+  const ending = session !== null && screenOf(session.data.run) === 'ENDING';
+  const lantern = script !== null && script.player.view().lantern;
+  const pulseAsset = ending ? null : bgmAssetOf('PULSE', null, ASSET_MASTERS);
+  const interval = lantern ? PULSE_SLOW_INTERVAL_MS : PULSE_INTERVAL_MS;
+  if (pulseState !== `${pulseAsset}/${interval}`) {
+    pulseState = `${pulseAsset}/${interval}`;
+    audio.setPulse(pulseAsset, interval);
+  }
+
+  const cue = layerCue();
+  const assetId = cue === null ? null : bgmAssetOf(cue, session?.data.run.current_scene_id ?? null, ASSET_MASTERS);
+  const key = `${cue}/${assetId}`;
+  if (silencedLayer !== null && silencedLayer !== key) {
+    silencedLayer = null; // 状況が変わったので、止めた層を再開する
+  }
+  if (silencedLayer === null && (assetId ?? '') !== currentBgm) {
+    if (cue === null || assetId === null) {
+      audio.silence();
+    } else {
+      audio.playBgm(cue, assetId);
+    }
+    currentBgm = assetId ?? '';
+  }
+
+  // 時間停止中は層だけを下げ、重低音の拍を残す。
+  const ducked = cue === 'BATTLE' && script === null && battleResult !== 'RUNNING';
+  if (ducked !== layerDucked) {
+    layerDucked = ducked;
+    audio.duckLayer(ducked);
+  }
 }
 let selectedAttendantId: string | null = null; // インターミッションの壇で選択中の従者
 
@@ -389,13 +438,17 @@ function echoSegment(echoIds: readonly string[]): ScriptSegment {
 // 行の提示に伴って実行する演出指示のうち、音と進行に関わるもの。表示に関わるものは描画側が扱う。
 function runDirectives(directives: readonly ScriptDirective[]): void {
   if (directives.includes('SILENCE')) {
+    // [S-SCRIPT-DIRECTIVE] 層を止める。重低音は止めない。次に状況が変わったときに層を再開する。
     audio.silence();
+    const cue = layerCue();
+    silencedLayer = `${cue}/${cue === null ? null : bgmAssetOf(cue, session?.data.run.current_scene_id ?? null, ASSET_MASTERS)}`;
     currentBgm = '';
   }
 }
 
 function drawScript(): void {
   scriptRoot.replaceChildren();
+  syncBgm(); // 脚本の提示（燈の中の声を含む）に応じて重低音と層を合わせる
   if (script === null) {
     return;
   }

@@ -1,10 +1,13 @@
 // [I-PLAN-ASSETS] 音声ドライバ。音源を持たない空実装でも、音量設定の適用（[M-UI-CONFIG]）・
 // SILENCE による停止（[S-SCRIPT-DIRECTIVE]）・cue の発火契機（[M-DATA-AUDIO-CUE]）の呼び出し経路を検査できるよう、
-// 呼び出しを記録する。
+// 呼び出しを記録する。BGM は重低音（PULSE）と層の二重である（[M-DATA-AUDIO-CUE]【BGM の構成】）。
 
 export type AudioCue =
+  | 'PULSE'
   | 'BATTLE'
   | 'INTERMISSION'
+  | 'CALM'
+  | 'ENDING'
   | 'SCRIPT'
   | 'ACTION_TRIGGER'
   | 'HIT'
@@ -15,14 +18,20 @@ export type AudioCue =
   | 'UI_CANCEL';
 
 export interface AudioDriver {
+  // 重低音の一打を intervalMs ごとに鳴らす。assetId が Null なら止める。間隔の変更は次の一打から効く。
+  setPulse(assetId: string | null, intervalMs: number): void;
+  // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
+  duckLayer(ducked: boolean): void; // 時間停止中は層だけを下げる
   playSe(cue: AudioCue, assetId: string): void; // 重複再生を認める
-  silence(): void; // 音量設定に関わらず BGM を停止する
+  silence(): void; // 層を止める。重低音は止めない
   setVolumes(bgm: number, se: number): void;
 }
 
 export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
+  | { readonly kind: 'PULSE'; readonly assetId: string | null; readonly intervalMs: number }
+  | { readonly kind: 'DUCK'; readonly ducked: boolean }
   | { readonly kind: 'SILENCE' };
 
 // 長い再生でも際限なく積み上がらないよう、記録は直近のみを残す。
@@ -33,8 +42,16 @@ export class RecordingAudioDriver implements AudioDriver {
   private bgmVolume = 80;
   private seVolume = 80;
 
+  setPulse(assetId: string | null, intervalMs: number): void {
+    this.record({ kind: 'PULSE', assetId, intervalMs });
+  }
+
   playBgm(cue: AudioCue, assetId: string): void {
     this.record({ kind: 'BGM', cue, assetId, volume: this.bgmVolume });
+  }
+
+  duckLayer(ducked: boolean): void {
+    this.record({ kind: 'DUCK', ducked });
   }
 
   playSe(cue: AudioCue, assetId: string): void {
@@ -58,64 +75,198 @@ export class RecordingAudioDriver implements AudioDriver {
   }
 }
 
-// [I-PLAN-ASSETS]【実体の投入】実体を鳴らすドライバ。資産IDから実体のURLを引けない（実体が無い）場合は鳴らさない。
-// 呼び出しは記録も残し、空実装と同じ経路で検査できるようにする。BGM は1曲をループし、同じ資産は鳴らし直さない。
-export class HtmlAudioDriver extends RecordingAudioDriver {
-  private bgm: HTMLAudioElement | null = null;
-  private bgmAssetId = '';
-  private bgmGain = 0.8;
-  private seGain = 0.8;
+// 【BGM の構成】の暫定値。
+const CROSSFADE_SEC = 1.5;
+const DUCKED_GAIN = 0.3;
+const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
+const SCHEDULER_TICK_MS = 100;
+
+interface Layer {
+  readonly assetId: string;
+  readonly gain: GainNode;
+  readonly source: AudioBufferSourceNode;
+}
+
+// [I-PLAN-ASSETS]【実体の投入】実体を鳴らすドライバ（Web Audio）。資産IDから実体のURLを引けない（実体が無い）場合は
+// 鳴らさない。重低音は一打を実時間の間隔で予約して鳴らし、層は継ぎ目なく繰り返して入れ替える。
+// 呼び出しは記録も残し、空実装と同じ経路で検査できるようにする。
+export class WebAudioDriver extends RecordingAudioDriver {
+  private context: AudioContext | null = null;
+  private readonly buffers: Record<string, Promise<AudioBuffer | null>> = {};
+  private bgmGain: GainNode | null = null;
+  private seGain: GainNode | null = null;
+  private duckGain: GainNode | null = null;
+  private bgmLevel = 0.8;
+  private seLevel = 0.8;
+  private layer: Layer | null = null;
+  private layerRequest = ''; // 最後に求められた層（読み込みの間に入れ替わった場合の取り消しに用いる）
+  private pulseAssetId: string | null = null;
+  private pulseInterval = 1.6;
+  private nextPulse = 0;
+  private scheduler: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly urlOf: (assetId: string) => string | null) {
     super();
   }
 
+  override setPulse(assetId: string | null, intervalMs: number): void {
+    super.setPulse(assetId, intervalMs);
+    this.pulseInterval = intervalMs / 1000;
+    if (assetId === this.pulseAssetId) {
+      return;
+    }
+    this.pulseAssetId = assetId;
+    if (assetId === null || this.urlOf(assetId) === null) {
+      this.stopScheduler();
+      return;
+    }
+    const context = this.ensureContext();
+    this.nextPulse = context.currentTime + 0.05;
+    if (this.scheduler === null) {
+      this.scheduler = setInterval(() => void this.schedulePulses(), SCHEDULER_TICK_MS);
+    }
+  }
+
   override playBgm(cue: AudioCue, assetId: string): void {
     super.playBgm(cue, assetId);
-    if (assetId === this.bgmAssetId && this.bgm !== null) {
+    if (this.layerRequest === assetId) {
       return;
     }
-    this.stopBgm();
-    const url = this.urlOf(assetId);
-    if (url === null) {
-      return;
+    this.layerRequest = assetId;
+    void this.load(assetId).then((buffer) => {
+      if (buffer === null || this.layerRequest !== assetId) {
+        return;
+      }
+      const context = this.ensureContext();
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0, context.currentTime);
+      gain.gain.linearRampToValueAtTime(1, context.currentTime + CROSSFADE_SEC);
+      gain.connect(this.duckGain as GainNode);
+      const source = context.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(gain);
+      source.start();
+      this.fadeOutLayer();
+      this.layer = { assetId, gain, source };
+    });
+  }
+
+  override duckLayer(ducked: boolean): void {
+    super.duckLayer(ducked);
+    if (this.duckGain !== null && this.context !== null) {
+      this.duckGain.gain.setTargetAtTime(ducked ? DUCKED_GAIN : 1, this.context.currentTime, 0.15);
     }
-    const track = new Audio(url);
-    track.loop = true;
-    track.volume = this.bgmGain;
-    track.play().catch(() => undefined); // 自動再生が許されない環境では鳴らさない
-    this.bgm = track;
-    this.bgmAssetId = assetId;
   }
 
   override playSe(cue: AudioCue, assetId: string): void {
     super.playSe(cue, assetId);
-    const url = this.urlOf(assetId);
-    if (url === null || this.seGain === 0) {
+    if (this.seLevel === 0) {
       return;
     }
-    const sound = new Audio(url);
-    sound.volume = this.seGain;
-    sound.play().catch(() => undefined);
+    void this.load(assetId).then((buffer) => {
+      if (buffer !== null) {
+        this.playOnce(buffer, this.seGain as GainNode, (this.context as AudioContext).currentTime);
+      }
+    });
   }
 
   override silence(): void {
     super.silence();
-    this.stopBgm();
+    this.layerRequest = '';
+    this.fadeOutLayer();
   }
 
   override setVolumes(bgm: number, se: number): void {
     super.setVolumes(bgm, se);
-    this.bgmGain = Math.min(Math.max(bgm, 0), 100) / 100;
-    this.seGain = Math.min(Math.max(se, 0), 100) / 100;
-    if (this.bgm !== null) {
-      this.bgm.volume = this.bgmGain;
+    this.bgmLevel = Math.min(Math.max(bgm, 0), 100) / 100;
+    this.seLevel = Math.min(Math.max(se, 0), 100) / 100;
+    this.bgmGain?.gain.setValueAtTime(this.bgmLevel, this.context?.currentTime ?? 0);
+    this.seGain?.gain.setValueAtTime(this.seLevel, this.context?.currentTime ?? 0);
+  }
+
+  private ensureContext(): AudioContext {
+    if (this.context === null) {
+      const context = new AudioContext();
+      this.bgmGain = context.createGain();
+      this.bgmGain.gain.value = this.bgmLevel;
+      this.bgmGain.connect(context.destination);
+      this.duckGain = context.createGain();
+      this.duckGain.connect(this.bgmGain);
+      this.seGain = context.createGain();
+      this.seGain.gain.value = this.seLevel;
+      this.seGain.connect(context.destination);
+      this.context = context;
+    }
+    if (this.context.state === 'suspended') {
+      void this.context.resume().catch(() => undefined);
+    }
+    return this.context;
+  }
+
+  // 資産を読み込んで復号する。実体が無い・読めない資産は Null とし、以後も鳴らさない。
+  private load(assetId: string): Promise<AudioBuffer | null> {
+    const cached = this.buffers[assetId];
+    if (cached !== undefined) {
+      return cached;
+    }
+    const url = this.urlOf(assetId);
+    const loading =
+      url === null
+        ? Promise.resolve(null)
+        : fetch(url)
+            .then((response) => (response.ok ? response.arrayBuffer() : Promise.reject(new Error(String(response.status)))))
+            .then((data) => this.ensureContext().decodeAudioData(data))
+            .catch(() => null);
+    this.buffers[assetId] = loading;
+    return loading;
+  }
+
+  private async schedulePulses(): Promise<void> {
+    const assetId = this.pulseAssetId;
+    if (assetId === null || this.context === null) {
+      return;
+    }
+    const buffer = await this.load(assetId);
+    if (buffer === null || this.pulseAssetId !== assetId) {
+      return;
+    }
+    const context = this.context;
+    // 遅れて予約を逃した分は詰めずに捨て、現在から数え直す（間隔を保つ）。
+    if (this.nextPulse < context.currentTime) {
+      this.nextPulse = context.currentTime + 0.02;
+    }
+    while (this.nextPulse < context.currentTime + SCHEDULE_AHEAD_SEC) {
+      this.playOnce(buffer, this.bgmGain as GainNode, this.nextPulse);
+      this.nextPulse += this.pulseInterval;
     }
   }
 
-  private stopBgm(): void {
-    this.bgm?.pause();
-    this.bgm = null;
-    this.bgmAssetId = '';
+  private playOnce(buffer: AudioBuffer, destination: GainNode, when: number): void {
+    const context = this.context as AudioContext;
+    const source = context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(destination);
+    source.start(when);
+  }
+
+  private fadeOutLayer(): void {
+    const layer = this.layer;
+    if (layer === null || this.context === null) {
+      return;
+    }
+    const now = this.context.currentTime;
+    layer.gain.gain.cancelScheduledValues(now);
+    layer.gain.gain.setValueAtTime(layer.gain.gain.value, now);
+    layer.gain.gain.linearRampToValueAtTime(0, now + CROSSFADE_SEC);
+    layer.source.stop(now + CROSSFADE_SEC + 0.05);
+    this.layer = null;
+  }
+
+  private stopScheduler(): void {
+    if (this.scheduler !== null) {
+      clearInterval(this.scheduler);
+      this.scheduler = null;
+    }
   }
 }

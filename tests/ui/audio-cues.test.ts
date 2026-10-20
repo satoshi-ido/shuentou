@@ -41,6 +41,13 @@ describe('[M-DATA-AUDIO-CUE] 契機と資産の対応', () => {
     expect(bgmAssetOf('INTERMISSION', 'SCENE_1_01', ASSET_MASTERS)).toBe('ASSET_BGM_INTERMISSION');
   });
 
+  // [M-DATA-AUDIO-CUE]【BGM の構成】重低音の一打と、バトル以外の層は共通の資産を選ぶ。
+  it('重低音・CALM・ENDING は共通の資産を選ぶ', () => {
+    expect(bgmAssetOf('PULSE', null, ASSET_MASTERS)).toBe('ASSET_BGM_PULSE');
+    expect(bgmAssetOf('CALM', 'SCENE_2_04', ASSET_MASTERS)).toBe('ASSET_BGM_CALM');
+    expect(bgmAssetOf('ENDING', null, ASSET_MASTERS)).toBe('ASSET_BGM_ENDING');
+  });
+
   it('[M-UI-CONFIG] 音量設定は以後の再生に適用される', () => {
     const driver = new RecordingAudioDriver();
     driver.setVolumes(40, 10);

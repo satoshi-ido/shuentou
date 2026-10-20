@@ -192,8 +192,11 @@ export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTI
 export type AssetSlot = 'PORTRAIT' | 'STANDING' | 'PLATE' | 'ICON' | 'BACKGROUND' | 'BGM' | 'SE';
 // [M-DATA-AUDIO-CUE]
 export type AudioCueKey =
+  | 'PULSE'
   | 'BATTLE'
   | 'INTERMISSION'
+  | 'CALM'
+  | 'ENDING'
   | 'SCRIPT'
   | 'ACTION_TRIGGER'
   | 'HIT'
