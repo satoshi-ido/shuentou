@@ -117,7 +117,7 @@ Stable Audio には、次の英語の依頼文をそのまま送る。楽器・�
 | :---- | :---- |
 | `ASSET_SE_HIT` | Sword striking armor and flesh, short heavy impact, single hit, game sound effect, no music |
 | `ASSET_SE_MISS` | Blade cutting through empty air, short whoosh, single swing, game sound effect, no music |
-| `ASSET_SE_UNIT_DESTROY` | Body collapsing to the ground with scattering ash, low short thud, game sound effect, no music |
+| `ASSET_SE_UNIT_DESTROY` | Heavy armor and cloth dropping onto a stone floor, low short thud, followed by a soft whoosh of dust and ash, game sound effect, no music |
 | `ASSET_SE_WATCH_PAUSE` | Single clear small bell chime with soft reverb, time stops, game UI sound effect, no music |
 | `ASSET_SE_UI_CONFIRM` | Small iron latch clicking shut, short dry click, game UI sound effect, no music |
 | `ASSET_SE_UI_CANCEL` | Soft cloth rustle pulled back, short gentle sound, game UI sound effect, no music |
