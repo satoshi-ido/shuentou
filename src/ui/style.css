@@ -1713,6 +1713,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 /* ── 重畳する要素（設定・辞典・確認ダイアログ）。同時に開くのは1件に限る ── */
 .overlay {
   position: absolute;
+  z-index: 20; /* 画面の要素（壇・盤面など）より常に上に重ねる */
   top: 56px;
   left: 140px;
   width: 1000px;
@@ -1903,7 +1904,9 @@ button:disabled { opacity: 0.4; cursor: default; }
   pointer-events: none;
   opacity: 0.92;
 }
-.imfield .imstage { position: relative; z-index: 1; }
+/* 壇は燈より後に置くため、重なりの順位を与えずに燈の上へ描かれる。順位を与えると、画面の上に重ねる
+   確認ダイアログより上に出て、ダイアログのボタンを覆う。 */
+.imfield .imstage { position: relative; }
 
 /* [S-LOOK-SUMMON-COMMON] セインの仮身：画を反転し、輪郭に燈火の色を帯びさせ、胸元に芯の火ほどの火を灯す。 */
 .figure-wrap.mine-creature { position: relative; display: block; }
