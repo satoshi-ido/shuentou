@@ -183,7 +183,8 @@ function expandBasicRow(row, level, ownerKey, summonIdOf) {
   const base = componentParams(key, arTenths, summonId);
   const { params, changed } = applyOverride(base, options.override);
   const baseName = classId(VARIANT_NAME[key], arTenths);
-  const classIdValue = changed ? `${baseName}_${ownerKey}` : baseName;
+  // [M-DATA-CLASSID]【召喚の分岐】召喚（基本）は summon_id が所持者ごとに異なるため、常に所持者のキーを付ける。
+  const classIdValue = changed || component === 'SUMMON' ? `${baseName}_${ownerKey}` : baseName;
   const baseUses = options.base_uses ?? BASE_USES[key];
   return {
     component,

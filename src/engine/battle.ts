@@ -22,11 +22,13 @@ export function createUnit(
   maxHp: number,
   hp: number,
   acts: ActionInstance[],
+  creatureId: string | null = null,
 ): Unit {
   return {
     unit_id: unitId,
     side,
     unit_kind: unitKind,
+    creature_id: creatureId,
     pos_idx: posIdx,
     hp,
     max_hp: maxHp,

@@ -179,13 +179,13 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
   });
 
   it('BP-05 は召喚を保持していなければ1枠で召喚を選び、従者10は常に武技、その他はアクト3以降に最大HP加算を選ぶ', () => {
-    const pool = [action('ACT_SUMMON_AR12'), action('ACT_HEAVY_AR12'), MAX_HP];
+    const pool = [action('ACT_SUMMON_AR12_TEODOR'), action('ACT_HEAVY_AR12'), MAX_HP];
     const bp = buildProfileOf('BP-05');
     const held = { holdsStance: false, holdsSummon: true };
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_10', pool, act: 3 }))).toEqual(action('ACT_HEAVY_AR12'));
-    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool }))).toEqual(action('ACT_SUMMON_AR12'));
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool }))).toEqual(action('ACT_SUMMON_AR12_TEODOR'));
     // 同一インターミッションで召喚を選んだ後、および召喚を保持しているときは召喚を選ばない。
-    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_04', pool, picked: [action('ACT_SUMMON_AR12')] }))).toEqual(
+    expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_04', pool, picked: [action('ACT_SUMMON_AR12_TEODOR')] }))).toEqual(
       action('ACT_HEAVY_AR12'),
     );
     expect(bp.allocate(ctx({ attendantId: 'ATTENDANT_02', pool, start: held }))).toEqual(action('ACT_HEAVY_AR12'));
@@ -196,10 +196,10 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
 
   it('BP-06 は浄化率・剥奪率を持つアクションを選び、無ければ最大HP加算を選ぶ', () => {
     const bp = buildProfileOf('BP-06');
-    expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12'), action('ACT_GUARD_AR12'), MAX_HP] }))).toEqual(
+    expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12_TEODOR'), action('ACT_GUARD_AR12'), MAX_HP] }))).toEqual(
       action('ACT_GUARD_AR12'),
     );
-    expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12'), MAX_HP] }))).toEqual(MAX_HP);
+    expect(bp.allocate(ctx({ pool: [action('ACT_SUMMON_AR12_TEODOR'), MAX_HP] }))).toEqual(MAX_HP);
   });
 
   it('BP-06 は同一インターミッションで剥奪と浄化を交互に選ぶ（最初の枠は剥奪）', () => {
@@ -213,7 +213,7 @@ describe('[V-TEST-BUILD-PROFILES]［継承配分規則］', () => {
   it('BP-07 は召喚を選び、プールに召喚が無ければ急襲（思考0・防御効率あり）の武技を選ぶ', () => {
     const bp = buildProfileOf('BP-07');
     const martial = [action('ACT_HEAVY_AR117'), action('ACT_SLASH_AR12'), action('ACT_RUSH_AR12')];
-    expect(bp.allocate(ctx({ pool: [...martial, action('ACT_SUMMON_AR12')] }))).toEqual(action('ACT_SUMMON_AR12'));
+    expect(bp.allocate(ctx({ pool: [...martial, action('ACT_SUMMON_AR12_TEODOR')] }))).toEqual(action('ACT_SUMMON_AR12_TEODOR'));
     expect(bp.allocate(ctx({ pool: martial }))).toEqual(action('ACT_RUSH_AR12'));
   });
 });
@@ -281,7 +281,7 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
         hero_acts: [held('ACT_MIND_AR53', 27, ['FLAG_MIND']), held('ACT_SPEC_BREAK_ZOL_VOD', 3), RANGED],
         im_snapshots: Array.from({ length: ROLE_HP_STALE_INTERMISSIONS + 1 }, (_, order) => ({ order, state: { hero_max_hp: heroMaxHp } })),
       }) as never;
-    const pool505 = [action('ACT_MIND_AR57'), action('ACT_SUMMON_AR57'), MAX_HP];
+    const pool505 = [action('ACT_MIND_AR57'), action('ACT_SUMMON_AR57_ERNA_130'), MAX_HP];
     const rules = maintenanceRules(run505(1339), 'ATTACK');
     expect(rules.next(pool505)).toEqual(action('ACT_MIND_AR57'));
     expect(rules.next(pool505)).toEqual(MAX_HP);
@@ -337,7 +337,7 @@ describe('[V-TEST-BUILD-METRICS] merge_max', () => {
 
 describe('[V-TEST-BUILD-METRICS] inherit_ratio', () => {
   it('系統は召喚・体勢・心気・武技の順で最初に持つフラグにより、最大HP加算は独立に数える', () => {
-    expect(inheritSystem(action('ACT_SUMMON_AR12'))).toBe('SUMMON');
+    expect(inheritSystem(action('ACT_SUMMON_AR12_TEODOR'))).toBe('SUMMON');
     expect(inheritSystem(action('ACT_GUARD_AR12'))).toBe('STANCE');
     expect(inheritSystem(action('ACT_MIND_AR12'))).toBe('MIND');
     expect(inheritSystem(action('ACT_HEAVY_AR12'))).toBe('MARTIAL');

@@ -22,6 +22,6 @@ export function createCreatureFactory(masters: CreatureMastersRef): CreatureFact
     const acts = instantiateActionList(record.acts, masters.actions, ids);
     // ［初期ステート定義］思考中・経過0、VP/PP/AP 0、被スリップ量・被バフ量・被デバフ量 0、
     // 封印蓄積値 0。いずれも createUnit と instantiateAction の既定値がそのまま満たす。
-    return createUnit(allocateUnitId(ids), side, 'CREATURE', posIdx, record.max_hp, record.max_hp, acts);
+    return createUnit(allocateUnitId(ids), side, 'CREATURE', posIdx, record.max_hp, record.max_hp, acts, record.creature_id);
   };
 }

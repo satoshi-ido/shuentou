@@ -474,7 +474,8 @@ export function applyActionDescriptions(records, kindDescriptions, actionDescrip
   const usedKinds = [];
   const result = {};
   for (const [classIdValue, record] of Object.entries(records)) {
-    const kind = classIdValue.replace(/_AR\d+$/, '');
+    // 基本型の種類は、AR 値（1/10 単位の端数を含む）と、上書き・召喚の分岐で付く所持者のキーを除いたもの。
+    const kind = classIdValue.replace(/_AR\d+(?:_\d+)?(?:_[A-Z][A-Z0-9_]*)?$/, '');
     const own = actionDescriptions[classIdValue];
     const shared = kind !== classIdValue ? kindDescriptions[kind] : undefined;
     if (shared !== undefined) {

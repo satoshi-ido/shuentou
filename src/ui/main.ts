@@ -297,14 +297,25 @@ function attendantBundle(attendantId: string, hpAdd = 0): BundleValues {
 const actionName = (classId: string): string => actions[classId]?.display_name ?? classId;
 
 const naming: UnitNaming = {
-  displayName: (unit: Unit) => (unit.side === 'MINE' ? HERO_INIT_UNIT.display_name : (enemies[currentScene().enemy_id]?.display_name ?? '─')),
-  roleName: (unit: Unit) => (unit.side === 'MINE' ? HERO_INIT_UNIT.role_name : (enemies[currentScene().enemy_id]?.role_name ?? null)),
+  // [M-STATE-UNIT] 仮身はクリーチャーマスタの表示名で示し、役割名を持たない。
+  displayName: (unit: Unit) =>
+    unit.creature_id !== null
+      ? (masters.creatures[unit.creature_id]?.display_name ?? '─')
+      : unit.side === 'MINE'
+        ? HERO_INIT_UNIT.display_name
+        : (enemies[currentScene().enemy_id]?.display_name ?? '─'),
+  roleName: (unit: Unit) =>
+    unit.unit_kind === 'CREATURE'
+      ? null
+      : unit.side === 'MINE'
+        ? HERO_INIT_UNIT.role_name
+        : (enemies[currentScene().enemy_id]?.role_name ?? null),
   actionName: (action: ActionInstance) => actionName(action.master_ref),
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
-  // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公と敵マスター。仮身は造形を引けるまでプレースホルダとする。
+  // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公・敵マスター・仮身。セインの仮身は元の敵の仮身と同じ画を用いる。
   figure: (unit: Unit) =>
-    unit.unit_kind !== 'MASTER'
-      ? null
+    unit.unit_kind === 'CREATURE'
+      ? figureOf('CREATURE', unit.creature_id ?? null)
       : unit.side === 'MINE'
         ? figureOf('HERO', null)
         : figureOf('ENEMY', currentScene().enemy_id),

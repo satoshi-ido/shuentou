@@ -7,7 +7,7 @@ import type { MetaCounters, RewindPending, SaveData } from '../meta/types.js';
 import { sceneByOrder, type GameMasters } from './masters.js';
 import type { RunState } from './state.js';
 
-export const SAVE_VERSION = 6; // [M-META-SAVEDATA]［データバージョン］空芯（ash_core_count）を追加
+export const SAVE_VERSION = 7; // [M-META-SAVEDATA]［データバージョン］ユニットのクリーチャーID、召喚のクラスIDの分岐を追加
 const HERO_INIT_MAX_HP = 60; // [M-DATA-HERO-INIT]
 
 function allFalse(keys: readonly string[]): Record<string, boolean> {

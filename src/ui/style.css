@@ -1904,3 +1904,22 @@ button:disabled { opacity: 0.4; cursor: default; }
   opacity: 0.92;
 }
 .imfield .imstage { position: relative; z-index: 1; }
+
+/* [S-LOOK-SUMMON-COMMON] セインの仮身：画を反転し、輪郭に燈火の色を帯びさせ、胸元に芯の火ほどの火を灯す。 */
+.figure-wrap.mine-creature { position: relative; display: block; }
+.mine-creature .figure-img {
+  transform: scaleX(-1);
+  filter: drop-shadow(0 0 2px rgba(255, 158, 64, 0.95)) drop-shadow(0 0 10px rgba(255, 138, 43, 0.55)) sepia(0.25);
+}
+.mine-creature .chest-flame {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  width: 7px;
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 50% 50% 45% 45% / 65% 65% 35% 35%;
+  background: radial-gradient(ellipse at 50% 70%, #fff3c4 0%, #ffb054 45%, rgba(255, 120, 30, 0) 80%);
+  box-shadow: 0 0 10px 3px rgba(255, 138, 43, 0.6);
+  pointer-events: none;
+}

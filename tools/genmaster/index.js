@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ACTION_DESCRIPTIONS, KIND_DESCRIPTIONS } from './authoring/action-descriptions.js';
 import { ATTENDANTS } from './authoring/attendants.js';
+import { CREATURE_FORMS } from './authoring/creatures.js';
 import { BOOKS } from './authoring/books.js';
 import { ECHOES } from './authoring/echoes.js';
 import { ENEMIES } from './authoring/enemies.js';
@@ -27,7 +28,6 @@ import {
   buildScriptRecords,
   buildStringRecords,
   buildSceneRecords,
-  formatArSuffix,
   generateHeroInitActions,
   mergeActionRecords,
 } from './lib.js';
@@ -79,10 +79,25 @@ function sceneById(sceneId) {
   return scene;
 }
 
-// [M-DATA-CREATUREID] 接頭辞 CREATURE_。召喚アクションの ar_summon 帯ごとに造形〈眷属〉を作り分け、
-// 同一レコードを複数の召喚アクションから参照する。
-function creatureIdOf(arSummonTenths) {
-  return `CREATURE_THRALL_${formatArSuffix(arSummonTenths)}`;
+// [M-DATA-CREATUREID]【レコード一覧】敵マスターの召喚の帯（ARの昇順）に、シーンの造形の creature_id を割り当てる。
+// 帯の数と造形の数が一致しない入力を棄却する。
+function creatureFormsOf(entry, level) {
+  const bands = [];
+  expandEnemyTemplate(entry, level, (arTenths) => {
+    if (!bands.includes(arTenths)) {
+      bands.push(arTenths);
+    }
+    return 'CREATURE_PENDING';
+  });
+  if (bands.length === 0) {
+    return [];
+  }
+  const forms = CREATURE_FORMS[entry.scene_id];
+  bands.sort((left, right) => left - right);
+  if (forms === undefined || forms.ids.length !== bands.length) {
+    throw new Error(`クリーチャーの造形の数が召喚の帯の数と一致しない: ${entry.scene_id}（帯 ${bands.length}）`);
+  }
+  return bands.map((arTenths, index) => ({ arTenths, creatureId: forms.ids[index], displayName: forms.names[index] }));
 }
 
 function main() {
@@ -90,18 +105,20 @@ function main() {
   const enemyMasters = {};
   const creatureMasters = {};
   const templatesByEnemy = {};
-  // 召喚アクションが参照する ar_summon 帯。決定論のため昇順の一意集合として扱う（[I-STATE-JSON]）。
-  const summonBands = [];
-
-  const summonIdOf = (arTenths) => {
-    if (!summonBands.includes(arTenths)) {
-      summonBands.push(arTenths);
-    }
-    return creatureIdOf(arTenths);
-  };
+  // 召喚が呼ぶクリーチャー（シーンの造形と ar_summon）。シーンの順に並ぶ。
+  const creatures = [];
 
   for (const entry of ENEMIES) {
     const scene = sceneById(entry.scene_id);
+    const forms = creatureFormsOf(entry, scene.level);
+    creatures.push(...forms);
+    const summonIdOf = (arTenths) => {
+      const form = forms.find((candidate) => candidate.arTenths === arTenths);
+      if (form === undefined) {
+        throw new Error(`召喚の帯に造形が無い: ${entry.scene_id} AR ${arTenths}`);
+      }
+      return form.creatureId;
+    };
     const { rows, records, acts } = expandEnemyTemplate(entry, scene.level, summonIdOf);
     actionGroups.push(records);
     templatesByEnemy[entry.enemy_id] = rows;
@@ -119,8 +136,8 @@ function main() {
     };
   }
 
-  for (const arTenths of [...summonBands].sort((left, right) => left - right)) {
-    const creature = expandCreature(creatureIdOf(arTenths), '眷属', arTenths);
+  for (const form of creatures) {
+    const creature = expandCreature(form.creatureId, form.displayName, form.arTenths);
     creatureMasters[creature.record.creature_id] = creature.record;
     actionGroups.push(creature.records);
   }

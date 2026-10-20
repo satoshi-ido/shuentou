@@ -50,6 +50,8 @@ export interface Unit {
   readonly unit_id: string;
   readonly side: Side;
   readonly unit_kind: UnitKind;
+  // [M-STATE-UNIT] 実体化の元のクリーチャーマスタのキー。マスターは Null。表示にのみ用い、遷移と解決に用いない。
+  readonly creature_id: string | null;
   pos_idx: number; // 0-3
   hp: number;
   readonly max_hp: number;

@@ -60,7 +60,7 @@ describe('[A-BOOK-SCHEMA]［テンプレートとレコードの関係］B-06 �
       // 武技（重撃）AR ≒ L * 5.0 が最大倍率（主人公 ACT_HEAVY_AR15 に対応）。
       MARTIAL: 'ACT_HEAVY_AR335',
       STANCE: 'ACT_GUARD_AR134',
-      SUMMON: 'ACT_SUMMON_AR67',
+      SUMMON: 'ACT_SUMMON_AR67_MIRROR_SEIN',
     });
   });
 

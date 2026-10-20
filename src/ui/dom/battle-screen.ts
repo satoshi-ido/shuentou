@@ -486,7 +486,15 @@ function renderColumn(
   const cell = element('div', 'cell');
   const stamps = element('div', 'stamps');
   cell.append(stamps);
-  cell.append(figureNode(`figure${plate?.isCreature === true ? ' creature' : ''}`, plate?.figure ?? null));
+  const figure = figureNode(`figure${plate?.isCreature === true ? ' creature' : ''}`, plate?.figure ?? null);
+  if (plate?.isCreature === true && plate.side === 'MINE' && plate.figure !== null) {
+    // [S-LOOK-SUMMON-COMMON]「セインの仮身」元の敵の仮身の画を反転し、燈火の色の縁と胸元の小さな火を重ねる。
+    const wrap = element('div', 'figure-wrap mine-creature');
+    wrap.append(figure, element('span', 'chest-flame'));
+    cell.append(wrap);
+  } else {
+    cell.append(figure);
+  }
   cell.append(element('div', 'ground'));
   const plateNode = plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate, null);
   cell.append(plateNode);

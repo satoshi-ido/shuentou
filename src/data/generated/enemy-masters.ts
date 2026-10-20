@@ -21,8 +21,8 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR9",
       "ACT_GUARD_AR18",
       "ACT_GUARD_AR27",
-      "ACT_SUMMON_AR9",
-      "ACT_SUMMON_AR18",
+      "ACT_SUMMON_AR9_ASHAL",
+      "ACT_SUMMON_AR18_ASHAL",
       "ACT_SPEC_BREAK_ASHAL",
       "ACT_SPEC_SWARM_ASHAL",
       "ACT_ROOT_MARTIAL"
@@ -46,7 +46,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR8",
       "ACT_GUARD_AR8",
       "ACT_GUARD_AR16",
-      "ACT_SUMMON_AR8",
+      "ACT_SUMMON_AR8_CALVA",
       "ACT_SPEC_DRAIN_PP_CALVA",
       "ACT_ROOT_MARTIAL"
     ],
@@ -91,7 +91,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR39",
       "ACT_GUARD_AR39",
       "ACT_GUARD_AR78",
-      "ACT_SUMMON_AR39",
+      "ACT_SUMMON_AR39_ERNA_007",
       "ACT_SPEC_DEBUFF_STEP_RECOVERY_ERNA_007",
       "ACT_ROOT_MARTIAL"
     ],
@@ -114,7 +114,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR44",
       "ACT_GUARD_AR44",
       "ACT_GUARD_AR88",
-      "ACT_SUMMON_AR44",
+      "ACT_SUMMON_AR44_ERNA_019",
       "ACT_SPEC_DEBUFF_STEP_THOUGHT_ERNA_019",
       "ACT_ROOT_MARTIAL"
     ],
@@ -137,7 +137,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR49",
       "ACT_GUARD_AR49",
       "ACT_GUARD_AR98",
-      "ACT_SUMMON_AR49",
+      "ACT_SUMMON_AR49_ERNA_044",
       "ACT_SPEC_DEBUFF_STEP_STARTUP_ERNA_044",
       "ACT_ROOT_MARTIAL"
     ],
@@ -160,7 +160,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR53",
       "ACT_GUARD_AR53",
       "ACT_GUARD_AR106",
-      "ACT_SUMMON_AR53",
+      "ACT_SUMMON_AR53_ERNA_080",
       "ACT_SPEC_DEBUFF_WALL_ERNA_080",
       "ACT_ROOT_MARTIAL"
     ],
@@ -183,7 +183,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR57",
       "ACT_GUARD_AR57",
       "ACT_GUARD_AR114",
-      "ACT_SUMMON_AR57",
+      "ACT_SUMMON_AR57_ERNA_130",
       "ACT_SPEC_DEBUFF_TIDE_ERNA_130",
       "ACT_ROOT_MARTIAL"
     ],
@@ -206,7 +206,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR60",
       "ACT_GUARD_AR60",
       "ACT_GUARD_AR120",
-      "ACT_SUMMON_AR60",
+      "ACT_SUMMON_AR60_ERNA_200",
       "ACT_SPEC_DEBUFF_AIM_ERNA_200",
       "ACT_ROOT_MARTIAL"
     ],
@@ -229,7 +229,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR63",
       "ACT_GUARD_AR63",
       "ACT_GUARD_AR126",
-      "ACT_SUMMON_AR63",
+      "ACT_SUMMON_AR63_ERNA_299",
       "ACT_SPEC_SLIP_ERNA_299",
       "ACT_ROOT_MARTIAL"
     ],
@@ -252,7 +252,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR65",
       "ACT_GUARD_AR65",
       "ACT_GUARD_AR130",
-      "ACT_SUMMON_AR65",
+      "ACT_SUMMON_AR65_ERNA_300",
       "ACT_SPEC_COPY_ERNA_300",
       "ACT_ROOT_MARTIAL"
     ],
@@ -275,7 +275,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR34",
       "ACT_GUARD_AR34",
       "ACT_GUARD_AR68",
-      "ACT_SUMMON_AR34",
+      "ACT_SUMMON_AR34_GRAVE",
       "ACT_SPEC_BUFF_AIM_GRAVE",
       "ACT_ROOT_MARTIAL"
     ],
@@ -298,7 +298,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR20",
       "ACT_GUARD_AR20",
       "ACT_GUARD_AR40",
-      "ACT_SUMMON_AR20",
+      "ACT_SUMMON_AR20_HAUSEN",
       "ACT_SPEC_BUFF_STEP_THOUGHT_HAUSEN",
       "ACT_ROOT_MARTIAL"
     ],
@@ -321,7 +321,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR6",
       "ACT_GUARD_AR6",
       "ACT_GUARD_AR12",
-      "ACT_SUMMON_AR6",
+      "ACT_SUMMON_AR6_ISH",
       "ACT_SPEC_DRAIN_VP_ISH",
       "ACT_ROOT_MARTIAL"
     ],
@@ -364,7 +364,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR15",
       "ACT_GUARD_AR15",
       "ACT_GUARD_AR30",
-      "ACT_SUMMON_AR15",
+      "ACT_SUMMON_AR15_MAREN",
       "ACT_SPEC_BUFF_COST_HP_MAREN",
       "ACT_ROOT_MARTIAL"
     ],
@@ -387,7 +387,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR335",
       "ACT_GUARD_AR67",
       "ACT_GUARD_AR134",
-      "ACT_SUMMON_AR67",
+      "ACT_SUMMON_AR67_MIRROR_SEIN",
       "ACT_SPEC_SEAL_MIRROR",
       "ACT_ROOT_MARTIAL"
     ],
@@ -410,7 +410,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR19",
       "ACT_GUARD_AR19",
       "ACT_GUARD_AR38",
-      "ACT_SUMMON_AR19",
+      "ACT_SUMMON_AR19_ODERIK",
       "ACT_SPEC_BUFF_STEP_RECOVERY_ODERIK",
       "ACT_ROOT_MARTIAL"
     ],
@@ -433,7 +433,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR24",
       "ACT_GUARD_AR24",
       "ACT_GUARD_AR48",
-      "ACT_SUMMON_AR24",
+      "ACT_SUMMON_AR24_OREIN",
       "ACT_SPEC_BUFF_STEP_STARTUP_OREIN",
       "ACT_ROOT_MARTIAL"
     ],
@@ -456,7 +456,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR31",
       "ACT_GUARD_AR31",
       "ACT_GUARD_AR62",
-      "ACT_SUMMON_AR31",
+      "ACT_SUMMON_AR31_RIIN",
       "ACT_SPEC_BUFF_TIDE_RIIN",
       "ACT_ROOT_MARTIAL"
     ],
@@ -479,7 +479,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR17",
       "ACT_GUARD_AR17",
       "ACT_GUARD_AR34",
-      "ACT_SUMMON_AR17",
+      "ACT_SUMMON_AR17_ROUD",
       "ACT_SPEC_BUFF_COST_PP_ROUD",
       "ACT_ROOT_MARTIAL"
     ],
@@ -502,7 +502,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR28",
       "ACT_GUARD_AR28",
       "ACT_GUARD_AR56",
-      "ACT_SUMMON_AR28",
+      "ACT_SUMMON_AR28_SERG",
       "ACT_SPEC_BUFF_WALL_SERG",
       "ACT_ROOT_MARTIAL"
     ],
@@ -525,7 +525,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR9",
       "ACT_GUARD_AR9",
       "ACT_GUARD_AR18",
-      "ACT_SUMMON_AR9",
+      "ACT_SUMMON_AR9_TARGA",
       "ACT_SPEC_STRIP_AP_TARGA",
       "ACT_ROOT_MARTIAL"
     ],
@@ -548,7 +548,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR12",
       "ACT_GUARD_AR12",
       "ACT_GUARD_AR24",
-      "ACT_SUMMON_AR12",
+      "ACT_SUMMON_AR12_TEODOR",
       "ACT_SPEC_INTERFERE_TEODOR",
       "ACT_ROOT_MARTIAL"
     ],
@@ -577,9 +577,9 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR136",
       "ACT_GUARD_AR204",
       "ACT_GUARD_AR272",
-      "ACT_SUMMON_AR68",
-      "ACT_SUMMON_AR136",
-      "ACT_SUMMON_AR204",
+      "ACT_SUMMON_AR68_VEIN",
+      "ACT_SUMMON_AR136_VEIN",
+      "ACT_SUMMON_AR204_VEIN",
       "ACT_SPEC_MIND_VEIN",
       "ACT_SPEC_TERMINUS_VEIN",
       "ACT_REMNANT",
@@ -621,7 +621,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR36",
       "ACT_GUARD_AR36",
       "ACT_GUARD_AR72",
-      "ACT_SUMMON_AR36",
+      "ACT_SUMMON_AR36_VOD_RIA",
       "ACT_SPEC_DEBUFF_COST_HP_VOD_RIA",
       "ACT_ROOT_MARTIAL"
     ],
@@ -644,7 +644,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR4",
       "ACT_GUARD_AR4",
       "ACT_GUARD_AR8",
-      "ACT_SUMMON_AR4",
+      "ACT_SUMMON_AR4_VOLG",
       "ACT_SPEC_BREAK_VOLG",
       "ACT_ROOT_MARTIAL"
     ],
@@ -671,8 +671,8 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR20",
       "ACT_GUARD_AR40",
       "ACT_GUARD_AR60",
-      "ACT_SUMMON_AR20",
-      "ACT_SUMMON_AR40",
+      "ACT_SUMMON_AR20_ZEFAL",
+      "ACT_SUMMON_AR40_ZEFAL",
       "ACT_SPEC_BREAK_ZEFAL",
       "ACT_SPEC_SELFBUFF_ZEFAL",
       "ACT_ROOT_MARTIAL"
@@ -696,7 +696,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR38",
       "ACT_GUARD_AR38",
       "ACT_GUARD_AR76",
-      "ACT_SUMMON_AR38",
+      "ACT_SUMMON_AR38_ZOL_NA",
       "ACT_SPEC_DEBUFF_COST_PP_ZOL_NA",
       "ACT_ROOT_MARTIAL"
     ],
@@ -723,8 +723,8 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR39",
       "ACT_GUARD_AR78",
       "ACT_GUARD_AR117",
-      "ACT_SUMMON_AR39",
-      "ACT_SUMMON_AR78",
+      "ACT_SUMMON_AR39_ZOL_VOD",
+      "ACT_SUMMON_AR78_ZOL_VOD",
       "ACT_SPEC_BREAK_ZOL_VOD",
       "ACT_SPEC_SELFBUFF_ZOL_VOD",
       "ACT_ROOT_MARTIAL"

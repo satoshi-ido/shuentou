@@ -49,7 +49,7 @@ describe('[M-META-MIRRORSTATS] first_system の確定規則', () => {
     expect(firstSystemOf(instanceOf('ACT_SLASH_AR3'))).toBe('MARTIAL');
     expect(firstSystemOf(instanceOf('ACT_GUARD_AR3'))).toBe('STANCE');
     expect(firstSystemOf(instanceOf('ACT_MIND_AR3'))).toBe('MIND');
-    expect(firstSystemOf(instanceOf('ACT_SUMMON_AR4'))).toBe('SUMMON');
+    expect(firstSystemOf(instanceOf('ACT_SUMMON_AR4_VOLG'))).toBe('SUMMON');
   });
 
   it('複合アクションは 召喚 → 心気 → 武技 → 体勢 の解決順で最初に該当する系統を採る', () => {

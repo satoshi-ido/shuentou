@@ -163,6 +163,7 @@ export function placeUnit(state: BattleState, options: UnitOptions): Unit {
     unit_id: `U${String(state.unit_id_seq).padStart(4, '0')}`,
     side: options.side,
     unit_kind: options.kind,
+    creature_id: null,
     pos_idx: options.pos,
     hp: options.maxHp,
     max_hp: options.maxHp,

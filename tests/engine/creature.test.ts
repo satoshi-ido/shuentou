@@ -50,7 +50,7 @@ describe('[M-DATA-CREATUREMASTER] クリーチャーマスタ', () => {
 
   it('[M-TMPL-CREATURE-PRINCIPLE]［標準基準式］最大HP ≒ 1.86 * (ar_summon ^ 1.5)', () => {
     // ar_summon = 4.0（2-01 の召喚（基本）AR ≒ L * 1.0、L = 4）→ round(1.86 * 8) = 15
-    expect(CREATURE_MASTERS.CREATURE_THRALL_AR4.max_hp).toBe(15);
+    expect(CREATURE_MASTERS.CREATURE_STITCHED.max_hp).toBe(15);
   });
 });
 
@@ -81,7 +81,8 @@ describe('[M-RESOLVE-SUMMON] 新クリーチャー実体化', () => {
   it('[I-STATE-ID] 実体化はステートの採番位置を消費し、既存インスタンスIDと衝突しない', () => {
     const state = scene201();
     const before = { units: state.unit_id_seq, instances: state.instance_id_seq };
-    const creature = deps.createCreature('CREATURE_THRALL_AR4', 3, 'FOE', state);
+    const creature = deps.createCreature('CREATURE_STITCHED', 3, 'FOE', state);
+    expect(creature.creature_id).toBe('CREATURE_STITCHED'); // [M-STATE-UNIT] 表示名と立ち絵を引く
     expect(state.unit_id_seq).toBe(before.units + 1);
     expect(state.instance_id_seq).toBe(before.instances + creature.acts.length);
 
@@ -96,9 +97,9 @@ describe('[M-RESOLVE-SUMMON] 新クリーチャー実体化', () => {
   it('既存クリーチャーは発動の瞬間に撤去され、新しい個体へ置き換わる', () => {
     const state = scene201();
     const enemy = state.units[2] as Unit;
-    const first = deps.createCreature('CREATURE_THRALL_AR4', 3, 'FOE', state);
+    const first = deps.createCreature('CREATURE_STITCHED', 3, 'FOE', state);
     state.units[3] = first;
-    const second = deps.createCreature('CREATURE_THRALL_AR4', 3, 'FOE', state);
+    const second = deps.createCreature('CREATURE_STITCHED', 3, 'FOE', state);
     state.units[3] = second;
     expect(state.units[3]?.unit_id).toBe(second.unit_id);
     expect(second.unit_id).not.toBe(first.unit_id);

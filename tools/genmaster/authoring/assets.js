@@ -28,6 +28,13 @@ export const ASSETS = [
   { asset_id: 'ASSET_ISH_STANDING', owner_kind: 'ENEMY', owner_id: 'ENEMY_ISH', slot: 'STANDING', cue: null, path: 'art/standing/ish.png' },
   { asset_id: 'ASSET_CALVA_STANDING', owner_kind: 'ENEMY', owner_id: 'ENEMY_CALVA', slot: 'STANDING', cue: null, path: 'art/standing/calva.png' },
   { asset_id: 'ASSET_ASHAL_STANDING', owner_kind: 'ENEMY', owner_id: 'ENEMY_ASHAL', slot: 'STANDING', cue: null, path: 'art/standing/ashal.png' },
+  // 仮身（[S-LOOK-SUMMON-ENEMY]）。所有者はクリーチャーマスタ。2-04 の三体は同じ画を用いる。
+  { asset_id: 'ASSET_STITCHED_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_STITCHED', slot: 'STANDING', cue: null, path: 'art/standing/stitched.png' },
+  { asset_id: 'ASSET_LISTENER_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_LISTENER', slot: 'STANDING', cue: null, path: 'art/standing/listener.png' },
+  { asset_id: 'ASSET_ROTTED_FAMILIAR_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_ROTTED_FAMILIAR', slot: 'STANDING', cue: null, path: 'art/standing/rotted-familiar.png' },
+  { asset_id: 'ASSET_SHARD_ARM_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_SHARD_ARM_1', slot: 'STANDING', cue: null, path: 'art/standing/shard-arm.png' },
+  { asset_id: 'ASSET_SHARD_ARM_2_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_SHARD_ARM_2', slot: 'STANDING', cue: null, path: 'art/standing/shard-arm.png' },
+  { asset_id: 'ASSET_SHARD_ARM_3_STANDING', owner_kind: 'CREATURE', owner_id: 'CREATURE_SHARD_ARM_3', slot: 'STANDING', cue: null, path: 'art/standing/shard-arm.png' },
   // 背景（[S-BG-PRINCIPLE] 以下）。シーンの戦闘背景は variant を Null とし、演出の画は variant で区別する。
   { asset_id: 'ASSET_BG_TITLE', owner_kind: 'GLOBAL', owner_id: null, slot: 'BACKGROUND', cue: null, variant: 'TITLE', path: 'art/bg/title.jpg' },
   { asset_id: 'ASSET_BG_1_01', owner_kind: 'SCENE', owner_id: 'SCENE_1_01', slot: 'BACKGROUND', cue: null, path: 'art/bg/1-01.jpg' },

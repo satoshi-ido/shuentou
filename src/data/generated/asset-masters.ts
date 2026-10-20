@@ -373,6 +373,14 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/lef.png"
   },
+  "ASSET_LISTENER_STANDING": {
+    "asset_id": "ASSET_LISTENER_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener.png"
+  },
   "ASSET_MIREILLE_STANDING": {
     "asset_id": "ASSET_MIREILLE_STANDING",
     "owner_kind": "ATTENDANT",
@@ -388,6 +396,14 @@ export const ASSET_MASTERS = {
     "slot": "STANDING",
     "cue": null,
     "path": "art/standing/rina.png"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar.png"
   },
   "ASSET_SERVIS_STANDING": {
     "asset_id": "ASSET_SERVIS_STANDING",
@@ -484,6 +500,38 @@ export const ASSET_MASTERS = {
     "slot": "SE",
     "cue": "WATCH_PAUSE",
     "path": "art/audio/se-watch-pause.mp3"
+  },
+  "ASSET_SHARD_ARM_2_STANDING": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm.png"
+  },
+  "ASSET_SHARD_ARM_3_STANDING": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm.png"
+  },
+  "ASSET_SHARD_ARM_STANDING": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm.png"
+  },
+  "ASSET_STITCHED_STANDING": {
+    "asset_id": "ASSET_STITCHED_STANDING",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched.png"
   },
   "ASSET_TOTO_STANDING": {
     "asset_id": "ASSET_TOTO_STANDING",

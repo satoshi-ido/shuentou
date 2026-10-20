@@ -60,7 +60,7 @@ export const BOOK_MASTERS = {
       },
       {
         "kind": "FIXED",
-        "class_id": "ACT_SUMMON_AR9",
+        "class_id": "ACT_SUMMON_AR9_ASHAL",
         "resolver": null,
         "resolved_by_system": null,
         "can_wait": true
@@ -79,7 +79,7 @@ export const BOOK_MASTERS = {
       },
       {
         "kind": "FIXED",
-        "class_id": "ACT_SUMMON_AR40",
+        "class_id": "ACT_SUMMON_AR40_ZEFAL",
         "resolver": null,
         "resolved_by_system": null,
         "can_wait": true
@@ -117,7 +117,7 @@ export const BOOK_MASTERS = {
           "MIND": "ACT_MIND_AR67",
           "MARTIAL": "ACT_HEAVY_AR335",
           "STANCE": "ACT_GUARD_AR134",
-          "SUMMON": "ACT_SUMMON_AR67"
+          "SUMMON": "ACT_SUMMON_AR67_MIRROR_SEIN"
         },
         "can_wait": true
       }
