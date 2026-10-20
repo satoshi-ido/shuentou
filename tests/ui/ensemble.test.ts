@@ -19,6 +19,21 @@ describe('[M-DATA-AUDIO-CUE] 戦闘の合奏', () => {
     }
   });
 
+  it('旋律と和音は山場（周期が2句以上のシーン）に限り、通常のシーンは打楽器と拍ごとに等間隔の鐘のみ', () => {
+    for (const [sceneId, score] of Object.entries(SCENE_SCORES)) {
+      const silent = (voice: (typeof VOICES)[number]): boolean => readScore(voice, score[voice]).every((rate) => rate === null);
+      const melodic = !(silent('DULCIMER') && silent('DULCIMER_HIGH') && silent('STRINGS'));
+      expect(melodic, sceneId).toBe(phrasesOf(sceneId) > 1);
+      if (phrasesOf(sceneId) === 1) {
+        // 鐘は拍ごとに1打、拍の中の同じ位置に置く（等間隔）。
+        const beats = score.BELL.split('|');
+        const offsets = beats.map((beat) => [...beat].findIndex((mark) => mark !== '.'));
+        expect(beats.every((beat) => [...beat].filter((mark) => mark !== '.').length === 1), sceneId).toBe(true);
+        expect(new Set(offsets).size, sceneId).toBe(1);
+      }
+    }
+  });
+
   it('1周期の句の数は、通常のシーンで1、各アクトの最後のシーンで2、5-10 で4', () => {
     expect(phrasesOf('SCENE_1_01')).toBe(1);
     expect(['SCENE_1_02', 'SCENE_2_04', 'SCENE_3_06', 'SCENE_4_08'].map(phrasesOf)).toEqual([2, 2, 2, 2]);

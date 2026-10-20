@@ -20,7 +20,8 @@ export type Voice = 'DRUM_HIGH' | 'DRUM_LOW' | 'DRUM_BASS' | 'DULCIMER' | 'DULCI
 export const VOICES: readonly Voice[] = ['DRUM_HIGH', 'DRUM_LOW', 'DRUM_BASS', 'DULCIMER', 'DULCIMER_HIGH', 'STRINGS', 'BELL'];
 
 // 音の高さを持つ声部。譜の数字は音階の度数を表し、資産（D の一音）の再生の速さを変えて鳴らす。
-const MELODIC: readonly Voice[] = ['DULCIMER', 'DULCIMER_HIGH'];
+// 鐘は x を資産そのままの高さ（D）とし、数字で高さを変える（通常シーンごとに鐘の音を変える）。
+const MELODIC: readonly Voice[] = ['DULCIMER', 'DULCIMER_HIGH', 'BELL'];
 
 // 和音の声部。譜の数字は和音の根音の度数を表し、音階の音を3度ずつ重ねた三和音を同時に鳴らす。
 export const CHORDAL: readonly Voice[] = ['STRINGS'];
@@ -33,15 +34,15 @@ export type Score = Readonly<Record<Voice, string>>;
 const repeat = (beat: string, beats = 4): string => Array.from({ length: beats }, () => beat).join('|');
 
 export const SCENE_SCORES: Readonly<Record<string, Score>> = {
-  // i–i–VI–V。D→C♯ の半音の下降を間を置いて置き、VI で B♭→A、V で導音を残して頭へ戻す。高い太鼓は2打だけ置く。
+  // 通常。拍の頭に D の鐘を等間隔に鳴らす。
   SCENE_1_01: {
     DRUM_HIGH: repeat('..x..x..........'),
     DRUM_LOW: repeat('x.......x.......'),
     DRUM_BASS: repeat('x...............'),
-    DULCIMER: '8...7...........|8...7...........|6...5...........|7...........5...',
+    DULCIMER: repeat('................'),
     DULCIMER_HIGH: repeat('................'),
-    STRINGS: '1...............|1...............|6...............|5...............',
-    BELL: 'x...............|................|................|................',
+    STRINGS: repeat('................'),
+    BELL: repeat('x...............'),
   },
   // 2句。前の句は i–i–iv–V。F→E の半音の下降を繰り返し、iv で B♭→A、V で導音から D へ先回りする。
   // 後の句は i–VI–iv–V。動機を拍の後半でも繰り返し、高い打弦が D→C♯ で応え、低い太鼓を1打足し、V で導音を刻んで頭へ戻す。
@@ -58,34 +59,35 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
       '1...............|6...............|4...............|5...............',
     BELL: repeat('x...............|................', 4),
   },
+  // 通常。D と A の鐘を拍ごとに交互に鳴らし、弔鐘のように揺らす。
   SCENE_2_01: {
     DRUM_HIGH: repeat('..x..x....x..x..'),
     DRUM_LOW: repeat('x.........x.....'),
     DRUM_BASS: repeat('x...............'),
-    DULCIMER: '6...5...........|6...5...........|6...5...........|7...8...........',
+    DULCIMER: repeat('................'),
     DULCIMER_HIGH: repeat('................'),
-    STRINGS: '1...............|1...............|4...............|5...............',
-    BELL: 'x...............|................|................|................',
+    STRINGS: repeat('................'),
+    BELL: '1...............|5...............|1...............|5...............',
   },
-  // i–VI–i–V。高い打弦の短い揺れが、子守歌のように止まらない。
+  // 通常。F の鐘を拍の裏に等間隔に置き、重低音と交互に鳴らす。
   SCENE_2_02: {
     DRUM_HIGH: repeat('..x...x...x...x.'),
     DRUM_LOW: repeat('................'),
     DRUM_BASS: repeat('x.......x.......'),
-    DULCIMER: '1...............|6...............|1...............|7...............',
-    DULCIMER_HIGH: '5.3.5.3.5.3.5.3.|5.3.5.3.5.3.5.3.|5.3.5.3.5.3.5.3.|7.5.7.5.7.5.7.5.',
-    STRINGS: '1...............|6...............|1...............|5...............',
-    BELL: 'x...............|................|................|................',
+    DULCIMER: repeat('................'),
+    DULCIMER_HIGH: repeat('................'),
+    STRINGS: repeat('................'),
+    BELL: repeat('........3.......'),
   },
-  // i–i–VI–V。D–E–D の動機を拍の裏へずらし、足もとを揺らす。
+  // 通常。B♭ の鐘を拍の頭に等間隔に鳴らし、D の重低音と短6度で陰らせる。
   SCENE_2_03: {
     DRUM_HIGH: repeat('x..x..x...x..x..'),
     DRUM_LOW: repeat('......x.........'),
     DRUM_BASS: repeat('x...........x...'),
-    DULCIMER: '1..2..1.........|1..2..1.........|6..5..6.........|7..5..7.........',
+    DULCIMER: repeat('................'),
     DULCIMER_HIGH: repeat('................'),
-    STRINGS: '1...............|1...............|6...............|5...............',
-    BELL: 'x...............|................|................|................',
+    STRINGS: repeat('................'),
+    BELL: repeat('6...............'),
   },
   // ボス。2句。前の句は i–i–VI–V。D–D–E–D の細かい刻みと、4分で刻む弦。
   // 後の句は i–VI–iv–V。動機を1オクターブ上の D–D–C♯–D から F–E、B♭–A へ下ろし、V で導音を連打し、弦と大太鼓を8分に詰めて頭へ戻す。
@@ -124,8 +126,11 @@ function rateOf(voice: Voice, mark: string, tone: number): number | null {
   if (mark === '.') {
     return null;
   }
+  if (mark === 'x') {
+    return 1;
+  }
   if (!MELODIC.includes(voice) && !CHORDAL.includes(voice)) {
-    return mark === 'x' ? 1 : null;
+    return null;
   }
   const degree = degreeOf(mark);
   if (degree === null) {
