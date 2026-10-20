@@ -6,6 +6,7 @@ import type { BattleCue } from '../../engine/cue.js';
 import { hasFlag } from '../../engine/flags.js';
 import type { SysFlags } from '../../engine/types.js';
 import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
+import { systemIconNode } from './icons.js';
 
 // 盤面は4マス等幅の固定レイアウト（[M-UI-VIEWPORT]）。マス中央の論理座標を算出する。
 const STAGE_WIDTH = 1280;
@@ -35,6 +36,7 @@ export interface EffectView {
   readonly className: string;
   readonly glyph: string;
   readonly posIdx: number;
+  readonly icon?: SystemIcon; // 発動の演出は系統アイコンの実体で示す
 }
 
 // 契機1件に対応する演出。発動は系統別、武技の判定は命中・回避別に選ぶ。
@@ -52,7 +54,7 @@ export function effectOf(cue: BattleCue): EffectView | null {
   if (system === null) {
     return null; // 系統を持たないアクション（パス等）は演出を持たない
   }
-  return { className: `fx fx-trigger ${SYSTEM_CLASS[system]}`, glyph: SYSTEM_ICON_GLYPH[system], posIdx: cue.posIdx };
+  return { className: `fx fx-trigger ${SYSTEM_CLASS[system]}`, glyph: SYSTEM_ICON_GLYPH[system], posIdx: cue.posIdx, icon: system };
 }
 
 export class EffectLayer {
@@ -70,7 +72,11 @@ export class EffectLayer {
     }
     const node = document.createElement('div');
     node.className = view.className;
-    node.textContent = view.glyph;
+    if (view.icon === undefined) {
+      node.textContent = view.glyph;
+    } else {
+      node.append(systemIconNode(view.icon)); // [I-PLAN-ASSETS] 系統アイコンの実体
+    }
     node.style.left = `${COLUMN_WIDTH * view.posIdx + COLUMN_WIDTH / 2}px`;
     node.style.top = `${FIELD_CENTER_Y}px`;
     node.addEventListener('animationend', () => node.remove());

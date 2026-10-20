@@ -25,5 +25,6 @@ export function canSacrifice(run: RunState, attendantId: string): boolean {
 export function applySacrifice(run: RunState, attendantId: string): void {
   run.party = run.party.filter((slot) => slot.attendant_id !== attendantId);
   run.sacrificed = insertSorted(run.sacrificed, attendantId);
+  run.ash_core_count += 1; // [M-STATE-RUNSTATE]「空芯」焚かれた芯は空芯として残る
   run.hero_hp = run.hero_max_hp;
 }

@@ -172,11 +172,11 @@ describe('[M-META-SAVEDATA] セーブとロード', () => {
     expect(loaded.session.data.pending).toEqual({ rewind_pending: true, rewind_pending_type: 'ROLLBACK_BATTLE' });
   });
 
-  it('現行の save_version は 5 であり、そのセーブはロードできる', () => {
+  it('現行の save_version は 6 であり、そのセーブはロードできる', () => {
     const { session, ctx, recorder } = setup();
     startBattle(session, ctx);
     const data = JSON.parse(recorder.saves[0] ?? '');
-    expect(data.save_version).toBe(5);
+    expect(data.save_version).toBe(6);
     expect(loadGame(JSON.stringify(data), ctx).ok).toBe(true);
   });
 

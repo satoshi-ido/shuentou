@@ -56,7 +56,7 @@ export function confirmRefill(session: GameSession, ctx: GameContext, attendantI
     throw new Error(`補充を実行できない: ${attendantId}`);
   }
   beginConfirmOperation(session, 5, ctx);
-  applyRefill(session.data.run, attendantId);
+  applyRefill(session.data.run, ctx.masters, attendantId);
   // [M-META-COUNTERS] enshrine_anchor：記録済みの playthrough が現在の周回数と一致しない場合にのみ上書きする。
   const { meta } = session.data;
   const anchor = meta.enshrine_anchor[attendantId] ?? null;

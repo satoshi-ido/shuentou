@@ -2,8 +2,9 @@
 // 左クリックは選択および確定、右クリックは取り消し、ホイールはアクション一覧の縦スクロール（[M-UI-SCROLL]）。
 // 配置は 予兆線（上段）／戦域・行動統合盤（中段）／判定プレビューと再生操作（下段）の3段構成とする。
 
-import { SYSTEM_ICON_GLYPH, type SystemIcon } from '../assets/placeholder.js';
+import type { SystemIcon } from '../assets/placeholder.js';
 import { figureNode } from './art.js';
+import { systemIconNode } from './icons.js';
 import type { PlaybackSpeed } from '../config.js';
 import { formatCenti, INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
 import type {
@@ -360,9 +361,11 @@ function renderWatchToggle(card: ActionCardView, toggle: WatchToggleView, handle
 function renderCardHead(card: ActionCardView): HTMLElement {
   const head = element('div', 'action-header');
   const sys = element('span', 'sys');
-  sys.append(
-    element('b', card.icon === null ? '' : `on ${SYSTEM_CLASS[card.icon]}`, card.icon === null ? '·' : SYSTEM_ICON_GLYPH[card.icon]),
-  );
+  const mark = element('b', card.icon === null ? '' : `on ${SYSTEM_CLASS[card.icon]}`, card.icon === null ? '·' : undefined);
+  if (card.icon !== null) {
+    mark.append(systemIconNode(card.icon));
+  }
+  sys.append(mark);
   head.append(sys);
   head.append(element('span', 'nm', card.name));
   if (card.running) {

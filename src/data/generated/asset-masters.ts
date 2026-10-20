@@ -263,7 +263,7 @@ export const ASSET_MASTERS = {
     "slot": "ICON",
     "cue": null,
     "variant": "MARTIAL",
-    "path": "placeholder/icons#martial"
+    "path": "art/icons.svg#martial"
   },
   "ASSET_ICON_MIND": {
     "asset_id": "ASSET_ICON_MIND",
@@ -272,7 +272,7 @@ export const ASSET_MASTERS = {
     "slot": "ICON",
     "cue": null,
     "variant": "MIND",
-    "path": "placeholder/icons#mind"
+    "path": "art/icons.svg#mind"
   },
   "ASSET_ICON_STANCE": {
     "asset_id": "ASSET_ICON_STANCE",
@@ -281,7 +281,7 @@ export const ASSET_MASTERS = {
     "slot": "ICON",
     "cue": null,
     "variant": "STANCE",
-    "path": "placeholder/icons#stance"
+    "path": "art/icons.svg#stance"
   },
   "ASSET_ICON_SUMMON": {
     "asset_id": "ASSET_ICON_SUMMON",
@@ -290,7 +290,7 @@ export const ASSET_MASTERS = {
     "slot": "ICON",
     "cue": null,
     "variant": "SUMMON",
-    "path": "placeholder/icons#summon"
+    "path": "art/icons.svg#summon"
   },
   "ASSET_ICON_SWAP": {
     "asset_id": "ASSET_ICON_SWAP",
@@ -299,7 +299,7 @@ export const ASSET_MASTERS = {
     "slot": "ICON",
     "cue": null,
     "variant": "SWAP",
-    "path": "placeholder/icons#swap"
+    "path": "art/icons.svg#swap"
   },
   "ASSET_ISH_STANDING": {
     "asset_id": "ASSET_ISH_STANDING",

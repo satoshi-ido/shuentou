@@ -7,6 +7,7 @@ import type { WatchDefaultMode } from '../../engine/watch.js';
 import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextSpeed } from '../config.js';
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
 import { figureNode, figureUrl } from './art.js';
+import { renderLantern } from './lantern.js';
 import { HERO_MAX_HP_CHANGE } from '../view/screen-view.js';
 import type {
   DictionaryEntry,
@@ -320,6 +321,9 @@ export function renderIntermission(
   root.append(objective);
 
   const field = element('div', 'imfield');
+  if (view.lantern !== undefined && view.lantern !== null) {
+    field.append(renderLantern(view.lantern)); // [S-BG-INTERMISSION] 燈は背景に描き込まず別の層として重ねる
+  }
   const stage = element('div', 'imstage');
   const party = element('div', 'party');
   for (const slot of view.slots) {

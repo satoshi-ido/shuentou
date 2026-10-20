@@ -59,7 +59,11 @@ export function canRefill(run: RunState, masters: GameMasters, attendantId: stri
 }
 
 // 事前条件は canRefill。enshrine_anchor の更新はメタステートを扱う呼び出し側が行う。
-export function applyRefill(run: RunState, attendantId: string): void {
+// [M-STATE-RUNSTATE]「空芯」空いている新しい芯（定員 − 同行従者 − 空芯）が無ければ、迎え入れる魂は空芯に結ばれる。
+export function applyRefill(run: RunState, masters: GameMasters, attendantId: string): void {
+  if (refillCapacity(run, masters) - run.ash_core_count <= 0) {
+    run.ash_core_count = Math.max(run.ash_core_count - 1, 0);
+  }
   run.party.push({ attendant_id: attendantId, inherit_state: 'UNUSED' });
   run.recruited = insertSorted(run.recruited, attendantId);
   run.enshrined_count += 1; // [M-PROG-SACRIFICE] EnshrinedCount

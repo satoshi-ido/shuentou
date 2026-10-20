@@ -1886,3 +1886,21 @@ button:disabled { opacity: 0.4; cursor: default; }
     var(--script-image, none) center / cover no-repeat,
     radial-gradient(ellipse at 50% 70%, hsl(var(--script-hue) 30% 26%), hsl(var(--script-hue) 24% 9%) 70%);
 }
+
+/* [I-PLAN-ASSETS] 系統アイコン（art/icons.svg のシンボル）。色は系統の色（currentColor）を受ける。 */
+.sys-icon { width: 100%; height: 100%; display: block; }
+.action-header .sys b .sys-icon { width: 11px; height: 11px; }
+.fx .sys-icon { width: 34px; height: 34px; filter: drop-shadow(0 0 10px currentColor); }
+
+/* [S-BG-INTERMISSION] 燈は背景の上・壇の下の層として、場の中央に寄りで置く。 */
+.imfield .im-lantern {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 188px;
+  width: auto;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.92;
+}
+.imfield .imstage { position: relative; z-index: 1; }

@@ -54,7 +54,7 @@ describe('[M-STATE-RUNSTATE] ニューゲーム', () => {
     expect(run.instance_id_seq).toBe(5);
     expect(run.party).toEqual([{ attendant_id: 'ATTENDANT_01', inherit_state: 'UNUSED' }]);
     expect(run.recruited).toEqual(['ATTENDANT_01']);
-    expect(session.data.save_version).toBe(5);
+    expect(session.data.save_version).toBe(6);
   });
 });
 
@@ -142,6 +142,20 @@ describe('[M-PROG-SACRIFICE] 供犠', () => {
     expect(session.data.run.sacrificed).toEqual(['ATTENDANT_01']);
     expect(session.data.run.hero_hp).toBe(session.data.run.hero_max_hp);
     expect(() => confirmSacrifice(session, ctx, 'ATTENDANT_02')).toThrow();
+  });
+
+  // [M-STATE-RUNSTATE]「空芯」供犠の確定で +1。補充では、空いている新しい芯が無いときに限り空芯へ魂を結んで −1。
+  it('焚いた芯は空芯として残り、新しい芯が尽きた補充で空芯に魂が結ばれる', () => {
+    const { session, ctx } = clearActOne();
+    confirmSacrifice(session, ctx, 'ATTENDANT_01');
+    const { run } = session.data;
+    expect(run.ash_core_count).toBe(1);
+    enterTransition(session, ctx);
+    expect(refillCapacity(run, ctx.masters)).toBe(2); // 定員2 − 同行0
+    confirmRefill(session, ctx, 'ATTENDANT_02'); // 新しい芯（2 − 0 − 1 = 1）に結ぶ
+    expect(run.ash_core_count).toBe(1);
+    confirmRefill(session, ctx, 'ATTENDANT_03'); // 新しい芯が尽き（2 − 1 − 1 = 0）、空芯に結ぶ
+    expect(run.ash_core_count).toBe(0);
   });
 });
 

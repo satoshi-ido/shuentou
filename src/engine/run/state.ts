@@ -34,6 +34,7 @@ export interface RunState {
   recruited: string[]; // 従者ID昇順
   sacrificed: string[]; // 従者ID昇順
   enshrined_count: number;
+  ash_core_count: number; // [S-ITEM-CORE]【焚かれた芯】空芯の数（0〜5）
   cross_unlocked: Record<string, boolean>;
   foreknown_scenes: string[]; // シーンID昇順
   forecleared_scenes: string[]; // シーンID昇順

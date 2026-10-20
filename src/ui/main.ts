@@ -49,6 +49,7 @@ import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/typ
 import { placeholderHue } from './assets/placeholder.js';
 import { assetUrl, assetUrlById, pickAsset, type AssetCondition } from './assets/resolve.js';
 import { setFigureLookup } from './dom/art.js';
+import { lanternView } from './view/lantern-view.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
@@ -1032,6 +1033,7 @@ function renderScreen(): HTMLElement {
           ),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
+          lantern: lanternView(run, masters, meta.total_rewind_count),
           noAttendant: run.party.length === 0,
           noticeText: takeNotice(),
         },

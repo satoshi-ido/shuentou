@@ -65,8 +65,11 @@ export class FakeElement {
     return null;
   }
 
-  setAttribute(): void {
-    // 提示のみの属性は検査しない
+  // 提示のみの属性は検査しない。SVG の要素は class を属性で与えるため、class に限り className へ写す。
+  setAttribute(name?: string, value?: string): void {
+    if (name === 'class' && value !== undefined) {
+      this.className = value;
+    }
   }
 
   // 自身と子孫の文字列を連結する（表示内容の検査に用いる）。
@@ -100,6 +103,7 @@ export function installFakeDom(): void {
   globals.HTMLElement = FakeElement;
   globals.document = {
     createElement: (tagName: string) => new FakeElement(tagName),
+    createElementNS: (_ns: string, tagName: string) => new FakeElement(tagName),
     createTextNode: (text: string) => {
       const node = new FakeElement('#text');
       node.textContent = text;

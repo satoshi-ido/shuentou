@@ -7,7 +7,7 @@ import type { MetaCounters, RewindPending, SaveData } from '../meta/types.js';
 import { sceneByOrder, type GameMasters } from './masters.js';
 import type { RunState } from './state.js';
 
-export const SAVE_VERSION = 5; // [M-META-SAVEDATA]［データバージョン］既知シーン・最遠到達の記録を追加
+export const SAVE_VERSION = 6; // [M-META-SAVEDATA]［データバージョン］空芯（ash_core_count）を追加
 const HERO_INIT_MAX_HP = 60; // [M-DATA-HERO-INIT]
 
 function allFalse(keys: readonly string[]): Record<string, boolean> {
@@ -38,6 +38,7 @@ export function createInitialRun(masters: GameMasters): RunState {
     recruited: fixed,
     sacrificed: [],
     enshrined_count: 0,
+    ash_core_count: 0,
     cross_unlocked: allFalse(masters.crossIds),
     foreknown_scenes: [],
     forecleared_scenes: [],

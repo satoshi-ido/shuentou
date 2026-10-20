@@ -2,6 +2,7 @@
 // 重畳する要素（設定・辞典・確認ダイアログ）は画面を遷移させず、同時に開くのは1件に限る。
 
 import type { AttendantMasterRecord, HelpMasterRecord, SceneMasterRecord } from '../../data/types.js';
+import type { LanternView } from './lantern-view.js';
 import type { InheritTarget } from '../../engine/progress/inherit.js';
 import type { SaveData } from '../../engine/meta/types.js';
 import type { RunState } from '../../engine/run/state.js';
@@ -147,6 +148,8 @@ export interface IntermissionView {
   readonly pool: readonly InheritOptionView[];
   readonly canSettle: boolean;
   readonly isActTransition: boolean;
+  // [S-BG-INTERMISSION] 背景に重ねる燈。Null は描かない。
+  readonly lantern?: LanternView | null;
   // [M-PROG-NOATTENDANT] 同行従者0人では継承・供犠を行えない（STR_LOCK_NO_ATTENDANT）。
   readonly noAttendant: boolean;
   // 一度だけ提示するシステム文言（アンドゥ履歴が空である旨など）。提示がなければ空文字。

@@ -46,12 +46,12 @@ export const ASSETS = [
   { asset_id: 'ASSET_BG_2_04_SKETCH', owner_kind: 'SCENE', owner_id: 'SCENE_2_04', slot: 'BACKGROUND', cue: null, variant: 'SKETCH', path: 'art/bg/2-04-sketch.jpg' },
   { asset_id: 'ASSET_BG_2_04_AFTER', owner_kind: 'SCENE', owner_id: 'SCENE_2_04', slot: 'BACKGROUND', cue: null, variant: 'AFTER', path: 'art/bg/2-04-after.jpg' },
   { asset_id: 'ASSET_BG_2_04_AFTER_UNKNOWN', owner_kind: 'SCENE', owner_id: 'SCENE_2_04', slot: 'BACKGROUND', cue: null, variant: 'AFTER_UNKNOWN', path: 'art/bg/2-04-after-unknown.jpg' },
-  // 系統アイコン5種（心気・武技・体勢・召喚・隊列交代）。インラインSVGのシンボル集合1ファイルを指す。
-  { asset_id: 'ASSET_ICON_MIND', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'MIND', path: 'placeholder/icons#mind' },
-  { asset_id: 'ASSET_ICON_MARTIAL', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'MARTIAL', path: 'placeholder/icons#martial' },
-  { asset_id: 'ASSET_ICON_STANCE', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'STANCE', path: 'placeholder/icons#stance' },
-  { asset_id: 'ASSET_ICON_SUMMON', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SUMMON', path: 'placeholder/icons#summon' },
-  { asset_id: 'ASSET_ICON_SWAP', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SWAP', path: 'placeholder/icons#swap' },
+  // 系統アイコン5種（心気・武技・体勢・召喚・隊列交代）。SVG のシンボル集合1ファイル（src/ui/public/art/icons.svg）を指す。
+  { asset_id: 'ASSET_ICON_MIND', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'MIND', path: 'art/icons.svg#mind' },
+  { asset_id: 'ASSET_ICON_MARTIAL', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'MARTIAL', path: 'art/icons.svg#martial' },
+  { asset_id: 'ASSET_ICON_STANCE', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'STANCE', path: 'art/icons.svg#stance' },
+  { asset_id: 'ASSET_ICON_SUMMON', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SUMMON', path: 'art/icons.svg#summon' },
+  { asset_id: 'ASSET_ICON_SWAP', owner_kind: 'GLOBAL', owner_id: null, slot: 'ICON', cue: null, variant: 'SWAP', path: 'art/icons.svg#swap' },
   // BGM（cue は [M-DATA-AUDIO-CUE] の語彙。BATTLE はシーン、INTERMISSION は GLOBAL が持つ）
   { asset_id: 'ASSET_BGM_1_01', owner_kind: 'SCENE', owner_id: 'SCENE_1_01', slot: 'BGM', cue: 'BATTLE', path: 'placeholder/bgm/1-01' },
   { asset_id: 'ASSET_BGM_1_02', owner_kind: 'SCENE', owner_id: 'SCENE_1_02', slot: 'BGM', cue: 'BATTLE', path: 'placeholder/bgm/1-02' },
