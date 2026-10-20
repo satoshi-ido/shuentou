@@ -90,6 +90,9 @@ const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約す
 const SCHEDULER_TICK_MS = 100;
 const STEPS_PER_PULSE = 16; // 【戦闘の合奏】重低音の1拍の区切りの数
 const ENSEMBLE_GAIN = 0.4; // 【戦闘の合奏】「音量」合奏全体の、資産の音量に対する倍率
+const PULSE_DIP_GAIN = 0.5; // 重低音の一打ごとに層と合奏を下げる倍率
+const PULSE_DIP_RECOVER_SEC = 0.07; // 下げた層と合奏を戻す時定数（約 0.2 秒で戻る）
+const PULSE_HARMONICS_GAIN = 0.6; // 重低音に加える倍音（100〜300Hz）の大きさ
 
 // 合奏の声部の鍵。和音のように1つの資産を同時に複数の高さで鳴らす声部は、資産IDに「#番号」を付けて分ける。
 function baseAssetId(key: string): string {
@@ -112,6 +115,8 @@ export class WebAudioDriver extends RecordingAudioDriver {
   private seGain: GainNode | null = null;
   private duckGain: GainNode | null = null;
   private ensembleGain: GainNode | null = null;
+  private pulseDip: GainNode | null = null; // 重低音の一打ごとに層と合奏を短く下げる
+  private pulseOut: GainNode | null = null; // 重低音の入口（そのままの音と、倍音を加える経路へ分ける）
   private bgmBus: DynamicsCompressorNode | null = null; // 音割れを防ぐ圧縮（BGM の音量の設定の手前）
   private bgmLevel = 0.8;
   private seLevel = 0.8;
@@ -235,8 +240,11 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.bgmBus.attack.value = 0.003;
       this.bgmBus.release.value = 0.25;
       this.bgmBus.connect(this.bgmGain);
+      this.pulseDip = context.createGain();
+      this.pulseDip.connect(this.bgmBus);
       this.duckGain = context.createGain();
-      this.duckGain.connect(this.bgmBus);
+      this.duckGain.connect(this.pulseDip);
+      this.pulseOut = this.createPulseOut(context, this.bgmBus);
       this.ensembleGain = context.createGain();
       this.ensembleGain.gain.value = ENSEMBLE_GAIN;
       this.ensembleGain.connect(this.duckGain);
@@ -284,7 +292,8 @@ export class WebAudioDriver extends RecordingAudioDriver {
       this.nextPulse = context.currentTime + 0.02;
     }
     while (this.nextPulse < context.currentTime + SCHEDULE_AHEAD_SEC) {
-      this.playOnce(buffer, this.bgmBus as AudioNode, this.nextPulse);
+      this.playOnce(buffer, this.pulseOut as GainNode, this.nextPulse);
+      this.dipUnderPulse(this.nextPulse);
       this.scheduleEnsemble(this.nextPulse);
       this.pulseCount += 1;
       this.nextPulse += this.pulseInterval;
@@ -313,6 +322,37 @@ export class WebAudioDriver extends RecordingAudioDriver {
         }
       }
     }
+  }
+
+  // 重低音の入口。そのままの音に、歪ませて生じた倍音のうち 100〜300Hz を加え、小さなスピーカーでも聞こえるようにする。
+  private createPulseOut(context: AudioContext, destination: AudioNode): GainNode {
+    const input = context.createGain();
+    input.connect(destination);
+    const shaper = context.createWaveShaper();
+    const curve = new Float32Array(1024);
+    for (let index = 0; index < curve.length; index += 1) {
+      curve[index] = Math.tanh(4 * ((index / (curve.length - 1)) * 2 - 1));
+    }
+    shaper.curve = curve;
+    const band = context.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 180;
+    band.Q.value = 0.8;
+    const harmonics = context.createGain();
+    harmonics.gain.value = PULSE_HARMONICS_GAIN;
+    input.connect(shaper);
+    shaper.connect(band);
+    band.connect(harmonics);
+    harmonics.connect(destination);
+    return input;
+  }
+
+  // 重低音の一打（when）に合わせて層と合奏を短く下げ、重低音を聞き取れるようにする。
+  private dipUnderPulse(when: number): void {
+    const gain = (this.pulseDip as GainNode).gain;
+    gain.setValueAtTime(1, when);
+    gain.linearRampToValueAtTime(PULSE_DIP_GAIN, when + 0.01);
+    gain.setTargetAtTime(1, when + 0.05, PULSE_DIP_RECOVER_SEC);
   }
 
   private playOnce(buffer: AudioBuffer, destination: AudioNode, when: number, rate = 1): void {
