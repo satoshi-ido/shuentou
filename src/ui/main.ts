@@ -58,7 +58,7 @@ import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-scre
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver } from './audio/driver.js';
-import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
+import { CHORDAL, readScore, SCENE_SCORES, VOICE_ASSET, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
 import {
   renderConfigOverlay,
@@ -211,7 +211,7 @@ function playSe(cue: AudioCue): void {
 function ensembleOf(score: Score): Record<string, (number | null)[]> {
   const result: Record<string, (number | null)[]> = {};
   for (const voice of VOICES) {
-    const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'ENSEMBLE' && candidate.variant === voice);
+    const record = Object.values(ASSET_MASTERS).find((candidate) => candidate.cue === 'ENSEMBLE' && candidate.variant === VOICE_ASSET[voice]);
     if (record === undefined) {
       continue;
     }

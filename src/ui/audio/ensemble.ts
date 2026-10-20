@@ -5,11 +5,26 @@
 export const SCORE_STEPS = 64;
 export const STEPS_PER_PULSE = 16;
 
-export type Voice = 'CHANT' | 'CHANT_LOW' | 'CHANT_BASS' | 'DULCIMER' | 'DULCIMER_HIGH' | 'STRINGS' | 'BELL';
-export const VOICES: readonly Voice[] = ['CHANT', 'CHANT_LOW', 'CHANT_BASS', 'DULCIMER', 'DULCIMER_HIGH', 'STRINGS', 'BELL'];
+export type Voice = 'CHANT' | 'CHANT_LOW' | 'CHANT_BASS' | 'DULCIMER' | 'DULCIMER_HIGH' | 'STRINGS' | 'BASS_LINE' | 'BELL';
+export const VOICES: readonly Voice[] = ['CHANT', 'CHANT_LOW', 'CHANT_BASS', 'DULCIMER', 'DULCIMER_HIGH', 'STRINGS', 'BASS_LINE', 'BELL'];
+
+// 声部が鳴らす資産（ENSEMBLE の variant）。低い弦の刻み（BASS_LINE）は、和音の弦と同じ資産を1オクターブ下で鳴らす。
+export const VOICE_ASSET: Readonly<Record<Voice, Voice>> = {
+  CHANT: 'CHANT',
+  CHANT_LOW: 'CHANT_LOW',
+  CHANT_BASS: 'CHANT_BASS',
+  DULCIMER: 'DULCIMER',
+  DULCIMER_HIGH: 'DULCIMER_HIGH',
+  STRINGS: 'STRINGS',
+  BASS_LINE: 'STRINGS',
+  BELL: 'BELL',
+};
+
+// 声部ごとの、資産の高さからのオクターブのずれ。
+const OCTAVE_SHIFT: Readonly<Partial<Record<Voice, number>>> = { BASS_LINE: -1 };
 
 // 音の高さを持つ声部。譜の数字は音階の度数を表し、資産（D の一音）の再生の速さを変えて鳴らす。
-const MELODIC: readonly Voice[] = ['DULCIMER', 'DULCIMER_HIGH'];
+const MELODIC: readonly Voice[] = ['DULCIMER', 'DULCIMER_HIGH', 'BASS_LINE'];
 
 // 和音の声部。譜の数字は和音の根音の度数を表し、音階の音を3度ずつ重ねた三和音を同時に鳴らす。
 export const CHORDAL: readonly Voice[] = ['STRINGS'];
@@ -23,26 +38,28 @@ const repeat = (beat: string): string => [beat, beat, beat, beat].join('|');
 
 export const SCENE_SCORES: Readonly<Record<string, Score>> = {
   // i–i–VI–V。A–B♭–A の半音の揺れを繰り返し、V の拍で導音 C♯ を連打して解決を待たせる。
+  // i–i–VI–V。低い弦が拍の裏を刻み、VI で B♭、V で A から C♯ へせり上がる。打弦は緊張の一音だけを置く。
   SCENE_1_01: {
     CHANT: '..x...x...x...x.|..x...x...x.x.x.|..x...x...x...x.|..x...x...x.x.x.',
     CHANT_LOW: repeat('x.......x.......'),
     CHANT_BASS: repeat('x...............'),
-    DULCIMER: '5.6.5...........|5.6.5...........|6.5.6...........|7...7...7...7...',
+    DULCIMER: '................|........6.......|................|7...............',
     DULCIMER_HIGH: repeat('................'),
-    STRINGS: '1.......1.......|1.......1.......|6.......6.......|5.......5.......',
+    STRINGS: '1...............|1...............|6...............|5...............',
+    BASS_LINE: '1...1.1.1...1.1.|1...1.1.1...1.1.|6...6.6.6...6.6.|5...5.5.5...7.7.',
     BELL: 'x...............|................|................|................',
   },
-  // i–i–iv–V。D の連打に E を挟む、張り詰めた行進。
+  // i–i–iv–V。付点で踏みしめる低い弦の行進。打弦は最後の V で導音を2度置く。
   SCENE_1_02: {
     CHANT: repeat('x.x.x.x.x.x.x.x.'),
     CHANT_LOW: repeat('....x.......x...'),
     CHANT_BASS: repeat('x.......x.......'),
-    DULCIMER: '1.1.1.2.1.......|1.1.1.2.1.......|4.4.4.5.4.......|5.5.5.7.5.......',
+    DULCIMER: '................|................|................|7.......7.......',
     DULCIMER_HIGH: repeat('................'),
-    STRINGS: '1.......1.......|1.......1.......|4.......4.......|5.......5.......',
+    STRINGS: '1...............|1...............|4...............|5...............',
+    BASS_LINE: '1..1..1.1..1..1.|1..1..1.1..1..1.|4..4..4.4..4..4.|5..5..5.7..7..7.',
     BELL: 'x...............|................|x...............|................',
   },
-  // i–i–iv–V。B♭→A の半音の下降を、間を置いて繰り返す。
   SCENE_2_01: {
     CHANT: repeat('..x..x....x..x..'),
     CHANT_LOW: repeat('x.........x.....'),
@@ -50,6 +67,7 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
     DULCIMER: '6...5...........|6...5...........|6...5...........|7...8...........',
     DULCIMER_HIGH: repeat('................'),
     STRINGS: '1...............|1...............|4...............|5...............',
+    BASS_LINE: repeat('................'),
     BELL: 'x...............|................|................|................',
   },
   // i–VI–i–V。高い打弦の短い揺れが、子守歌のように止まらない。
@@ -60,6 +78,7 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
     DULCIMER: '1...............|6...............|1...............|7...............',
     DULCIMER_HIGH: '5.3.5.3.5.3.5.3.|5.3.5.3.5.3.5.3.|5.3.5.3.5.3.5.3.|7.5.7.5.7.5.7.5.',
     STRINGS: '1...............|6...............|1...............|5...............',
+    BASS_LINE: repeat('................'),
     BELL: 'x...............|................|................|................',
   },
   // i–i–VI–V。D–E–D の動機を拍の裏へずらし、足もとを揺らす。
@@ -70,6 +89,7 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
     DULCIMER: '1..2..1.........|1..2..1.........|6..5..6.........|7..5..7.........',
     DULCIMER_HIGH: repeat('................'),
     STRINGS: '1...............|1...............|6...............|5...............',
+    BASS_LINE: repeat('................'),
     BELL: 'x...............|................|................|................',
   },
   // i–i–VI–V。ボス。D–D–E–D の細かい刻みと、4分で刻む弦。
@@ -80,6 +100,7 @@ export const SCENE_SCORES: Readonly<Record<string, Score>> = {
     DULCIMER: '1.1.2.1.1.1.2.1.|1.1.2.1.1.1.2.1.|6.6.5.6.6.6.5.6.|7.7.5.7.7.7.5.7.',
     DULCIMER_HIGH: '8.......8.......|8.......8.......|6.......6.......|7.......7.......',
     STRINGS: '1...1...1...1...|1...1...1...1...|6...6...6...6...|5...5...5...5...',
+    BASS_LINE: repeat('................'),
     BELL: 'x...............|................|x...............|................',
   },
 };
@@ -110,7 +131,7 @@ function rateOf(voice: Voice, mark: string, tone: number): number | null {
     return null;
   }
   // 和音は音階の音を3度ずつ重ねる（根音・3度・5度）。
-  return rateOfCents(centsOf(degree + 2 * tone));
+  return rateOfCents(centsOf(degree + 2 * tone) + 1200 * (OCTAVE_SHIFT[voice] ?? 0));
 }
 
 // 声部の譜を、区切りごとの再生の速さ（休みは Null）へ読む。'|' は読み飛ばす。
