@@ -220,7 +220,9 @@ function currentScene(): SceneMasterRecord {
 // [M-DATA-INTERP]［キーの語彙］共通キー。
 function commonKeys(): Record<string, string | number> {
   if (session === null) {
-    return {}; // 進行の開始前（タイトル）はランが存在しない。文言の確認ダイアログは共通キーを用いない。
+    // [M-DATA-INTERP]［ランの開始前］タイトルではランが存在しない。導出元がランに依存しないキーのみを供給する
+    // （タイトルから開く辞典の解説が用いる）。
+    return { HeroName: HERO_INIT_UNIT.display_name };
   }
   const { run, meta } = session.data;
   const scene = scenes[run.current_scene_id];
@@ -707,9 +709,10 @@ const screenHandlers: ScreenHandlers = {
   // [M-REWIND-ROLLBACK] 過去インターミッションへの復帰。復帰先より後のスナップショットは破棄される。
   onRollbackIntermission: (order) => {
     // ［複数対象の提示］破棄されるインターミッション（復帰先より後の段）を行として並べる。
-    const rows = rollbackOrders(requireSession())
-      .filter((candidate) => candidate > order)
-      .map(() => resolveString('STR_CONFIRM_ROLLBACK_IM_ROW'));
+    // 行の文言は束を持たないため、再走の行き先と同じ表示でどの段かを添える。
+    const rows = rollbackTargets()
+      .filter((candidate) => candidate.order > order)
+      .map((candidate) => `${resolveString('STR_CONFIRM_ROLLBACK_IM_ROW')}：${candidate.sceneNumber} ${candidate.sceneName} の前`);
     openConfirm('STR_CONFIRM_ROLLBACK_IM', rows, () => {
       leaveBattle();
       rollbackIntermission(requireSession(), ctx, order);
@@ -1009,7 +1012,7 @@ function renderOverlay(): HTMLElement | null {
     case 'DICTIONARY':
       return renderDictionaryOverlay(
         dictionaryEntries(helps, session?.data.meta.help_seen ?? {}),
-        (helpId) => resolveHelp(helps[helpId], session === null ? {} : commonKeys()),
+        (helpId) => resolveHelp(helps[helpId], commonKeys()),
         (category) => CATEGORY_LABEL[category],
         screenHandlers,
       );

@@ -304,4 +304,11 @@ describe('[M-DATA-INTERP] 執筆した本文の補間キー', () => {
       expect(helps[helpId]?.title).toBe(title);
     }
   });
+
+  // [M-DATA-INTERP]［ランの開始前］辞典はタイトルからも開くため、解説はランに依存しないキーだけで解決できる。
+  it('解説はランの開始前に供給できる共通キー（HeroName）だけで解決できる', () => {
+    for (const record of Object.values(helps)) {
+      expect(() => resolveHelp(record, { HeroName: 'セイン' }), record.help_id).not.toThrow();
+    }
+  });
 });
