@@ -33,21 +33,28 @@
 - **保存**：リポジトリの中の `art-src\` に、`asset_id` に `.mp3` を付けた名前で置く（例：`ASSET_BGM_1_01.mp3`）。
 - **記録**：生成した日付・ツール・依頼文を `art-src\log.txt` に1行ずつ残す。
 
-## 3. BGM（7件）
+## 3. BGM（重低音1件・層8件）
 
-- **長さ**：60〜120秒。最後から最初へ切れ目なくつながる（ループする）ように作らせる。ループできない場合は、終わりを静かに減衰させる。
-- **用途**：バトル中はそのシーンの曲を、インターミッション中は共通の曲を、ループで流す。脚本の提示中も流れ続ける。
-- **音量**：曲ごとの音量差を小さくする。
+BGM は、一定の間隔で鳴り続ける重低音の一打と、状況に応じて重ねる層の二重で構成する（[M-DATA-AUDIO-CUE]【BGM の構成】）。重低音は曲ではなく一打の音とし、プログラムが 1.6 秒ごとに鳴らす。層は打楽器を持たない持続音とし、重低音とぶつからないよう調を揃える。
 
-| asset_id | 場面 | 依頼文（そのまま送る） |
+- **調**：すべて **D**（重低音の音高を D とし、層は D の短調か、D を主音とする旋法）。
+- **重低音**：1〜2 秒の一打。頭に無音を入れず、余韻は 1 秒以内に収める。拍子の感じを持たない、深い低音とする。
+- **層**：60〜120 秒。打楽器・拍・はっきりしたテンポを持たない。終わりから始まりへ切れ目なくつながる（ループする）もの。旋律はゆるやかにとどめ、重低音の拍の上に漂うようにする。
+- **音量**：層どうしの音量差を小さくする。重低音は、層の上でも聞こえ、層を覆わない大きさとする。
+
+| asset_id | 鳴る状況 | 狙い |
 | :---- | :---- | :---- |
-| `ASSET_BGM_1_01` | 1-01 焼けた村の祠。異形となった老いた祠守との戦い。夕刻、降る灰 | ダークファンタジーのゲームの戦闘曲。焼け落ちた村の夕暮れ、灰が降る中での、悲しみを帯びた戦い。低い弦楽器と、くぐもった太鼓、遠くで鳴る小さな鐘。速すぎないテンポで、緊張と喪失感を両立させる。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_1_02` | 1-02 山の砦の広間。発狂した老将との戦い。夜、篝火 | ダークファンタジーのゲームの戦闘曲。夜の山砦の石の広間で、狂った老将と戦う。重い軍楽の太鼓と金管の短い動機、緊迫した弦。行進の拍が崩れていくような不穏さ。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_2_01` | 2-01 立ち枯れた並木の街道。死体を操る男との戦い。日没 | ダークファンタジーのゲームの戦闘曲。白い灰に覆われた立ち枯れの並木道、日没。死体を操る男との不気味な戦い。乾いた打楽器と、低く唸る弦、軋むような音色。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_2_02` | 2-02 都市の市場跡。歌で戦士の心を折る吟遊詩人との戦い。曇天の昼 | ダークファンタジーのゲームの戦闘曲。避難民であふれる市場跡で、歌で人の心を折る吟遊詩人と戦う。古い撥弦楽器の、子守歌のように反復する旋律が、だんだん歪んでいく。言葉のないハミングは可。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_2_03` | 2-03 魔術師の街区。結界が消えた晴天の下、術を腐らせる魔術師との戦い | ダークファンタジーのゲームの戦闘曲。雲一つない晴天なのに不穏な、魔術師の街区。明るい音色（鉄琴やハープ）が、不協和音にゆっくり侵されていく。黒い霧が満ちていくような低音。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_2_04` | 2-04 崩れる都市の中央広場。巨大な結晶の腕を持つ少女とのボス戦 | ダークファンタジーのゲームのボス戦の曲。崩れ落ちる都市の中央広場で、背中から巨大な結晶の腕を生やした、祈る少女と戦う。重い打楽器と弦の激しさの中に、少女の静けさを表す澄んだ高音の旋律。言葉のない合唱は可。歌詞なし。ループ可能に。 |
-| `ASSET_BGM_INTERMISSION` | インターミッション。小さなランタンの燈を前に、仲間の魂を受け継ぐ静かな時間 | ダークファンタジーのゲームの、戦いの合間の静かな曲。暗がりの中で小さなランタンの火を見つめ、失った者を思い、次へ進む準備をする。ゆっくりとしたピアノかアコースティックな撥弦楽器と、柔らかな弦の持続音。温かいが寂しい。歌詞なし。ループ可能に。 |
+| `ASSET_BGM_PULSE` | エンディングを除くすべての画面で、1.6 秒ごと（燈の中の声の間は 3.2 秒ごと） | 作中の時を刻む確定した法則。心拍とも鐘ともつかない、深く乾いた低音の一打 |
+| `ASSET_BGM_CALM` | バトル開始前・脚本の提示 | 灰の降る静けさ。かすかな弦の持続音と、遠い風 |
+| `ASSET_BGM_INTERMISSION` | インターミッション・従者補充 | 燈を見つめる時間。温かいが寂しい、柔らかな持続音と、まばらな撥弦 |
+| `ASSET_BGM_1_01` | 1-01 のバトル | 焼けた村の夕暮れ。喪失感のある低い弦と、遠い小さな鐘の響き |
+| `ASSET_BGM_1_02` | 1-02 のバトル | 夜の砦。緊迫した弦の持続と、くぐもった金管の長い音 |
+| `ASSET_BGM_2_01` | 2-01 のバトル | 立ち枯れの並木と死体使い。軋む質感と、低く唸る持続音 |
+| `ASSET_BGM_2_02` | 2-02 のバトル | 歌で心を折る吟遊詩人。反復する子守歌のような撥弦が、ゆっくり歪む。言葉のないハミングは可 |
+| `ASSET_BGM_2_03` | 2-03 のバトル | 晴天の不穏。澄んだ鉄琴やハープの響きが、不協和にゆっくり侵される |
+| `ASSET_BGM_2_04` | 2-04 のバトル（ボス） | 崩れる都市と祈る少女。厚い弦の高まりの上に、澄んだ高音の旋律。言葉のない合唱は可 |
+
+- エンディングの曲（`ASSET_BGM_ENDING`）は審査範囲の外であり、本書の対象としない。
 
 ## 4. SE（11件）
 
@@ -73,28 +80,33 @@
 Claude Code が次を行う。
 
 1. `art-src\` の音声を `pnpm art art-src` で `src/ui/public/art/audio/` に取り込む。
-2. 配布版で、場面ごとの BGM と SE を鳴らし、音量の差と、ループのつなぎ目を確かめる。
+2. 配布版で、重低音と場面ごとの層、SE を鳴らし、音量の差、ループのつなぎ目、重ねたときの拍と調のぶつかりを確かめる。
 3. `docs/ai-usage.md` の「表示アセット・音声」の表に、`asset_id` ごとの行を書く。
 
 ## 6. Stable Audio 向けの依頼文
 
 Stable Audio には、次の英語の依頼文をそのまま送る。楽器・雰囲気・テンポを並べる書き方とし、作曲家名・作品名を含めない。
 
-- **長さの指定**：BGM は生成画面で 90 秒前後、SE は 1〜2 秒に設定する（SE は生成後に余分な無音を切ってよい）。
-- **ループ**：BGM はつなぎ目が目立たないものを選ぶ。何度か生成して、終わりと始まりの音量と響きが近いものを採る。
+- **長さの指定**：層は生成画面で 90 秒前後、重低音と SE は 1〜2 秒に設定する（生成後に余分な無音を切ってよい）。
+- **ループ**：層はつなぎ目が目立たないものを選ぶ。何度か生成して、終わりと始まりの音量と響きが近いものを採る。
+- **確かめ方**：層を選ぶときは、重低音と重ねて鳴らし、拍や調がぶつからないものを採る（Claude Code が取り込んだ後に配布版で重ねて確かめる）。
 - **書き出し**：MP3 で書き出す。
 
 ### BGM
 
+重低音と層の依頼文。層には必ず `no drums, no percussion, no beat` と `D minor`（または `D dorian`）を含める。
+
 | asset_id | Prompt |
 | :---- | :---- |
-| `ASSET_BGM_1_01` | Dark fantasy battle music, burning village at dusk, falling ash, sorrowful and tense, low strings, muffled war drums, distant small bells, mid tempo 88 BPM, instrumental, no vocals, seamless loop |
-| `ASSET_BGM_1_02` | Dark fantasy battle music, stone fortress hall at night, mad old general, heavy military drums, short brass motifs, agitated strings, a march rhythm slowly falling apart, 100 BPM, instrumental, no vocals, seamless loop |
-| `ASSET_BGM_2_01` | Dark fantasy battle music, dead trees covered in white ash, sunset road, eerie necromancer, dry percussion, low droning strings, creaking textures, 92 BPM, instrumental, no vocals, seamless loop |
-| `ASSET_BGM_2_02` | Dark fantasy battle music, ruined city market, a bard whose song breaks the will to fight, old plucked lute, repetitive lullaby melody that slowly distorts, wordless humming allowed, 84 BPM, instrumental, no lyrics, seamless loop |
-| `ASSET_BGM_2_03` | Dark fantasy battle music, wizard district under a cloudless bright sky, unsettling calm, glockenspiel and harp slowly invaded by dissonance, creeping low drones, 96 BPM, instrumental, no vocals, seamless loop |
-| `ASSET_BGM_2_04` | Dark fantasy boss battle music, collapsing city plaza, a praying girl with giant crystal arms, intense percussion and driving strings, a clear fragile high melody above, wordless choir allowed, 120 BPM, instrumental, no lyrics, seamless loop |
-| `ASSET_BGM_INTERMISSION` | Quiet dark fantasy interlude, gazing at a small lantern flame in the dark, remembering the lost, slow solo piano or soft plucked strings, gentle sustained strings, warm but lonely, 66 BPM, instrumental, no vocals, seamless loop |
+| `ASSET_BGM_PULSE` | Single deep sub-bass thump in low D, like a slow heartbeat or a distant muffled bell, one hit only, dry, short decay under one second, no melody, no music, sound effect |
+| `ASSET_BGM_CALM` | Dark fantasy ambient layer, quiet ash falling, faint sustained strings and distant wind, D minor, no drums, no percussion, no beat, free tempo, slow evolving drone, instrumental, seamless loop |
+| `ASSET_BGM_INTERMISSION` | Dark fantasy ambient layer, gazing at a small lantern flame in the dark, warm but lonely, soft sustained strings with sparse plucked notes, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
+| `ASSET_BGM_1_01` | Dark fantasy ambient battle layer, burning village at dusk, sorrow and tension, low sustained strings, distant small bell resonance, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
+| `ASSET_BGM_1_02` | Dark fantasy ambient battle layer, stone fortress at night, tense tremolo strings and long muffled brass tones, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
+| `ASSET_BGM_2_01` | Dark fantasy ambient battle layer, dead trees covered in white ash, eerie necromancer, creaking textures and low growling drones, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
+| `ASSET_BGM_2_02` | Dark fantasy ambient battle layer, a bard whose song breaks the will to fight, repetitive lullaby-like plucked lute slowly distorting, wordless humming, D dorian, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
+| `ASSET_BGM_2_03` | Dark fantasy ambient battle layer, unsettling calm under a cloudless sky, glockenspiel and harp resonance slowly invaded by dissonance, D minor, no drums, no percussion, no beat, free tempo, instrumental, seamless loop |
+| `ASSET_BGM_2_04` | Dark fantasy ambient boss battle layer, collapsing city and a praying girl, swelling dense strings with a clear fragile high melody above, wordless choir, D minor, no drums, no percussion, no beat, free tempo, no lyrics, seamless loop |
 
 ### SE
 
