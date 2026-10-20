@@ -1,4 +1,4 @@
-// [M-DATA-AUDIO-CUE]【戦闘の合奏】声のリズム、打弦の旋律、弦の和音、大鐘の譜。
+// [M-DATA-AUDIO-CUE]【戦闘の合奏】打楽器のリズム、打弦の旋律、弦の和音、大鐘の譜。
 
 import { describe, expect, it } from 'vitest';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
@@ -22,8 +22,8 @@ describe('[M-DATA-AUDIO-CUE] 戦闘の合奏', () => {
     expect(SCALE_CENTS).toEqual([0, 200, 300, 500, 700, 800, 1100]);
   });
 
-  it('声と鐘は x を一打とし、打弦は数字を音階の度数として音の高さへ写す', () => {
-    expect(readScore('CHANT', 'x.')).toEqual([1, null]);
+  it('打楽器と鐘は x を一打とし、打弦は数字を音階の度数として音の高さへ写す', () => {
+    expect(readScore('DRUM_HIGH', 'x.')).toEqual([1, null]);
     const [first, third, seventh, octave] = readScore('DULCIMER', '1378');
     expect(first).toBe(1); // 1度は D
     expect(third).toBeCloseTo(rateOfCents(300), 6); // F（短3度）

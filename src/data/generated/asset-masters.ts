@@ -36,32 +36,32 @@ export const ASSET_MASTERS = {
     "variant": "BELL",
     "path": "art/audio/bgm-ensemble-bell.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_CHANT": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT",
+  "ASSET_BGM_ENSEMBLE_DRUM_BASS": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_DRUM_BASS",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "CHANT",
-    "path": "art/audio/bgm-ensemble-chant.mp3"
+    "variant": "DRUM_BASS",
+    "path": "art/audio/bgm-ensemble-drum-bass.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_CHANT_BASS": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT_BASS",
+  "ASSET_BGM_ENSEMBLE_DRUM_HIGH": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_DRUM_HIGH",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "CHANT_BASS",
-    "path": "art/audio/bgm-ensemble-chant-bass.mp3"
+    "variant": "DRUM_HIGH",
+    "path": "art/audio/bgm-ensemble-drum-high.mp3"
   },
-  "ASSET_BGM_ENSEMBLE_CHANT_LOW": {
-    "asset_id": "ASSET_BGM_ENSEMBLE_CHANT_LOW",
+  "ASSET_BGM_ENSEMBLE_DRUM_LOW": {
+    "asset_id": "ASSET_BGM_ENSEMBLE_DRUM_LOW",
     "owner_kind": "GLOBAL",
     "owner_id": null,
     "slot": "BGM",
     "cue": "ENSEMBLE",
-    "variant": "CHANT_LOW",
-    "path": "art/audio/bgm-ensemble-chant-low.mp3"
+    "variant": "DRUM_LOW",
+    "path": "art/audio/bgm-ensemble-drum-low.mp3"
   },
   "ASSET_BGM_ENSEMBLE_DULCIMER": {
     "asset_id": "ASSET_BGM_ENSEMBLE_DULCIMER",
