@@ -161,3 +161,25 @@ describe('[A-EVAL-TTK]［射撃アクション］着弾の待機', () => {
     expect(tp(undefined)).toBe(TTK_MAX);
   });
 });
+
+describe('[A-EVAL-TTK]［妨害補正］根源武技の計画に対する拍止め', () => {
+  // isRootAction はアクションマスタの is_root を引くため、根源武技は実在のクラスIDとする。
+  const ROOT = martialAction('ACT_ROOT_MARTIAL', { atk: 999, range: 2, dmg_hp: 99900, stun: true, step_thought: 550, step_startup: 1 });
+  const COUNTER = martialAction('ACT_ROOT_COUNTER', { atk: 999, range: 2, dmg_hp: 0, stun: true, step_thought: 300, step_startup: 1 });
+  const POKE = martialAction('POKE', { atk: 999, range: 2, dmg_hp: 6000, step_thought: 400, step_startup: 1 });
+
+  function tp(heroActs: Parameters<typeof createDuel>[0]['heroActs'], enemyActs: Parameters<typeof createDuel>[0]['enemyActs']): number {
+    const state = createDuel({ heroMaxHp: 60, heroActs, enemyMaxHp: 60, enemyActs });
+    const { trace } = runQuiescence(cloneState(state), NO_SUMMON_DEPS);
+    return ttk(findUnit(state, 'MINE'), findUnit(state, 'FOE'), { trace, level: state.scene_level, offset: trace.length - 1 });
+  }
+
+  it('思考の待機のみを要する拍止めを、根源武技の計画の妨害に数える', () => {
+    // 拍止めの着弾 301 が根源武技の思考区間に入り、301 から思考をやり直す（301 + 551）。
+    expect(tp([ROOT], [WAIT, COUNTER]) - tp([ROOT], [WAIT])).toBe(301);
+  });
+
+  it('根源武技以外の計画には数えない', () => {
+    expect(tp([POKE], [WAIT, COUNTER])).toBe(tp([POKE], [WAIT]));
+  });
+});

@@ -26,7 +26,8 @@ import { defenseFromApAndEfficiency } from '../engine/calc.js';
 import { INFINITE_USES } from '../engine/params.js';
 import type { ActionInstance, Unit } from '../engine/types.js';
 import { roundDiv } from '../num/helpers.js';
-import { PURIFY_ITER_MAX, TIE_BONUS, TTK_MAX } from './constants.js';
+import { PURIFY_ITER_MAX, ROOT_COUNTER_ID, TIE_BONUS, TTK_MAX } from './constants.js';
+import { isRootAction } from './movegen.js';
 import { signedRoundDiv } from './fixed.js';
 import { sampleAt, type QuiesceTrace } from './quiesce.js';
 
@@ -681,6 +682,22 @@ export function denyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): num
   return best;
 }
 
+// [A-EVAL-TTK]［妨害補正］根源武技の計画に対する拍止め：防御側の拍止めのうち、発生中のもの、または思考の待機のみを
+// 要するもの（今すぐ実行できるものを含む）の着弾で、攻撃側へ命中するものの最速。存在しなければ TTK_MAX。
+function counterDenyTime(defender: Unit, attacker: Unit, inputs: TtkInputs): number {
+  let best = TTK_MAX;
+  for (const action of defender.acts) {
+    if (action.master_ref !== ROOT_COUNTER_ID) {
+      continue;
+    }
+    const landing = inFlightLanding(defender, action) ?? readyLanding(defender, action, true);
+    if (landing !== null && landing < best && hitsAt(inputs, defender, action, attacker, landing)) {
+      best = landing;
+    }
+  }
+  return best;
+}
+
 // ［妨害補正］発生中のスタン付き武技の着弾までの残りステップ（残り発生）。
 function inFlightLanding(unit: Unit, action: ActionInstance): number | null {
   if (unit.state !== 'STARTUP' || unit.last_act?.instance_id !== action.instance_id) {
@@ -717,6 +734,8 @@ function readyLanding(unit: Unit, action: ActionInstance, thoughtDeny: boolean):
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
   const tDeny = Math.min(denyTime(defenderMaster, attacker, inputs), inputs.traceDeny ?? TTK_MAX);
   const ctx = contextOf(inputs, attacker);
+  // 根源武技で決着させる計画に限り、防御側の拍止めを数える。
+  const rootDeny = Math.min(tDeny, counterDenyTime(defenderMaster, attacker, inputs));
   let best = TTK_MAX;
   for (const action of attacker.acts) {
     if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
@@ -729,7 +748,7 @@ export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): nu
     // ［除外条件］命中・射程は妨害補正を含まない計画の初弾着弾時点で判定する。
     // ［射撃アクション］単独計画で削り切れない場合も、代替武技へ引き継ぐ計画として構成する。
     // 命中・射程は各アクションの初弾着弾時点で判定する（buildPlan 内）。
-    const plan = buildPlan(ctx, action, defenderMaster, inputs, tDeny);
+    const plan = buildPlan(ctx, action, defenderMaster, inputs, isRootAction(action) ? rootDeny : tDeny);
     if (plan === null) {
       continue;
     }

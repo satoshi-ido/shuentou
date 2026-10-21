@@ -203,6 +203,28 @@ export function rootMartialRecord() {
   };
 }
 
+// [M-BASE-AR-SYSTEM] 拍止め（敵マスター専用、[M-GUARD-ROOTWAIT]）。ダメージを与えず、命中した対象の思考を中断する。
+export function rootCounterRecord() {
+  const params = defaultParams();
+  params.step_thought = 313;
+  params.step_startup = 1;
+  params.step_recovery = 0;
+  params.range = 2;
+  params.atk = 999;
+  params.def_efficiency = 100;
+  params.stun = true;
+  return {
+    class_id: 'ACT_ROOT_COUNTER',
+    display_name: '拍止め',
+    description: placeholderText('ACT_ROOT_COUNTER', []),
+    base_uses: -1,
+    inheritable: false,
+    is_root: false,
+    manual_sys_flag: null,
+    params,
+  };
+}
+
 // [M-BASE-PRINCIPLE] 個別上書きのうち、レコード単位で効くもの。
 // [M-DATA-CLASSID]［予約クラスID］は [M-DATA-HERO-INIT] の基本型4件が「敵側の同AR値の行と
 // 同一レコードを共有する」と定めるため、主人公側の base_uses 上書きは共有レコードへ適用する
@@ -435,12 +457,13 @@ export function generateHeroInitActions() {
     buildRecord(slashAr6, '武技（基本）', USES_BASIC, true, martial('basic', 60)),
     // base_uses は [M-DATA-HERO-INIT] の個別上書き（[M-BASE-PRINCIPLE]）により 10 回とする。
     buildRecord(heavyAr15, '武技（重撃）', USES_BASIC, true, martial('heavy', 150)),
+    rootCounterRecord(),
     rootMartialRecord(),
   ];
 
   return {
     records,
-    order: [mindAr3, slashAr3, slashAr6, heavyAr15, 'ACT_ROOT_MARTIAL'],
+    order: [mindAr3, slashAr3, slashAr6, heavyAr15, 'ACT_ROOT_COUNTER', 'ACT_ROOT_MARTIAL'],
   };
 }
 

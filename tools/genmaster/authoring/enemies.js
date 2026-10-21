@@ -34,6 +34,7 @@ export const ENEMIES = [
     template: 'E1_01',
     ai_profile_id: 'PROFILE_FRENZY',
     book_id: 'B-01',
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [],
   },
   {
@@ -46,6 +47,7 @@ export const ENEMIES = [
     template: 'E1_02',
     ai_profile_id: 'PROFILE_ASSAULT',
     book_id: 'B-02',
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [],
   },
   {
@@ -59,6 +61,7 @@ export const ENEMIES = [
     template: 'NORMAL',
     ai_profile_id: 'PROFILE_COMMANDER',
     book_id: null,
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
         component: 'MARTIAL',
@@ -80,6 +83,7 @@ export const ENEMIES = [
     template: 'NORMAL',
     ai_profile_id: 'PROFILE_DRAIN_VP',
     book_id: null,
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
         // unlock: STRIP_VP（[A-PROFILE-BONUS] STRIP_VP は dmg_vp > 0 で判定される）
@@ -101,6 +105,7 @@ export const ENEMIES = [
     template: 'NORMAL',
     ai_profile_id: 'PROFILE_DRAIN_PP',
     book_id: null,
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
         // unlock: STRIP_PP
@@ -123,6 +128,7 @@ export const ENEMIES = [
     template: 'BOSS',
     ai_profile_id: 'PROFILE_SURGE',
     book_id: 'B-03',
+    root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
         component: 'MARTIAL',

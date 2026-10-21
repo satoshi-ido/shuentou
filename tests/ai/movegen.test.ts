@@ -158,3 +158,62 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
     expect(tagsOf(wait)).toEqual(['PASS']);
   });
 });
+
+describe('[A-SEARCH-MOVEGEN] 拍止め', () => {
+  // isRootAction はアクションマスタの is_root を引くため、主人公の根源武技は実在のクラスIDとする。
+  const ROOT = martialAction('ACT_ROOT_MARTIAL', { atk: 999, range: 2, stun: true, step_thought: 550, step_startup: 1 });
+  const COUNTER = martialAction('ACT_ROOT_COUNTER', { atk: 999, range: 2, stun: true, dmg_hp: 0, step_thought: 300, step_startup: 1 });
+  const SHORT = makeAction('ACT_SHORT', { gain_vp: 1, step_startup: 5 });
+  const LONG = makeAction('ACT_LONG', { gain_vp: 1, step_startup: 150, step_recovery: 50 });
+  const SWAP = makeAction('ACT_SWAP', { is_swap: true, step_startup: 0, step_recovery: 0 });
+  const labels = (moves: readonly AiMove[]) => moves.map((m) => (m.kind === 'PASS' ? 'PASS' : m.action.master_ref));
+
+  // 主人公の経過思考 heroThought、敵マスターの経過思考 foeThought の局面。
+  function duel(heroThought: number, foeThought: number) {
+    const state = createDuel({ heroMaxHp: 10, heroActs: [ROOT], enemyMaxHp: 10, enemyActs: [SHORT, LONG, COUNTER] });
+    const hero = findUnit(state, 'MINE');
+    const foe = findUnit(state, 'FOE');
+    hero.elapsed_thought = heroThought;
+    foe.elapsed_thought = foeThought;
+    return { state, hero, foe };
+  }
+
+  it('相手の根源武技の発動が拍止めの必要思考＋必要発生より近ければ、候補手は拍止めのみとする', () => {
+    const { state, foe } = duel(260, 300); // 残り 291 ≦ 301
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_ROOT_COUNTER']);
+  });
+
+  it('発射の時機でなければ拍止めを含めず、実行すると間に合わなくなる手を除く', () => {
+    const { state, foe } = duel(100, 300); // 残り 451：LONG は 200 + 301 > 451
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'PASS']);
+  });
+
+  it('拍止めの着弾が根源武技の発動と同じステップになる手は、間に合わないものとして扱う', () => {
+    // 残り 501：LONG は 200 + 301 = 501 で根源武技と同じステップに着弾するため除く。
+    const early = duel(50, 300);
+    expect(labels(generateMoves(early.state, early.foe))).toEqual(['ACT_SHORT', 'PASS']);
+    // 残り 301：待っても拍止めは 301 に着弾し、根源武技と同じステップのため温存しない。
+    const late = duel(250, 0);
+    expect(labels(generateMoves(late.state, late.foe))).toEqual(['ACT_SHORT', 'ACT_LONG', 'PASS']);
+  });
+
+  it('待っても間に合わないときは温存しない', () => {
+    const { state, foe } = duel(400, 0); // 残り 151 < 301
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'ACT_LONG', 'PASS']);
+  });
+
+  it('相手のマスターが思考中でなければ拍止めを含めず、温存もしない', () => {
+    const { state, hero, foe } = duel(100, 300);
+    hero.state = 'STARTUP';
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'ACT_LONG', 'PASS']);
+  });
+
+  it('相方の拍止めが待てば間に合い、交代で経過思考を失うと間に合わないとき、隊列交代を除く', () => {
+    const { state, foe } = duel(300, 100); // 残り 251：待てば 201、交代すると 301
+    moveUnit(state, foe, 3);
+    const creature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 2, maxHp: 10, acts: [SWAP, SHORT], counter: { instance_id_seq: 50 } });
+    expect(labels(generateMoves(state, creature))).toEqual(['ACT_SHORT', 'PASS']);
+    foe.elapsed_thought = 0; // 待っても間に合わない
+    expect(labels(generateMoves(state, creature))).toEqual(['ACT_SWAP', 'ACT_SHORT', 'PASS']);
+  });
+});

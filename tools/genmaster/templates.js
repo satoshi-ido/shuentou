@@ -14,6 +14,7 @@ import {
   dmgApBase,
   formatArSuffix,
   martialExtra,
+  rootCounterRecord,
   rootMartialRecord,
   swapSingleRecord,
   USES_BASIC,
@@ -280,8 +281,10 @@ export function expandEnemyTemplate(entry, level, summonIdOf) {
   );
   const specials = (entry.specials ?? []).map((row) => expandSpecialRow(row, level, summonIdOf));
   const rows = [...basic, ...specials];
-  const records = [...rows.map((row) => row.record), rootMartialRecord()];
-  const acts = [...rows.map((row) => row.classId), 'ACT_ROOT_MARTIAL'];
+  // [M-TMPL-ENEMY-PRINCIPLE] 拍止めは審査範囲の敵マスターに限り、マスター根源武技の直前に置く（[M-GUARD-ROOTWAIT]）。
+  const counter = entry.root_counter === true ? [rootCounterRecord()] : [];
+  const records = [...rows.map((row) => row.record), ...counter, rootMartialRecord()];
+  const acts = [...rows.map((row) => row.classId), ...counter.map((record) => record.class_id), 'ACT_ROOT_MARTIAL'];
   return { rows, records, acts };
 }
 

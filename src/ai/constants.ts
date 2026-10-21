@@ -67,3 +67,6 @@ export const DEBUFF_IMPORTANCE: Readonly<Record<string, number>> = {
   gain_vp: 48,
   charge_pp: 64,
 };
+
+// [M-BASE-AR-SYSTEM] 拍止めのクラスID（[M-GUARD-ROOTWAIT]）。
+export const ROOT_COUNTER_ID = 'ACT_ROOT_COUNTER';

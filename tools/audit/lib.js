@@ -1,4 +1,4 @@
-// [V-AUDIT-SCRIPT] 静的監査。アクションマスタの実データを走査し、D-03・D-04a・D-04b・D-06・D-14 と、
+// [V-AUDIT-SCRIPT] 静的監査。アクションマスタの実データを走査し、D-03・D-04a・D-04b・D-06・D-14・D-15 と、
 // 別系の走査単位を持つ D-07（[M-GUARD-REACH]【監査式】）を判定する。
 // 記号の定義は [V-AUDIT-SYMBOLS]、実装上の解釈は [V-AUDIT-IMPL] に従う。
 // 決定論層につき浮動小数演算・除算演算子を用いない（[I-ENV-TOOLING]［禁止事項の検査規則］）。
@@ -18,6 +18,9 @@ import { floorDiv, roundDiv } from '../../src/num/helpers.ts';
 
 // [V-AUDIT-SYMBOLS] ROOT_THOUGHT：マスター根源武技の step_thought（[M-BASE-AR-SYSTEM] の定義値 550 の転記）。
 export const ROOT_THOUGHT = ACTION_MASTERS.ACT_ROOT_MARTIAL.params.step_thought;
+
+// [I-PLAN-SUBMISSION]［審査範囲］の最後のシーン（2-04）の順序。D-15 はこれ以前を fails、以後を warns とする。
+const REVIEW_RANGE_LAST_ORDER = 6;
 
 // [M-CALC-EFFECTIVE]（増加型）の被バフ量。[M-STATE-PARAMIDS]「標準付与量」増加型 0.50。
 const DEPLOY_AP_BUFF_CENTI = 50;
@@ -97,9 +100,12 @@ export function buildAuditInput(masters = { actions: ACTION_MASTERS, enemies: EN
 }
 
 // [V-AUDIT-SYMBOLS] pool(N)：1-01 からシーン N−1 までの累積継承可能プール。
-// 1-01 は [M-DATA-HERO-INIT] の初期キットを初期プールとする（主人公は以降も保持し続ける）。
+// 1-01 は [M-DATA-HERO-INIT] の初期キットのうち inheritable == True の件を初期プールとする
+// （主人公は以降も保持し続ける。[M-DATA-HERO-INIT]［監査上の扱い］）。
 export function poolOf(scenes, index, masters = { actions: ACTION_MASTERS }) {
-  const pool = HERO_INIT_ACTIONS.map((classId) => masters.actions[classId]).filter((record) => !record.is_root);
+  const pool = HERO_INIT_ACTIONS.map((classId) => masters.actions[classId]).filter(
+    (record) => record.inheritable && !record.is_root,
+  );
   for (let i = 0; i < index; i += 1) {
     if (scenes[i].audit_exempt) {
       continue;
@@ -124,21 +130,21 @@ export function wallOf(scene) {
   return wall;
 }
 
-// [V-AUDIT-SYMBOLS] breaker_range(N)：シーン N のカバー区間を担当する壁割り（[M-GUARD-BREAKER]）の
-// range 基礎値。担当が主人公初期キットの区間（1-01〜2-01）は武技（重撃）AR15 の射程を用いる。
-const INITIAL_BREAKER_ID = 'ACT_HEAVY_AR15';
-
-export function breakerRange(scene, masters = { actions: ACTION_MASTERS }) {
-  let best = null;
-  for (const breaker of BREAKERS) {
-    if (breaker.order < scene.order && (best === null || breaker.order > best.order)) {
-      best = breaker;
-    }
-  }
-  const classId = best === null ? INITIAL_BREAKER_ID : best.class_id;
-  return masters.actions[classId].params.range;
-}
-
+// [V-AUDIT-SYMBOLS] breaker_range(N)：シーン N のカバー区間を担当する壁割り（[M-GUARD-BREAKER]）の
+// range 基礎値。担当が主人公初期キットの区間（1-01〜2-01）は武技（重撃）AR15 の射程を用いる。
+const INITIAL_BREAKER_ID = 'ACT_HEAVY_AR15';
+
+export function breakerRange(scene, masters = { actions: ACTION_MASTERS }) {
+  let best = null;
+  for (const breaker of BREAKERS) {
+    if (breaker.order < scene.order && (best === null || breaker.order > best.order)) {
+      best = breaker;
+    }
+  }
+  const classId = best === null ? INITIAL_BREAKER_ID : best.class_id;
+  return masters.actions[classId].params.range;
+}
+
 // [V-AUDIT-SYMBOLS] min_hp(N)：シーン N における主人公の想定最低最大HP（[M-GUARD-LETHAL]）。
 // 60 + floor( Σ_{k<N} hp_bonus_base(k) × 最低配分率 )。最低配分率は 1 / (ROLE_HP_STALE_INTERMISSIONS + 1)。
 export function minHp(scenes, index) {
@@ -158,6 +164,36 @@ export function maxDeploy(pool) {
     }
   }
   return best;
+}
+
+// [M-BASE-AR-SYSTEM] 拍止め（[M-GUARD-ROOTWAIT]）。
+const ROOT_COUNTER_ID = 'ACT_ROOT_COUNTER';
+
+// [V-AUDIT-SYMBOLS] max_cycle(N)：シーン N の敵マスターが所持する、マスター根源武技と拍止め以外のアクションの
+// step_startup + step_recovery 基礎値の最大値（[M-GUARD-ROOTWAIT]）。
+export function maxCycle(scene) {
+  let best = 0;
+  for (const record of scene.enemy_records) {
+    if (record.is_root || record.class_id === ROOT_COUNTER_ID) {
+      continue;
+    }
+    best = Math.max(best, record.params.step_startup + record.params.step_recovery);
+  }
+  return best;
+}
+
+// [M-GUARD-ROOTWAIT]【不変条件】の違反。1：拍止めの所持、2：拍止めが根源武技の発動に間に合うこと。
+export function rootWaitViolation(scene) {
+  const counter = scene.enemy_records.find((record) => record.class_id === ROOT_COUNTER_ID);
+  if (counter === undefined) {
+    return '拍止めを所持しない';
+  }
+  const root = ACTION_MASTERS.ACT_ROOT_MARTIAL.params;
+  const lead = counter.params.step_thought + counter.params.step_startup + maxCycle(scene);
+  if (lead >= root.step_thought + root.step_startup) {
+    return `拍止めの必要思考 + 必要発生 + max_cycle ${lead} >= 根源武技の必要思考 + 必要発生 ${root.step_thought + root.step_startup}`;
+  }
+  return null;
 }
 
 // [M-GUARD-LETHAL] 敵マスターの一撃のうち min_hp(N) 以上の実効HPダメージを持ち、かつ max_deploy(N) で防げない
@@ -352,6 +388,11 @@ export function audit(masters = { actions: ACTION_MASTERS, enemies: ENEMY_MASTER
       fails.push(
         `D-14 ${scene.scene_id}: ${hit.class_id} dmg ${hit.dmg} >= min_hp ${row.min_hp} かつ atk ${hit.atk} > max_deploy ${row.max_deploy}`,
       );
+    }
+    // D-15：[M-GUARD-ROOTWAIT]【不変条件】。審査範囲の外は、配置を M8 で定めるまで警告とする（[V-TUNING] の原因6）。
+    const rootWait = rootWaitViolation(scene);
+    if (rootWait !== null) {
+      (scene.order <= REVIEW_RANGE_LAST_ORDER ? fails : warns).push(`D-15 ${scene.scene_id}: ${rootWait}`);
     }
     // D-07：[M-GUARD-REACH]【監査式】。位置干渉の初出 3-02 以降を対象とする。
     if (scene.enemy_interfere || index > 0) {

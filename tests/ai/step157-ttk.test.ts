@@ -94,10 +94,10 @@ function rowAfter(classIdOrPass: string): Row {
 
 describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
   it.each([
-    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 708, tp: 419, xSurvivalMilli: -257, total: -1027 } },
-    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 662, tp: 419, xSurvivalMilli: -225, total: -898 } },
-    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 787, tp: 735, xSurvivalMilli: -34, total: -137 } },
-    { move: 'PASS', label: 'パス', expected: { te: 551, tp: 498, xSurvivalMilli: -51, total: -1003 } },
+    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 865, tp: 419, xSurvivalMilli: -348, total: -1391 } },
+    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 865, tp: 419, xSurvivalMilli: -348, total: -1391 } },
+    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 999, tp: 735, xSurvivalMilli: -152, total: -609 } },
+    { move: 'PASS', label: 'パス', expected: { te: 865, tp: 498, xSurvivalMilli: -270, total: -1878 } },
   ])('$label', ({ move, expected }) => {
     expect(rowAfter(move)).toEqual(expected);
   });

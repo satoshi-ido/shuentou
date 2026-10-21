@@ -29,14 +29,14 @@ export const MASTERS: GameMasters = {
   helpIds: [],
 };
 
-function prefixOf(classId: string): string {
-  return classId.split('_')[1] ?? '';
+function matches(classId: string, prefix: string): boolean {
+  return classId === `ACT_${prefix}` || classId.startsWith(`ACT_${prefix}_`);
 }
 
 function pick(state: BattleState, unit: Unit, priority: readonly string[]) {
   const candidates = executableActions(state, unit);
   for (const prefix of priority) {
-    const found = candidates.find((action) => prefixOf(action.master_ref) === prefix);
+    const found = candidates.find((action) => matches(action.master_ref, prefix));
     if (found !== undefined) {
       return found;
     }
@@ -45,8 +45,8 @@ function pick(state: BattleState, unit: Unit, priority: readonly string[]) {
 }
 
 const FOE_PRIORITY = ['SLASH', 'RUSH', 'GUARD', 'MIND'];
-// 根源武技（[M-BASE-AR-SYSTEM]）のみを用いて短い操作列で決着させる。
-export const HERO_PRIORITY = ['ROOT'];
+// 根源武技（[M-BASE-AR-SYSTEM]）のみを用いて短い操作列で決着させる。拍止め（ACT_ROOT_COUNTER）は撃たない。
+export const HERO_PRIORITY = ['ROOT_MARTIAL'];
 
 // 敵軍の決定主体（検証用の固定スクリプト）。探索器の結果に依存せず操作列を固定するために用いる。
 export const scriptedFoe: DecisionProvider = (state, unit): Decision => {

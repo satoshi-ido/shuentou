@@ -26,6 +26,8 @@ export const KIND_DESCRIPTIONS = {
 export const ACTION_DESCRIPTIONS = {
   ACT_SWAP_SINGLE: '自陣の前列と後列を入れ替える。思考も構えも要さず、指示したその場で行え、回数に限りはない。',
   ACT_ROOT_MARTIAL: 'マスターが初めから持つ、尽きることのない武技。長い思考を要するが、放てば射程の内の敵を一刀で断つ。',
+  // [M-GUARD-ROOTWAIT] 敵マスター専用。ダメージを与えない。
+  ACT_ROOT_COUNTER: '終焉の太刀の長い溜めを断つための武技。思考を待って放ち、APの壁に阻まれず、命中すれば拍断ちを与える。傷は与えない。',
   // 2-01 ヴォルグ：壁割り担当（[M-GUARD-BREAKER]）、range 3（[M-GUARD-REACH]）。
   ACT_SPEC_BREAK_VOLG: '厚いAPの壁をも裂く、解剖の刃。自陣のどこからでも敵陣の後列まで届き、命中すれば拍断ちを与える。',
   // 2-02 イシュ：VPダメージ。

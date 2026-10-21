@@ -6,10 +6,17 @@
 import { ACTION_MASTERS } from '../data/generated/action-masters.js';
 import { executableActions, isInstant } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
-import { effectiveAtk, effectiveRange } from '../engine/effective.js';
+import {
+  effectiveAtk,
+  effectiveRange,
+  effectiveStepRecovery,
+  effectiveStepStartup,
+  effectiveStepThought,
+} from '../engine/effective.js';
 import { hasFlag } from '../engine/flags.js';
 import { partnerOf } from '../engine/resolve/partner.js';
 import type { ActionInstance, BattleState, Unit } from '../engine/types.js';
+import { ROOT_COUNTER_ID } from './constants.js';
 import { actionBonusOf, type ActionTag, type EffectiveProfile } from './profile.js';
 
 // WAIT は待機手（[A-SEARCH-MOVEGEN]）。適用・約定・発射は [A-SEARCH-NODE]［待機手の約定］に従い、探索器が扱う。
@@ -26,7 +33,7 @@ function categoryRank(action: ActionInstance): number {
   return 2;
 }
 
-function isRootAction(action: ActionInstance): boolean {
+export function isRootAction(action: ActionInstance): boolean {
   return (ACTION_MASTERS as Readonly<Record<string, { readonly is_root: boolean }>>)[action.master_ref]?.is_root === true;
 }
 
@@ -55,11 +62,74 @@ function waitableActions(state: BattleState, unit: Unit, executable: readonly Ac
   );
 }
 
-// [A-SEARCH-MOVEGEN] 常に「パス」を1候補として含める。実行可能アクションの列は
+// [A-SEARCH-MOVEGEN]「拍止め」の残り：相手陣営のマスターが思考中のとき、その根源武技の発動までのステップ数。
+// 思考中でなければ null（規則を適用しない）。
+function rootLeft(state: BattleState, unit: Unit): number | null {
+  const rival = opposingMaster(state, unit);
+  const root = rival?.acts.find(isRootAction);
+  if (rival === null || root === undefined || rival.state !== 'THOUGHT') {
+    return null;
+  }
+  return Math.max(effectiveStepThought(rival, root) - rival.elapsed_thought, 0) + effectiveStepStartup(rival, root);
+}
+
+function counterOf(unit: Unit | null): ActionInstance | undefined {
+  return unit?.acts.find((action) => action.master_ref === ROOT_COUNTER_ID);
+}
+
+// 拍止めの必要思考実効値 + 必要発生実効値（撃った後に再び撃てるようになり、着弾するまで）。
+function counterLead(unit: Unit, counter: ActionInstance): number {
+  return effectiveStepThought(unit, counter) + effectiveStepStartup(unit, counter);
+}
+
+// 温存の条件：思考中で、待てば拍止めが根源武技の発動より前のステップに着弾する（同じステップでは止まらない）。
+function counterInTime(unit: Unit, counter: ActionInstance, left: number): boolean {
+  return (
+    unit.state === 'THOUGHT' &&
+    Math.max(effectiveStepThought(unit, counter) - unit.elapsed_thought, 0) + effectiveStepStartup(unit, counter) < left
+  );
+}
+
+// [A-SEARCH-MOVEGEN]「拍止め」：発射・温存・相方の隊列交代の規則。発射の時機であれば拍止めのみを返す。
+function applyCounterRules(state: BattleState, unit: Unit, actions: readonly ActionInstance[]): readonly ActionInstance[] {
+  const left = rootLeft(state, unit);
+  const counter = counterOf(unit);
+  if (left === null) {
+    return actions.filter((action) => action !== counter);
+  }
+  let result = actions;
+  if (counter !== undefined) {
+    const lead = counterLead(unit, counter);
+    if (result.includes(counter)) {
+      if (left <= lead) {
+        return [counter];
+      }
+      result = result.filter((action) => action !== counter);
+    }
+    if (counterInTime(unit, counter, left)) {
+      result = result.filter(
+        (action) => effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action) + lead < left,
+      );
+    }
+  }
+  const partner = partnerOf(state.units, unit);
+  const held = counterOf(partner);
+  if (partner !== null && held !== undefined && counterInTime(partner, held, left) && counterLead(partner, held) >= left) {
+    result = result.filter((action) => !hasFlag(action.sys_flags, 'FLAG_SWAP'));
+  }
+  return result;
+}
+
+// [A-SEARCH-MOVEGEN] 常に「パス」を1候補として含める（拍止めの発射を除く）。実行可能アクションの列は
 // executableActions（[M-PIPE-SUICIDE] を含む実行可否判定）をそのまま用いる。
 // waitMoves は実効プロファイルの waitMoves（参照プレイヤーAIに限り真）。
 export function generateMoves(state: BattleState, unit: Unit, waitMoves = false): readonly AiMove[] {
-  const actions = executableActions(state, unit);
+  const actions = applyCounterRules(state, unit, executableActions(state, unit));
+  // 拍止めが残るのは発射の時機に限られ、そのとき候補手は拍止めのみとする。
+  const counter = counterOf(unit);
+  if (counter !== undefined && actions.includes(counter)) {
+    return [{ kind: 'ACT', action: counter }];
+  }
   // Array#sort は安定ソート（ES2019+）であるため、同ランク内は元の配列インデックス順を保つ。
   const sorted = [...actions].sort((a, b) => categoryRank(a) - categoryRank(b));
   const moves: AiMove[] = sorted.map((action) => ({ kind: 'ACT', action }));

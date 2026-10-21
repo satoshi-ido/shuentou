@@ -50,8 +50,8 @@ describe('[M-STATE-RUNSTATE] ニューゲーム', () => {
     expect(run.phase).toBe('PRE_BATTLE');
     expect(run.current_scene_id).toBe('SCENE_1_01');
     expect([run.hero_hp, run.hero_max_hp]).toEqual([60, 60]);
-    expect(run.hero_acts.map((action) => action.instance_id)).toEqual(['IID0000', 'IID0001', 'IID0002', 'IID0003', 'IID0004']);
-    expect(run.instance_id_seq).toBe(5);
+    expect(run.hero_acts.map((action) => action.instance_id)).toEqual(['IID0000', 'IID0001', 'IID0002', 'IID0003', 'IID0004', 'IID0005']);
+    expect(run.instance_id_seq).toBe(6);
     expect(run.party).toEqual([{ attendant_id: 'ATTENDANT_01', inherit_state: 'UNUSED' }]);
     expect(run.recruited).toEqual(['ATTENDANT_01']);
     expect(session.data.save_version).toBe(8);
@@ -70,8 +70,8 @@ describe('[M-PROG-CLEAR] バトルクリア共通決済', () => {
     expect(run.im_snapshots.map((snapshot) => snapshot.order)).toEqual([1]);
     expect(run.im_snapshots[0]?.state.phase).toBe('INTERMISSION');
     expect(run.hero_acts.every((action) => !action.is_copy && action.seal_accum === 0)).toBe(true);
-    // 敵マスターの所持アクション8件の実体化により採番位置が進む（[I-STATE-ID]）。
-    expect(run.instance_id_seq).toBe(13);
+    // 敵マスターの所持アクション9件の実体化により採番位置が進む（[I-STATE-ID]）。
+    expect(run.instance_id_seq).toBe(15);
     // バトル開始時・クリア完了時の2回保存する。
     expect(recorder.saves.map((text) => JSON.parse(text).run.phase)).toEqual(['BATTLE', 'INTERMISSION']);
   });
@@ -91,18 +91,18 @@ describe('[M-INHERIT-POOL] [M-INHERIT-MERGE] 継承', () => {
     const slash = actOf(session, 'ACT_SLASH_AR3');
     expect(slash.instance_id).toBe('IID0001');
     expect([slash.uses_initial, slash.uses_left]).toEqual([45, 45]); // round(10.00 × 4.50)
-    expect(session.data.run.hero_acts).toHaveLength(5);
+    expect(session.data.run.hero_acts).toHaveLength(6);
     expect(session.data.run.party[0]?.inherit_state).toBe('SPENT');
   });
 
   it('該当スロットがなければ末尾へ新規追加し、次の採番位置を用いる', () => {
     const { session, ctx } = clearFirstScene();
     confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_MUSOU_AR3' });
-    const musou = session.data.run.hero_acts[5];
+    const musou = session.data.run.hero_acts[6];
     expect(musou?.master_ref).toBe('ACT_MUSOU_AR3');
-    expect(musou?.instance_id).toBe('IID0013');
+    expect(musou?.instance_id).toBe('IID0015');
     expect(musou?.uses_left).toBe(14); // round(3.00 × 4.50)
-    expect(session.data.run.instance_id_seq).toBe(14);
+    expect(session.data.run.instance_id_seq).toBe(16);
   });
 
   it('従者特性係数を基礎値へ乗算し、統合は減少型に最小値を採る', () => {

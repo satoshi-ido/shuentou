@@ -5,6 +5,7 @@
 // 本項は合否判定を行わない（[V-AUDIT-IMPL]「D-09 ④は保証条件ではない」）。
 
 import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
+import { ROOT_COUNTER_ID } from '../../src/ai/constants.js';
 import { currentDefense } from '../../src/engine/defense.js';
 import { effectiveAtk, effectiveDeployAp } from '../../src/engine/effective.js';
 import { hasFlag } from '../../src/engine/flags.js';
@@ -26,13 +27,13 @@ function masterOf(state: BattleState, side: Unit['side']): Unit | null {
 }
 
 // 主人公の最大実効攻撃力。武技を内包するアクションの実効攻撃力の最大値をとる。
-// マスター根源武技は除外する。[V-AUDIT-IMPL] が pool_max_atk から is_root を除くのと同じ理由であり、
+// マスター根源武技と拍止め（ともに atk 999）は除外する。[V-AUDIT-IMPL] が pool_max_atk から is_root を除くのと同じ理由であり、
 // atk 999 を算入すると窓が常時開き、本項が難易度再調整の判断材料として要求する4系列が失われる。
 function maxEffectiveAtk(hero: Unit): number {
   let best = 0;
   for (const action of hero.acts) {
     const record = ACTION_MASTERS[action.master_ref as keyof typeof ACTION_MASTERS];
-    if (record !== undefined && record.is_root) {
+    if (record !== undefined && (record.is_root || record.class_id === ROOT_COUNTER_ID)) {
       continue;
     }
     if (hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {

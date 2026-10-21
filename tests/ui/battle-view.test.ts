@@ -187,7 +187,7 @@ describe('[M-UI-HUD] ビューモデル', () => {
     expect(view.timeline.lanes).toHaveLength(2);
     expect(view.pauseReason?.code).toBe('STEP0_READY');
     expect(view.instructable).toBe(false); // [V-NUM-OPENING] 開幕は実行可能手がない
-    expect(view.cards.map((card) => card.name)).toHaveLength(5);
+    expect(view.cards.map((card) => card.name)).toHaveLength(6);
   });
 });
 

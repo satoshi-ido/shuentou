@@ -5,6 +5,7 @@ export const HERO_INIT_ACTIONS = [
   "ACT_SLASH_AR3",
   "ACT_SLASH_AR6",
   "ACT_HEAVY_AR15",
+  "ACT_ROOT_COUNTER",
   "ACT_ROOT_MARTIAL"
 ] as const satisfies readonly string[];
 

@@ -25,6 +25,7 @@ export const ENEMY_MASTERS = {
       "ACT_SUMMON_AR18_ASHAL",
       "ACT_SPEC_BREAK_ASHAL",
       "ACT_SPEC_SWARM_ASHAL",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_SURGE",
@@ -48,6 +49,7 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR16",
       "ACT_SUMMON_AR8_CALVA",
       "ACT_SPEC_DRAIN_PP_CALVA",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_DRAIN_PP",
@@ -70,6 +72,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR4",
       "ACT_GUARD_AR4",
       "ACT_GUARD_AR8",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_ASSAULT",
@@ -323,6 +326,7 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR12",
       "ACT_SUMMON_AR6_ISH",
       "ACT_SPEC_DRAIN_VP_ISH",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_DRAIN_VP",
@@ -343,6 +347,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR3",
       "ACT_GUARD_AR3",
       "ACT_GUARD_AR6",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_FRENZY",
@@ -646,6 +651,7 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR8",
       "ACT_SUMMON_AR4_VOLG",
       "ACT_SPEC_BREAK_VOLG",
+      "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
     "ai_profile_id": "PROFILE_COMMANDER",

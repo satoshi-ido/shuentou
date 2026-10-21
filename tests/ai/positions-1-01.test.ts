@@ -50,10 +50,15 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
   });
 
   // 再探索抑制（[A-SEARCH-REUSE]）を通さず全ステップで探索するため実行時間が長い。
+  // ステップ147の心気は 1-01 の定跡 B-01①が与える（[A-BOOK-TABLE]）。定跡を無効にした探索は、拍止めの
+  // 評価と候補手の規則（[A-EVAL-TTK]・[A-SEARCH-MOVEGEN]）のもとで心気を撃たずにパスする（[V-NUM-OPENING]）。
   it('T-12: バトル開始から敵軍AIを通して自動進行し、ステップ147まで行動が発生しない', { timeout: 120_000 }, () => {
     const ctx = {
       ...createContext({ saves: [] }),
-      foeDecision: createAiDecisionProvider({ ...defaultProfile(), actionBonus: { PASS: FRENZY_PASS } }, NO_SUMMON_DEPS),
+      foeDecision: createAiDecisionProvider(
+        { ...defaultProfile(), bookId: ENEMY_MASTERS.ENEMY_LEF.book_id, actionBonus: { PASS: FRENZY_PASS } },
+        NO_SUMMON_DEPS,
+      ),
     };
     const session = newGameSession(ctx);
     expect(startBattle(session, ctx)).toBe('PAUSED');
