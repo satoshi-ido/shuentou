@@ -373,7 +373,7 @@ function stampNode(stamp: ForecastStamp): HTMLElement {
   }
   if (stamp.kind === 'MISS') {
     box.append(element('div', 's', '回避'));
-    box.append(element('div', 'n', incoming ? '無傷' : '防衛'));
+    box.append(element('div', 'n', '無傷'));
     box.append(element('div', 'sub num', `${SYMBOL.atk} ${stamp.atk} ＜ ${SYMBOL.defense} ${stamp.defense}`));
     return box;
   }
