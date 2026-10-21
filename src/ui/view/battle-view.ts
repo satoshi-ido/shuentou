@@ -122,6 +122,7 @@ export interface BattleView {
   readonly cardsUnitId: string | null;
   readonly timeline: Timeline;
   readonly preview: ActionPreview | null;
+  readonly previewFireStep: number | null; // preview の発動（中断は成立）のステップ
   // 選択中・実行中の見込みをユニットプレートへ反映する値。
   readonly previewDeltas: readonly PlateDelta[];
   readonly pauseReason: PauseReason | null;
@@ -281,12 +282,13 @@ function ownerOf(state: BattleState, instanceId: string): { unit: Unit; action: 
 }
 
 // ［判定プレビュー］戦域の各マスへ重ねる着弾の見込み。発生中アクションについては常に、
-// 選択中・注目中のアクションについては仮定として示す。
+// 選択中・注目中のアクションについては仮定として示す。体勢と心気は、実行するユニット自身のマスに
+// 発動後の値（effects）を示す（「戦域への提示」）。
 export interface ForecastStamp {
   readonly unitId: string; // 攻撃側
   readonly side: Side; // 攻撃側の陣営
   readonly posIdx: number; // 提示するマス
-  readonly kind: 'HIT' | 'MISS' | 'INTERRUPT';
+  readonly kind: 'HIT' | 'MISS' | 'INTERRUPT' | 'STANCE' | 'MIND';
   readonly running: boolean; // 発生中の実行アクション（仮定ではない）
   readonly actionName: string;
   readonly atk: number;
@@ -295,6 +297,26 @@ export interface ForecastStamp {
   readonly hpBefore: number;
   readonly hpAfter: number;
   readonly fireStep: number; // 発動（中断は成立）のステップ
+  readonly effects?: readonly StampEffect[]; // 体勢・心気の発動後の値
+}
+
+export interface StampEffect {
+  readonly key: 'DEF' | 'VP' | 'PP';
+  readonly before: number;
+  readonly after: number;
+}
+
+function isRunning(unit: Unit, action: ActionInstance): boolean {
+  return unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
+}
+
+// ［判定プレビュー］「提示の順序」発動するステップ。実行中は経過発生ステップ数を差し引く。
+export function fireStepOf(state: BattleState, unit: Unit, action: ActionInstance, preview: ActionPreview): number {
+  if (preview.kind === 'INTERRUPT') {
+    return state.step + preview.steps;
+  }
+  const startup = effectiveStepStartup(unit, action);
+  return state.step + Math.max(isRunning(unit, action) ? startup - unit.elapsed_startup : startup, 0);
 }
 
 function forecastOf(
@@ -304,52 +326,49 @@ function forecastOf(
   preview: ActionPreview,
   naming: UnitNaming,
 ): ForecastStamp[] {
-  if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
+  const martial = hasFlag(action.sys_flags, 'FLAG_MARTIAL');
+  if (!martial && preview.kind !== 'INTERRUPT' && preview.kind !== 'STANCE' && preview.kind !== 'MIND') {
     return [];
   }
-  const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
-  const startup = effectiveStepStartup(unit, action);
   const base = {
     unitId: unit.unit_id,
     side: unit.side,
-    running,
+    running: isRunning(unit, action),
     actionName: naming.actionName(action),
-    atk: effectiveAtk(unit, action),
-    fireStep: state.step + Math.max(running ? startup - unit.elapsed_startup : startup, 0),
+    atk: martial ? effectiveAtk(unit, action) : 0,
+    fireStep: fireStepOf(state, unit, action, preview),
   };
-  // 中断が予測される場合は着弾しない。成立位置は攻撃側のマスに示す（[M-UI-HUD]［判定プレビュー］）。
+  const self = { ...base, posIdx: unit.pos_idx, defense: currentDefense(unit), damage: 0, hpBefore: unit.hp, hpAfter: unit.hp };
+  // 中断が予測される場合は着弾・発動しない。成立位置は実行するユニット自身のマスに示す（[M-UI-HUD]［判定プレビュー］）。
   if (preview.kind === 'INTERRUPT') {
-    return [
-      {
-        ...base,
-        posIdx: unit.pos_idx,
-        kind: 'INTERRUPT',
-        defense: currentDefense(unit),
-        damage: 0,
-        hpBefore: unit.hp,
-        hpAfter: unit.hp,
-        fireStep: state.step + preview.steps,
-      },
-    ];
+    return [{ ...self, kind: 'INTERRUPT' }];
+  }
+  if (preview.kind === 'STANCE') {
+    return [{ ...self, kind: 'STANCE', effects: [{ key: 'DEF', before: preview.defenseBefore, after: preview.defenseAfter }] }];
+  }
+  if (preview.kind === 'MIND') {
+    const vp = { key: 'VP' as const, before: preview.vpBefore, after: preview.vpBefore + preview.gainVp };
+    const pp = { key: 'PP' as const, before: preview.ppBefore, after: preview.raises ? preview.targetPp : preview.ppBefore };
+    return [{ ...self, kind: 'MIND', effects: [vp, pp] }];
   }
   if (preview.kind !== 'MARTIAL') {
     return [];
   }
+  // 見込みは発動ステップの開始時点の値（preview）。提示するマスは、対象ユニットの現在のマスとする。
   return preview.targets.flatMap((target) => {
-    const victim = state.units[target.posIdx];
+    const victim = state.units.find((candidate) => candidate?.unit_id === target.unitId);
     if (victim === null || victim === undefined) {
       return [];
     }
-    const damage = target.damage ?? 0;
     return [
       {
         ...base,
-        posIdx: target.posIdx,
+        posIdx: victim.pos_idx,
         kind: target.hit ? ('HIT' as const) : ('MISS' as const),
-        defense: currentDefense(victim),
-        damage,
-        hpBefore: victim.hp,
-        hpAfter: Math.max(victim.hp - damage, 0),
+        defense: target.defense,
+        damage: target.damage ?? 0,
+        hpBefore: target.hpBefore,
+        hpAfter: target.hpAfter,
       },
     ];
   });
@@ -512,6 +531,7 @@ function resourceOf(unit: Unit, label: string): number {
 
 export interface FocusPreview {
   readonly preview: ActionPreview | null;
+  readonly fireStep: number | null; // 発動（中断は成立）のステップ
   readonly stamps: readonly ForecastStamp[];
   // ユニットプレートへ反映する見込み値（実行側の消費・対象側のHP推移）。
   readonly deltas: readonly PlateDelta[];
@@ -526,12 +546,12 @@ export interface FocusPreview {
 export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
-    return { preview: null, stamps: [], deltas: [], timeline: null, lock: null };
+    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock: null };
   }
   if (!isPreviewTarget(state, owner.unit, owner.action)) {
     // 見込みは提示しない。自軍のアクションに限り、実行できない理由を示す（[M-UI-HUD]［判定語彙］）。
     const lock = owner.unit.side === 'MINE' ? { reasons: lockReasonsOf(state, owner.unit, owner.action) } : null;
-    return { preview: null, stamps: [], deltas: [], timeline: null, lock };
+    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock };
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
   const stamps = forecastOf(state, owner.unit, owner.action, preview, naming);
@@ -540,6 +560,7 @@ export function focusPreview(state: BattleState, instanceId: string, deps: StepD
   const plan = running ? null : { unitId: owner.unit.unit_id, instanceId: owner.action.instance_id };
   return {
     preview,
+    fireStep: fireStepOf(state, owner.unit, owner.action, preview),
     stamps,
     deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps),
     timeline: plan === null ? null : simulateTimeline(state, timelineSpan(state), deps, plan),
@@ -610,6 +631,8 @@ export function buildBattleView(options: BattleViewOptions): BattleView {
     cardsUnitId: cardsUnit?.unit_id ?? null,
     timeline: simulateTimeline(state, timelineSpan(state), deps),
     preview,
+    previewFireStep:
+      preview === null || selectedUnit === undefined || selected === undefined ? null : fireStepOf(state, selectedUnit, selected, preview),
     previewDeltas,
     pauseReason: state.pause_reason,
     instructable: columns.some((column) => column.cards.some((card) => card.executable)),

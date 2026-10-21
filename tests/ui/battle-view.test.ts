@@ -104,6 +104,7 @@ describe('[M-UI-HUD]［判定プレビュー］', () => {
       kind: 'STANCE',
       deployAp: 30,
       efficiencyCenti: 200,
+      defenseBefore: 0,
       defenseAfter: 60,
     });
   });
@@ -244,6 +245,7 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     // 敵軍の手札は理由も示さない。
     expect(focusPreview(state, enemy.acts[0].instance_id, NO_SUMMON_DEPS, naming)).toEqual({
       preview: null,
+      fireStep: null,
       stamps: [],
       deltas: [],
       timeline: null,
@@ -251,6 +253,7 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     });
     expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({
       preview: null,
+      fireStep: null,
       stamps: [],
       deltas: [],
       timeline: null,
@@ -317,8 +320,17 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
         fireStep: 10,
       },
     ]);
-    // 心気のように対象を持たない系統は着弾予測を持たない。
-    expect(focusPreview(state, hero.acts[0].instance_id, NO_SUMMON_DEPS, naming).stamps).toEqual([]);
+    // 心気は実行するユニット自身のマスに、加算後のVPと充填後のPPを示す（「戦域への提示」）。
+    expect(focusPreview(state, hero.acts[0].instance_id, NO_SUMMON_DEPS, naming).stamps).toMatchObject([
+      { posIdx: hero.pos_idx, kind: 'MIND', effects: [{ key: 'VP' }, { key: 'PP' }] },
+    ]);
+    // 体勢は自身のマスに、発動後の防御力を示す（GUARD の消費PPは9）。
+    hero.pp = 9;
+    expect(focusPreview(state, hero.acts[2].instance_id, NO_SUMMON_DEPS, naming).stamps).toMatchObject([
+      { posIdx: hero.pos_idx, kind: 'STANCE', effects: [{ key: 'DEF', before: 0, after: 60 }] },
+    ]);
+    // 発動のステップは判定欄の先頭にも示す。
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).fireStep).toBe(10);
   });
 });
 

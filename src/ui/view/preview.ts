@@ -9,13 +9,12 @@ import {
   effectiveDeployAp,
   effectiveDmgHpCenti,
   effectiveGainVp,
-  effectiveRange,
 } from '../../engine/effective.js';
 import { hasFlag } from '../../engine/flags.js';
 import { partnerSlotOf } from '../../engine/resolve/partner.js';
 import type { StepDeps } from '../../engine/pipeline/step.js';
 import type { ActionInstance, BattleState, Unit } from '../../engine/types.js';
-import { stunInterruptSteps } from '../../engine/watch.js';
+import { firingState, martialHitAt, stunInterruptSteps } from '../../engine/watch.js';
 import { roundDiv } from '../../num/helpers.js';
 
 export interface MartialTargetPreview {
@@ -33,7 +32,13 @@ export type ActionPreview =
   | { readonly kind: 'INTERRUPT'; readonly steps: number } // 中断が予測される場合は最優先で提示する
   | { readonly kind: 'MARTIAL'; readonly atk: number; readonly targets: readonly MartialTargetPreview[] }
   | { readonly kind: 'MARTIAL_NO_TARGET' }
-  | { readonly kind: 'STANCE'; readonly deployAp: number; readonly efficiencyCenti: number; readonly defenseAfter: number }
+  | {
+      readonly kind: 'STANCE';
+      readonly deployAp: number;
+      readonly efficiencyCenti: number;
+      readonly defenseBefore: number;
+      readonly defenseAfter: number;
+    }
   | {
       readonly kind: 'MIND';
       readonly gainVp: number;
@@ -47,25 +52,28 @@ export type ActionPreview =
   | { readonly kind: 'SUMMON'; readonly creatureId: string }
   | { readonly kind: 'NONE' };
 
-function martialPreview(state: BattleState, unit: Unit, action: ActionInstance): ActionPreview {
-  const range = effectiveRange(unit, action);
-  const atk = effectiveAtk(unit, action);
+// 射程・防御力・HPは発動ステップの開始時点の値で判定する（[M-UI-WATCH]『前列命中』と同じ確定仮定展開）。
+// 発動前に決着する等で展開が発動に届かない場合は、現ステートで判定する。
+function martialPreview(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): ActionPreview {
+  const fired = firingState(state, unit, action, deps) ?? state;
+  const actor = fired.units.find((candidate) => candidate?.unit_id === unit.unit_id) ?? unit;
+  const firedAction = actor.acts.find((candidate) => candidate.instance_id === action.instance_id) ?? action;
+  const atk = effectiveAtk(actor, firedAction);
   const opposing = unit.side === 'MINE' ? [2, 3] : [1, 0];
   const targets: MartialTargetPreview[] = [];
   for (const idx of opposing) {
-    const target = state.units[idx];
-    if (target === null || target === undefined || Math.abs(unit.pos_idx - target.pos_idx) > range) {
+    const at = martialHitAt(fired, unit.unit_id, action.instance_id, idx);
+    if (at === null || !at.inRange) {
       continue;
     }
-    const defense = currentDefense(target);
-    const hit = atk >= defense;
-    const damage = hit ? levelHpDamage(effectiveDmgHpCenti(unit, action), state.scene_level) : null;
+    const target = at.target;
+    const damage = at.hit ? levelHpDamage(effectiveDmgHpCenti(actor, firedAction), fired.scene_level) : null;
     targets.push({
       unitId: target.unit_id,
       posIdx: target.pos_idx,
-      hit,
+      hit: at.hit,
       damage,
-      defense,
+      defense: at.defense,
       hpBefore: Math.max(target.hp, 0),
       hpAfter: Math.max(target.hp - (damage ?? 0), 0),
     });
@@ -86,13 +94,14 @@ export function previewOf(state: BattleState, unit: Unit, action: ActionInstance
   }
   const flags = action.sys_flags;
   if (hasFlag(flags, 'FLAG_MARTIAL')) {
-    return martialPreview(state, unit, action);
+    return martialPreview(state, unit, action, deps);
   }
   if (hasFlag(flags, 'FLAG_STANCE')) {
     return {
       kind: 'STANCE',
       deployAp: effectiveDeployAp(unit, action),
       efficiencyCenti: action.base_params.def_efficiency,
+      defenseBefore: currentDefense(unit),
       defenseAfter: defenseAfterStance(unit, action),
     };
   }

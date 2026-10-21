@@ -14,6 +14,7 @@ import type {
   BoardColumnView,
   FocusPreview,
   ForecastStamp,
+  StampEffect,
   LockReason,
   PlateDelta,
   PlateView,
@@ -346,11 +347,24 @@ function dockPreviewContent(plate: PlateView, card: ActionCardView, preview: Act
   return box;
 }
 
+const EFFECT_SYMBOL: Readonly<Record<StampEffect['key'], string>> = { DEF: SYMBOL.defense, VP: SYMBOL.vp, PP: SYMBOL.pp };
+
 // ［判定プレビュー］戦域の対象マスへ重ねる着弾の見込み。
 // 自軍のアクションは命中・回避を、敵軍のアクションは被弾・回避として示す。
 function stampNode(stamp: ForecastStamp): HTMLElement {
   const incoming = stamp.side === 'FOE';
-  const box = element('div', `stamp${incoming ? ' stamp-foe' : ''}${stamp.kind === 'HIT' ? '' : ' stamp-no'}`);
+  const effective = stamp.kind === 'HIT' || stamp.kind === 'STANCE' || stamp.kind === 'MIND';
+  const box = element('div', `stamp${incoming ? ' stamp-foe' : ''}${effective ? '' : ' stamp-no'}`);
+  if (stamp.kind === 'STANCE' || stamp.kind === 'MIND') {
+    // 「戦域への提示」体勢・心気は実行するユニット自身のマスに、発動後の値を示す。
+    const effects = stamp.effects ?? [];
+    const lead = effects[effects.length - 1]; // 体勢は防御力、心気は充填後のPP
+    box.append(element('div', 's', stamp.kind === 'STANCE' ? '体勢' : '心気'));
+    box.append(element('div', 'n num', lead === undefined ? '' : `${EFFECT_SYMBOL[lead.key]} ${lead.after}`));
+    const changes = effects.map((effect) => `${EFFECT_SYMBOL[effect.key]} ${effect.before} → ${effect.after}`).join(' / ');
+    box.append(element('div', 'sub num', `ステップ ${stamp.fireStep} 発動（${changes}）`));
+    return box;
+  }
   if (stamp.kind === 'INTERRUPT') {
     box.append(element('div', 's', '中断'));
     box.append(element('div', 'n', '不発'));
@@ -550,6 +564,7 @@ interface PreviewRow {
   readonly key: string;
   readonly value: string;
   readonly tone?: 'hit' | 'no' | 'stop';
+  readonly note?: string; // 成否の根拠となる式。値の後ろに小さく添える
 }
 
 interface PreviewGroup {
@@ -557,24 +572,41 @@ interface PreviewGroup {
   readonly rows: readonly PreviewRow[];
 }
 
-function previewGroups(preview: ActionPreview): PreviewGroup[] {
+// [M-UI-HUD]［判定プレビュー］「提示の順序」先頭に発動（中断は成立）のステップと残りを示す。
+function timingGroup(preview: ActionPreview, fireStep: number, step: number): PreviewGroup {
+  const left = fireStep - step;
+  const cut = preview.kind === 'INTERRUPT';
+  return {
+    cap: cut ? '中断' : '発動',
+    rows: [{ key: '歩', value: `${fireStep}（${left > 0 ? `あと ${left}` : '即時'}）`, tone: cut ? 'stop' : 'hit' }],
+  };
+}
+
+// 「結果を先に示す」変化する値を 現在値 → 見込み値 で示し、式は note として後ろに添える。
+function previewGroups(preview: ActionPreview, nameOf: (unitId: string) => string): PreviewGroup[] {
   switch (preview.kind) {
     case 'INTERRUPT':
-      return [{ cap: '中断の見込み', rows: [{ key: '成立まで', value: `${SYMBOL.remaining}${preview.steps}`, tone: 'stop' }] }];
+      return [{ cap: '結果', rows: [{ key: '', value: '不発', tone: 'stop' }] }];
     case 'MARTIAL':
       return preview.targets.map((target) => ({
-        cap: POS_LABEL[target.posIdx] ?? '',
+        cap: nameOf(target.unitId),
         rows: target.hit
           ? [
-              // [M-UI-HUD]［判定プレビュー］実効攻撃力 ≧ 実効防御力 の成否と、HPダメージ見込み。
-              { key: '命中', value: `${SYMBOL.atk}${preview.atk} ≧ ${SYMBOL.defense}${target.defense}`, tone: 'hit' as const },
               {
-                key: SYMBOL.hp,
-                value: `${target.hpBefore} − ${target.damage ?? 0} → ${target.hpAfter}`,
+                key: '命中',
+                value: `${SYMBOL.hp} ${target.hpBefore} → ${target.hpAfter}`,
                 tone: 'hit' as const,
+                note: `${SYMBOL.atk}${preview.atk} ≧ ${SYMBOL.defense}${target.defense}`,
               },
             ]
-          : [{ key: '回避', value: `${SYMBOL.atk}${preview.atk} ＜ ${SYMBOL.defense}${target.defense}`, tone: 'no' as const }],
+          : [
+              {
+                key: '回避',
+                value: '無傷',
+                tone: 'no' as const,
+                note: `${SYMBOL.atk}${preview.atk} ＜ ${SYMBOL.defense}${target.defense}`,
+              },
+            ],
       }));
     case 'MARTIAL_NO_TARGET':
       return [{ cap: '武技', rows: [{ key: '対象', value: '射程内に不在', tone: 'no' }] }];
@@ -584,9 +616,10 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
           cap: '体勢',
           rows: [
             {
-              key: `発動後${SYMBOL.defense}`,
-              value: `${preview.deployAp} × ${formatCenti(preview.efficiencyCenti)} → ${preview.defenseAfter}`,
+              key: SYMBOL.defense,
+              value: `${preview.defenseBefore} → ${preview.defenseAfter}`,
               tone: 'hit',
+              note: `${SYMBOL.ap}${preview.deployAp} × ${formatCenti(preview.efficiencyCenti)}`,
             },
           ],
         },
@@ -596,16 +629,13 @@ function previewGroups(preview: ActionPreview): PreviewGroup[] {
         {
           cap: '心気',
           rows: [
-            { key: SYMBOL.vp, value: `${preview.vpBefore} + ${preview.gainVp} → ${preview.vpBefore + preview.gainVp}` },
+            { key: SYMBOL.vp, value: `${preview.vpBefore} → ${preview.vpBefore + preview.gainVp}`, tone: 'hit' },
             {
               // [M-RESOLVE-MIND]#3 目標PP = round(加算後VP × 実効PP充填効率)、#4 現在PPが下回るときのみ引き上げる。
               key: SYMBOL.pp,
-              value: `(${preview.vpBefore} + ${preview.gainVp}) × ${formatCenti(preview.chargeCenti)} = ${preview.targetPp}`,
-            },
-            {
-              key: '充填',
               value: preview.raises ? `${preview.ppBefore} → ${preview.targetPp}` : `${preview.ppBefore}（据え置き）`,
               tone: preview.raises ? 'hit' : 'no',
+              note: `${preview.vpBefore + preview.gainVp} × ${formatCenti(preview.chargeCenti)} = ${preview.targetPp}`,
             },
           ],
         },
@@ -714,16 +744,31 @@ function fillGroups(prev: HTMLElement, groups: readonly PreviewGroup[]): void {
     pg.append(element('div', 'cap', group.cap));
     for (const row of group.rows) {
       const line = element('div', `row num${row.tone === undefined ? '' : ` ${row.tone}`}`);
-      line.append(element('span', 'k', row.key));
+      if (row.key !== '') {
+        line.append(element('span', 'k', row.key));
+      }
       line.append(element('span', 'v', row.value));
+      if (row.note !== undefined) {
+        line.append(element('span', 'f', row.note));
+      }
       pg.append(line);
     }
     prev.append(pg);
   }
 }
 
-function fillPreview(prev: HTMLElement, preview: ActionPreview | null): void {
-  fillGroups(prev, preview === null ? [] : previewGroups(preview));
+function fillPreview(
+  prev: HTMLElement,
+  preview: ActionPreview | null,
+  fireStep: number | null,
+  step: number,
+  nameOf: (unitId: string) => string,
+): void {
+  if (preview === null || preview.kind === 'NONE') {
+    fillGroups(prev, []);
+    return;
+  }
+  fillGroups(prev, [...(fireStep === null ? [] : [timingGroup(preview, fireStep, step)]), ...previewGroups(preview, nameOf)]);
 }
 
 // [M-META-COUNTERS] 終焉燈による因果再走の累積回数。巻き戻し保留が立っている間はその旨を併せて示す。
@@ -828,6 +873,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   root.append(timelineHost);
 
   const inspector = renderInspector(view, screen);
+  const nameOf = (unitId: string): string => view.plates.find((plate) => plate.unitId === unitId)?.name ?? '';
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
   const plateNodes: (HTMLElement | null)[] = [null, null, null, null];
@@ -887,7 +933,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const restore = (): void => {
     inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
     inspector.desc.textContent = selectedCard?.description ?? '';
-    fillPreview(inspector.prev, view.preview);
+    fillPreview(inspector.prev, view.preview, view.previewFireStep, view.step, nameOf);
     restoreBoard();
   };
 
@@ -907,7 +953,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       restoreBoard(); // 盤面の提示（実行中の着弾予測など）は素のまま保つ
       return;
     }
-    fillPreview(inspector.prev, focus.preview);
+    fillPreview(inspector.prev, focus.preview, focus.fireStep, view.step, nameOf);
     for (const other of view.columns) {
       const dock = docks[other.posIdx];
       const plate = other.plate;

@@ -1108,6 +1108,8 @@ button:focus-visible {
   font-size: 10.5px;
 }
 .row .k { color: var(--muted); }
+/* [M-UI-HUD]［判定プレビュー］「結果を先に示す」成否の根拠となる式は、値の後ろに小さく添える。 */
+.row .f { font-size: 9.5px; color: var(--miss); margin-left: 2px; }
 .row.hit .v { color: var(--ember); font-weight: 700; }
 .row.no .v { color: var(--miss); }
 .row.stop .v { color: #d2707a; font-weight: 700; }

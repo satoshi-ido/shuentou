@@ -129,7 +129,29 @@ describe('[M-UI-WATCH] 充足判定', () => {
     return Object.fromEntries(Object.entries(evaluation).map(([kind, value]) => [kind, value.status]));
   }
 
-  it('『前列命中』『後列命中』：射程内の列ごとに現在の実効防御力と比較し、空きマス・射程外は対象外', () => {
+  it('『前列命中』『後列命中』：発動時点の実効防御力と比較し、空きマスは対象外、射程外は未充足', () => {
+    const SHORT = martialAction('HERO_SHORT', { atk: 20, range: 1, dmg_hp: 100, step_startup: 5 });
+    const { state, hero } = duel([SHORT], [MIND]);
+    const creature = placeUnit(state, { side: 'FOE', kind: 'CREATURE', pos: 3, maxHp: 10, acts: [MIND], counter: { instance_id_seq: 50 } });
+    creature.ap = 0;
+    expect(Math.abs(hero.pos_idx - creature.pos_idx)).toBeGreaterThan(1);
+    expect(statusOf(state, hero, 'HERO_SHORT')).toMatchObject({ HIT_BACK: 'UNMET' });
+  });
+
+  it('『前列命中』：相手の発生中の体勢が先に発動して防御力が上がる場合は未充足、後に発動するなら充足', () => {
+    const HIT = martialAction('HERO_HIT', { atk: 20, range: 2, dmg_hp: 100, step_startup: 5 });
+    const GUARD = makeAction('FOE_GUARD', { deploy_ap: 50, step_startup: 10, step_recovery: 20 });
+    const early = duel([HIT], [GUARD]);
+    early.enemy.ap = 0; // 現在の実効防御力0：現ステートだけを見れば命中する
+    setStartup(early.enemy, 'FOE_GUARD', 8); // 残り2：主人公の発動（5）より先に防御が成立する
+    expect(statusOf(early.state, early.hero, 'HERO_HIT').HIT_FRONT).toBe('UNMET');
+    const late = duel([HIT], [GUARD]);
+    late.enemy.ap = 0;
+    setStartup(late.enemy, 'FOE_GUARD', 0); // 残り10：主人公の発動が先
+    expect(statusOf(late.state, late.hero, 'HERO_HIT').HIT_FRONT).toBe('MET');
+  });
+
+  it('『前列命中』『後列命中』：射程内の列ごとに判定し、空きマスは対象外', () => {
     const HIT = martialAction('HERO_HIT', { atk: 20, range: 2, dmg_hp: 100, step_startup: 5 });
     const { state, hero, enemy } = duel([HIT, MIND], [MIND]);
     enemy.ap = 20;

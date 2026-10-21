@@ -116,16 +116,79 @@ export function applyWatchDefault(state: BattleState, mode: WatchDefaultMode): v
   }
 }
 
-function hitStatus(unit: Unit, action: ActionInstance, target: Unit | null, executable: boolean): WatchEvaluation {
-  if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || target === null) {
-    return NEVER;
-  }
-  if (Math.abs(unit.pos_idx - target.pos_idx) > effectiveRange(unit, action)) {
+// [M-UI-WATCH]『前列命中』『後列命中』：発動ステップの開始時点で、当該列の敵ユニットへ命中するか。
+// 射程外・空きマス化・中断・発動前の決着はいずれも未充足とする。
+function hitStatus(
+  state: BattleState,
+  unit: Unit,
+  action: ActionInstance,
+  rowIdx: number,
+  executable: boolean,
+  firing: () => BattleState | null,
+): WatchEvaluation {
+  if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL') || (state.units[rowIdx] ?? null) === null) {
     return NEVER;
   }
   // ［充足判定］対象外でなくとも、実行できない手は未充足とする。
-  const met = executable && effectiveAtk(unit, action) >= currentDefense(target);
-  return { status: met ? 'MET' : 'UNMET', remainingSteps: 0 };
+  const fired = executable ? firing() : null;
+  const hit = fired === null ? null : martialHitAt(fired, unit.unit_id, action.instance_id, rowIdx);
+  return { status: hit?.hit === true ? 'MET' : 'UNMET', remainingSteps: 0 };
+}
+
+export interface MartialHitAt {
+  readonly target: Unit;
+  readonly hit: boolean; // 射程内かつ 実効攻撃力 >= 実効防御力
+  readonly inRange: boolean;
+  readonly atk: number;
+  readonly defense: number;
+}
+
+// 発動ステップの開始時点の状態 fired で、u の a が敵陣の rowIdx のユニットへ命中するか。空きマスは Null。
+export function martialHitAt(fired: BattleState, unitId: string, instanceId: string, rowIdx: number): MartialHitAt | null {
+  const actor = findUnitById(fired, unitId);
+  const action = actor?.acts.find((candidate) => candidate.instance_id === instanceId);
+  const target = fired.units[rowIdx] ?? null;
+  if (actor === undefined || action === undefined || target === null) {
+    return null;
+  }
+  const inRange = Math.abs(actor.pos_idx - target.pos_idx) <= effectiveRange(actor, action);
+  const atk = effectiveAtk(actor, action);
+  const defense = currentDefense(target);
+  return { target, hit: inRange && atk >= defense, inRange, atk, defense };
+}
+
+// 確定仮定展開（実行中アクションについては現ステートからの展開）を、a が発動するステップの開始時点まで進めた状態。
+// 即時型は現ステートをそのまま返す（展開を要さない）。発動前に中断される場合、および決着する場合は Null。
+export function firingState(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): BattleState | null {
+  if (isInstant(action)) {
+    return state;
+  }
+  const running = unit.state === 'STARTUP' && unit.last_act?.instance_id === action.instance_id;
+  let clone: BattleState | null;
+  if (running) {
+    clone = structuredClone(state);
+    runStepEnd(clone);
+  } else {
+    clone = confirmedClone(state, unit.unit_id, action.instance_id, deps);
+  }
+  if (clone === null) {
+    return null;
+  }
+  const limit = effectiveStepStartup(unit, action) + 1;
+  for (let i = 0; i < limit; i += 1) {
+    const actor = findUnitById(clone, unit.unit_id);
+    if (actor === undefined || actor.state !== 'STARTUP' || actor.last_act?.instance_id !== action.instance_id) {
+      return null;
+    }
+    if (actor.elapsed_startup >= effectiveStepStartup(actor, action)) {
+      return clone;
+    }
+    const { outcome } = advanceStep(clone, alwaysPass, deps);
+    if (outcome !== 'NONE') {
+      return null;
+    }
+  }
+  return null;
 }
 
 function remainingStartup(unit: Unit, action: ActionInstance): number {
@@ -326,10 +389,18 @@ function evadeStatus(
 
 export function evaluateActionWatch(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps): ActionWatchEvaluation {
   const executable = executableActions(state, unit).includes(action);
+  // 『前列命中』『後列命中』は同じ展開を共有する（展開は要るときに1回だけ行う）。
+  let fired: BattleState | null | undefined;
+  const firing = (): BattleState | null => {
+    if (fired === undefined) {
+      fired = firingState(state, unit, action, deps);
+    }
+    return fired;
+  };
   return {
     STUN: stunStatus(state, unit, action, executable, deps),
-    HIT_FRONT: hitStatus(unit, action, state.units[FOE_FRONT_IDX] ?? null, executable),
-    HIT_BACK: hitStatus(unit, action, state.units[FOE_BACK_IDX] ?? null, executable),
+    HIT_FRONT: hitStatus(state, unit, action, FOE_FRONT_IDX, executable, firing),
+    HIT_BACK: hitStatus(state, unit, action, FOE_BACK_IDX, executable, firing),
     EVADE_FRONT: evadeStatus(state, unit, action, executable, deps, FOE_FRONT_IDX),
     EVADE_BACK: evadeStatus(state, unit, action, executable, deps, FOE_BACK_IDX),
   };
