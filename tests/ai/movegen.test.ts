@@ -197,6 +197,19 @@ describe('[A-SEARCH-MOVEGEN] 拍止め', () => {
     expect(labels(generateMoves(late.state, late.foe))).toEqual(['ACT_SHORT', 'ACT_LONG', 'PASS']);
   });
 
+  it('相手のマスターへ通り、根源武技より前に着弾するスタン付与の武技（通る中断）は温存で除かない', () => {
+    const STUN = martialAction('ACT_STUN', { atk: 10, range: 2, stun: true, step_thought: 0, step_startup: 20, step_recovery: 200 });
+    const state = createDuel({ heroMaxHp: 10, heroActs: [ROOT], enemyMaxHp: 10, enemyActs: [SHORT, LONG, STUN, COUNTER] });
+    const hero = findUnit(state, 'MINE');
+    const foe = findUnit(state, 'FOE');
+    hero.elapsed_thought = 100; // 残り 451：LONG は 200 + 301、STUN は 220 + 301 で、いずれも ≧ 451
+    foe.elapsed_thought = 300;
+    hero.ap = 10; // 攻撃力10 は防御力10 に通る
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'ACT_STUN', 'PASS']);
+    hero.ap = 11; // 体勢などで防がれている
+    expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'PASS']);
+  });
+
   it('待っても間に合わないときは温存しない', () => {
     const { state, foe } = duel(400, 0); // 残り 151 < 301
     expect(labels(generateMoves(state, foe))).toEqual(['ACT_SHORT', 'ACT_LONG', 'PASS']);

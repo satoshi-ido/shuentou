@@ -90,6 +90,22 @@ function counterInTime(unit: Unit, counter: ActionInstance, left: number): boole
   );
 }
 
+// 通る中断：相手陣営のマスターへ通り、根源武技の発動より前に着弾するスタン付与の武技（拍止め・根源武技を除く）。
+// 着弾すれば相手の思考を中断するため、温存で除かない。
+function interruptsRoot(state: BattleState, unit: Unit, action: ActionInstance, left: number): boolean {
+  const rival = opposingMaster(state, unit);
+  return (
+    rival !== null &&
+    hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
+    action.base_params.stun &&
+    action.master_ref !== ROOT_COUNTER_ID &&
+    !isRootAction(action) &&
+    effectiveAtk(unit, action) >= currentDefense(rival) &&
+    Math.abs(rival.pos_idx - unit.pos_idx) <= effectiveRange(unit, action) &&
+    effectiveStepStartup(unit, action) < left
+  );
+}
+
 // [A-SEARCH-MOVEGEN]「拍止め」：発射・温存・相方の隊列交代の規則。発射の時機であれば拍止めのみを返す。
 function applyCounterRules(state: BattleState, unit: Unit, actions: readonly ActionInstance[]): readonly ActionInstance[] {
   const left = rootLeft(state, unit);
@@ -108,7 +124,9 @@ function applyCounterRules(state: BattleState, unit: Unit, actions: readonly Act
     }
     if (counterInTime(unit, counter, left)) {
       result = result.filter(
-        (action) => effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action) + lead < left,
+        (action) =>
+          effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action) + lead < left ||
+          interruptsRoot(state, unit, action, left),
       );
     }
   }
