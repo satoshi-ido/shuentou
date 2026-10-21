@@ -3579,7 +3579,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 19,
       "cost_vp": 0,
@@ -3620,7 +3620,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 714,
       "cost_vp": 0,
@@ -3661,7 +3661,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 26,
       "cost_vp": 0,
@@ -3702,7 +3702,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 32,
       "cost_vp": 0,
@@ -3743,7 +3743,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 34,
       "cost_vp": 0,
@@ -3784,7 +3784,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 37,
       "cost_vp": 0,
@@ -3825,7 +3825,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 40,
       "cost_vp": 0,
@@ -3866,7 +3866,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 1311,
       "cost_vp": 0,
@@ -3907,7 +3907,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 53,
       "cost_vp": 0,
@@ -3948,7 +3948,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 63,
       "cost_vp": 0,
@@ -3989,7 +3989,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 67,
       "cost_vp": 0,
@@ -4030,7 +4030,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 2,
       "cost_vp": 0,
@@ -4071,7 +4071,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 78,
       "cost_vp": 0,
@@ -4112,7 +4112,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 89,
       "cost_vp": 0,
@@ -4153,7 +4153,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 97,
       "cost_vp": 0,
@@ -4194,7 +4194,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 105,
       "cost_vp": 0,
@@ -4235,7 +4235,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 110,
       "cost_vp": 0,
@@ -4276,7 +4276,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 4,
       "cost_vp": 0,
@@ -4317,7 +4317,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 114,
       "cost_vp": 0,
@@ -4358,7 +4358,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 131,
       "cost_vp": 0,
@@ -4399,7 +4399,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 154,
       "cost_vp": 0,
@@ -4440,7 +4440,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 174,
       "cost_vp": 0,
@@ -4481,7 +4481,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 194,
       "cost_vp": 0,
@@ -4522,7 +4522,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 7,
       "cost_vp": 0,
@@ -4563,7 +4563,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 209,
       "cost_vp": 0,
@@ -4604,7 +4604,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 225,
       "cost_vp": 0,
@@ -4645,7 +4645,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 236,
       "cost_vp": 0,
@@ -4686,7 +4686,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 247,
       "cost_vp": 0,
@@ -4727,7 +4727,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 252,
       "cost_vp": 0,
@@ -4768,7 +4768,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 310,
       "cost_vp": 0,
@@ -4809,7 +4809,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 10,
       "cost_vp": 0,
@@ -4850,7 +4850,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 12,
       "cost_vp": 0,
@@ -4891,7 +4891,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 19,
       "cost_vp": 0,
@@ -4932,7 +4932,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 714,
       "cost_vp": 0,
@@ -4973,7 +4973,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 26,
       "cost_vp": 0,
@@ -5014,7 +5014,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 32,
       "cost_vp": 0,
@@ -5055,7 +5055,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 34,
       "cost_vp": 0,
@@ -5096,7 +5096,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 37,
       "cost_vp": 0,
@@ -5137,7 +5137,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 40,
       "cost_vp": 0,
@@ -5178,7 +5178,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 1311,
       "cost_vp": 0,
@@ -5219,7 +5219,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 53,
       "cost_vp": 0,
@@ -5260,7 +5260,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 63,
       "cost_vp": 0,
@@ -5301,7 +5301,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 67,
       "cost_vp": 0,
@@ -5342,7 +5342,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 2,
       "cost_vp": 0,
@@ -5383,7 +5383,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 78,
       "cost_vp": 0,
@@ -5424,7 +5424,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 89,
       "cost_vp": 0,
@@ -5465,7 +5465,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 97,
       "cost_vp": 0,
@@ -5506,7 +5506,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 105,
       "cost_vp": 0,
@@ -5547,7 +5547,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 110,
       "cost_vp": 0,
@@ -5588,7 +5588,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 4,
       "cost_vp": 0,
@@ -5629,7 +5629,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 114,
       "cost_vp": 0,
@@ -5670,7 +5670,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 131,
       "cost_vp": 0,
@@ -5711,7 +5711,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 154,
       "cost_vp": 0,
@@ -5752,7 +5752,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 174,
       "cost_vp": 0,
@@ -5793,7 +5793,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 194,
       "cost_vp": 0,
@@ -5834,7 +5834,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 7,
       "cost_vp": 0,
@@ -5875,7 +5875,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 209,
       "cost_vp": 0,
@@ -5916,7 +5916,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 225,
       "cost_vp": 0,
@@ -5957,7 +5957,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 236,
       "cost_vp": 0,
@@ -5998,7 +5998,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 247,
       "cost_vp": 0,
@@ -6039,7 +6039,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 252,
       "cost_vp": 0,
@@ -6080,7 +6080,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 310,
       "cost_vp": 0,
@@ -6121,7 +6121,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 10,
       "cost_vp": 0,
@@ -6162,7 +6162,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 12,
       "cost_vp": 0,
@@ -9975,7 +9975,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 164,
       "cost_vp": 0,
@@ -10019,7 +10019,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 48,
       "cost_vp": 0,
@@ -10105,7 +10105,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 68,
       "cost_vp": 0,
@@ -10234,7 +10234,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 143,
       "cost_vp": 0,
@@ -12105,7 +12105,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 464,
       "cost_vp": 0,
@@ -12190,7 +12190,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 74,
       "cost_vp": 0,
@@ -12234,7 +12234,7 @@ export const ACTION_MASTERS = {
     "is_root": false,
     "manual_sys_flag": null,
     "params": {
-      "def_efficiency": 200,
+      "def_efficiency": 100,
       "target_scope": "SELF",
       "cost_hp": 201,
       "cost_vp": 0,

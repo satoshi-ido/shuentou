@@ -160,7 +160,7 @@ function summon(arTenths, summonId) {
 function mind(kind, arTenths) {
   const base = defaultParams();
   base.cost_hp = coeffTimesArPow1_5(45, arTenths, false);
-  base.def_efficiency = 200;
+  base.def_efficiency = 100;
   base.decay_ap = 50;
   base.purify_rate = 50;
   base.charge_pp = coeffTimesSqrt(58, arTenths, true);
