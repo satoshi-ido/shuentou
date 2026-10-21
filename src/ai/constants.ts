@@ -9,7 +9,6 @@ export const MATE_TH = MATE - 10000;
 export const QMATE = MATE_TH - 1; // [A-EVAL-MATE]「静止探索中の決着」のスコア基準
 export const INF = MATE + SCALE;
 export const TTK_MAX = 999;
-export const TIE_BONUS = 16; // SCALE // 64
 export const PURIFY_ITER_MAX = 8;
 export const BONUS_DEFAULT_PASS = -400; // [A-PROFILE-BONUS]
 // [V-TEST-REFAI]「体勢への減点」参照プレイヤーAIのアクション種別ボーナス。

@@ -28,7 +28,7 @@ import {
 } from './features.js';
 import { type FeatureKey, BASE_WEIGHTS, type EffectiveProfile, weightMultOf } from './profile.js';
 import { runQuiescence } from './quiesce.js';
-import { newTtkCache, ttk, xSurvival } from './ttk.js';
+import { damageBy, newTtkCache, projectedLoss, settlementOf, ttk, type TtkInputs, xSurvival } from './ttk.js';
 import { SCALE } from './constants.js';
 
 const INT32_MAX = 2147483647;
@@ -71,10 +71,10 @@ function phaseMultiplierCenti(key: FeatureKey, phiCenti: number): number {
   return 100;
 }
 
-function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfile, tp: number, te: number): number {
+function featureValue(state: BattleState, key: FeatureKey, prof: EffectiveProfile, survival: number): number {
   switch (key) {
     case 'survival':
-      return xSurvival(tp, te, SCALE);
+      return survival;
     case 'tempo':
       return xTempo(state);
     case 'board':
@@ -112,6 +112,8 @@ export function evaluate(state: BattleState, prof: EffectiveProfile, ply: number
 export interface LeafEvaluation {
   readonly value: number;
   readonly refutableLoser: Side | null;
+  // 静止局面の tp・te（葉ノード基準）。延長中に決着した葉では null。
+  readonly race: { readonly tp: number; readonly te: number } | null;
 }
 
 // [V-TEST-NONFUNC]［測定の打ち切り］通しプレイの測定は、1試行1シーンあたりの E(state) の
@@ -135,10 +137,10 @@ export function evaluateLeafPosition(
 ): LeafEvaluation {
   evalCalls += 1;
   if (masterOf(state, 'FOE') === undefined) {
-    return { value: -MATE, refutableLoser: null };
+    return { value: -MATE, refutableLoser: null, race: null };
   }
   if (masterOf(state, 'MINE') === undefined) {
-    return { value: MATE, refutableLoser: null };
+    return { value: MATE, refutableLoser: null, race: null };
   }
 
   // [A-SEARCH-QUIESCE]［評価対象］葉は静止局面まで進め、その静止局面を評価する。発生中アクションの
@@ -150,7 +152,7 @@ export function evaluateLeafPosition(
     // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、呼び出し側が
     // 敗れる側の決定点1つ分の延長で確認する。
     const loser = outcome === 'WIN' ? 'FOE' : 'MINE';
-    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableLoser: decided[loser] ? loser : null };
+    return { value: quiescenceMateScore(outcome, ply, trace.length - 1), refutableLoser: decided[loser] ? loser : null, race: null };
   }
   const foeMaster = masterOf(quiet, 'FOE');
   const mineMaster = masterOf(quiet, 'MINE');
@@ -160,28 +162,43 @@ export function evaluateLeafPosition(
   // 延長したステップ数 q。トレースは葉ノードを添字0として記録されている。
   const inputs = { trace, level: quiet.scene_level, offset: trace.length - 1, cache: newTtkCache(), thoughtDeny: prof.thoughtDeny, landingWait: prof.landingWait };
   // [A-EVAL-TTK]［延長中の決定点からの計画］延長中に決定点を持った陣営は、その時点からの計画と比べて小さい方を採る。
-  let tp = ttk(mineMaster, foeMaster, inputs);
-  let te = ttk(foeMaster, mineMaster, inputs);
+  // 各陣営の攻撃計画の起点：静止局面と、延長中の最初の決定点（あれば）。
+  const mineOrigins: { attacker: Unit; defender: Unit; inputs: TtkInputs }[] = [
+    { attacker: mineMaster, defender: foeMaster, inputs },
+  ];
   const mineFirst = firstDecision.MINE;
   if (mineFirst !== null && mineFirst.index < inputs.offset) {
     // ［延長中の妨害］延長中に主人公のマスターが経過思考を失った最初の添字を、決定点からの計画の妨害に数える。
     const lost = prof.traceDeny ? thoughtLost.MINE.find((index) => index > mineFirst.index) : undefined;
     const traceDeny = lost === undefined ? undefined : lost - mineFirst.index;
-    tp = Math.min(tp, ttk(mineFirst.mine, mineFirst.foe, { ...inputs, offset: mineFirst.index, traceDeny }));
+    mineOrigins.push({ attacker: mineFirst.mine, defender: mineFirst.foe, inputs: { ...inputs, offset: mineFirst.index, traceDeny } });
   }
+  const foeOrigins: { attacker: Unit; defender: Unit; inputs: TtkInputs }[] = [
+    { attacker: foeMaster, defender: mineMaster, inputs },
+  ];
   const foeFirst = firstDecision.FOE;
   if (foeFirst !== null && foeFirst.index < inputs.offset) {
-    te = Math.min(te, ttk(foeFirst.foe, foeFirst.mine, { ...inputs, offset: foeFirst.index }));
+    foeOrigins.push({ attacker: foeFirst.foe, defender: foeFirst.mine, inputs: { ...inputs, offset: foeFirst.index } });
   }
+  const tp = Math.min(...mineOrigins.map((o) => ttk(o.attacker, o.defender, o.inputs)));
+  const te = Math.min(...foeOrigins.map((o) => ttk(o.attacker, o.defender, o.inputs)));
+  // [A-EVAL-TTK]［予測損耗］決着までに相手へ与える実効HPダメージ（各起点の最大）。勝つ側の損耗は決着で全損とする。
+  const settlement = settlementOf(tp, te);
+  const toFoe = settlement.enemyWins || !settlement.playerWins ? Math.max(...mineOrigins.map((o) => damageBy(o.attacker, o.defender, o.inputs, settlement.horizon))) : 0;
+  const toMine = settlement.playerWins || !settlement.enemyWins ? Math.max(...foeOrigins.map((o) => damageBy(o.attacker, o.defender, o.inputs, settlement.horizon))) : 0;
+  const survival = xSurvival(
+    projectedLoss(mineMaster, Math.min(toMine, mineMaster.hp), settlement.enemyWins, SCALE),
+    projectedLoss(foeMaster, Math.min(toFoe, foeMaster.hp), settlement.playerWins, SCALE),
+  );
   const phiCenti = 100 - floorDiv(foeMaster.hp * 100, Math.max(foeMaster.max_hp, 1));
 
   let total = 0;
   for (const key of prof.evalMask) {
-    const x = featureValue(quiet, key, prof, tp, te);
+    const x = featureValue(quiet, key, prof, survival);
     const weight = BASE_WEIGHTS[key];
     const mult = signedRoundDiv(weightMultOf(prof, key) * phaseMultiplierCenti(key, phiCenti), 100);
     const effectiveWeight = signedRoundDiv(weight * mult, 100);
     total += signedRoundDiv(effectiveWeight * x, SCALE);
   }
-  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableLoser: null };
+  return { value: clamp(total, INT32_MIN, INT32_MAX), refutableLoser: null, race: { tp, te } };
 }

@@ -26,7 +26,7 @@ import { defenseFromApAndEfficiency } from '../engine/calc.js';
 import { INFINITE_USES } from '../engine/params.js';
 import type { ActionInstance, Unit } from '../engine/types.js';
 import { roundDiv } from '../num/helpers.js';
-import { PURIFY_ITER_MAX, ROOT_COUNTER_ID, TIE_BONUS, TTK_MAX } from './constants.js';
+import { PURIFY_ITER_MAX, ROOT_COUNTER_ID, TTK_MAX } from './constants.js';
 import { isRootAction } from './movegen.js';
 import { signedRoundDiv } from './fixed.js';
 import { sampleAt, type QuiesceTrace } from './quiesce.js';
@@ -346,12 +346,20 @@ function pickSubstitute(
   return best === null ? null : best.action;
 }
 
+// [A-EVAL-TTK]［予測損耗］予測与ダメージの集計先。葉ノード基準で horizon 以前に着弾する射撃の実効HPダメージを
+// dealt に加え、horizon より後の射撃で計画を打ち切る。
+interface DamageSink {
+  readonly horizon: number;
+  dealt: number;
+}
+
 function buildPlan(
   ctx: PlanContext,
   act: ActionInstance,
   defender: Unit,
   inputs: TtkInputs,
   tDeny: number,
+  sink?: DamageSink,
 ): AttackPlan | null {
   const attacker = ctx.unit;
   const res: PlanState = { hp: attacker.hp, vp: attacker.vp, pp: attacker.pp, ap: attacker.ap, uses: {} };
@@ -483,6 +491,12 @@ function buildPlan(
     } else if (kind === 'REFILL_STANCE') {
       res.ap = cycleMetrics.deployAp;
     } else {
+      if (sink !== undefined) {
+        if (inputs.offset + fire > sink.horizon) {
+          return null;
+        }
+        sink.dealt += shotMetrics.damage;
+      }
       res.hp -= costHp;
       res.vp = Math.max(res.vp - costVp, 0);
       res.pp = Math.max(res.pp - costPp, 0);
@@ -732,11 +746,27 @@ function readyLanding(unit: Unit, action: ActionInstance, thoughtDeny: boolean):
 // 有効HP(d) は対象マスターのHPのみ（[A-EVAL-TTK]）。返り値は葉ノード基準であり、静止局面を基準とする
 // 最終着弾ステップに q を加えてからクランプする（[A-EVAL-TTK]「同着の非対称性」）。
 export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): number {
+  let best = TTK_MAX;
+  forEachPlan(attacker, defenderMaster, inputs, (build) => {
+    const plan = build();
+    if (plan !== null) {
+      best = Math.min(best, Math.min(Math.max(inputs.offset + plan.finalLanding, 1), TTK_MAX));
+    }
+  });
+  return best;
+}
+
+// 攻撃側マスターの各武技について、妨害補正を定めた攻撃計画の構成を visit へ渡す。
+function forEachPlan(
+  attacker: Unit,
+  defenderMaster: Unit,
+  inputs: TtkInputs,
+  visit: (build: (sink?: DamageSink) => AttackPlan | null) => void,
+): void {
   const tDeny = Math.min(denyTime(defenderMaster, attacker, inputs), inputs.traceDeny ?? TTK_MAX);
   const ctx = contextOf(inputs, attacker);
   // 根源武技で決着させる計画に限り、防御側の拍止めを数える。
   const rootDeny = Math.min(tDeny, counterDenyTime(defenderMaster, attacker, inputs));
-  let best = TTK_MAX;
   for (const action of attacker.acts) {
     if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
       continue;
@@ -748,17 +778,46 @@ export function ttk(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs): nu
     // ［除外条件］命中・射程は妨害補正を含まない計画の初弾着弾時点で判定する。
     // ［射撃アクション］単独計画で削り切れない場合も、代替武技へ引き継ぐ計画として構成する。
     // 命中・射程は各アクションの初弾着弾時点で判定する（buildPlan 内）。
-    const plan = buildPlan(ctx, action, defenderMaster, inputs, isRootAction(action) ? rootDeny : tDeny);
-    if (plan === null) {
-      continue;
-    }
-    best = Math.min(best, Math.min(Math.max(inputs.offset + plan.finalLanding, 1), TTK_MAX));
+    visit((sink) => buildPlan(ctx, action, defenderMaster, inputs, isRootAction(action) ? rootDeny : tDeny, sink));
   }
-  return best;
 }
 
-// [A-EVAL-TTK]「同着の非対称性」。tp = TTK(player -> enemy)、te = TTK(enemy -> player)。
-export function xSurvival(tp: number, te: number, scale: number): number {
-  const raw = signedRoundDiv((tp - te) * scale, tp + te);
-  return tp >= te ? raw + TIE_BONUS : raw;
+// [A-EVAL-TTK]［予測損耗］予測与ダメージ D(a → d, horizon)：攻撃計画のうち、葉ノード基準で horizon 以前に
+// 着弾する射撃の実効HPダメージの合計の最大値。防御側の現在HPを上限とする。
+export function damageBy(attacker: Unit, defenderMaster: Unit, inputs: TtkInputs, horizon: number): number {
+  let best = 0;
+  forEachPlan(attacker, defenderMaster, inputs, (build) => {
+    const sink: DamageSink = { horizon, dealt: 0 };
+    build(sink);
+    best = Math.max(best, sink.dealt);
+  });
+  return Math.min(best, defenderMaster.hp);
+}
+
+// [A-EVAL-TTK]［予測損耗］決着までの時間。tp = TTK(player -> enemy)、te = TTK(enemy -> player)。
+// 同着は敵の勝ち。双方とも TTK_MAX のときは決着しない。
+export interface Settlement {
+  readonly enemyWins: boolean;
+  readonly playerWins: boolean;
+  // 予測与ダメージを数える上限（葉ノード基準）。主人公が勝つときは tp、敵が勝つときは同着を敵の勝ちとして te − 1、
+  // 決着しないときは TTK_MAX。
+  readonly horizon: number;
+}
+
+export function settlementOf(tp: number, te: number): Settlement {
+  const enemyWins = te <= tp && te < TTK_MAX;
+  const playerWins = tp < te;
+  return { enemyWins, playerWins, horizon: enemyWins ? te - 1 : playerWins ? tp : TTK_MAX };
+}
+
+// [A-EVAL-TTK]［予測損耗］予測損耗率：(最大HP − 予測残りHP) / 最大HP（SCALE 倍）。lost は決着で消滅するか。
+export function projectedLoss(unit: Unit, dealt: number, lost: boolean, scale: number): number {
+  const remaining = lost ? 0 : Math.max(unit.hp - dealt, 0);
+  const maxHp = Math.max(unit.max_hp, 1);
+  return signedRoundDiv((maxHp - remaining) * scale, maxHp);
+}
+
+// x_survival = 主人公の予測損耗率 − 敵マスターの予測損耗率（AI側視点）。
+export function xSurvival(playerLoss: number, enemyLoss: number): number {
+  return playerLoss - enemyLoss;
 }

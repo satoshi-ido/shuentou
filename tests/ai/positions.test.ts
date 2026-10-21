@@ -391,11 +391,8 @@ describe('[A-SEARCH-MOVEGEN] 待機手による決め手の選択', () => {
   // 待機手の有無だけを比べるため、[V-TEST-REFAI]「体勢への減点」を外したプロファイルで判定する。
   const noStancePenalty = { ...referenceProfile(), actionBonus: {} };
 
-  it('待機手を含めない探索では、時間停止の瞬間に実行可能な体勢を選ぶ', () => {
-    const { state, hero } = position();
-    expect(chosenClassId(state, hero, { ...noStancePenalty, waitMoves: false })).toBe('HERO_GUARD');
-  });
-
+  // 待機手を含めない探索との対比は置かない。[A-EVAL-TTK]［予測損耗］では、パスの葉でも決め手の計画が勝つため、
+  // PPを費やす体勢はパスに劣り、待機手の有無で選択が分かれない。
   it('待機手を含める探索では決め手を待つ（決定はパスとして返る）', () => {
     const { state, hero } = position();
     expect(chosenClassId(state, hero, noStancePenalty)).toBe('PASS');
@@ -459,14 +456,15 @@ describe('[V-TEST-POSITIONS] T-04/T-05 自滅ポリシーの MATE_TH 判定', ()
 });
 
 describe('[V-TEST-POSITIONS] T-15 同着の非対称性', () => {
-  // 双方の根源武技が同一ステップに到達する対称局面では tp == te となり、TIE_BONUS により敵側が正となる。
+  // 双方の根源武技が同一ステップに到達する対称局面では tp == te となり、同着は敵の勝ちとして敵側が正となる
+  // （[A-EVAL-TTK]［予測損耗］）。根源武技は一撃で決着させる（[M-BASE-AR-SYSTEM]）。
   it.each([
     { name: '双方思考0から', elapsed: 0 },
     { name: '双方経過思考300', elapsed: 300 },
     { name: '双方経過思考549', elapsed: 549 },
   ])('T-15: $name', ({ elapsed }) => {
-    const HERO_ROOT = martialAction('HERO_ROOT', { atk: 8, dmg_hp: 1000, step_thought: 550, step_startup: 14, step_recovery: 50 });
-    const FOE_ROOT = martialAction('FOE_ROOT', { atk: 8, dmg_hp: 1000, step_thought: 550, step_startup: 14, step_recovery: 50 });
+    const HERO_ROOT = martialAction('HERO_ROOT', { atk: 8, dmg_hp: 99900, step_thought: 550, step_startup: 14, step_recovery: 50 });
+    const FOE_ROOT = martialAction('FOE_ROOT', { atk: 8, dmg_hp: 99900, step_thought: 550, step_startup: 14, step_recovery: 50 });
     const { state, hero, enemy } = duel([HERO_ROOT], [FOE_ROOT]);
     hero.elapsed_thought = elapsed;
     enemy.elapsed_thought = elapsed;

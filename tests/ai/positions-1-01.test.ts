@@ -43,9 +43,15 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
     expect(chosenClassId(state, enemy, defaultProfile())).toBe('PASS');
   });
 
-  it('T-12: 狂乱プロファイルの PASS −800 下でもパスする', () => {
+  // 定跡を無効にすると、敗れる見込みの敵は自身のHPを損耗に数えず（[A-EVAL-TTK]［予測損耗］）、PASS −800 の下では
+  // 効果ゼロの心気（無想）を選ぶ。1-01 では定跡 B-01①の待機がパスを与える（[V-NUM-OPENING]）。
+  it('T-12: 狂乱プロファイルの PASS −800 下でも、1-01 の定跡によりパスする', () => {
     const { state, enemy } = lefOpening();
-    const frenzy: EffectiveProfile = { ...defaultProfile(), actionBonus: { PASS: FRENZY_PASS } };
+    const frenzy: EffectiveProfile = {
+      ...defaultProfile(),
+      bookId: ENEMY_MASTERS.ENEMY_LEF.book_id,
+      actionBonus: { PASS: FRENZY_PASS },
+    };
     expect(chosenClassId(state, enemy, frenzy)).toBe('PASS');
   });
 

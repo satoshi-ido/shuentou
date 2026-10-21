@@ -35,8 +35,8 @@ describe('[A-SEARCH-QUIESCE]［延長中の決定点］', () => {
 describe('[A-EVAL-TTK]［延長中の決定点からの計画］', () => {
   // 敵マスターの致死武技の必要思考だけが異なる2局面を比べる。延長中（主人公の発生90歩）に敵が行動
   // しうる局面（必要思考10）は、行動しえない局面（必要思考95）より主人公にとって明確に悪い。
-  // 延長中の敵の行動を評価から落とすと、両者の te は 120 と 125 でほぼ並ぶ（実測で差は52）。
-  function leafValue(enemyThought: number): number {
+  // 延長中の敵の行動を評価から落とすと、両者の te は 120 と 125 でほぼ並ぶ。
+  function leafTe(enemyThought: number): number {
     const state = createDuel({
       heroMaxHp: 100,
       heroActs: [martialAction('HERO_LONG', { atk: 5, dmg_hp: 100, step_startup: 90, step_recovery: 10 })],
@@ -46,12 +46,13 @@ describe('[A-EVAL-TTK]［延長中の決定点からの計画］', () => {
       ],
     });
     setStartup(findUnit(state, 'MINE'), 'HERO_LONG', 0);
-    return evaluateLeafPosition(state, referenceProfile(), 1, NO_SUMMON_DEPS).value;
+    return evaluateLeafPosition(state, referenceProfile(), 1, NO_SUMMON_DEPS).race!.te;
   }
 
   it('延長中に行動しうる相手の TTK を、その最初の決定点から数える', () => {
-    // 評価値は敵軍側が正。実測では 4339 と 3732（補正なしでは 3784 と 3732）。
-    expect(leafValue(10) - leafValue(95)).toBeGreaterThanOrEqual(300);
+    // 必要思考10の局面は延長中の決定点（添字10）から 10 + 30 = 40 で着弾する。必要思考95の局面は延長の後に思考を満たす。
+    expect(leafTe(10)).toBe(40);
+    expect(leafTe(95)).toBeGreaterThanOrEqual(120);
   });
 });
 
@@ -90,9 +91,10 @@ describe('[A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨�
   });
 
   it('参照プレイヤーAIの探索では、決定点からの計画が延長中の経過思考の喪失でやり直しとなる', () => {
-    const value = (traceDeny: boolean) =>
-      evaluateLeafPosition(thinkingHero(), { ...referenceProfile(), traceDeny }, 1, NO_SUMMON_DEPS).value;
-    // 評価値は敵軍側が正。数えない場合、添字0からの計画（残り思考10＋発生5）が妨害なしで成立し、主人公に有利となる。
-    expect(value(true)).toBeGreaterThan(value(false));
+    const tp = (traceDeny: boolean) =>
+      evaluateLeafPosition(thinkingHero(), { ...referenceProfile(), traceDeny }, 1, NO_SUMMON_DEPS).race!.tp;
+    // 数えない場合、添字0からの計画（残り思考10＋発生5）が妨害なしで成立し、tp は 15 となる。
+    expect(tp(false)).toBe(15);
+    expect(tp(true)).toBeGreaterThan(15);
   });
 });

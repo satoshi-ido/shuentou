@@ -18,7 +18,7 @@ import { signedRoundDiv } from '../../src/ai/fixed.js';
 import { defaultProfile, type EffectiveProfile } from '../../src/ai/profile.js';
 import { runQuiescence } from '../../src/ai/quiesce.js';
 import { decideActionDetailed } from '../../src/ai/search.js';
-import { ttk, xSurvival } from '../../src/ai/ttk.js';
+import { damageBy, projectedLoss, settlementOf, ttk, xSurvival } from '../../src/ai/ttk.js';
 
 const PREFERRED_CLASS_ID = 'ACT_MIND_AR3';
 const W_SURVIVAL = 4000;
@@ -80,9 +80,15 @@ function rowAfter(classIdOrPass: string): Row {
   const quiet = cloneState(state);
   const { trace } = runQuiescence(quiet, deps);
   const inputs = { trace, level: state.scene_level, offset: trace.length - 1 };
-  const tp = ttk(findUnit(quiet, 'MINE'), findUnit(quiet, 'FOE'), inputs);
-  const te = ttk(findUnit(quiet, 'FOE'), findUnit(quiet, 'MINE'), inputs);
-  const x = xSurvival(tp, te, SCALE);
+  const mine = findUnit(quiet, 'MINE');
+  const foe = findUnit(quiet, 'FOE');
+  const tp = ttk(mine, foe, inputs);
+  const te = ttk(foe, mine, inputs);
+  // [A-EVAL-TTK]［予測損耗］本局面では延長中の決定点からの計画は現れない。
+  const s = settlementOf(tp, te);
+  const toMine = s.enemyWins ? 0 : damageBy(foe, mine, inputs, s.horizon);
+  const toFoe = s.playerWins ? 0 : damageBy(mine, foe, inputs, s.horizon);
+  const x = xSurvival(projectedLoss(mine, toMine, s.enemyWins, SCALE), projectedLoss(foe, toFoe, s.playerWins, SCALE));
   const survival = signedRoundDiv(W_SURVIVAL * x, SCALE);
   return {
     te,
@@ -94,10 +100,10 @@ function rowAfter(classIdOrPass: string): Row {
 
 describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
   it.each([
-    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 865, tp: 419, xSurvivalMilli: -348, total: -1391 } },
-    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 865, tp: 419, xSurvivalMilli: -348, total: -1391 } },
-    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 999, tp: 735, xSurvivalMilli: -152, total: -609 } },
-    { move: 'PASS', label: 'パス', expected: { te: 865, tp: 498, xSurvivalMilli: -270, total: -1878 } },
+    { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 865, tp: 419, xSurvivalMilli: -900, total: -3602 } },
+    { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 865, tp: 419, xSurvivalMilli: -917, total: -3668 } },
+    { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 999, tp: 735, xSurvivalMilli: -800, total: -3199 } },
+    { move: 'PASS', label: 'パス', expected: { te: 865, tp: 498, xSurvivalMilli: -816, total: -4066 } },
   ])('$label', ({ move, expected }) => {
     expect(rowAfter(move)).toEqual(expected);
   });
@@ -118,8 +124,8 @@ describe('[V-TEST-POSITIONS] T-18 パスへの負のボーナスと妨害モデ�
   });
 
   // 1-01 の実効プロファイルによる探索の選択は T-18 の期待手としない（[V-TEST-POSITIONS] T-18）。
-  // [V-NUM-STEP157] の算出値（パス）として検証する。
-  it('[V-NUM-STEP157] 1-01 の実効プロファイルによる探索ではパスを選ぶ', () => {
-    expect(chosen(frenzy)).toBe('PASS');
+  // [V-NUM-STEP157] の算出値（武技（重撃）AR3）として検証する。
+  it('[V-NUM-STEP157] 1-01 の実効プロファイルによる探索では武技（重撃）AR3を選ぶ', () => {
+    expect(chosen(frenzy)).toBe('ACT_HEAVY_AR3');
   });
 });
