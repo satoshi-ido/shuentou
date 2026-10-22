@@ -59,7 +59,7 @@ describe('[V-NUM-PARAMS] 祠守レフ（L=3）', () => {
     expect(action.params.step_thought).toBe(0);
     expect(action.params.step_startup).toBe(236);
     expect(action.params.step_recovery).toBe(0);
-    expect(action.params.atk).toBe(12);
+    expect(action.params.atk).toBe(24);
     expect(action.params.cost_pp).toBe(1);
   });
 
@@ -94,7 +94,7 @@ describe('[V-NUM-PARAMS] 主人公初期キット', () => {
     expect(action.params.step_thought).toBe(0);
     expect(action.params.step_startup).toBe(105);
     expect(action.params.step_recovery).toBe(0);
-    expect(action.params.atk).toBe(27);
+    expect(action.params.atk).toBe(54);
     expect(action.params.cost_pp).toBe(5);
   });
 

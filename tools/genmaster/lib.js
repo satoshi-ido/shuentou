@@ -116,7 +116,7 @@ function martial(kind, arTenths) {
     base.step_startup = coeffOverSqrt(408, arTenths, false);
     base.step_recovery = 0;
     base.range = 2;
-    base.atk = coeffTimesSqrt(693, arTenths, false);
+    base.atk = coeffTimesSqrt(1386, arTenths, false);
     base.dmg_hp = coeffTimesSqrt(77, arTenths, true);
   }
   return base;
@@ -130,7 +130,7 @@ function stance(arTenths) {
   base.step_startup = coeffOverSqrt(68, arTenths, false);
   base.step_recovery = coeffOverSqrt(204, arTenths, false);
   base.def_efficiency = 200;
-  base.decay_ap = 0;
+  base.decay_ap = 50;
   base.purify_rate = 50;
   base.deploy_ap = coeffTimesSqrt(924, arTenths, false);
   return base;

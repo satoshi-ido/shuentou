@@ -24,6 +24,8 @@ const REVIEW_RANGE_LAST_ORDER = 6;
 
 // [M-CALC-EFFECTIVE]（増加型）の被バフ量。[M-STATE-PARAMIDS]「標準付与量」増加型 0.50。
 const DEPLOY_AP_BUFF_CENTI = 50;
+// [M-CALC-EFFECTIVE]（減少型）の被バフ量。[M-STATE-PARAMIDS]「標準付与量」減少型 0.33。
+const DECAY_AP_BUFF_CENTI = 33;
 
 function hasFlagOf(record, flag) {
   const flags = record.manual_sys_flag === null ? deriveSysFlags(record.params) : [record.manual_sys_flag];
@@ -85,6 +87,7 @@ export function buildAuditInput(masters = { actions: ACTION_MASTERS, enemies: EN
       enemy_has_creature: actions.some((action) => action.has_summon),
       enemy_interfere: actions.some((action) => action.interfere_pos === 'PUSH' || action.interfere_pos === 'BOTH'),
       enemy_has_deploy_ap_buff: records.some((record) => 'deploy_ap' in record.params.give_buff),
+      enemy_has_decay_ap_buff: records.some((record) => 'decay_ap' in record.params.give_buff),
       hero_has_atk_buff: heroHasAtkBuff,
       hero_has_summon: heroHasSummon,
       // [M-TMPL-VESSEL] 依代は静的監査および非機能テストから除外する。
@@ -292,16 +295,31 @@ export function worstDistance(scene, pool) {
 
 // [M-GUARD-ASYM] 実効上限検査の対象区間。敵側の展開APバフ解放（4-03）と
 // 主人公側の攻撃力バフ解放（4-05）の間だけが非対称な窓となる。
+// 実効壁は展開APバフを重ねた展開APと、AP減衰率バフを重ねた減衰率から、硬直終了時防御力の式で求める。
 function effectiveWall(scene, wall) {
   if (scene.hero_has_atk_buff || !scene.enemy_has_deploy_ap_buff) {
     return wall;
   }
-  return roundDiv(wall * (100 + DEPLOY_AP_BUFF_CENTI), 100);
+  const decayBuffCenti = scene.enemy_has_decay_ap_buff ? DECAY_AP_BUFF_CENTI : 0;
+  let best = 0;
+  for (const action of scene.enemy_actions) {
+    if (action.has_guard) {
+      const deploy = roundDiv(action.deploy_ap * (100 + DEPLOY_AP_BUFF_CENTI), 100);
+      best = Math.max(best, holdEndDefense(deploy, buffedDecay(action.decay_ap, decayBuffCenti)));
+    }
+  }
+  return best;
+}
+
+// [M-CALC-EFFECTIVE]（減少型）と [M-CALC-ROUNDING]（減衰率パラメータ・小数第3位四捨五入）。
+function buffedDecay(decayApCenti, buffCenti) {
+  return roundDiv(decayApCenti * (100 - buffCenti), 100);
 }
 
 // [M-TMPL-ENEMY-FINAL]「プレイヤーが到達しうる実効防壁の上限」。
-// 継承プールの体勢の硬直終了時防御力に、従者特性係数 deployRate（[M-DATA-COEFFKEYS]）と、
-// プールが持つ最大の展開APバフ（[M-CALC-EFFECTIVE] 増加型・giveBuffRate 適用後）を重ねた値である。
+// 継承プールの体勢の展開APに従者特性係数 deployRate（[M-DATA-COEFFKEYS]）とプールが持つ最大の展開APバフを、
+// AP減衰率にプールが持つ最大のAP減衰率バフを重ね（[M-CALC-EFFECTIVE]・giveBuffRate 適用後）、
+// 硬直終了時防御力の式で求めた値である。
 // [M-INHERIT-MERGE] は増加型を最大値で統合するため、同一係数が積み重なることはない。
 export function maxEffectiveWall(pool, attendants) {
   const rateOf = (key) => {
@@ -317,24 +335,27 @@ export function maxEffectiveWall(pool, attendants) {
   const deployRate = rateOf('deployRate');
   const giveBuffRate = rateOf('giveBuffRate');
 
-  let buffCenti = 0;
+  const buffOf = (key) => {
+    let best = 0;
+    for (const record of pool) {
+      const amount = record.params.give_buff[key];
+      if (amount !== undefined) {
+        best = Math.max(best, roundDiv(amount * giveBuffRate, 100));
+      }
+    }
+    return best;
+  };
+  const deployBuffCenti = buffOf('deploy_ap');
+  const decayBuffCenti = buffOf('decay_ap');
+
   let wall = 0;
   for (const record of pool) {
-    const amount = record.params.give_buff.deploy_ap;
-    if (amount !== undefined) {
-      const scaled = roundDiv(amount * giveBuffRate, 100);
-      if (scaled > buffCenti) {
-        buffCenti = scaled;
-      }
-    }
     if (record.params.deploy_ap > 0) {
-      const scaled = holdEndDefense(roundDiv(record.params.deploy_ap * deployRate, 100), record.params.decay_ap);
-      if (scaled > wall) {
-        wall = scaled;
-      }
+      const deploy = roundDiv(roundDiv(record.params.deploy_ap * deployRate, 100) * (100 + deployBuffCenti), 100);
+      wall = Math.max(wall, holdEndDefense(deploy, buffedDecay(record.params.decay_ap, decayBuffCenti)));
     }
   }
-  return roundDiv(wall * (100 + buffCenti), 100);
+  return wall;
 }
 
 // [V-AUDIT-SCRIPT]【判定基準】。fails は不合格、warns は警告である。
