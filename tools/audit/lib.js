@@ -134,8 +134,8 @@ export function wallOf(scene) {
 }
 
 // [V-AUDIT-SYMBOLS] breaker_range(N)：シーン N のカバー区間を担当する壁割り（[M-GUARD-BREAKER]）の
-// range 基礎値。担当が主人公初期キットの区間（1-01〜2-01）は武技（重撃）AR15 の射程を用いる。
-const INITIAL_BREAKER_ID = 'ACT_HEAVY_AR15';
+// range 基礎値。担当が主人公初期キットの区間（1-01〜3-06）は武技（重撃）AR7 の射程を用いる。
+const INITIAL_BREAKER_ID = 'ACT_HEAVY_AR7';
 
 export function breakerRange(scene, masters = { actions: ACTION_MASTERS }) {
   let best = null;

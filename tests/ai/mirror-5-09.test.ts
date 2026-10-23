@@ -57,7 +57,7 @@ describe('[A-BOOK-SCHEMA]［テンプレートとレコードの関係］B-06 �
       NONE: null,
       // [M-TMPL-ENEMY-MIRROR] 心気は基本・無想とも ar_mult 1.0 で並ぶため配列インデックス昇順の最初。
       MIND: 'ACT_MIND_AR67',
-      // 武技（重撃）AR ≒ L * 5.0 が最大倍率（主人公 ACT_HEAVY_AR15 に対応）。
+      // 武技（重撃）AR ≒ L * 5.0 が最大倍率。
       MARTIAL: 'ACT_HEAVY_AR335',
       STANCE: 'ACT_GUARD_AR134',
       SUMMON: 'ACT_SUMMON_AR67_MIRROR_SEIN',

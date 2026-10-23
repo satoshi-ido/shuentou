@@ -53,9 +53,9 @@ describe('D-03 壁不変条件', () => {
     ).toBe(76); // 4-08 ゾル＝ヴォド
   });
 
-  it('[M-DATA-HERO-INIT]［監査上の扱い］1-01 の pool_max_atk は ACT_HEAVY_AR15 の 54 である', () => {
-    expect(rowOf('SCENE_1_01').pool_max_atk).toBe(ACTION_MASTERS.ACT_HEAVY_AR15.params.atk);
-    expect(rowOf('SCENE_1_01').pool_max_atk).toBe(54);
+  it('[M-DATA-HERO-INIT]［監査上の扱い］1-01 の pool_max_atk は ACT_HEAVY_AR7 の 37 である', () => {
+    expect(rowOf('SCENE_1_01').pool_max_atk).toBe(ACTION_MASTERS.ACT_HEAVY_AR7.params.atk);
+    expect(rowOf('SCENE_1_01').pool_max_atk).toBe(37);
   });
 });
 

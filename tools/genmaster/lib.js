@@ -228,9 +228,9 @@ export function rootCounterRecord() {
 // [M-BASE-PRINCIPLE] 個別上書きのうち、レコード単位で効くもの。
 // [M-DATA-CLASSID]［予約クラスID］は [M-DATA-HERO-INIT] の基本型4件が「敵側の同AR値の行と
 // 同一レコードを共有する」と定めるため、主人公側の base_uses 上書きは共有レコードへ適用する
-// （ACT_HEAVY_AR15 は 武技（重撃）の基準 3回ではなく 10回。[M-DATA-HERO-INIT]［初期所持アクション］）。
+// （ACT_HEAVY_AR7 は 武技（重撃）の基準 3回ではなく 10回。[M-DATA-HERO-INIT]［初期所持アクション］）。
 const RECORD_OVERRIDES = {
-  ACT_HEAVY_AR15: { base_uses: 1000 },
+  ACT_HEAVY_AR7: { base_uses: 1000 },
 };
 
 export function buildRecord(classIdValue, displayName, baseUsesCenti, inheritable, params, manualSysFlag = null) {
@@ -449,21 +449,21 @@ export function generateHeroInitActions() {
   const mindAr3 = classId('MIND', 30);
   const slashAr3 = classId('SLASH', 30);
   const slashAr6 = classId('SLASH', 60);
-  const heavyAr15 = classId('HEAVY', 150);
+  const heavyAr7 = classId('HEAVY', 70);
 
   const records = [
     buildRecord(mindAr3, '心気（基本）', USES_BASIC, true, mind('basic', 30)),
     buildRecord(slashAr3, '武技（基本）', USES_BASIC, true, martial('basic', 30)),
     buildRecord(slashAr6, '武技（基本）', USES_BASIC, true, martial('basic', 60)),
     // base_uses は [M-DATA-HERO-INIT] の個別上書き（[M-BASE-PRINCIPLE]）により 10 回とする。
-    buildRecord(heavyAr15, '武技（重撃）', USES_BASIC, true, martial('heavy', 150)),
+    buildRecord(heavyAr7, '武技（重撃）', USES_BASIC, true, martial('heavy', 70)),
     rootCounterRecord(),
     rootMartialRecord(),
   ];
 
   return {
     records,
-    order: [mindAr3, slashAr3, slashAr6, heavyAr15, 'ACT_ROOT_COUNTER', 'ACT_ROOT_MARTIAL'],
+    order: [mindAr3, slashAr3, slashAr6, heavyAr7, 'ACT_ROOT_COUNTER', 'ACT_ROOT_MARTIAL'],
   };
 }
 

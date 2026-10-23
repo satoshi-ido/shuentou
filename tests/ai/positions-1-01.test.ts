@@ -112,19 +112,25 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の意図（壁不変条件の実�
     return { state, heroStarted };
   }
 
-  it('T-19: 武技AR6が使用可能になったステップで、主人公は武技AR6を撃たない', { timeout: 300_000 }, () => {
-    const { state, heroStarted } = play((s) => s.step >= 185 && findUnit(s, 'MINE').elapsed_thought >= 42, 400);
-    const hero = findUnit(state, 'MINE');
-    expect(findUnit(state, 'FOE').ap).toBe(23);
-    expect(hero.pp).toBe(2);
-    expect(executableActions(state, hero).map((a) => a.master_ref)).toContain('ACT_SLASH_AR6');
-    expect(heroStarted).not.toContain('ACT_SLASH_AR6');
+  it('T-19: 主人公は武技AR3・AR6を撃たず、ステップ157に武技（重撃）AR7を選び、体勢AR6の硬直明けの後に着弾させる', { timeout: 300_000 }, () => {
+    // 敵の体勢AR6（AP23）が着地して硬直に入った局面（ステップ185、防御力46）。主人公の武技（重撃）AR7 は発生中。
+    const landed = play((s) => findUnit(s, 'FOE').state === 'RECOVERY', 400);
+    expect(landed.state.step).toBe(185);
+    const enemyAt185 = findUnit(landed.state, 'FOE');
+    expect(enemyAt185.ap).toBe(23);
+    expect(enemyAt185.state).toBe('RECOVERY');
+    expect(findUnit(landed.state, 'MINE').last_act?.class_id).toBe('ACT_HEAVY_AR7');
+    expect(landed.heroStarted).toEqual(['ACT_HEAVY_AR7']);
+    // 着弾（311）は硬直明け（268、AP11）の後であり、攻撃力37で壁を割って HP8 → 2 とする。
+    const hit = play((s) => findUnit(s, 'FOE').hp < 8, 400);
+    expect(hit.state.step).toBe(311);
+    expect(findUnit(hit.state, 'FOE').ap).toBe(11);
+    expect(findUnit(hit.state, 'FOE').hp).toBe(2);
+    expect(hit.heroStarted).toEqual(['ACT_HEAVY_AR7']);
   });
 
-  // 以後の実戦の推移は敵AIの手（心気（無想）による無防備ウィンドウ等）に左右されるため、PP5を確保して
-  // 武技AR15を撃つ計画は同局面の生存項（[A-EVAL-TTK]）の主軸として検証する。
-  it('T-19: TTK(主→敵) は壁AP23を割れない武技AR3・AR6を除外し、心気でPP5を確保する武技AR15を主軸とする', { timeout: 300_000 }, () => {
-    const { state } = play((s) => s.step >= 185 && findUnit(s, 'MINE').elapsed_thought >= 42, 400);
+  it('T-19: TTK(主→敵) は壁を割れない武技AR3・AR6を除外し、武技（重撃）AR7を主軸とする', { timeout: 300_000 }, () => {
+    const { state } = play((s) => findUnit(s, 'FOE').state === 'RECOVERY', 400);
     // [A-SEARCH-QUIESCE]［評価対象］生存項は静止局面で求める。
     const quiet = structuredClone(state);
     const { trace } = runQuiescence(quiet, NO_SUMMON_DEPS);
@@ -134,9 +140,8 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の意図（壁不変条件の実�
     const inputs = { trace, level: state.scene_level, offset: trace.length - 1 };
     expect(ttk(withOnly(['ACT_SLASH_AR3', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
     expect(ttk(withOnly(['ACT_SLASH_AR6', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
-    const heavy = ttk(withOnly(['ACT_HEAVY_AR15', 'ACT_MIND_AR3']), enemy, inputs);
+    const heavy = ttk(withOnly(['ACT_HEAVY_AR7', 'ACT_MIND_AR3']), enemy, inputs);
     expect(heavy).toBeLessThan(TTK_MAX);
     expect(ttk(hero, enemy, inputs)).toBe(heavy);
-    expect(createReferenceDecisionProvider(NO_SUMMON_DEPS)(state, findUnit(state, 'MINE')).kind).toBe('PASS');
   });
 });

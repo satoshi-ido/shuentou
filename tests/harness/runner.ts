@@ -28,6 +28,7 @@ import {
 import { confirmInherit, confirmRefill, confirmSacrifice, enterTransition, settleIntermission } from '../../src/engine/game/intermission.js';
 import { evalCallCount, resetEvalCallCount } from '../../src/ai/evaluate.js';
 import { newGameSession } from '../../src/engine/game/save.js';
+import { audit } from '../../tools/audit/lib.js';
 import type { GameContext, GameSession } from '../../src/engine/game/session.js';
 import type { SaveData } from '../../src/engine/meta/types.js';
 import { inheritPool, previewInherit, type InheritTarget } from '../../src/engine/progress/inherit.js';
@@ -417,29 +418,63 @@ export function missingBreaker(run: BreakerRun): string | null {
   return held ? null : breakerId;
 }
 
-// [M-GUARD-BREAKER] 主人公初期キットの区間（担当のない 1-01〜3-06）の要求基礎攻撃力。
-export const KIT_BREAKER_ATK = 36;
+// [V-TEST-REFAI]［壁割りの維持］初期キットの区間（担当のない 1-01〜3-06）の判定に用いる残り使用回数。
+// 担当より安く撃てる武技（重撃）は1シーンで2〜4回費やされるため、担当の2より多く持つ。
+export const KIT_BREAKER_USES = 3;
 
-// 初期キットの区間で壁を割れる武技：マスター根源武技を除き、HPダメージを与え、基礎攻撃力が要求基礎攻撃力以上のもの。
-// 拍止め（atk 999、HPダメージ0、使用回数無限）は壁を割っても敵マスターを削らないため数えない。
-function isKitBreaker(record: ActionRecord): boolean {
-  return !record.is_root && record.params.dmg_hp > 0 && record.params.atk >= KIT_BREAKER_ATK;
+// 次に挑むシーンの実効壁（[M-GUARD-ASYM]）と worst_distance（[M-GUARD-REACH]）。静的監査（[V-AUDIT-SCRIPT]）の行による。
+let auditRows: ReadonlyMap<string, { readonly wall: number; readonly reach: number }> | null = null;
+export function kitRequirement(sceneId: string): { readonly wall: number; readonly reach: number } | null {
+  auditRows ??= new Map(
+    (audit().rows as { scene_id: string; effective_wall: number; worst_distance: number }[]).map((row) => [
+      row.scene_id,
+      { wall: row.effective_wall, reach: row.worst_distance },
+    ]),
+  );
+  return auditRows.get(sceneId) ?? null;
 }
 
-// [V-TEST-REFAI]［壁割りの維持］初期キットの区間で、壁を割れる武技を残り使用回数2以上で保持していないとき真。
+// 初期キットの区間で次に挑むシーンの壁を割れる武技：マスター根源武技を除き、HPダメージを与え、基礎攻撃力が
+// 実効壁以上で、射程が worst_distance 以上のもの。拍止め（HPダメージ0）は敵マスターを削らないため数えない。
+function isKitBreaker(record: ActionRecord, sceneId: string): boolean {
+  const required = kitRequirement(sceneId);
+  return (
+    required !== null &&
+    !record.is_root &&
+    record.params.dmg_hp > 0 &&
+    record.params.atk >= required.wall &&
+    record.params.range >= required.reach
+  );
+}
+
+// [V-TEST-REFAI]［壁割りの維持］初期キットの区間で、次に挑むシーンの壁を割れる武技を残り使用回数の合計
+// KIT_BREAKER_USES 以上で保持していないとき真。
 export function missingKitBreaker(run: BreakerRun): boolean {
   if (breakerForScene(run.current_scene_id) !== null) {
     return false;
   }
-  return !run.hero_acts.some((act) => {
+  let total = 0;
+  for (const act of run.hero_acts) {
     const record = recordOf(act.master_ref);
-    return record !== undefined && isKitBreaker(record) && hasUses(act.uses_left, ROLE_BREAKER_USES);
-  });
+    if (record === undefined || !isKitBreaker(record, run.current_scene_id)) {
+      continue;
+    }
+    if (act.uses_left === INFINITE_USES) {
+      return false;
+    }
+    total += act.uses_left;
+  }
+  return total < KIT_BREAKER_USES;
 }
 
 // [V-TEST-REFAI]［壁割りの維持］維持の対象となるプールの項目。担当があれば当該アクション、初期キットの区間では
-// 壁を割れる武技のうち基礎攻撃力が最大のもの（同値はプールの走査順で最初のもの）。
-export function breakerInPool(breakerId: string | null, kit: boolean, pool: readonly InheritTarget[]): InheritTarget | null {
+// 次に挑むシーンの壁を割れる武技のうち基礎攻撃力が最大のもの（同値はプールの走査順で最初のもの）。
+export function breakerInPool(
+  breakerId: string | null,
+  kit: boolean,
+  pool: readonly InheritTarget[],
+  sceneId: string,
+): InheritTarget | null {
   let best: { entry: InheritTarget; atk: number } | null = null;
   for (const entry of pool) {
     if (entry.kind !== 'ACTION') {
@@ -449,7 +484,7 @@ export function breakerInPool(breakerId: string | null, kit: boolean, pool: read
       return entry;
     }
     const record = recordOf(entry.class_id);
-    if (kit && record !== undefined && isKitBreaker(record) && (best === null || record.params.atk > best.atk)) {
+    if (kit && record !== undefined && isKitBreaker(record, sceneId) && (best === null || record.params.atk > best.atk)) {
       best = { entry, atk: record.params.atk };
     }
   }
@@ -492,7 +527,7 @@ export function chooseByRole(
   hpStale = false,
 ): InheritTarget | null {
   const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
-  const breaker = breakerInPool(missingBreaker(run), missingKitBreaker(run), pool) ?? undefined;
+  const breaker = breakerInPool(missingBreaker(run), missingKitBreaker(run), pool, run.current_scene_id) ?? undefined;
   // 「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは、壁割りを体力に先立てる。
   if (breaker !== undefined && beforeVesselScene(run)) {
     return breaker;
@@ -763,7 +798,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       const pool = usefulPool(run, member.attendant_id);
       // ［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは体力に先立てる。
       const breakerFirst = beforeVesselScene(run);
-      const breakerOf = () => breakerInPool(needBreaker, needKitBreaker, pool);
+      const breakerOf = () => breakerInPool(needBreaker, needKitBreaker, pool, run.current_scene_id);
       const early = breakerFirst ? breakerOf() : null;
       const hp = early === null && raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
       const breaker = early ?? (hp === null ? breakerOf() : null);

@@ -35,10 +35,10 @@ describe('D-09 命中機会窓', () => {
     }
   });
 
-  it('④ [M-GUARD-BREAKER]「1-01〜2-01 は主人公初期キットの武技（重撃）AR15 が壁割りを受け持つ」', () => {
-    // 当該区間は 最大展開AP（23・26）≦ 最大実効攻撃力（54）であり、正面から割れる。
+  it('④ [M-GUARD-BREAKER]「1-01〜3-06 は主人公初期キットの武技（重撃）AR7 が壁割りを受け持つ」', () => {
+    // 当該区間は 最大展開AP（23・26）≦ 最大実効攻撃力（37）であり、正面から割れる。
     for (const record of series) {
-      expect(record.max_hero_atk).toBe(54);
+      expect(record.max_hero_atk).toBe(37);
       expect(record.frontal).toBe(true);
       expect(record.max_deploy_ap).toBeLessThanOrEqual(record.max_hero_atk);
     }

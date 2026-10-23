@@ -224,7 +224,8 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     uses_left: usesLeft,
     sys_flags: sysFlags,
   });
-  // 初期キットの区間で［壁割りの維持］を充足させる射程1の武技（基礎攻撃力38）。射程の維持には数えない。
+  // 初期キットの区間で［壁割りの維持］を充足させる射程1の武技（基礎攻撃力38、2-01 の実効壁16・worst_distance 1）。
+  // 射程の維持には数えない。
   const KIT_BREAKER = held('ACT_SLASH_AR120', 10);
   // 1-02 の後（直前にクリアしたシーンは 1-02）。
   const runOf = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
@@ -297,11 +298,11 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(maintenanceRules(run505(300), 'ATTACK').next(pool505)).toEqual(MAX_HP);
   });
 
-  it('［壁割りの維持］初期キットの区間では基礎攻撃力36以上の武技を保持しなければ1枠だけプールの最大のものを選ぶ', () => {
-    // 2-03 の後（次に挑むシーンは 2-04）。射程2の ACT_RUSH_AR20 は基礎攻撃力8であり数えない。
+  it('［壁割りの維持］初期キットの区間では次のシーンの壁を割れる武技を保持しなければ1枠だけプールの最大のものを選ぶ', () => {
+    // 2-03 の後（次に挑むシーンは 2-04、実効壁24）。射程2の ACT_RUSH_AR20 は基礎攻撃力8であり数えない。
     const run203 = { current_scene_id: 'SCENE_2_04', hero_hp: 10_000, hero_max_hp: 10_000, hero_acts: [MIND, RANGED], im_snapshots: [] } as never;
     const rules = maintenanceRules(run203, 'ATTACK');
-    const pool203 = [action('ACT_SLASH_AR8'), action('ACT_HEAVY_AR8'), action('ACT_MIND_AR12'), MAX_HP];
+    const pool203 = [action('ACT_SLASH_AR8'), action('ACT_HEAVY_AR4'), action('ACT_HEAVY_AR8'), action('ACT_MIND_AR12'), MAX_HP];
     expect(rules.next(pool203)).toEqual(action('ACT_HEAVY_AR8'));
     expect(rules.next(pool203)).toBeNull();
   });

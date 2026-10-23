@@ -10,7 +10,8 @@ import {
   breakerForScene,
   chooseByRole,
   chooseMindRefill,
-  KIT_BREAKER_ATK,
+  KIT_BREAKER_USES,
+  kitRequirement,
   missingBreaker,
   missingKitBreaker,
   mindShort,
@@ -81,32 +82,36 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
 });
 
 describe('[V-TEST-REFAI]［壁割りの維持］初期キットの区間', () => {
-  const run = (sceneId: string, heavyUses: number) => ({
+  const run = (sceneId: string, heavy: string, heavyUses: number) => ({
     current_scene_id: sceneId,
     hero_max_hp: 284,
     // 拍止め（atk 999、HPダメージ0、使用回数無限）は常に保持するが、壁割りに数えない。
-    hero_acts: [MIND_FULL, held('ACT_SLASH_AR6', 10), held('ACT_HEAVY_AR15', heavyUses), held('ACT_ROOT_COUNTER', -1)],
+    hero_acts: [MIND_FULL, held('ACT_SLASH_AR6', 10), held(heavy, heavyUses), held('ACT_ROOT_COUNTER', -1)],
   });
 
-  it('要求基礎攻撃力は [M-GUARD-BREAKER] の主人公初期キットの行の36である', () => {
-    expect(KIT_BREAKER_ATK).toBe(36);
+  it('要求は次に挑むシーンの実効壁と worst_distance であり、判定の残り使用回数は3である', () => {
+    expect(kitRequirement('SCENE_2_02')).toEqual({ wall: 16, reach: 1 });
+    expect(kitRequirement('SCENE_3_06')).toEqual({ wall: 36, reach: 2 });
+    expect(KIT_BREAKER_USES).toBe(3);
   });
 
-  it('HPダメージを与え基礎攻撃力36以上の武技を残り使用回数2以上で保持していなければ未充足とする', () => {
-    expect(missingKitBreaker(run('SCENE_2_04', 2))).toBe(false);
-    expect(missingKitBreaker(run('SCENE_2_04', 1))).toBe(true);
-    expect(missingKitBreaker(run('SCENE_3_06', 0))).toBe(true);
+  it('次のシーンの壁を割れる武技を残り使用回数3以上で保持していなければ未充足とする', () => {
+    expect(missingKitBreaker(run('SCENE_2_04', 'ACT_HEAVY_AR7', 3))).toBe(false);
+    expect(missingKitBreaker(run('SCENE_2_04', 'ACT_HEAVY_AR7', 2))).toBe(true);
+    // ACT_HEAVY_AR4（基礎攻撃力28）は 2-02 の壁16を割るが、3-06 の壁36を割らない。
+    expect(missingKitBreaker(run('SCENE_2_02', 'ACT_HEAVY_AR4', 3))).toBe(false);
+    expect(missingKitBreaker(run('SCENE_3_06', 'ACT_HEAVY_AR4', 3))).toBe(true);
   });
 
   it('担当のある区間（4-01 以降）では働かない', () => {
-    expect(missingKitBreaker(run('SCENE_4_02', 0))).toBe(false);
+    expect(missingKitBreaker(run('SCENE_4_02', 'ACT_HEAVY_AR7', 0))).toBe(false);
   });
 
-  it('プールの基礎攻撃力36以上の武技のうち最大のものを選ぶ', () => {
-    const pool: InheritTarget[] = [action('ACT_SLASH_AR6'), action('ACT_HEAVY_AR8'), action('ACT_HEAVY_AR9'), { kind: 'MAX_HP' }];
-    expect(chooseByRole(run('SCENE_3_01', 1), pool, 212)).toEqual(action('ACT_HEAVY_AR9'));
+  it('プールの次のシーンの壁を割れる武技のうち基礎攻撃力が最大のものを選ぶ', () => {
+    const pool: InheritTarget[] = [action('ACT_SLASH_AR6'), action('ACT_HEAVY_AR4'), action('ACT_HEAVY_AR8'), { kind: 'MAX_HP' }];
+    expect(chooseByRole(run('SCENE_2_04', 'ACT_HEAVY_AR7', 2), pool, 212)).toEqual(action('ACT_HEAVY_AR8'));
     // 残り5回なら壁割り・反復射程（残り3以上）・心気がいずれも充足する。
-    expect(chooseByRole(run('SCENE_3_01', 5), pool, 212)).toBeNull();
+    expect(chooseByRole(run('SCENE_2_04', 'ACT_HEAVY_AR7', 5), pool, 212)).toBeNull();
   });
 });
 

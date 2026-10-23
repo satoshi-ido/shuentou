@@ -1,5 +1,6 @@
 // [I-PLAN-MASTERGEN] 生成結果から [V-NUM-PARAMS] の掲載値が導出できることを検証する。
 import { describe, expect, it } from 'vitest';
+import { ACTION_MASTERS } from '../../src/data/generated/action-masters.js';
 import { ENEMY_MASTERS } from '../../src/data/generated/enemy-masters.js';
 import { generateHeroInitActions } from '../../tools/genmaster/lib.js';
 import { expandEnemyTemplate } from '../../tools/genmaster/templates.js';
@@ -89,17 +90,22 @@ describe('[V-NUM-PARAMS] 祠守レフ（L=3）', () => {
 describe('[V-NUM-PARAMS] 主人公初期キット', () => {
   const { records } = generateHeroInitActions();
 
-  it('武技（重撃）AR15', () => {
-    const action = findAction(records, 'ACT_HEAVY_AR15');
+  it('武技（重撃）AR7', () => {
+    const action = findAction(records, 'ACT_HEAVY_AR7');
     expect(action.params.step_thought).toBe(0);
-    expect(action.params.step_startup).toBe(105);
+    expect(action.params.step_startup).toBe(154);
     expect(action.params.step_recovery).toBe(0);
-    expect(action.params.atk).toBe(54);
-    expect(action.params.cost_pp).toBe(5);
+    expect(action.params.atk).toBe(37);
+    expect(action.params.cost_pp).toBe(2);
+  });
+
+  it('[M-DATA-HERO-INIT]［武技（重撃）のAR］基礎攻撃力が初期キットの要求基礎攻撃力36以上となる最小のAR', () => {
+    expect(findAction(records, 'ACT_HEAVY_AR7').params.atk).toBeGreaterThanOrEqual(36);
+    expect(ACTION_MASTERS.ACT_HEAVY_AR6.params.atk).toBeLessThan(36);
   });
 
   it('[M-DATA-HERO-INIT] の個別上書きにより base_uses は10回（centi: 1000）', () => {
-    const action = findAction(records, 'ACT_HEAVY_AR15');
+    const action = findAction(records, 'ACT_HEAVY_AR7');
     expect(action.base_uses).toBe(1000);
   });
 });

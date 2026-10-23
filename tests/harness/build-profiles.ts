@@ -454,7 +454,7 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
       }
       // [V-TEST-REFAI]［壁割りの維持］
       if (needBreaker !== null || needKitBreaker) {
-        const breaker = breakerInPool(needBreaker, needKitBreaker, pool);
+        const breaker = breakerInPool(needBreaker, needKitBreaker, pool, run.current_scene_id);
         needBreaker = null;
         needKitBreaker = false;
         if (breaker !== null) {
