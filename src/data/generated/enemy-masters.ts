@@ -23,7 +23,7 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR27",
       "ACT_SUMMON_AR9_ASHAL",
       "ACT_SUMMON_AR18_ASHAL",
-      "ACT_SPEC_BREAK_ASHAL",
+      "ACT_SPEC_PRAYER_ASHAL",
       "ACT_SPEC_SWARM_ASHAL",
       "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
@@ -650,7 +650,7 @@ export const ENEMY_MASTERS = {
       "ACT_GUARD_AR4",
       "ACT_GUARD_AR8",
       "ACT_SUMMON_AR4_VOLG",
-      "ACT_SPEC_BREAK_VOLG",
+      "ACT_SPEC_CORPSE_WALL_VOLG",
       "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],

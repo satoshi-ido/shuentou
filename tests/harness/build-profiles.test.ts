@@ -224,9 +224,17 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     uses_left: usesLeft,
     sys_flags: sysFlags,
   });
+  // 初期キットの区間で［壁割りの維持］を充足させる射程1の武技（基礎攻撃力38）。射程の維持には数えない。
+  const KIT_BREAKER = held('ACT_SLASH_AR120', 10);
   // 1-02 の後（直前にクリアしたシーンは 1-02）。
   const runOf = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
-    ({ current_scene_id: 'SCENE_2_01', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
+    ({
+      current_scene_id: 'SCENE_2_01',
+      hero_hp: heroMaxHp,
+      hero_max_hp: heroMaxHp,
+      hero_acts: [...heroActs, KIT_BREAKER],
+      im_snapshots: [],
+    }) as never;
   const RANGED = held('ACT_RUSH_AR20', 3);
   const MIND = held('ACT_MIND_AR12', 5, ['FLAG_MIND']);
   const pool = [action('ACT_HEAVY_AR117'), action('ACT_MIND_AR12'), action('ACT_RUSH_AR117'), MAX_HP];
@@ -257,7 +265,7 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
         current_scene_id: 'SCENE_2_01',
         hero_hp: 10_000,
         hero_max_hp: 10_000,
-        hero_acts: [MIND, RANGED],
+        hero_acts: [MIND, RANGED, KIT_BREAKER],
         im_snapshots: Array.from({ length: stale + 1 }, (_, order) => ({ order, state: { hero_max_hp: 10_000 } })),
       }) as never;
     const rules = maintenanceRules(staleRun(ROLE_HP_STALE_INTERMISSIONS), 'ATTACK');
@@ -289,32 +297,43 @@ describe('[V-TEST-BUILD-PROFILES]［代替と除外］戦闘方針の維持規�
     expect(maintenanceRules(run505(300), 'ATTACK').next(pool505)).toEqual(MAX_HP);
   });
 
+  it('［壁割りの維持］初期キットの区間では基礎攻撃力36以上の武技を保持しなければ1枠だけプールの最大のものを選ぶ', () => {
+    // 2-03 の後（次に挑むシーンは 2-04）。射程2の ACT_RUSH_AR20 は基礎攻撃力8であり数えない。
+    const run203 = { current_scene_id: 'SCENE_2_04', hero_hp: 10_000, hero_max_hp: 10_000, hero_acts: [MIND, RANGED], im_snapshots: [] } as never;
+    const rules = maintenanceRules(run203, 'ATTACK');
+    const pool203 = [action('ACT_SLASH_AR8'), action('ACT_HEAVY_AR8'), action('ACT_MIND_AR12'), MAX_HP];
+    expect(rules.next(pool203)).toEqual(action('ACT_HEAVY_AR8'));
+    expect(rules.next(pool203)).toBeNull();
+  });
+
   it('維持の必要がなければ選ばず、継承配分規則に委ねる', () => {
     expect(maintenanceRules(runOf(10_000, [MIND, RANGED]), 'DEFENSE').next(pool)).toBeNull();
   });
 
-  // [V-TEST-REFAI]［壁割りの維持］2-01 の後（次に挑むシーンは 2-02。担当は ACT_SPEC_BREAK_VOLG）。
-  const BREAKER = 'ACT_SPEC_BREAK_VOLG';
-  const runBefore202 = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
-    ({ current_scene_id: 'SCENE_2_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
+  // [V-TEST-REFAI]［壁割りの維持］4-01 の後（次に挑むシーンは 4-02。担当は ACT_SPEC_BREAK_ZEFAL）。
+  const BREAKER = 'ACT_SPEC_BREAK_ZEFAL';
+  const runBefore402 = (heroMaxHp: number, heroActs: ReturnType<typeof held>[]) =>
+    ({ current_scene_id: 'SCENE_4_02', hero_hp: heroMaxHp, hero_max_hp: heroMaxHp, hero_acts: heroActs, im_snapshots: [] }) as never;
   const breakerPool = [action('ACT_HEAVY_AR117'), action(BREAKER), action('ACT_MIND_AR12'), MAX_HP];
+  // 担当の PP コスト26を1回で賄う心気（round(25.69) = 26）。［心気の出力］を働かせない。
+  const MIND_HIGH = held('ACT_MIND_AR44', 5, ['FLAG_MIND']);
 
   it('攻撃型・防御型は次のシーンの壁割りを保持しなければ1枠だけ当該アクションを選ぶ', () => {
     for (const policy of ['ATTACK', 'DEFENSE'] as const) {
-      const rules = maintenanceRules(runBefore202(10_000, [MIND, RANGED]), policy);
+      const rules = maintenanceRules(runBefore402(10_000, [MIND_HIGH, RANGED]), policy);
       expect(rules.next(breakerPool)).toEqual(action(BREAKER));
       expect(rules.next(breakerPool)).toBeNull();
     }
   });
 
   it('壁割りの維持は体力の維持に劣後する', () => {
-    const rules = maintenanceRules(runBefore202(60, [MIND, RANGED]), 'ATTACK');
+    const rules = maintenanceRules(runBefore402(60, [MIND_HIGH, RANGED]), 'ATTACK');
     expect(rules.next(breakerPool)).toEqual(MAX_HP);
     expect(rules.next(breakerPool)).toEqual(action(BREAKER));
   });
 
   it('壁割りを残り使用回数2以上で保持していれば選ばず、1回以下なら選ぶ', () => {
-    const withUses = (uses: number) => maintenanceRules(runBefore202(10_000, [MIND, RANGED, held(BREAKER, uses)]), 'ATTACK');
+    const withUses = (uses: number) => maintenanceRules(runBefore402(10_000, [MIND_HIGH, RANGED, held(BREAKER, uses)]), 'ATTACK');
     expect(withUses(2).next(breakerPool)).toBeNull();
     expect(withUses(1).next(breakerPool)).toEqual(action(BREAKER));
   });

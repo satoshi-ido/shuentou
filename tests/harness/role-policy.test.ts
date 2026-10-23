@@ -10,7 +10,9 @@ import {
   breakerForScene,
   chooseByRole,
   chooseMindRefill,
+  KIT_BREAKER_ATK,
   missingBreaker,
+  missingKitBreaker,
   mindShort,
   ROLE_HP_STALE_INTERMISSIONS,
 } from './runner.js';
@@ -25,22 +27,22 @@ const MIND_FULL = held('ACT_MIND_AR12', 10, ['FLAG_MIND']);
 
 describe('[V-TEST-REFAI]［役割充足による選択］', () => {
   it('次に挑むシーンの担当を [M-GUARD-BREAKER] のカバー区間から引く', () => {
-    expect(breakerForScene('SCENE_2_01')).toBeNull(); // 初期キットの区間
-    expect(breakerForScene('SCENE_3_01')).toBe('ACT_SPEC_BREAK_ASHAL');
+    expect(breakerForScene('SCENE_2_01')).toBeNull(); // 初期キットの区間（1-01〜3-06）
+    expect(breakerForScene('SCENE_3_06')).toBeNull();
     expect(breakerForScene('SCENE_4_01')).toBe('ACT_SPEC_BREAK_ZEFAL');
   });
 
   it('体力が未充足なら最大HP加算を最優先で選ぶ', () => {
-    const run = { current_scene_id: 'SCENE_3_02', hero_max_hp: 200, hero_acts: [MIND_FULL] };
-    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), { kind: 'MAX_HP' }];
+    const run = { current_scene_id: 'SCENE_4_02', hero_max_hp: 200, hero_acts: [MIND_FULL] };
+    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ZEFAL'), { kind: 'MAX_HP' }];
     expect(chooseByRole(run, pool, 212)).toEqual({ kind: 'MAX_HP' });
   });
 
   it('最大HPが hp_bonus_base 以上でも、最大HP加算の途絶が続くときは最大HP加算を選ぶ', () => {
-    const run = { current_scene_id: 'SCENE_3_02', hero_max_hp: 284, hero_acts: [MIND_FULL] };
-    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), { kind: 'MAX_HP' }];
+    const run = { current_scene_id: 'SCENE_4_02', hero_max_hp: 284, hero_acts: [MIND_FULL] };
+    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ZEFAL'), { kind: 'MAX_HP' }];
     expect(chooseByRole(run, pool, 212, true)).toEqual({ kind: 'MAX_HP' });
-    expect(chooseByRole(run, pool, 212, false)).toEqual(action('ACT_SPEC_BREAK_ASHAL'));
+    expect(chooseByRole(run, pool, 212, false)).toEqual(action('ACT_SPEC_BREAK_ZEFAL'));
   });
 
   it('途絶とみなすのは直近3回のインターミッションで最大HP加算がないとき', () => {
@@ -49,32 +51,62 @@ describe('[V-TEST-REFAI]［役割充足による選択］', () => {
 
   it('担当の残り使用回数が2未満なら壁割りを選ぶ', () => {
     const run = {
-      current_scene_id: 'SCENE_3_02',
+      current_scene_id: 'SCENE_4_02',
       hero_max_hp: 284,
-      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ASHAL', 1), held('ACT_HEAVY_AR9', 10)],
+      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ZEFAL', 1), held('ACT_HEAVY_AR9', 10)],
     };
-    const pool: InheritTarget[] = [action('ACT_HEAVY_AR9'), action('ACT_SPEC_BREAK_ASHAL')];
-    expect(chooseByRole(run, pool, 212)).toEqual(action('ACT_SPEC_BREAK_ASHAL'));
+    const pool: InheritTarget[] = [action('ACT_HEAVY_AR9'), action('ACT_SPEC_BREAK_ZEFAL')];
+    expect(chooseByRole(run, pool, 212)).toEqual(action('ACT_SPEC_BREAK_ZEFAL'));
   });
 
   it('反復射程は壁割り担当を数えず、壁割り以外の射程武技を選ぶ', () => {
     const run = {
-      current_scene_id: 'SCENE_3_02',
+      current_scene_id: 'SCENE_4_02',
       hero_max_hp: 284,
-      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ASHAL', 5)],
+      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ZEFAL', 5)],
     };
-    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), action('ACT_HEAVY_AR9')];
+    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ZEFAL'), action('ACT_HEAVY_AR9')];
     expect(chooseByRole(run, pool, 212)).toEqual(action('ACT_HEAVY_AR9'));
   });
 
   it('すべての役割が充足していれば null を返し、循環選択に委ねる', () => {
     const run = {
-      current_scene_id: 'SCENE_3_02',
+      current_scene_id: 'SCENE_4_02',
       hero_max_hp: 284,
-      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ASHAL', 5), held('ACT_HEAVY_AR9', 10)],
+      hero_acts: [MIND_FULL, held('ACT_SPEC_BREAK_ZEFAL', 5), held('ACT_HEAVY_AR9', 10)],
     };
-    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ASHAL'), action('ACT_HEAVY_AR9')];
+    const pool: InheritTarget[] = [action('ACT_SPEC_BREAK_ZEFAL'), action('ACT_HEAVY_AR9')];
     expect(chooseByRole(run, pool, 212)).toBeNull();
+  });
+});
+
+describe('[V-TEST-REFAI]［壁割りの維持］初期キットの区間', () => {
+  const run = (sceneId: string, heavyUses: number) => ({
+    current_scene_id: sceneId,
+    hero_max_hp: 284,
+    // 拍止め（atk 999、HPダメージ0、使用回数無限）は常に保持するが、壁割りに数えない。
+    hero_acts: [MIND_FULL, held('ACT_SLASH_AR6', 10), held('ACT_HEAVY_AR15', heavyUses), held('ACT_ROOT_COUNTER', -1)],
+  });
+
+  it('要求基礎攻撃力は [M-GUARD-BREAKER] の主人公初期キットの行の36である', () => {
+    expect(KIT_BREAKER_ATK).toBe(36);
+  });
+
+  it('HPダメージを与え基礎攻撃力36以上の武技を残り使用回数2以上で保持していなければ未充足とする', () => {
+    expect(missingKitBreaker(run('SCENE_2_04', 2))).toBe(false);
+    expect(missingKitBreaker(run('SCENE_2_04', 1))).toBe(true);
+    expect(missingKitBreaker(run('SCENE_3_06', 0))).toBe(true);
+  });
+
+  it('担当のある区間（4-01 以降）では働かない', () => {
+    expect(missingKitBreaker(run('SCENE_4_02', 0))).toBe(false);
+  });
+
+  it('プールの基礎攻撃力36以上の武技のうち最大のものを選ぶ', () => {
+    const pool: InheritTarget[] = [action('ACT_SLASH_AR6'), action('ACT_HEAVY_AR8'), action('ACT_HEAVY_AR9'), { kind: 'MAX_HP' }];
+    expect(chooseByRole(run('SCENE_3_01', 1), pool, 212)).toEqual(action('ACT_HEAVY_AR9'));
+    // 残り5回なら壁割り・反復射程（残り3以上）・心気がいずれも充足する。
+    expect(chooseByRole(run('SCENE_3_01', 5), pool, 212)).toBeNull();
   });
 });
 
@@ -123,26 +155,29 @@ describe('[V-TEST-REFAI]「体勢への減点」の方針別の適用', () => {
 });
 
 describe('[V-TEST-REFAI]［心気の出力］', () => {
-  // 3-01 の後（次に挑むシーンは 3-02。壁割り担当 ACT_SPEC_BREAK_ASHAL の PP コスト12）。
-  const runBefore302 = (heroActs: ReturnType<typeof held>[]) => ({ current_scene_id: 'SCENE_3_02', hero_acts: heroActs });
+  // 4-01 の後（次に挑むシーンは 4-02。壁割り担当 ACT_SPEC_BREAK_ZEFAL の PP コスト26）。
+  const runBefore402 = (heroActs: ReturnType<typeof held>[]) => ({ current_scene_id: 'SCENE_4_02', hero_acts: heroActs });
   const HELD_AR4 = held('ACT_MIND_AR4', 30, ['FLAG_MIND']); // 心気1回の PP 2.32
 
   it('保持する心気で壁割りを賄えず、2回で賄える高出力の心気がプールにあれば不足とする', () => {
-    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR12')])).toBe(true); // 8.04 × 2 ≥ 12
+    expect(mindShort(runBefore402([HELD_AR4]), [action('ACT_MIND_AR24')])).toBe(true); // 17.04 × 2 ≥ 26
   });
 
   it('プールの心気が2回でも賄えない小刻みな更新であれば不足としない', () => {
-    expect(mindShort(runBefore302([HELD_AR4]), [action('ACT_MIND_AR9')])).toBe(false); // 5.22 × 2 < 12
+    expect(mindShort(runBefore402([HELD_AR4]), [action('ACT_MIND_AR12')])).toBe(false); // 8.04 × 2 < 26
   });
 
   it('2回後の PP は [M-RESOLVE-MIND] の目標PPと同じく四捨五入して壁割りの PP コストと比べる', () => {
-    // 4-01 の後（次に挑むシーンは 4-02。壁割り担当 ACT_SPEC_BREAK_ZEFAL の PP コスト26）。
-    const runBefore402 = { current_scene_id: 'SCENE_4_02', hero_acts: [held('ACT_MIND_AR12', 45, ['FLAG_MIND'])] };
-    expect(mindShort(runBefore402, [action('ACT_MIND_AR20')])).toBe(true); // round(12.95 × 2) = 26 ≥ 26
+    const run = runBefore402([held('ACT_MIND_AR12', 45, ['FLAG_MIND'])]);
+    expect(mindShort(run, [action('ACT_MIND_AR20')])).toBe(true); // round(12.95 × 2) = 26 ≥ 26
   });
 
   it('保持する心気が1回で壁割りを賄えれば不足としない', () => {
-    expect(mindShort(runBefore302([held('ACT_MIND_AR19', 30, ['FLAG_MIND'])]), [action('ACT_MIND_AR24')])).toBe(false); // 12.65 ≥ 12
+    expect(mindShort(runBefore402([held('ACT_MIND_AR40', 30, ['FLAG_MIND'])]), [action('ACT_MIND_AR44')])).toBe(false); // round(25.69) = 26 ≥ 26
+  });
+
+  it('3-06 までは担当がなく不足としない（[M-GUARD-BREAKER]）', () => {
+    expect(mindShort({ current_scene_id: 'SCENE_3_02', hero_acts: [HELD_AR4] }, [action('ACT_MIND_AR24')])).toBe(false);
   });
 
   it('プールの心気は心気1回の PP が最大のものを選ぶ', () => {

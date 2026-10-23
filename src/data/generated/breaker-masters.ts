@@ -4,14 +4,6 @@ import type { BreakerRecord } from '../types.js';
 
 export const BREAKERS = [
   {
-    "class_id": "ACT_SPEC_BREAK_VOLG",
-    "order": 3
-  },
-  {
-    "class_id": "ACT_SPEC_BREAK_ASHAL",
-    "order": 6
-  },
-  {
     "class_id": "ACT_SPEC_BREAK_ZEFAL",
     "order": 12
   },

@@ -417,6 +417,45 @@ export function missingBreaker(run: BreakerRun): string | null {
   return held ? null : breakerId;
 }
 
+// [M-GUARD-BREAKER] 主人公初期キットの区間（担当のない 1-01〜3-06）の要求基礎攻撃力。
+export const KIT_BREAKER_ATK = 36;
+
+// 初期キットの区間で壁を割れる武技：マスター根源武技を除き、HPダメージを与え、基礎攻撃力が要求基礎攻撃力以上のもの。
+// 拍止め（atk 999、HPダメージ0、使用回数無限）は壁を割っても敵マスターを削らないため数えない。
+function isKitBreaker(record: ActionRecord): boolean {
+  return !record.is_root && record.params.dmg_hp > 0 && record.params.atk >= KIT_BREAKER_ATK;
+}
+
+// [V-TEST-REFAI]［壁割りの維持］初期キットの区間で、壁を割れる武技を残り使用回数2以上で保持していないとき真。
+export function missingKitBreaker(run: BreakerRun): boolean {
+  if (breakerForScene(run.current_scene_id) !== null) {
+    return false;
+  }
+  return !run.hero_acts.some((act) => {
+    const record = recordOf(act.master_ref);
+    return record !== undefined && isKitBreaker(record) && hasUses(act.uses_left, ROLE_BREAKER_USES);
+  });
+}
+
+// [V-TEST-REFAI]［壁割りの維持］維持の対象となるプールの項目。担当があれば当該アクション、初期キットの区間では
+// 壁を割れる武技のうち基礎攻撃力が最大のもの（同値はプールの走査順で最初のもの）。
+export function breakerInPool(breakerId: string | null, kit: boolean, pool: readonly InheritTarget[]): InheritTarget | null {
+  let best: { entry: InheritTarget; atk: number } | null = null;
+  for (const entry of pool) {
+    if (entry.kind !== 'ACTION') {
+      continue;
+    }
+    if (entry.class_id === breakerId) {
+      return entry;
+    }
+    const record = recordOf(entry.class_id);
+    if (kit && record !== undefined && isKitBreaker(record) && (best === null || record.params.atk > best.atk)) {
+      best = { entry, atk: record.params.atk };
+    }
+  }
+  return best?.entry ?? null;
+}
+
 // 反復射程：射程2以上の武技のうち、マスター根源武技と壁割り担当を除くもの。
 function isSustainedRanged(record: ActionRecord): boolean {
   return (
@@ -453,8 +492,7 @@ export function chooseByRole(
   hpStale = false,
 ): InheritTarget | null {
   const actions = pool.filter((entry): entry is { kind: 'ACTION'; class_id: string } => entry.kind === 'ACTION');
-  const breakerId = missingBreaker(run);
-  const breaker = breakerId === null ? undefined : actions.find((entry) => entry.class_id === breakerId);
+  const breaker = breakerInPool(missingBreaker(run), missingKitBreaker(run), pool) ?? undefined;
   // 「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは、壁割りを体力に先立てる。
   if (breaker !== undefined && beforeVesselScene(run)) {
     return breaker;
@@ -717,6 +755,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       (policy === 'ATTACK' || policy === 'DEFENSE') && (mindUsesLeft(run) < ROLE_MIND_USES || mindShort(run, inheritPool(run, MASTERS)));
     // [V-TEST-REFAI]［壁割りの維持］体力に次いで優先する（依代のシーンの直前のシーンに挑む回は体力に先立てる）。
     let needBreaker = missingBreaker(run);
+    let needKitBreaker = missingKitBreaker(run);
     for (const member of [...run.party].sort((left, right) => left.attendant_id.localeCompare(right.attendant_id))) {
       if (member.inherit_state !== 'UNUSED') {
         continue;
@@ -724,8 +763,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
       const pool = usefulPool(run, member.attendant_id);
       // ［壁割りの維持］「5-10 の前の補充」：依代のシーンの直前のシーンに挑むインターミッションでは体力に先立てる。
       const breakerFirst = beforeVesselScene(run);
-      const breakerOf = () =>
-        needBreaker !== null ? (pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === needBreaker) ?? null) : null;
+      const breakerOf = () => breakerInPool(needBreaker, needKitBreaker, pool);
       const early = breakerFirst ? breakerOf() : null;
       const hp = early === null && raiseHp ? (pool.find((entry) => entry.kind === 'MAX_HP') ?? null) : null;
       const breaker = early ?? (hp === null ? breakerOf() : null);
@@ -758,6 +796,7 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
         raiseHp = false;
       } else if (breaker !== null) {
         needBreaker = null;
+        needKitBreaker = false;
       } else if (refill !== null) {
         refillMind = false;
       } else if (ranged !== null) {

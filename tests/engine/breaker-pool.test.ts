@@ -20,15 +20,10 @@ function poolAfterClearing(order: number): string[] {
 }
 
 describe('[M-GUARD-BREAKER] 担当表', () => {
-  it('4件が担当シーンの進行順で昇順に並ぶ', () => {
-    expect(BREAKERS.map((entry) => entry.class_id)).toEqual([
-      'ACT_SPEC_BREAK_VOLG',
-      'ACT_SPEC_BREAK_ASHAL',
-      'ACT_SPEC_BREAK_ZEFAL',
-      'ACT_SPEC_BREAK_ZOL_VOD',
-    ]);
-    // 2-01・2-04・3-06・4-08 の進行順。
-    expect(BREAKERS.map((entry) => entry.order)).toEqual([3, 6, 12, 20]);
+  it('2件が担当シーンの進行順で昇順に並ぶ', () => {
+    expect(BREAKERS.map((entry) => entry.class_id)).toEqual(['ACT_SPEC_BREAK_ZEFAL', 'ACT_SPEC_BREAK_ZOL_VOD']);
+    // 3-06・4-08 の進行順。1-01〜3-06 は主人公初期キットの区間である。
+    expect(BREAKERS.map((entry) => entry.order)).toEqual([12, 20]);
     for (const entry of BREAKERS) {
       expect(sceneByOrder(MASTERS, entry.order)).toBeDefined();
     }
@@ -37,32 +32,33 @@ describe('[M-GUARD-BREAKER] 担当表', () => {
 
 describe('[M-INHERIT-POOL]［壁割り手段の常設］', () => {
   it('担当シーンのクリア直後はプールに載る', () => {
-    expect(poolAfterClearing(3)).toContain('ACT_SPEC_BREAK_VOLG'); // 2-01
-    expect(poolAfterClearing(6)).toContain('ACT_SPEC_BREAK_ASHAL'); // 2-04
+    expect(poolAfterClearing(12)).toContain('ACT_SPEC_BREAK_ZEFAL'); // 3-06
+    expect(poolAfterClearing(20)).toContain('ACT_SPEC_BREAK_ZOL_VOD'); // 4-08
   });
 
   it('カバー区間の各インターミッションで載り続ける', () => {
-    // 2-01 の担当は 2-02・2-03 のクリア後も入手できる（カバー区間 2-02〜2-04）。
-    for (const order of [3, 4, 5]) {
-      expect(poolAfterClearing(order)).toContain('ACT_SPEC_BREAK_VOLG');
+    // 3-06 の担当は 4-01〜4-07 のクリア後も入手できる（カバー区間 4-01〜4-08）。
+    for (const order of [12, 13, 16, 19]) {
+      expect(poolAfterClearing(order)).toContain('ACT_SPEC_BREAK_ZEFAL');
     }
   });
 
   it('次の担当が登場すると前任は外れる', () => {
-    // 2-04 をクリアした時点でカバー区間は 2-04 の担当へ移る。
-    expect(poolAfterClearing(6)).not.toContain('ACT_SPEC_BREAK_VOLG');
-    expect(poolAfterClearing(6)).toContain('ACT_SPEC_BREAK_ASHAL');
+    // 4-08 をクリアした時点でカバー区間は 4-08 の担当へ移る。
+    expect(poolAfterClearing(20)).not.toContain('ACT_SPEC_BREAK_ZEFAL');
+    expect(poolAfterClearing(20)).toContain('ACT_SPEC_BREAK_ZOL_VOD');
   });
 
   it('担当シーンより前のインターミッションには載らない', () => {
-    expect(poolAfterClearing(1)).not.toContain('ACT_SPEC_BREAK_VOLG'); // 1-01 クリア後
-    expect(poolAfterClearing(2)).not.toContain('ACT_SPEC_BREAK_VOLG'); // 1-02 クリア後
+    for (const order of [1, 3, 6, 11]) {
+      expect(poolAfterClearing(order)).not.toContain('ACT_SPEC_BREAK_ZEFAL');
+    }
   });
 
   it('重複して載せない', () => {
-    // 2-01 の直後は敵マスターの所持としても常設としても該当するが、1件に限る。
-    const pool = poolAfterClearing(3);
-    expect(pool.filter((classId) => classId === 'ACT_SPEC_BREAK_VOLG')).toHaveLength(1);
+    // 3-06 の直後は敵マスターの所持としても常設としても該当するが、1件に限る。
+    const pool = poolAfterClearing(12);
+    expect(pool.filter((classId) => classId === 'ACT_SPEC_BREAK_ZEFAL')).toHaveLength(1);
   });
 
   it('最終区間（4-08 の担当）は 5-10 まで載り続ける', () => {

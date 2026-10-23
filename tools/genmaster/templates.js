@@ -202,8 +202,12 @@ function expandBasicRow(row, level, ownerKey, summonIdOf) {
 // 個別定義（override）を順に重ねた値をそのままレコードとする。
 function expandSpecialRow(row, level, summonIdOf) {
   const arTenths = arTenthsOf(level, row.ar_mult);
-  const summonId = row.base === 'SUMMON/BASIC' ? summonIdOf(arTenths) : null;
-  let base = row.blank === true ? blankParams() : componentParams(row.base, arTenths, summonId);
+  // [M-BASE-AR-SUMMON] ar_summon は既定で召喚アクション自身のARを引き継ぎ、ar_summon_mult で個別に与える。
+  // 召喚の各値（VPコスト・summon_id）は ar_summon から算出する。
+  const summonTenths = row.ar_summon_mult === undefined ? arTenths : arTenthsOf(level, row.ar_summon_mult);
+  const summonId = row.base === 'SUMMON/BASIC' ? summonIdOf(summonTenths) : null;
+  const baseTenths = row.base === 'SUMMON/BASIC' ? summonTenths : arTenths;
+  let base = row.blank === true ? blankParams() : componentParams(row.base, baseTenths, summonId);
   for (const key of row.extras ?? []) {
     base = { ...base, [key]: martialExtra(row.base, arTenths, key) };
   }

@@ -14,7 +14,7 @@
 //   * 当該シーンの unlock が解放する機構を体現する1本を置く。
 //   * unlock が空、または解放要素が既存アクションの改変（BUFF_* / DEBUFF_*）にとどまる場合は
 //     [A-PROFILE-TABLE] の action_bonus が加点する系統に合わせる。
-//   * ［確定している割当］（壁割り・射程3・封印・最終ボス）が上記に優先する。
+//   * ［確定している割当］（壁割り・2-01・2-04・封印・最終ボス）が上記に優先する。
 // ［与バフ・与デバフの担い手］[M-RESOLVE-ORDER] により、与バフ量は Step 3（FLAG_MIND）で自己へ、
 //   与デバフ量は Step 4（FLAG_MARTIAL）で被弾側へ適用される。したがって DEBUFF_* を解放する
 //   シーンの特殊枠は必ず射程を持つ（複合を含む）。
@@ -51,8 +51,6 @@ export const ENEMIES = [
     specials: [],
   },
   {
-    // [M-GUARD-BREAKER] 2-02〜2-04 の壁割り担当（要求基礎攻撃力 48 以上）。
-    // [M-GUARD-REACH]［オーサリング制約］同一のアクションが range = 3 を併せ持つ。
     enemy_id: 'ENEMY_VOLG',
     display_name: 'ヴォルグ',
     role_name: '腑分け師',
@@ -64,13 +62,20 @@ export const ENEMIES = [
     root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
-        component: 'MARTIAL',
-        base: 'MARTIAL/BASIC',
-        ar_mult: 400,
-        class_id: 'ACT_SPEC_BREAK_VOLG',
-        display_name: '腑分けの刃',
-        breaker: 48,
-        override: { range: 3 },
+        // [M-TMPL-ENEMY-SPECIAL]［2-01・2-04 の特殊枠］召喚（基本）を下地に体勢（基本）を内包し、
+        // Step 5 で起こした死骸（相方）にも展開APを代入する（[M-RESOLVE-STANCE]#3）。
+        component: 'SUMMON',
+        base: 'SUMMON/BASIC',
+        ar_mult: 300,
+        // 起こす死骸は召喚（基本）と同じ ar_summon（L * 1.0）とし、体勢の各値のみ AR（L * 3.0）から取り込む。
+        ar_summon_mult: 100,
+        class_id: 'ACT_SPEC_CORPSE_WALL_VOLG',
+        display_name: '死骸の盾',
+        compose: {
+          from: 'STANCE/BASIC',
+          keys: ['cost_pp', 'step_startup', 'step_recovery', 'def_efficiency', 'decay_ap', 'purify_rate', 'deploy_ap'],
+        },
+        override: { target_scope: 'PARTY' },
       },
     ],
   },
@@ -119,7 +124,6 @@ export const ENEMIES = [
     ],
   },
   {
-    // [M-GUARD-BREAKER] 3-01〜3-06 の壁割り担当（要求基礎攻撃力 72 以上）。
     enemy_id: 'ENEMY_ASHAL',
     display_name: 'アシャル',
     role_name: '虚穴の使徒',
@@ -131,14 +135,12 @@ export const ENEMIES = [
     root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
-        component: 'MARTIAL',
-        base: 'MARTIAL/BASIC',
-        ar_mult: 400,
-        class_id: 'ACT_SPEC_BREAK_ASHAL',
-        display_name: '使徒の断罪',
-        breaker: 72,
-        // [M-GUARD-BREAKER]［到達の要求］カバー区間の worst_distance（2）を満たす射程。
-        override: { range: 3 },
+        // [M-TMPL-ENEMY-SPECIAL]［2-01・2-04 の特殊枠］祈りで得たVPが召喚を賄う。
+        component: 'MIND',
+        base: 'MIND/BASIC',
+        ar_mult: 150,
+        class_id: 'ACT_SPEC_PRAYER_ASHAL',
+        display_name: '祈り',
       },
       {
         // 特殊枠の残り1枠は [A-PROFILE-TABLE] PROFILE_SURGE の action_bonus（SUMMON）に合わせる。

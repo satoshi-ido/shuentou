@@ -43,9 +43,10 @@ describe('D-03 壁不変条件', () => {
   it('[M-GUARD-BREAKER] の要求基礎攻撃力は各区間の最大壁である', () => {
     const maxWall = (sceneIds: readonly string[]) =>
       Math.max(...sceneIds.map((sceneId) => rowOf(sceneId).effective_wall));
-    expect(maxWall(['SCENE_1_01', 'SCENE_1_02', 'SCENE_2_01'])).toBe(13); // 主人公初期キット
-    expect(maxWall(['SCENE_2_02', 'SCENE_2_03', 'SCENE_2_04'])).toBe(24); // 2-01 ヴォルグ
-    expect(maxWall(['SCENE_3_01', 'SCENE_3_02', 'SCENE_3_03', 'SCENE_3_04', 'SCENE_3_05', 'SCENE_3_06'])).toBe(36); // 2-04 アシャル
+    expect(
+      maxWall(['SCENE_1_01', 'SCENE_1_02', 'SCENE_2_01', 'SCENE_2_02', 'SCENE_2_03', 'SCENE_2_04',
+        'SCENE_3_01', 'SCENE_3_02', 'SCENE_3_03', 'SCENE_3_04', 'SCENE_3_05', 'SCENE_3_06']),
+    ).toBe(36); // 主人公初期キット
     expect(maxWall(['SCENE_4_01', 'SCENE_4_02', 'SCENE_4_03', 'SCENE_4_04', 'SCENE_4_05', 'SCENE_4_06', 'SCENE_4_07', 'SCENE_4_08'])).toBe(68); // 3-06 ゼファル
     expect(
       maxWall(['SCENE_5_01', 'SCENE_5_02', 'SCENE_5_03', 'SCENE_5_04', 'SCENE_5_05', 'SCENE_5_06', 'SCENE_5_07', 'SCENE_5_08', 'SCENE_5_09', 'SCENE_5_10']),
@@ -97,10 +98,11 @@ describe('D-07 射程到達性不変条件', () => {
     expect(result.fails.filter((entry: string) => entry.startsWith('D-07'))).toEqual([]);
   });
 
-  it('[M-GUARD-REACH] 位置干渉の初出 3-02 以降は range = 3 が 2-01 のクリアで入手済みである', () => {
-    expect(ACTION_MASTERS.ACT_SPEC_BREAK_VOLG.params.range).toBe(3);
-    expect(ENEMY_MASTERS.ENEMY_VOLG.acts).toContain('ACT_SPEC_BREAK_VOLG');
-    expect(rowOf('SCENE_3_02').max_range).toBe(3);
+  it('[M-GUARD-REACH]【オーサリング制約】現行のデータでは全シーンで worst_distance(N) <= 2 である', () => {
+    for (const row of result.rows as { worst_distance: number }[]) {
+      expect(row.worst_distance).toBeLessThanOrEqual(2);
+    }
+    expect(rowOf('SCENE_3_02').max_range).toBe(2);
     expect(rowOf('SCENE_3_02').worst_distance).toBe(2);
   });
 });
@@ -118,8 +120,6 @@ describe('[M-TMPL-ENEMY-FINAL] 5-10 武技（特殊）の基礎攻撃力', () =>
 describe('[M-GUARD-BREAKER]［火力の要求］', () => {
   // 壁割り担当と要求基礎攻撃力は [M-GUARD-BREAKER] の表による。
   const BREAKERS: readonly (readonly [string, number])[] = [
-    ['ACT_SPEC_BREAK_VOLG', 24],
-    ['ACT_SPEC_BREAK_ASHAL', 36],
     ['ACT_SPEC_BREAK_ZEFAL', 68],
     ['ACT_SPEC_BREAK_ZOL_VOD', 76],
   ];
@@ -138,10 +138,6 @@ describe('[M-GUARD-BREAKER]［火力の要求］', () => {
     }
   });
 
-  it('[M-GUARD-REACH] 2-01 の担当は range = 3 を併せ持つ', () => {
-    expect(ACTION_MASTERS.ACT_SPEC_BREAK_VOLG.params.range).toBe(3);
-  });
-
   // [M-GUARD-BREAKER]［到達の要求］壁を割れる手そのものが遮蔽越しに敵マスターへ届くこと。
   it('D-07 全シーンで worst_distance <= breaker_range が成立する', () => {
     for (const row of result.rows as { scene_id: string; worst_distance: number; breaker_range: number }[]) {
@@ -150,10 +146,10 @@ describe('[M-GUARD-BREAKER]［火力の要求］', () => {
   });
 
   it('D-07 担当の射程が worst_distance を下回るとき違反を検出する', () => {
-    const record = ACTION_MASTERS.ACT_SPEC_BREAK_ASHAL;
+    const record = ACTION_MASTERS.ACT_SPEC_BREAK_ZEFAL;
     const doctored = {
       ...ACTION_MASTERS,
-      ACT_SPEC_BREAK_ASHAL: { ...record, params: { ...record.params, range: 1 } },
+      ACT_SPEC_BREAK_ZEFAL: { ...record, params: { ...record.params, range: 1 } },
     } as unknown as typeof ACTION_MASTERS;
     const doctoredResult = audit({
       actions: doctored,

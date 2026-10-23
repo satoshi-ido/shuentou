@@ -39,6 +39,8 @@ import {
   beforeVesselScene,
   chooseMindRefill,
   missingBreaker,
+  missingKitBreaker,
+  breakerInPool,
   mindShort,
   ROLE_MIND_USES,
   createRun,
@@ -414,6 +416,7 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
   // [V-TEST-REFAI]［体力の維持］攻撃型は途絶（直近の回で最大HP加算なし）も含む。
   let raiseHp = needsHpRaise(run, policy, since) || (hpStale && since >= ROLE_HP_STALE_INTERMISSIONS);
   let needBreaker = missingBreaker(run);
+  let needKitBreaker = missingKitBreaker(run);
   const shortMind = mindShort(run, inheritPool(run, MASTERS));
   let refillMind = mindUsesLeft(run) < ROLE_MIND_USES || shortMind;
   let needRange = !holds(run, isRanged);
@@ -450,11 +453,11 @@ export function maintenanceRules(run: GameSession['data']['run'], policy: RefPol
         }
       }
       // [V-TEST-REFAI]［壁割りの維持］
-      if (needBreaker !== null) {
-        const breakerId = needBreaker;
+      if (needBreaker !== null || needKitBreaker) {
+        const breaker = breakerInPool(needBreaker, needKitBreaker, pool);
         needBreaker = null;
-        const breaker = pool.find((entry) => entry.kind === 'ACTION' && entry.class_id === breakerId);
-        if (breaker !== undefined) {
+        needKitBreaker = false;
+        if (breaker !== null) {
           return breaker;
         }
       }
