@@ -11571,7 +11571,7 @@ export const ACTION_MASTERS = {
       "purify_rate": 0,
       "give_buff": {},
       "range": 2,
-      "atk": 28,
+      "atk": 48,
       "dmg_hp": 450,
       "dmg_vp": 0,
       "dmg_pp": 0,

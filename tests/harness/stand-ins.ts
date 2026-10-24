@@ -10,6 +10,7 @@ import {
   effectiveCostPp,
   effectiveDmgHpCenti,
   effectiveRange,
+  effectiveStepRecovery,
   effectiveStepStartup,
   effectiveStepThought,
 } from '../../src/engine/effective.js';
@@ -163,8 +164,12 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
       return act(fastest);
     }
   }
-  // 7. 心気
-  const mind = mindOf(candidates);
+  // 7. 心気：所持する心気のうち必要硬直実効値が最小のもの（同値は所持アクション配列インデックス昇順）。実行可能に
+  // なるまで待ち、硬直の長い心気（心気（無想）等）で代えない。
+  const preferred = unit.acts
+    .filter((action) => hasFlag(action.sys_flags, 'FLAG_MIND'))
+    .sort((a, b) => effectiveStepRecovery(unit, a) - effectiveStepRecovery(unit, b) || unit.acts.indexOf(a) - unit.acts.indexOf(b))[0];
+  const mind = preferred !== undefined && candidates.includes(preferred) ? preferred : undefined;
   // いずれの届く武技も、相手が PP を持つ間は留保（最小のPPコスト）を残して撃てるだけの PP を蓄える。
   const pool = reachingCosts.length > 0 ? reachingCosts : costs(unit.acts.filter((action) => isAttack(unit, action)));
   const need = Math.max(...pool) + (rival.pp >= 1 ? Math.min(...pool) : 0);

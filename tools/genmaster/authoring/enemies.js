@@ -68,7 +68,8 @@ export const ENEMIES = [
         class_id: 'ACT_SPEC_CLEAVE_DORN',
         display_name: '断ち割り',
         base_uses: 300,
-        override: { dmg_hp: 450 },
+        // 攻撃力は継承しうる体勢（レフの体勢 AR3・AR6）の硬直中の防御力 32・46 を上回る。
+        override: { dmg_hp: 450, atk: 48 },
       },
     ],
   },

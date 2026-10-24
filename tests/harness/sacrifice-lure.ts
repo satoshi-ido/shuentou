@@ -2,8 +2,10 @@
 // 2通りから 1-02 を戦う。
 
 import type { DecisionProvider } from '../../src/engine/decision.js';
+import { confirmInherit, settleIntermission } from '../../src/engine/game/intermission.js';
+import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
-import { createRun, playerDecisionOverride, playIntermission, playScene } from './runner.js';
+import { createRun, MASTERS, playerDecisionOverride, playIntermission, playScene } from './runner.js';
 
 // 1-01 後の供犠の対象（アクト1の同行従者はリナのみ：[M-TMPL-ENEMY-1-02]【供犠の誘い】）。
 export const LURE_VICTIM = 'ATTENDANT_01';
@@ -20,8 +22,13 @@ export interface LureBattle {
 
 export interface LureOutcome {
   readonly scene101: LureBattle;
-  readonly kept: LureBattle | null; // 1-01 後に供犠しない（1-01 で敗北した場合は null）
+  // 1-01 後に供犠しない。継承プールの各項目を継承した試行（キーは class_id または MAX_HP）。1-01 で敗北した場合は空。
+  readonly kept: Readonly<Record<string, LureBattle>>;
   readonly sacrificed: LureBattle | null; // 1-01 後にリナを供犠する
+}
+
+function labelOf(target: InheritTarget): string {
+  return target.kind === 'ACTION' ? target.class_id : target.kind;
 }
 
 function master(state: BattleState, side: 'MINE' | 'FOE'): Unit | undefined {
@@ -71,11 +78,17 @@ export function lureTrial(standIn: DecisionProvider, withSacrifice: boolean): Lu
     const { session, ctx } = createRun();
     const scene101 = battle(session, ctx);
     if (scene101.result !== 'WIN') {
-      return { scene101, kept: null, sacrificed: null };
+      return { scene101, kept: {}, sacrificed: null };
     }
     const afterClear = structuredClone(session.data);
-    playIntermission(session, ctx, 'BALANCE', 0, null);
-    const kept = battle(session, ctx);
+    // 供犠しない条件は、リナの継承枠で継承プールの各項目を継承した試行とする。
+    const kept: Record<string, LureBattle> = {};
+    for (const target of inheritPool(session.data.run, MASTERS)) {
+      const branch = createRun(structuredClone(afterClear));
+      confirmInherit(branch.session, branch.ctx, LURE_VICTIM, target);
+      settleIntermission(branch.session, branch.ctx);
+      kept[labelOf(target)] = battle(branch.session, branch.ctx);
+    }
     let sacrificed: LureBattle | null = null;
     if (withSacrifice) {
       const branch = createRun(structuredClone(afterClear));
