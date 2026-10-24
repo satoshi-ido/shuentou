@@ -65,14 +65,13 @@ function foeDecisionWithReuse(session: GameSession, ctx: GameContext): DecisionP
   const scene = sceneOf(ctx.masters, session.data.run.current_scene_id);
   const enemy = enemyOf(ctx.masters, scene.enemy_id);
   const bookLength = enemy.book_id === null ? 0 : bookOf(ctx.masters, enemy.book_id).steps.length;
-  const inertiaSteps = scene.inertia_steps ?? 0;
   return (state, unit) => {
     const bookActive = !state.book_aborted && state.book_index < bookLength;
     if (!bookActive && isSearchSuppressed(state, unit)) {
       return { kind: 'PASS' };
     }
     const decision = ctx.foeDecision(state, unit);
-    updateReuse(state, unit, decision.kind === 'PASS' && decision.source === 'SEARCH', inertiaSteps);
+    updateReuse(state, unit, decision.kind === 'PASS' && decision.source === 'SEARCH');
     return decision;
   };
 }

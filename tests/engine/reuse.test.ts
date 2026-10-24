@@ -21,7 +21,7 @@ describe('[A-SEARCH-REUSE]［盤面ハッシュ］', () => {
     state.watching[enemy.acts[0].instance_id] = allWatchFlags(true);
     state.watch_prev_met[enemy.acts[0].instance_id] = allWatchFlags(true);
     state.pause_reason = { code: 'MANUAL_PAUSE', unit_id: null, instance_id: null, watch_kind: null, remaining_steps: null };
-    state.ai_reuse[enemy.unit_id] = { hash: 1, until: 2, executable: [], rival_acts: [] };
+    state.ai_reuse[enemy.unit_id] = { hash: 1 };
     expect(boardHash(state)).toBe(before);
   });
 
@@ -37,67 +37,23 @@ describe('[A-SEARCH-REUSE]［記録と適用］', () => {
   it('盤面ハッシュが一致する間は抑制が成立する', () => {
     const { state, enemy } = duel();
     expect(isSearchSuppressed(state, enemy)).toBe(false);
-    updateReuse(state, enemy, true, 30);
+    updateReuse(state, enemy, true);
     expect(isSearchSuppressed(state, enemy)).toBe(true);
   });
 
-  it('惰性：期限内かつ実行可能手の集合が同一なら抑制し、集合が変われば解除する', () => {
+  // 惰性は M9 で廃した（[A-SEARCH-REUSE]「惰性の廃止」）。盤面が変われば次の決定点で探索する。
+  it('盤面ハッシュが変われば抑制しない（惰性を持たない）', () => {
     const { state, enemy } = duel();
-    enemy.elapsed_thought = 10; // 心気のみ実行可能
-    updateReuse(state, enemy, true, 30);
-    state.step += 5;
-    enemy.elapsed_thought += 5;
-    expect(isSearchSuppressed(state, enemy)).toBe(true); // ハッシュは変わるが惰性が成立
-    enemy.elapsed_thought = 20; // 武技も実行可能になり集合が変化
-    expect(isSearchSuppressed(state, enemy)).toBe(false);
-  });
-
-  it('惰性は期限を過ぎると解除する', () => {
-    const { state, enemy } = duel();
-    updateReuse(state, enemy, true, 30);
-    state.step += 30;
-    enemy.vp += 1; // 盤面ハッシュは変わるが実行可能手の集合は変わらない
-    expect(isSearchSuppressed(state, enemy)).toBe(true);
+    updateReuse(state, enemy, true);
     state.step += 1;
+    enemy.elapsed_thought += 1;
     expect(isSearchSuppressed(state, enemy)).toBe(false);
-  });
-
-  it('惰性は相手陣営のユニットが行動を開始すると解除する', () => {
-    const { state, enemy } = duel();
-    const hero = findUnit(state, 'MINE');
-    updateReuse(state, enemy, true, 30);
-    state.step += 1;
-    enemy.vp += 1; // 盤面ハッシュは変わるが実行可能手の集合は変わらない
-    expect(isSearchSuppressed(state, enemy)).toBe(true);
-    // 直前アクション記憶は行動の開始時に更新される（[M-STATE-LASTACTION]）。
-    const mind = hero.acts[0];
-    hero.last_act = {
-      instance_id: mind.instance_id,
-      class_id: mind.master_ref,
-      sys_flags: mind.sys_flags,
-      params: mind.base_params,
-      uses_left_before: mind.uses_left,
-      is_copy: false,
-    };
-    expect(isSearchSuppressed(state, enemy)).toBe(false);
-  });
-
-  it('相手陣営のユニットが発生中の間は惰性を適用しない', () => {
-    const { state, enemy } = duel();
-    const hero = findUnit(state, 'MINE');
-    hero.state = 'STARTUP';
-    updateReuse(state, enemy, true, 30); // 発生中の相手を記録に含めても
-    state.step += 1;
-    hero.elapsed_startup += 1;
-    expect(isSearchSuppressed(state, enemy)).toBe(false);
-    hero.state = 'THOUGHT';
-    expect(isSearchSuppressed(state, enemy)).toBe(true);
   });
 
   it('行動の確定では記録を削除する', () => {
     const { state, enemy } = duel();
-    updateReuse(state, enemy, true, 30);
-    updateReuse(state, enemy, false, 30);
+    updateReuse(state, enemy, true);
+    updateReuse(state, enemy, false);
     expect(state.ai_reuse[enemy.unit_id]).toBeUndefined();
     expect(isSearchSuppressed(state, enemy)).toBe(false);
   });

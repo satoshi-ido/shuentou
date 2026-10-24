@@ -22,7 +22,6 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       jointAction: false,
       deferredDecision: false,
       evalMask: ['board', 'survival', 'tempo'],
-      inertiaSteps: 30,
       expectedLength: 800,
       bookId: 'B-01',
       waitMoves: false,

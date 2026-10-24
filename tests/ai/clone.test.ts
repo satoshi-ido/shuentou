@@ -104,7 +104,7 @@ describe('[I-STATE-JSON] BattleState 専用の複製', () => {
     });
     findUnit(state, 'MINE').buff.atk = 20;
     state.pause_reason = { code: 'MANUAL_PAUSE', unit_id: null, instance_id: null, watch_kind: null, remaining_steps: null };
-    state.ai_reuse = { U0001: { hash: 1, until: 10, executable: ['IID0001'], rival_acts: [] } };
+    state.ai_reuse = { U0001: { hash: 1 } };
     state.instant_used = { U0000: ['ACT_SLASH'] };
     state.mirror_tally.counts[0] = 3;
     syncWatchKeys(state);

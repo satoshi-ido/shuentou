@@ -2,7 +2,7 @@
 // 範囲は [I-PLAN-MILESTONE] M5（全30シーン＋終局5-11）。
 // 値の正本は [M-DATA-SCENES]（act・order・attendant_capacity・level・unlock・hp_bonus_base）
 // および [A-DIFF-CONFIG]（max_depth・node_limit・joint_action・deferred_decision・eval_mask・
-// inertia_steps・expected_length）。表示名は [S-SCENE-1-01]〜[S-SCENE-5-11] の見出しの角括弧内、
+// expected_length）。表示名は [S-SCENE-1-01]〜[S-SCENE-5-11] の見出しの角括弧内、
 // 敵マスターIDは [M-DATA-ENEMYID] による。
 
 // [A-DIFF-CONFIG]［eval_mask の加算表記］「上記 ＋」は直前行の登録集合への追加を示す。
@@ -32,7 +32,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_1_01,
-    inertia_steps: 30,
     expected_length: 800,
   },
   {
@@ -50,7 +49,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_1_02,
-    inertia_steps: 30,
     // [A-DIFF-CONFIG] 1-01〜2-01 の例外区間のうち、1-02 は決め手の時機待ちを見込み 1000。
     expected_length: 1000,
   },
@@ -69,7 +67,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_01,
-    inertia_steps: 15,
     // [A-DIFF-CONFIG] 1-01〜2-01 は壁割りが主人公初期キットの重撃に限られるため 800 の例外区間。
     expected_length: 800,
   },
@@ -88,7 +85,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_01,
-    inertia_steps: 15,
     expected_length: 600,
   },
   {
@@ -106,7 +102,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_01,
-    inertia_steps: 15,
     expected_length: 600,
   },
   {
@@ -124,7 +119,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 800,
   },
   {
@@ -142,7 +136,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -160,7 +153,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -178,7 +170,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -196,7 +187,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -214,7 +204,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -232,7 +221,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 800,
   },
   {
@@ -250,7 +238,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -268,7 +255,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -286,7 +272,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -304,7 +289,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -322,7 +306,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_2_04,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -340,7 +323,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -358,7 +340,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -376,7 +357,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 800,
   },
   {
@@ -394,7 +374,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -412,7 +391,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -430,7 +408,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -448,7 +425,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -466,7 +442,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -484,7 +459,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_4_06,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -502,7 +476,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_5_07,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -520,7 +493,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_5_08,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -538,7 +510,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: false,
     eval_mask: MASK_5_09,
-    inertia_steps: 0,
     expected_length: 600,
   },
   {
@@ -556,7 +527,6 @@ export const SCENES = [
     joint_action: true,
     deferred_decision: true,
     eval_mask: MASK_5_09,
-    inertia_steps: 0,
     expected_length: 1200,
   },
   {
@@ -576,7 +546,6 @@ export const SCENES = [
     joint_action: false,
     deferred_decision: false,
     eval_mask: null,
-    inertia_steps: null,
     expected_length: null,
   },
 ];

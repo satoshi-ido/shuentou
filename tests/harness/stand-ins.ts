@@ -101,6 +101,14 @@ export function responseTime(rival: Unit): number {
   return best + 1;
 }
 
+// 相手陣営のマスターが所持する、使用回数の残るスタン付き武技（拍止め・マスター根源武技を除く）の最小のPPコスト。
+function minStunCost(rival: Unit): number | null {
+  const costs = rival.acts
+    .filter((action) => isAttack(rival, action) && action.base_params.stun && usable(action) && !isRootAction(action))
+    .map((action) => effectiveCostPp(rival, action));
+  return costs.length === 0 ? null : Math.min(...costs);
+}
+
 // 相手陣営のマスターの、現在の PP で撃てる最速のスタン付き武技のPPコストと、主人公へ与える実効HPダメージ（[M-CALC-LEVEL]）。
 function fastestAnswer(state: BattleState, rival: Unit): { cost: number; damage: number } | null {
   const elapsed = rival.state === 'THOUGHT' ? rival.elapsed_thought : 0;
@@ -176,35 +184,54 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
       return act(hit);
     }
   }
-  // 6. 誘い：安全に突けず、相手の最速の応手1回で相手の PP がその応手のPPコストを下回るとき、PPコストの最小の届く武技を
-  // 撃って応手を引き出す（相手の最速の応手を3回受けても尽きないHPがある場合に限る）。応手の後は相手の PP が尽き、
-  // 心気で補うまで 5. の突きが通る。
+  // 6. 誘い：安全に突けず、相手が現在の PP で撃てる応手（最小のPPコストのスタン付き武技）が2回以下のとき、PPコストの
+  // 最小の届く武技（同値は必要発生実効値の短い順）を撃って応手を引き出す（相手の最速の応手を3回受けても尽きないHPがある
+  // 場合に限る）。応手で相手の PP が尽きれば、心気で補うまで 5. の突きが通る。
   if (rival.state === 'THOUGHT') {
     const answer = fastestAnswer(state, rival);
-    const bait = [...reaching].sort((a, b) => effectiveCostPp(unit, a) - effectiveCostPp(unit, b))[0];
+    const cheapestAnswer = minStunCost(rival);
+    const bait = [...reaching].sort(
+      (a, b) =>
+        effectiveCostPp(unit, a) - effectiveCostPp(unit, b) || effectiveStepStartup(unit, a) - effectiveStepStartup(unit, b),
+    )[0];
     if (
       bait !== undefined &&
       answer !== null &&
-      rival.pp - answer.cost < answer.cost &&
+      cheapestAnswer !== null &&
+      Math.floor(rival.pp / cheapestAnswer) <= 2 &&
       unit.hp > answer.damage * 3
     ) {
       return act(bait);
     }
   }
   // 7. 心気：所持する心気のうち必要硬直実効値が最小のもの（同値は所持アクション配列インデックス昇順）。実行可能に
-  // なるまで待ち、硬直の長い心気（心気（無想）等）で代えない。
-  const preferred = unit.acts
+  // なるまで待ち、硬直の長い心気（心気（無想）等）で代えない。ただし相手の攻撃の発生中は、実行可能な心気のうち、
+  // その必要発生・必要硬直の後に最速の武技が着弾を断てるもの（必要硬直の短い順）を撃つ。
+  const minds = unit.acts
     .filter((action) => hasFlag(action.sys_flags, 'FLAG_MIND'))
-    .sort((a, b) => effectiveStepRecovery(unit, a) - effectiveStepRecovery(unit, b) || unit.acts.indexOf(a) - unit.acts.indexOf(b))[0];
-  const mind = preferred !== undefined && candidates.includes(preferred) ? preferred : undefined;
+    .sort((a, b) => effectiveStepRecovery(unit, a) - effectiveStepRecovery(unit, b) || unit.acts.indexOf(a) - unit.acts.indexOf(b));
+  const preferred = minds[0];
+  const remainingCharge = charging === null ? null : effectiveStepStartup(rival, charging) - rival.elapsed_startup;
+  const attacksOwned = unit.acts.filter((action) => isAttack(unit, action) && !isRootAction(action));
+  const fastestAfterMind =
+    attacksOwned.length === 0
+      ? Number.POSITIVE_INFINITY
+      : Math.min(...attacksOwned.map((action) => effectiveStepThought(unit, action) + effectiveStepStartup(unit, action)));
+  const mind =
+    remainingCharge === null
+      ? preferred !== undefined && candidates.includes(preferred)
+        ? preferred
+        : undefined
+      : minds.find(
+          (action) =>
+            candidates.includes(action) &&
+            effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action) + fastestAfterMind < remainingCharge,
+        ) ?? (preferred !== undefined && candidates.includes(preferred) ? preferred : undefined);
   // いずれの届く武技も、相手が PP を持つ間は留保（最小のPPコスト）を残して撃てるだけの PP を蓄える。
   const pool = reachingCosts.length > 0 ? reachingCosts : costs(unit.acts.filter((action) => isAttack(unit, action)));
   const need = Math.max(...pool) + (rival.pp >= 1 ? Math.min(...pool) : 0);
   // 相手の攻撃の発生中は、心気が着弾より前に発動する場合に限る。
-  const mindInTime =
-    mind !== undefined &&
-    (charging === null ||
-      effectiveStepStartup(rival, charging) - rival.elapsed_startup > effectiveStepStartup(unit, mind));
+  const mindInTime = mind !== undefined && (remainingCharge === null || remainingCharge > effectiveStepStartup(unit, mind));
   if (mind !== undefined && unit.pp < need && mindInTime) {
     return act(mind);
   }

@@ -68,7 +68,6 @@ export interface SceneMasterRecord {
   readonly joint_action: boolean;
   readonly deferred_decision: boolean;
   readonly eval_mask: readonly string[] | null;
-  readonly inertia_steps: number | null;
   readonly expected_length: number | null;
 }
 

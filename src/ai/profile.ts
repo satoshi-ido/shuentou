@@ -68,7 +68,6 @@ export interface EffectiveProfile {
   readonly jointAction: boolean;
   readonly deferredDecision: boolean;
   readonly evalMask: readonly FeatureKey[]; // 昇順ソート済み（[I-STATE-JSON]）
-  readonly inertiaSteps: number;
   readonly expectedLength: number;
   readonly bookId: string | null;
   // [A-SEARCH-MOVEGEN] 待機手を候補に含めるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
@@ -92,7 +91,6 @@ export function defaultProfile(): EffectiveProfile {
     jointAction: false,
     deferredDecision: false,
     evalMask: ['board', 'survival', 'tempo'],
-    inertiaSteps: 30,
     expectedLength: 600,
     bookId: null,
     waitMoves: false,
@@ -117,7 +115,6 @@ export function referenceProfile(): EffectiveProfile {
     jointAction: false,
     deferredDecision: false,
     evalMask: ['board', 'copy', 'debuff', 'pp', 'position', 'seal', 'slip', 'survival', 'tempo', 'vp'],
-    inertiaSteps: 0,
     expectedLength: 600,
     bookId: null,
     waitMoves: true, // [V-TEST-REFAI]「待機手」
@@ -232,7 +229,6 @@ export function buildEffectiveProfile({ scene, enemy, profile, mirrorStats }: Pr
     jointAction: scene.joint_action,
     deferredDecision: scene.deferred_decision,
     evalMask: evalMask as readonly FeatureKey[],
-    inertiaSteps: requireValue(scene.inertia_steps, '惰性ステップ数', scene.scene_id),
     expectedLength: requireValue(scene.expected_length, '想定戦闘長', scene.scene_id),
     bookId: enemy.book_id ?? null, // 手順5
     waitMoves: false, // [A-SEARCH-MOVEGEN] 敵軍AIの探索では待機手を生成しない

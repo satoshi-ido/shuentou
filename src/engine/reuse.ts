@@ -1,7 +1,6 @@
-// [A-SEARCH-REUSE] 再探索の抑制。盤面ハッシュの一致および惰性（inertia_steps）の判定を行い、
+// [A-SEARCH-REUSE] 再探索の抑制。盤面ハッシュの一致の判定を行い、
 // 抑制が成立する決定点では探索を行わずパスを返す。記録は BattleState の ai_reuse に保持する。
 
-import { executableActions } from './decision.js';
 import type { BattleState, ReuseRecord, Unit } from './types.js';
 
 const FNV_OFFSET_BASIS = 0x811c9dc5;
@@ -39,59 +38,19 @@ export function boardHash(state: BattleState): number {
   return hash >>> 0;
 }
 
-function executableIds(state: BattleState, unit: Unit): string[] {
-  return executableActions(state, unit)
-    .map((action) => action.instance_id)
-    .sort();
-}
-
-// [A-SEARCH-REUSE]「相手の行動開始による解除」行動の署名：相手陣営の各ユニットの
-// `ユニットID:直前アクション記憶のインスタンスID:uses_left_before`。直前アクション記憶は行動の開始時に更新される。
-function rivalActs(state: BattleState, unit: Unit): string[] {
-  return state.units
-    .filter((other): other is Unit => other !== null && other.side !== unit.side)
-    .map((other) => `${other.unit_id}:${other.last_act?.instance_id ?? ''}:${other.last_act?.uses_left_before ?? ''}`)
-    .sort();
-}
-
-// [A-SEARCH-REUSE]「相手の発生中の不適用」相手陣営に発生中のユニットがあるか。
-function rivalCharging(state: BattleState, unit: Unit): boolean {
-  return state.units.some((other) => other !== null && other.side !== unit.side && other.state === 'STARTUP');
-}
-
-function sameIds(a: readonly string[], b: readonly string[]): boolean {
-  return a.length === b.length && a.every((value, index) => value === b[index]);
-}
-
-// [A-SEARCH-REUSE]［記録と適用］抑制が成立する（探索せずパスを返す）かどうか。
+// [A-SEARCH-REUSE]［記録と適用］抑制が成立する（探索せずパスを返す）かどうか。盤面ハッシュが記録と一致する場合に限る
+// （同一ステップ内の再問い合わせ）。惰性は M9 で廃した（同項「惰性の廃止」）。
 export function isSearchSuppressed(state: BattleState, unit: Unit): boolean {
   const record = state.ai_reuse[unit.unit_id];
-  if (record === undefined) {
-    return false;
-  }
-  if (record.hash === boardHash(state)) {
-    return true;
-  }
-  return (
-    !rivalCharging(state, unit) &&
-    state.step <= record.until &&
-    sameIds(record.executable, executableIds(state, unit)) &&
-    // 本項目の追加前に保存された記録（rival_acts を持たない）は一致しないものとして再探索する。
-    sameIds(record.rival_acts ?? [], rivalActs(state, unit))
-  );
+  return record !== undefined && record.hash === boardHash(state);
 }
 
 // 探索の結果がパスなら記録を更新し、行動の確定または抑制不成立なら記録を削除する。
-export function updateReuse(state: BattleState, unit: Unit, keep: boolean, inertiaSteps: number): void {
+export function updateReuse(state: BattleState, unit: Unit, keep: boolean): void {
   if (!keep) {
     delete state.ai_reuse[unit.unit_id];
     return;
   }
-  const record: ReuseRecord = {
-    hash: boardHash(state),
-    until: state.step + inertiaSteps,
-    executable: executableIds(state, unit),
-    rival_acts: rivalActs(state, unit),
-  };
+  const record: ReuseRecord = { hash: boardHash(state) };
   state.ai_reuse[unit.unit_id] = record;
 }

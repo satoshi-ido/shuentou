@@ -22,7 +22,6 @@ export const SCENE_MASTERS = {
       "tempo",
       "board"
     ],
-    "inertia_steps": 30,
     "expected_length": 800
   },
   "SCENE_1_02": {
@@ -47,7 +46,6 @@ export const SCENE_MASTERS = {
       "board",
       "position"
     ],
-    "inertia_steps": 30,
     "expected_length": 1000
   },
   "SCENE_2_01": {
@@ -74,7 +72,6 @@ export const SCENE_MASTERS = {
       "pp",
       "vp"
     ],
-    "inertia_steps": 15,
     "expected_length": 800
   },
   "SCENE_2_02": {
@@ -101,7 +98,6 @@ export const SCENE_MASTERS = {
       "pp",
       "vp"
     ],
-    "inertia_steps": 15,
     "expected_length": 600
   },
   "SCENE_2_03": {
@@ -128,7 +124,6 @@ export const SCENE_MASTERS = {
       "pp",
       "vp"
     ],
-    "inertia_steps": 15,
     "expected_length": 600
   },
   "SCENE_2_04": {
@@ -154,7 +149,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 800
   },
   "SCENE_3_01": {
@@ -182,7 +176,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_3_02": {
@@ -210,7 +203,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_3_03": {
@@ -238,7 +230,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_3_04": {
@@ -266,7 +257,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_3_05": {
@@ -294,7 +284,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_3_06": {
@@ -320,7 +309,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 800
   },
   "SCENE_4_01": {
@@ -348,7 +336,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_02": {
@@ -376,7 +363,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_03": {
@@ -405,7 +391,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_04": {
@@ -434,7 +419,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_05": {
@@ -463,7 +447,6 @@ export const SCENE_MASTERS = {
       "vp",
       "impatience"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_06": {
@@ -492,7 +475,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_07": {
@@ -521,7 +503,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_4_08": {
@@ -548,7 +529,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 800
   },
   "SCENE_5_01": {
@@ -577,7 +557,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_02": {
@@ -606,7 +585,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_03": {
@@ -635,7 +613,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_04": {
@@ -665,7 +642,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_05": {
@@ -695,7 +671,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_06": {
@@ -725,7 +700,6 @@ export const SCENE_MASTERS = {
       "impatience",
       "debuff"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_07": {
@@ -755,7 +729,6 @@ export const SCENE_MASTERS = {
       "debuff",
       "slip"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_08": {
@@ -786,7 +759,6 @@ export const SCENE_MASTERS = {
       "slip",
       "copy"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_09": {
@@ -818,7 +790,6 @@ export const SCENE_MASTERS = {
       "copy",
       "seal"
     ],
-    "inertia_steps": 0,
     "expected_length": 600
   },
   "SCENE_5_10": {
@@ -848,7 +819,6 @@ export const SCENE_MASTERS = {
       "copy",
       "seal"
     ],
-    "inertia_steps": 0,
     "expected_length": 1200
   },
   "SCENE_5_11": {
@@ -866,7 +836,6 @@ export const SCENE_MASTERS = {
     "joint_action": false,
     "deferred_decision": false,
     "eval_mask": null,
-    "inertia_steps": null,
     "expected_length": null
   },
 } as const satisfies Record<string, SceneMasterRecord>;
