@@ -148,9 +148,10 @@ describe('［シーン単位の勝率測定］の集計', () => {
 describe('シーン単体の試行', () => {
   it('到達時HPを最大HPの百分率へ置き換えて1回戦う（1-01）', () => {
     const serialized = JSON.stringify(createRun().session.data);
-    const result = playSceneTrial(serialized, 'BALANCE', 50);
+    // 50% では返し刃（[M-TMPL-ENEMY-SPECIAL]［1-01・1-02 の特殊枠］）の追加後に敗北するため、75% で置き換えを確かめる。
+    const result = playSceneTrial(serialized, 'BALANCE', 75);
     expect(result.scene).toBe('SCENE_1_01');
-    expect(result.hpIn).toEqual([30, 60]);
+    expect(result.hpIn).toEqual([45, 60]);
     expect(result.measured).toBe(true);
     expect(result.result).toBe('WIN');
     expect(result.margin).toBeGreaterThan(0);

@@ -35,7 +35,18 @@ export const ENEMIES = [
     ai_profile_id: 'PROFILE_FRENZY',
     book_id: 'B-01',
     root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
-    specials: [],
+    specials: [
+      {
+        // [M-TMPL-ENEMY-SPECIAL]［1-01・1-02 の特殊枠］武技（重撃）の溜めを断つ速い返し。
+        component: 'MARTIAL',
+        base: 'MARTIAL/BASIC',
+        ar_mult: 200,
+        class_id: 'ACT_SPEC_RIPOSTE_LEF',
+        display_name: '返し刃',
+        base_uses: 300,
+        override: { dmg_hp: 300 },
+      },
+    ],
   },
   {
     // [M-TMPL-ENEMY-1-02]
@@ -48,7 +59,18 @@ export const ENEMIES = [
     ai_profile_id: 'PROFILE_ASSAULT',
     book_id: 'B-02',
     root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
-    specials: [],
+    specials: [
+      {
+        // [M-TMPL-ENEMY-SPECIAL]［1-01・1-02 の特殊枠］溜めの長い大振り。中断されなければ重い。
+        component: 'MARTIAL',
+        base: 'MARTIAL/HEAVY',
+        ar_mult: 100,
+        class_id: 'ACT_SPEC_CLEAVE_DORN',
+        display_name: '断ち割り',
+        base_uses: 300,
+        override: { dmg_hp: 450 },
+      },
+    ],
   },
   {
     enemy_id: 'ENEMY_VOLG',

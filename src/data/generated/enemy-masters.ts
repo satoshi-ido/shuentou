@@ -72,6 +72,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR4",
       "ACT_GUARD_AR4",
       "ACT_GUARD_AR8",
+      "ACT_SPEC_CLEAVE_DORN",
       "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],
@@ -347,6 +348,7 @@ export const ENEMY_MASTERS = {
       "ACT_HEAVY_AR3",
       "ACT_GUARD_AR3",
       "ACT_GUARD_AR6",
+      "ACT_SPEC_RIPOSTE_LEF",
       "ACT_ROOT_COUNTER",
       "ACT_ROOT_MARTIAL"
     ],

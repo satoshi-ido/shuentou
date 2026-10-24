@@ -70,8 +70,8 @@ describe('[M-PROG-CLEAR] バトルクリア共通決済', () => {
     expect(run.im_snapshots.map((snapshot) => snapshot.order)).toEqual([1]);
     expect(run.im_snapshots[0]?.state.phase).toBe('INTERMISSION');
     expect(run.hero_acts.every((action) => !action.is_copy && action.seal_accum === 0)).toBe(true);
-    // 敵マスターの所持アクション9件の実体化により採番位置が進む（[I-STATE-ID]）。
-    expect(run.instance_id_seq).toBe(15);
+    // 敵マスターの所持アクション10件（特殊枠の返し刃を含む）の実体化により採番位置が進む（[I-STATE-ID]）。
+    expect(run.instance_id_seq).toBe(16);
     // バトル開始時・クリア完了時の2回保存する。
     expect(recorder.saves.map((text) => JSON.parse(text).run.phase)).toEqual(['BATTLE', 'INTERMISSION']);
   });
@@ -100,9 +100,9 @@ describe('[M-INHERIT-POOL] [M-INHERIT-MERGE] 継承', () => {
     confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_MUSOU_AR3' });
     const musou = session.data.run.hero_acts[6];
     expect(musou?.master_ref).toBe('ACT_MUSOU_AR3');
-    expect(musou?.instance_id).toBe('IID0015');
+    expect(musou?.instance_id).toBe('IID0016');
     expect(musou?.uses_left).toBe(14); // round(3.00 × 4.50)
-    expect(session.data.run.instance_id_seq).toBe(16);
+    expect(session.data.run.instance_id_seq).toBe(17);
   });
 
   it('従者特性係数を基礎値へ乗算し、統合は減少型に最小値を採る', () => {

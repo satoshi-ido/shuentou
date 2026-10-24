@@ -82,6 +82,10 @@ function instructableMine(state: BattleState): Unit[] {
 export type FoeDecisionTimer = (sceneId: string, state: BattleState, unit: Unit, elapsedMs: number) => void;
 export const foeDecisionTiming: { observer: FoeDecisionTimer | null } = { observer: null };
 
+// [V-TEST-REFAI]［供犠の誘いの検証］主人公側を脚本の代理で操作する受け口。設けたときに限り、参照プレイヤーAIの
+// 探索に代えて各決定点の手を決める。
+export const playerDecisionOverride: { provider: DecisionProvider | null } = { provider: null };
+
 // [A-PROFILE-RESOLVE] 敵軍の実効プロファイルは進行中のシーンから構築する。
 function createFoeDecision(currentSession: () => GameSession): DecisionProvider {
   const cache: Record<string, DecisionProvider> = {};
@@ -188,7 +192,7 @@ function playOneOperation(
   // [V-TEST-REFAI]［決定点］参照プレイヤーAIは敵軍AIと同じく、行動を確定できるステップごとに決定する。
   // 次のステップに手動停止（[M-PIPE-PAUSE-TRIGGER]#4）を要求し、停止条件の成立を待たずに決定点を得る。
   const next: AdvanceOptions = { ...options, stopAtStep: state.step + 1 };
-  const provider = createAiDecisionProvider(playerProfile, STEP_DEPS);
+  const provider = playerDecisionOverride.provider ?? createAiDecisionProvider(playerProfile, STEP_DEPS);
   for (const unit of instructableMine(state)) {
     // 実行可能なアクションが無い間はパスしか選べないため、探索を行わない。
     if (executableActions(state, unit).length === 0) {
@@ -756,7 +760,15 @@ export function chooseAttackDps(
 }
 
 // インターミッションを決済まで進める。継承・補充はいずれも決定論規約（従者ID昇順）に従う。
-export function playIntermission(session: GameSession, ctx: GameContext, policy: RefPolicy, turn: number): void {
+// sacrifice を与えると供犠を規則によらず決める（[V-TEST-REFAI]［供犠の誘いの検証］）：従者IDならその従者を供犠し、
+// null なら供犠しない。省略時は［供犠の実行］の規則による。
+export function playIntermission(
+  session: GameSession,
+  ctx: GameContext,
+  policy: RefPolicy,
+  turn: number,
+  sacrifice?: string | null,
+): void {
   const run = session.data.run;
   if (policy === 'BALANCE') {
     // [V-TEST-REFAI]［役割充足による選択］体力の役割は、最大HP加算の途絶が続くときにも未充足とする。
@@ -844,7 +856,11 @@ export function playIntermission(session: GameSession, ctx: GameContext, policy:
   // [V-TEST-REFAI]［供犠の実行］継承をすべて終えた後に1度だけ判定する。アクト最終シーンのクリア後は
   // アクト移行で全回復するため行わない（[M-PROG-REFILL]）。
   // 「ボス前の供犠」は閾値に依らず発動する。
-  if (
+  if (sacrifice !== undefined) {
+    if (sacrifice !== null) {
+      confirmSacrifice(session, ctx, sacrifice);
+    }
+  } else if (
     policy !== 'PASSIVE' &&
     !isActTransition(run, MASTERS) &&
     (needsSacrifice(run) || needsBossSacrifice(run))

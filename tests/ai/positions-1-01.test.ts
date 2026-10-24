@@ -123,13 +123,13 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
 
   it('T-19: 敵は心気の後に PP2 を温存し、主人公の武技（重撃）AR7 の着弾に体勢AR6 の壁を合わせて防ぐ', { timeout: 600_000 }, () => {
     const { started, foeHp } = play(600);
-    // 敵は定跡の心気の後に手を出さず、主人公が武技AR6（発生14）で先に打つ（HP8→5）。敵は武技AR6で応じる。
+    // 敵は定跡の心気の後に手を出さず、主人公が武技AR6（発生14）で先に打つ（HP8→5）。敵は返し刃（武技（特殊）、実効HPダメージ9）で応じる。
     // 主人公が心気で PP を補って武技（重撃）AR7（発生154、ステップ593に着弾）を撃つと、敵は心気で PP を補い、
     // 体勢AR6（発生28・硬直83、防御力46）を着弾に重なる 526 に発生させる。攻撃力37は壁を割れず、HP は3のまま。
     expect(started).toEqual([
       '147:FOE:ACT_MIND_AR3',
       '199:MINE:ACT_SLASH_AR6',
-      '268:FOE:ACT_SLASH_AR6',
+      '268:FOE:ACT_SPEC_RIPOSTE_LEF',
       '429:MINE:ACT_MIND_AR3',
       '439:MINE:ACT_HEAVY_AR7',
       '485:FOE:ACT_MIND_AR3',
@@ -144,11 +144,11 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
 
   // 主人公がPPを得た直後（ステップ157）に武技（重撃）AR7（発生154、ステップ311に着弾）を撃つ局面。敵は思考中で、
   // 必要思考0の手（体勢・武技（重撃）AR3）では間に合わない。武技（重撃）AR3（発生236）は着弾が遅れて無防備な溜めを
-  // 突かれる。敵は武技AR6 が実行可能となるステップ199まで待ち、発生中の溜めを中断する（着弾213）。
-  it('T-19: 主人公がステップ157に撃つ武技（重撃）AR7 を、敵は武技AR6 で中断する', { timeout: 600_000 }, () => {
+  // 突かれる。敵は返し刃（必要思考42・発生14）が実行可能となるステップ199まで待ち、発生中の溜めを中断する（着弾213、主人公HP58→49）。
+  it('T-19: 主人公がステップ157に撃つ武技（重撃）AR7 を、敵は返し刃で中断する', { timeout: 600_000 }, () => {
     const { started, foeHp, state } = play(320, 157);
-    expect(started).toEqual(['147:FOE:ACT_MIND_AR3', '157:MINE:ACT_HEAVY_AR7', '199:FOE:ACT_SLASH_AR6']);
-    expect(findUnit(state, 'MINE').hp).toBe(55);
+    expect(started).toEqual(['147:FOE:ACT_MIND_AR3', '157:MINE:ACT_HEAVY_AR7', '199:FOE:ACT_SPEC_RIPOSTE_LEF']);
+    expect(findUnit(state, 'MINE').hp).toBe(49);
     expect(foeHp[311]).toBe(8); // 中断された武技（重撃）は着弾しない
   });
 });
