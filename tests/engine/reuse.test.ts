@@ -82,6 +82,18 @@ describe('[A-SEARCH-REUSE]［記録と適用］', () => {
     expect(isSearchSuppressed(state, enemy)).toBe(false);
   });
 
+  it('相手陣営のユニットが発生中の間は惰性を適用しない', () => {
+    const { state, enemy } = duel();
+    const hero = findUnit(state, 'MINE');
+    hero.state = 'STARTUP';
+    updateReuse(state, enemy, true, 30); // 発生中の相手を記録に含めても
+    state.step += 1;
+    hero.elapsed_startup += 1;
+    expect(isSearchSuppressed(state, enemy)).toBe(false);
+    hero.state = 'THOUGHT';
+    expect(isSearchSuppressed(state, enemy)).toBe(true);
+  });
+
   it('行動の確定では記録を削除する', () => {
     const { state, enemy } = duel();
     updateReuse(state, enemy, true, 30);

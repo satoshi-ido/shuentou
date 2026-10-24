@@ -54,6 +54,11 @@ function rivalActs(state: BattleState, unit: Unit): string[] {
     .sort();
 }
 
+// [A-SEARCH-REUSE]「相手の発生中の不適用」相手陣営に発生中のユニットがあるか。
+function rivalCharging(state: BattleState, unit: Unit): boolean {
+  return state.units.some((other) => other !== null && other.side !== unit.side && other.state === 'STARTUP');
+}
+
 function sameIds(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
@@ -68,6 +73,7 @@ export function isSearchSuppressed(state: BattleState, unit: Unit): boolean {
     return true;
   }
   return (
+    !rivalCharging(state, unit) &&
     state.step <= record.until &&
     sameIds(record.executable, executableIds(state, unit)) &&
     // 本項目の追加前に保存された記録（rival_acts を持たない）は一致しないものとして再探索する。

@@ -14,6 +14,7 @@ import {
   effectiveStepStartup,
   effectiveStepThought,
 } from '../../src/engine/effective.js';
+import { levelHpDamage } from '../../src/engine/calc.js';
 import { hasFlag } from '../../src/engine/flags.js';
 import type { ActionInstance, BattleState, Unit } from '../../src/engine/types.js';
 
@@ -100,6 +101,26 @@ export function responseTime(rival: Unit): number {
   return best + 1;
 }
 
+// 相手陣営のマスターの、現在の PP で撃てる最速のスタン付き武技のPPコストと、主人公へ与える実効HPダメージ（[M-CALC-LEVEL]）。
+function fastestAnswer(state: BattleState, rival: Unit): { cost: number; damage: number } | null {
+  const elapsed = rival.state === 'THOUGHT' ? rival.elapsed_thought : 0;
+  let best: { time: number; cost: number; damage: number } | null = null;
+  for (const action of rival.acts) {
+    if (!isAttack(rival, action) || !action.base_params.stun || !usable(action) || isRootAction(action)) {
+      continue;
+    }
+    const cost = effectiveCostPp(rival, action);
+    if (rival.pp < cost) {
+      continue;
+    }
+    const time = Math.max(0, effectiveStepThought(rival, action) - elapsed) + effectiveStepStartup(rival, action);
+    if (best === null || time < best.time) {
+      best = { time, cost, damage: levelHpDamage(effectiveDmgHpCenti(rival, action), state.scene_level) };
+    }
+  }
+  return best === null ? null : { cost: best.cost, damage: best.damage };
+}
+
 // 代理2（応手型）。[V-TEST-REFAI]［供犠の誘いの検証］の1.〜8.。
 export const responsiveStandIn: DecisionProvider = (state, unit) => {
   const counter = counterToFire(state, unit);
@@ -155,13 +176,19 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
       return act(hit);
     }
   }
-  // 6. 交換：HPの差で打ち合いに勝てるとき、最速の届く武技で突く。
-  if (rival.state === 'THOUGHT' && unit.hp > rival.hp) {
-    const fastest = [...reaching]
-      .filter((action) => rival.pp < 1 || unit.pp - effectiveCostPp(unit, action) >= (minCost ?? 0))
-      .sort((a, b) => effectiveStepStartup(unit, a) - effectiveStepStartup(unit, b))[0];
-    if (fastest !== undefined) {
-      return act(fastest);
+  // 6. 誘い：安全に突けず、相手の最速の応手1回で相手の PP がその応手のPPコストを下回るとき、PPコストの最小の届く武技を
+  // 撃って応手を引き出す（相手の最速の応手を3回受けても尽きないHPがある場合に限る）。応手の後は相手の PP が尽き、
+  // 心気で補うまで 5. の突きが通る。
+  if (rival.state === 'THOUGHT') {
+    const answer = fastestAnswer(state, rival);
+    const bait = [...reaching].sort((a, b) => effectiveCostPp(unit, a) - effectiveCostPp(unit, b))[0];
+    if (
+      bait !== undefined &&
+      answer !== null &&
+      rival.pp - answer.cost < answer.cost &&
+      unit.hp > answer.damage * 3
+    ) {
+      return act(bait);
     }
   }
   // 7. 心気：所持する心気のうち必要硬直実効値が最小のもの（同値は所持アクション配列インデックス昇順）。実行可能に
