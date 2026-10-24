@@ -45,6 +45,15 @@ function executableIds(state: BattleState, unit: Unit): string[] {
     .sort();
 }
 
+// [A-SEARCH-REUSE]「相手の行動開始による解除」行動の署名：相手陣営の各ユニットの
+// `ユニットID:直前アクション記憶のインスタンスID:uses_left_before`。直前アクション記憶は行動の開始時に更新される。
+function rivalActs(state: BattleState, unit: Unit): string[] {
+  return state.units
+    .filter((other): other is Unit => other !== null && other.side !== unit.side)
+    .map((other) => `${other.unit_id}:${other.last_act?.instance_id ?? ''}:${other.last_act?.uses_left_before ?? ''}`)
+    .sort();
+}
+
 function sameIds(a: readonly string[], b: readonly string[]): boolean {
   return a.length === b.length && a.every((value, index) => value === b[index]);
 }
@@ -58,7 +67,12 @@ export function isSearchSuppressed(state: BattleState, unit: Unit): boolean {
   if (record.hash === boardHash(state)) {
     return true;
   }
-  return state.step <= record.until && sameIds(record.executable, executableIds(state, unit));
+  return (
+    state.step <= record.until &&
+    sameIds(record.executable, executableIds(state, unit)) &&
+    // 本項目の追加前に保存された記録（rival_acts を持たない）は一致しないものとして再探索する。
+    sameIds(record.rival_acts ?? [], rivalActs(state, unit))
+  );
 }
 
 // 探索の結果がパスなら記録を更新し、行動の確定または抑制不成立なら記録を削除する。
@@ -71,6 +85,7 @@ export function updateReuse(state: BattleState, unit: Unit, keep: boolean, inert
     hash: boardHash(state),
     until: state.step + inertiaSteps,
     executable: executableIds(state, unit),
+    rival_acts: rivalActs(state, unit),
   };
   state.ai_reuse[unit.unit_id] = record;
 }

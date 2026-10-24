@@ -21,7 +21,7 @@ describe('[A-SEARCH-REUSE]［盤面ハッシュ］', () => {
     state.watching[enemy.acts[0].instance_id] = allWatchFlags(true);
     state.watch_prev_met[enemy.acts[0].instance_id] = allWatchFlags(true);
     state.pause_reason = { code: 'MANUAL_PAUSE', unit_id: null, instance_id: null, watch_kind: null, remaining_steps: null };
-    state.ai_reuse[enemy.unit_id] = { hash: 1, until: 2, executable: [] };
+    state.ai_reuse[enemy.unit_id] = { hash: 1, until: 2, executable: [], rival_acts: [] };
     expect(boardHash(state)).toBe(before);
   });
 
@@ -59,6 +59,26 @@ describe('[A-SEARCH-REUSE]［記録と適用］', () => {
     enemy.vp += 1; // 盤面ハッシュは変わるが実行可能手の集合は変わらない
     expect(isSearchSuppressed(state, enemy)).toBe(true);
     state.step += 1;
+    expect(isSearchSuppressed(state, enemy)).toBe(false);
+  });
+
+  it('惰性は相手陣営のユニットが行動を開始すると解除する', () => {
+    const { state, enemy } = duel();
+    const hero = findUnit(state, 'MINE');
+    updateReuse(state, enemy, true, 30);
+    state.step += 1;
+    enemy.vp += 1; // 盤面ハッシュは変わるが実行可能手の集合は変わらない
+    expect(isSearchSuppressed(state, enemy)).toBe(true);
+    // 直前アクション記憶は行動の開始時に更新される（[M-STATE-LASTACTION]）。
+    const mind = hero.acts[0];
+    hero.last_act = {
+      instance_id: mind.instance_id,
+      class_id: mind.master_ref,
+      sys_flags: mind.sys_flags,
+      params: mind.base_params,
+      uses_left_before: mind.uses_left,
+      is_copy: false,
+    };
     expect(isSearchSuppressed(state, enemy)).toBe(false);
   });
 
