@@ -81,8 +81,9 @@ function usable(action: ActionInstance): boolean {
 // 応手時間：相手陣営のマスターが思考中に戻ってから、スタン付き武技を主人公へ着弾させるまでの最短のステップ数。
 // 硬直中の相手は経過思考を0として求める。相手は主人公の着手を次のステップの決定点で見て応じるため1を加える。
 // 該当がなければ無限大。
-export function responseTime(rival: Unit): number {
-  const elapsed = rival.state === 'THOUGHT' ? rival.elapsed_thought : 0;
+export function responseTime(rival: Unit, advance = 0): number {
+  // advance：相手が思考中のまま経過思考がその歩数だけ進んだ時点の応手時間を求める（6.「少し待てば突ける」の判定）。
+  const elapsed = (rival.state === 'THOUGHT' ? rival.elapsed_thought : 0) + advance;
   const wait = (action: ActionInstance) =>
     Math.max(0, effectiveStepThought(rival, action) - elapsed) + effectiveStepStartup(rival, action);
   const minds = rival.acts.filter((action) => hasFlag(action.sys_flags, 'FLAG_MIND') && usable(action));
@@ -172,19 +173,38 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
   }
   // 4. 硬直の咎め
   if (rival.state === 'RECOVERY') {
-    const hit = before(rival.applied_recovery - rival.elapsed_recovery + responseTime(rival), true);
+    const hit = before(rival.applied_recovery - rival.elapsed_recovery + responseTime(rival), false);
     if (hit !== undefined) {
       return act(hit);
     }
   }
   // 5. 突き
   if (rival.state === 'THOUGHT') {
-    const hit = before(responseTime(rival), true);
+    const hit = before(responseTime(rival), false);
     if (hit !== undefined) {
       return act(hit);
     }
   }
-  // 6. 誘い：安全に突けず、相手が現在の PP で撃てる応手（最小のPPコストのスタン付き武技）が2回以下のとき、PPコストの
+  // 少し待てば安全に突けるか：所持する届く武技（実行可能でないものを含む。マスター根源武技を除く）のうち、必要思考を
+  // 満たすまで待った時点で、必要発生実効値がその時点の応手時間より短く、現在の PP で撃てるものがあるか。
+  const pokeAfterWait = (): boolean => {
+    const owned = unit.acts.filter(
+      (action) =>
+        isAttack(unit, action) &&
+        !isRootAction(action) &&
+        usable(action) &&
+        effectiveAtk(unit, action) >= defense &&
+        distance <= effectiveRange(unit, action),
+    );
+    return owned.some((action) => {
+      const wait = Math.max(0, effectiveStepThought(unit, action) - unit.elapsed_thought);
+      return (
+        unit.pp >= effectiveCostPp(unit, action) &&
+        effectiveStepStartup(unit, action) < responseTime(rival, wait)
+      );
+    });
+  };
+  // 6. 誘い：安全に突けず、少し待っても安全に突ける武技がなく、相手が現在の PP で撃てる応手（最小のPPコストのスタン付き武技）が2回以下のとき、PPコストの
   // 最小の届く武技（同値は必要発生実効値の短い順）を撃って応手を引き出す（相手の最速の応手を3回受けても尽きないHPがある
   // 場合に限る）。応手で相手の PP が尽きれば、心気で補うまで 5. の突きが通る。
   if (rival.state === 'THOUGHT') {
@@ -196,9 +216,11 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
     )[0];
     if (
       bait !== undefined &&
+      !pokeAfterWait() &&
       answer !== null &&
       cheapestAnswer !== null &&
-      Math.floor(rival.pp / cheapestAnswer) <= 2 &&
+      // 主人公の直前の行動が拍止めであれば、根源武技の待ち合いに入っているため、応手の回数の条件を問わない。
+      (Math.floor(rival.pp / cheapestAnswer) <= 2 || unit.last_act?.class_id === ROOT_COUNTER_ID) &&
       unit.hp > answer.damage * 3
     ) {
       return act(bait);
