@@ -8,7 +8,7 @@ export const AI_PROFILES = [
     profile_id: 'PROFILE_FRENZY',
     display_name: '狂乱',
     weight_mult: { impatience: '1.50', pp: '0.50' },
-    action_bonus: { PASS: -800 },
+    action_bonus: { PASS: 0 },
     dynamic_weight: null,
   },
   {

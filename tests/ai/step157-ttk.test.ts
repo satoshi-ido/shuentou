@@ -22,7 +22,7 @@ import { damageBy, projectedLoss, settlementOf, ttk, xSurvival } from '../../src
 
 const PREFERRED_CLASS_ID = 'ACT_MIND_AR3';
 const W_SURVIVAL = 4000;
-const FRENZY_PASS = -800; // [A-PROFILE-TABLE] 狂乱プロファイル
+const FRENZY_PASS = 0; // [A-PROFILE-TABLE] 狂乱プロファイル
 
 const scriptedDecision: DecisionProvider = (state: BattleState, unit: Unit): Decision => {
   const preferred = executableActions(state, unit).find((action) => action.master_ref === PREFERRED_CLASS_ID);
@@ -103,7 +103,7 @@ describe('[V-NUM-STEP157] 候補手評価（定跡無効）', () => {
     { move: 'ACT_GUARD_AR3', label: '体勢 AR3（AP16）', expected: { te: 745, tp: 505, xSurvivalMilli: -917, total: -3668 } },
     { move: 'ACT_GUARD_AR6', label: '体勢 AR6（AP23）', expected: { te: 734, tp: 494, xSurvivalMilli: -917, total: -3668 } },
     { move: 'ACT_HEAVY_AR3', label: '武技（重撃）AR3', expected: { te: 942, tp: 784, xSurvivalMilli: -800, total: -3199 } },
-    { move: 'PASS', label: 'パス', expected: { te: 705, tp: 547, xSurvivalMilli: -816, total: -4066 } },
+    { move: 'PASS', label: 'パス', expected: { te: 705, tp: 547, xSurvivalMilli: -816, total: -3266 } },
   ])('$label', ({ move, expected }) => {
     expect(rowAfter(move)).toEqual(expected);
   });
@@ -119,13 +119,16 @@ describe('[V-TEST-POSITIONS] T-18 パスへの負のボーナスと妨害モデ�
     return decision.kind === 'PASS' ? 'PASS' : enemy.acts.find((a) => a.instance_id === decision.instanceId)!.master_ref;
   }
 
-  it('T-18: 生存項のみの比較（PASS −800 を加味）では武技（重撃）AR3を選ぶ', () => {
-    expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_HEAVY_AR3');
+  // 既定の PASS 減点（−400、[A-PROFILE-BONUS]）は生存項で僅差のパスを非パス手へ押し出す。1-01 の狂乱プロファイル
+  // （PASS 0）の下ではパスが残る。
+  it('T-18: 生存項のみの比較では、既定の PASS −400 の下で武技（重撃）AR3、PASS 0 の下でパスを選ぶ', () => {
+    expect(chosen({ ...defaultProfile(), evalMask: ['survival'], maxDepth: 1 })).toBe('ACT_HEAVY_AR3');
+    expect(chosen({ ...frenzy, evalMask: ['survival'], maxDepth: 1 })).toBe('PASS');
   });
 
   // 1-01 の実効プロファイルによる探索の選択は T-18 の期待手としない（[V-TEST-POSITIONS] T-18）。
-  // [V-NUM-STEP157] の算出値（体勢（基本）AR6）として検証する。
-  it('[V-NUM-STEP157] 1-01 の実効プロファイルによる探索では体勢（基本）AR6を選ぶ', () => {
-    expect(chosen(frenzy)).toBe('ACT_GUARD_AR6');
+  // [V-NUM-STEP157] の算出値（パス）として検証する。
+  it('[V-NUM-STEP157] 1-01 の実効プロファイルによる探索ではパスを選ぶ', () => {
+    expect(chosen(frenzy)).toBe('PASS');
   });
 });

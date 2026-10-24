@@ -1,6 +1,6 @@
 // [V-TEST-REFAI]［供犠の実行］対象の選択と判定。
 import { describe, expect, it } from 'vitest';
-import { BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
+import { BONUS_REFAI_PASS, BONUS_REFAI_STANCE } from '../../src/ai/constants.js';
 import { referenceProfile } from '../../src/ai/profile.js';
 import { needsBossSacrifice, needsSacrifice, sacrificeTarget } from './runner.js';
 
@@ -54,6 +54,13 @@ describe('[V-TEST-REFAI]［供犠の実行］「ボス前の供犠」', () => {
 describe('[V-TEST-REFAI]「体勢への減点」', () => {
   it('参照プレイヤーAIのアクション種別ボーナスに STANCE = −1000 を与える', () => {
     expect(BONUS_REFAI_STANCE).toBe(-1000);
-    expect(referenceProfile().actionBonus).toEqual({ STANCE: BONUS_REFAI_STANCE });
+    expect(referenceProfile().actionBonus.STANCE).toBe(BONUS_REFAI_STANCE);
+  });
+});
+
+describe('[V-TEST-REFAI]「パスへの減点」', () => {
+  it('参照プレイヤーAIのアクション種別ボーナスで PASS を −1200 へ上書きする', () => {
+    expect(BONUS_REFAI_PASS).toBe(-1200);
+    expect(referenceProfile().actionBonus).toEqual({ STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS });
   });
 });

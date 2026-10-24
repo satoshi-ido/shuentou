@@ -159,7 +159,7 @@ export const AI_PROFILE_MASTERS = {
       "pp": 50
     },
     "action_bonus": {
-      "PASS": -800
+      "PASS": 0
     },
     "dynamic_weight": null
   },

@@ -102,8 +102,8 @@ describe('[A-BOOK-SEMANTICS] lookup の状態遷移', () => {
 });
 
 describe('[A-BOOK-SCHEMA] セレクタの展開', () => {
-  it('B-01 は祠守レフの構成テンプレートから 心気（基本）AR3 → 体勢（基本）AR6 に展開される', () => {
-    expect(BOOK_MASTERS['B-01'].steps.map((step) => step.class_id)).toEqual(['ACT_MIND_AR3', 'ACT_GUARD_AR6']);
+  it('B-01 は祠守レフの構成テンプレートから 心気（基本）AR3 に展開される', () => {
+    expect(BOOK_MASTERS['B-01'].steps.map((step) => step.class_id)).toEqual(['ACT_MIND_AR3']);
     expect(ENEMY_MASTERS.ENEMY_LEF.book_id).toBe('B-01');
   });
 
@@ -116,7 +116,8 @@ describe('[A-BOOK-SCHEMA] セレクタの展開', () => {
 });
 
 describe('[A-BOOK-TABLE] B-01 の実戦（1-01）', () => {
-  it('敵は定跡どおり心気（基本）AR3、続いて体勢（基本）AR6 を撃ち、ステップ185に AP23 の壁を得る', () => {
+  // 定跡の消化後は探索に委ねる。狂乱プロファイル（PASS 0）の下で、敵は PP2 を温存して主人公の手を待つ。
+  it('敵は定跡どおり心気（基本）AR3 を撃ち、以後は PP2 を温存してステップ196まで行動しない', () => {
     const state = createScene({
       sceneLevel: 3,
       heroMaxHp: 60,
@@ -124,14 +125,14 @@ describe('[A-BOOK-TABLE] B-01 の実戦（1-01）', () => {
       enemyRecord: ENEMY_MASTERS.ENEMY_LEF,
       actionMasters: ACTION_MASTERS,
     });
-    const foe = createAiDecisionProvider({ ...defaultProfile(), bookId: 'B-01', actionBonus: { PASS: -800 } }, NO_SUMMON_DEPS);
+    const foe = createAiDecisionProvider({ ...defaultProfile(), bookId: 'B-01', actionBonus: { PASS: 0 } }, NO_SUMMON_DEPS);
     const heroMind: DecisionProvider = (s, u) => {
       const mind = executableActions(s, u).find((a) => a.master_ref === 'ACT_MIND_AR3');
       return mind === undefined ? { kind: 'PASS' } : { kind: 'ACT', instanceId: mind.instance_id };
     };
     const decisionFor: DecisionProvider = (s, u) => (u.side === 'FOE' ? foe(s, u) : heroMind(s, u));
     const started: string[] = [];
-    for (let i = 0; i <= 185; i += 1) {
+    for (let i = 0; i <= 196; i += 1) {
       const enemy = findUnit(state, 'FOE');
       const before = enemy.last_act?.instance_id;
       advanceStep(state, decisionFor, NO_SUMMON_DEPS);
@@ -140,9 +141,9 @@ describe('[A-BOOK-TABLE] B-01 の実戦（1-01）', () => {
         started.push(`${i}:${after.class_id}`);
       }
     }
-    expect(started).toEqual(['147:ACT_MIND_AR3', '157:ACT_GUARD_AR6']);
-    expect(state.book_index).toBe(2);
+    expect(started).toEqual(['147:ACT_MIND_AR3']);
+    expect(state.book_index).toBe(1);
     expect(state.book_aborted).toBe(false);
-    expect(findUnit(state, 'FOE').ap).toBe(23);
+    expect(findUnit(state, 'FOE').pp).toBe(2);
   });
 });

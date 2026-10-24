@@ -16,7 +16,7 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
     expect(profile).toEqual({
       profileId: 'PROFILE_FRENZY',
       weightMult: { impatience: 150, pp: 50 },
-      actionBonus: { PASS: -800 },
+      actionBonus: { PASS: 0 },
       maxDepth: 3,
       nodeLimit: 3000,
       jointAction: false,

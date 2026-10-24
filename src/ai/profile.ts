@@ -3,7 +3,7 @@
 // フィールド構成と、シーンマスタ・敵マスタ・プロファイルからの構築手順を提供する。
 
 import type { AiProfileRecord, EnemyMasterRecord, SceneMasterRecord } from '../data/types.js';
-import { BONUS_DEFAULT_PASS, BONUS_REFAI_STANCE, SCALE } from './constants.js';
+import { BONUS_DEFAULT_PASS, BONUS_REFAI_PASS, BONUS_REFAI_STANCE, SCALE } from './constants.js';
 import type { MirrorStats } from '../engine/run/state.js';
 import { floorDiv } from '../num/helpers.js';
 
@@ -110,7 +110,8 @@ export function referenceProfile(): EffectiveProfile {
     profileId: 'REFAI',
     weightMult: {},
     // [V-TEST-REFAI]「体勢への減点」必要思考0の体勢の反復で決め手へ PP が回らなくなるのを防ぐ。
-    actionBonus: { STANCE: BONUS_REFAI_STANCE },
+    // [V-TEST-REFAI]「パスへの減点」PPを温存して応手を構える相手に、パスを続けて膠着するのを防ぐ。
+    actionBonus: { STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS },
     maxDepth: 3,
     nodeLimit: 10000,
     jointAction: false,

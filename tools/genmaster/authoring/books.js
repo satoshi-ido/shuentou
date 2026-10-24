@@ -8,7 +8,6 @@ export const BOOKS = [
     enemy_id: 'ENEMY_LEF',
     steps: [
       { kind: 'FIXED', selector: { component: 'MIND', variant: 'BASIC', ar_mult: '1.00' }, can_wait: true },
-      { kind: 'FIXED', selector: { component: 'STANCE', variant: 'BASIC', ar_mult: '2.00' }, can_wait: true },
     ],
   },
   {

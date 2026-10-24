@@ -12,13 +12,6 @@ export const BOOK_MASTERS = {
         "resolver": null,
         "resolved_by_system": null,
         "can_wait": true
-      },
-      {
-        "kind": "FIXED",
-        "class_id": "ACT_GUARD_AR6",
-        "resolver": null,
-        "resolved_by_system": null,
-        "can_wait": true
       }
     ]
   },

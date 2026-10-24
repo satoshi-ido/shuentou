@@ -9,20 +9,19 @@ import { executableActions, type DecisionProvider } from '../../src/engine/decis
 import { runStepBody } from '../../src/engine/pipeline/step.js';
 import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
-import { TTK_MAX } from '../../src/ai/constants.js';
-import { runQuiescence } from '../../src/ai/quiesce.js';
-import { ttk } from '../../src/ai/ttk.js';
 import { startBattle } from '../../src/engine/game/battle.js';
 import { newGameSession } from '../../src/engine/game/save.js';
 import { createScene } from '../../src/engine/setup.js';
 import { createAiDecisionProvider } from '../../src/ai/decision.js';
-import { defaultProfile, type EffectiveProfile } from '../../src/ai/profile.js';
+import { buildEffectiveProfile, defaultProfile, type EffectiveProfile } from '../../src/ai/profile.js';
+import { AI_PROFILE_MASTERS } from '../../src/data/generated/ai-profile-masters.js';
+import { SCENE_MASTERS } from '../../src/data/generated/scene-masters.js';
 import { createReferenceDecisionProvider } from '../../src/ai/refai.js';
 import { createContext } from '../engine/game-fixtures.js';
 import { chosenClassId, findUnit, NO_SUMMON_DEPS } from './fixtures.js';
 
 // [A-PROFILE-TABLE] 1-01 に割り当てられた狂乱プロファイルの PASS 減点。
-const FRENZY_PASS = -800;
+const FRENZY_PASS = 0;
 
 function lefOpening() {
   const state = createScene({
@@ -43,9 +42,9 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
     expect(chosenClassId(state, enemy, defaultProfile())).toBe('PASS');
   });
 
-  // 定跡を無効にすると、敗れる見込みの敵は自身のHPを損耗に数えず（[A-EVAL-TTK]［予測損耗］）、PASS −800 の下では
-  // 効果ゼロの心気（無想）を選ぶ。1-01 では定跡 B-01①の待機がパスを与える（[V-NUM-OPENING]）。
-  it('T-12: 狂乱プロファイルの PASS −800 下でも、1-01 の定跡によりパスする', () => {
+  // 1-01 では定跡 B-01①の待機がパスを与える（[V-NUM-OPENING]）。PASS 0 は既定の −400 より緩く、
+  // 定跡を無効にした探索も効果ゼロの心気（無想）を選ばない。
+  it('T-12: 狂乱プロファイルの PASS 0 の下で、定跡の有無によらずパスする', () => {
     const { state, enemy } = lefOpening();
     const frenzy: EffectiveProfile = {
       ...defaultProfile(),
@@ -53,6 +52,7 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
       actionBonus: { PASS: FRENZY_PASS },
     };
     expect(chosenClassId(state, enemy, frenzy)).toBe('PASS');
+    expect(chosenClassId(state, enemy, { ...frenzy, bookId: null })).toBe('PASS');
   });
 
   // 再探索抑制（[A-SEARCH-REUSE]）を通さず全ステップで探索するため実行時間が長い。
@@ -80,68 +80,75 @@ describe('[V-TEST-POSITIONS] T-12 実行可能手なしの正常処理・自動�
   });
 });
 
-describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の意図（壁不変条件の実地成立と命中不能技の除外）', () => {
-  // 敵は B-01 どおり心気（基本）AR3 → 体勢（基本）AR6（AP23）と進み、主人公は開幕の心気でPP2を得る。
-  // 以降の主人公は参照プレイヤーAI（[V-TEST-REFAI]）が操作する。
-  function play(until: (state: BattleState, started: readonly string[]) => boolean, limit: number) {
+describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、武技（重撃）へ応じる', () => {
+  // 敵は B-01①の心気（基本）AR3 の後、1-01 の実効プロファイル（狂乱、PASS 0）で探索する。主人公は開幕の心気で
+  // PP2 を得て、以降は参照プレイヤーAI（[V-TEST-REFAI]、PASS −1200）が操作する。heavyAt を与えると、主人公は
+  // 参照プレイヤーAIに代えて、そのステップに武技（重撃）AR7 を撃ち、以後はパスする。
+  function play(limit: number, heavyAt: number | null = null) {
     const { state } = lefOpening();
-    const foe = createAiDecisionProvider({ ...defaultProfile(), bookId: 'B-01', actionBonus: { PASS: FRENZY_PASS } }, NO_SUMMON_DEPS);
+    const foe = createAiDecisionProvider(
+      buildEffectiveProfile({ scene: SCENE_MASTERS.SCENE_1_01, enemy: ENEMY_MASTERS.ENEMY_LEF, profile: AI_PROFILE_MASTERS.PROFILE_FRENZY }),
+      NO_SUMMON_DEPS,
+    );
     const refai = createReferenceDecisionProvider(NO_SUMMON_DEPS);
-    const heroStarted: string[] = [];
+    const started: string[] = [];
+    const record = (s: BattleState, u: Unit, decision: ReturnType<DecisionProvider>) => {
+      if (decision.kind === 'ACT') {
+        started.push(`${s.step}:${u.side}:${u.acts.find((a) => a.instance_id === decision.instanceId)!.master_ref}`);
+      }
+      return decision;
+    };
     const decisionFor: DecisionProvider = (s, u) => {
       if (u.side === 'FOE') {
-        return foe(s, u);
+        return record(s, u, foe(s, u));
       }
       if (s.step <= 147) {
         const mind = executableActions(s, u).find((a) => a.master_ref === 'ACT_MIND_AR3');
         return mind === undefined ? { kind: 'PASS' } : { kind: 'ACT', instanceId: mind.instance_id };
       }
-      const decision = refai(s, u);
-      if (decision.kind === 'ACT') {
-        heroStarted.push(u.acts.find((a) => a.instance_id === decision.instanceId)!.master_ref);
+      if (heavyAt === null) {
+        return record(s, u, refai(s, u));
       }
-      return decision;
+      const heavy = executableActions(s, u).find((a) => a.master_ref === 'ACT_HEAVY_AR7');
+      return record(s, u, s.step === heavyAt && heavy !== undefined ? { kind: 'ACT', instanceId: heavy.instance_id } : { kind: 'PASS' });
     };
-    for (let i = 0; i < limit && !until(state, heroStarted); i += 1) {
+    const foeHp: number[] = [];
+    for (let i = 0; i < limit; i += 1) {
       runStepBody(state, decisionFor, NO_SUMMON_DEPS);
-      if (until(state, heroStarted)) {
-        break;
-      }
+      foeHp.push(findUnit(state, 'FOE').hp);
       runStepEnd(state);
     }
-    return { state, heroStarted };
+    return { state, started, foeHp };
   }
 
-  it('T-19: 主人公は武技AR3・AR6を撃たず、ステップ157に武技（重撃）AR7を選び、体勢AR6の硬直明けの後に着弾させる', { timeout: 300_000 }, () => {
-    // 敵の体勢AR6（AP23）が着地して硬直に入った局面（ステップ185、防御力46）。主人公の武技（重撃）AR7 は発生中。
-    const landed = play((s) => findUnit(s, 'FOE').state === 'RECOVERY', 400);
-    expect(landed.state.step).toBe(185);
-    const enemyAt185 = findUnit(landed.state, 'FOE');
-    expect(enemyAt185.ap).toBe(23);
-    expect(enemyAt185.state).toBe('RECOVERY');
-    expect(findUnit(landed.state, 'MINE').last_act?.class_id).toBe('ACT_HEAVY_AR7');
-    expect(landed.heroStarted).toEqual(['ACT_HEAVY_AR7']);
-    // 着弾（311）は硬直明け（268、AP11）の後であり、攻撃力37で壁を割って HP8 → 2 とする。
-    const hit = play((s) => findUnit(s, 'FOE').hp < 8, 400);
-    expect(hit.state.step).toBe(311);
-    expect(findUnit(hit.state, 'FOE').ap).toBe(11);
-    expect(findUnit(hit.state, 'FOE').hp).toBe(2);
-    expect(hit.heroStarted).toEqual(['ACT_HEAVY_AR7']);
+  it('T-19: 敵は心気の後に PP2 を温存し、主人公の武技（重撃）AR7 の着弾に体勢AR6 の壁を合わせて防ぐ', { timeout: 600_000 }, () => {
+    const { started, foeHp } = play(600);
+    // 敵は定跡の心気の後に手を出さず、主人公が武技AR6（発生14）で先に打つ（HP8→5）。敵は武技AR6で応じる。
+    // 主人公が心気で PP を補って武技（重撃）AR7（発生154、ステップ593に着弾）を撃つと、敵は心気で PP を補い、
+    // 体勢AR6（発生28・硬直83、防御力46）を着弾に重なる 526 に発生させる。攻撃力37は壁を割れず、HP は3のまま。
+    expect(started).toEqual([
+      '147:FOE:ACT_MIND_AR3',
+      '199:MINE:ACT_SLASH_AR6',
+      '268:FOE:ACT_SLASH_AR6',
+      '429:MINE:ACT_MIND_AR3',
+      '439:MINE:ACT_HEAVY_AR7',
+      '485:FOE:ACT_MIND_AR3',
+      '526:FOE:ACT_GUARD_AR6',
+    ]);
+    expect(foeHp[212]).toBe(8);
+    expect(foeHp[213]).toBe(5);
+    expect(foeHp[485]).toBe(3); // 心気のHPコスト2
+    expect(foeHp[593]).toBe(3); // 武技（重撃）AR7 の着弾を壁が防ぐ
+    expect(foeHp[599]).toBe(3);
   });
 
-  it('T-19: TTK(主→敵) は壁を割れない武技AR3・AR6を除外し、武技（重撃）AR7を主軸とする', { timeout: 300_000 }, () => {
-    const { state } = play((s) => findUnit(s, 'FOE').state === 'RECOVERY', 400);
-    // [A-SEARCH-QUIESCE]［評価対象］生存項は静止局面で求める。
-    const quiet = structuredClone(state);
-    const { trace } = runQuiescence(quiet, NO_SUMMON_DEPS);
-    const hero = findUnit(quiet, 'MINE');
-    const enemy = findUnit(quiet, 'FOE');
-    const withOnly = (classIds: readonly string[]): Unit => ({ ...hero, acts: hero.acts.filter((a) => classIds.includes(a.master_ref)) });
-    const inputs = { trace, level: state.scene_level, offset: trace.length - 1 };
-    expect(ttk(withOnly(['ACT_SLASH_AR3', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
-    expect(ttk(withOnly(['ACT_SLASH_AR6', 'ACT_MIND_AR3']), enemy, inputs)).toBe(TTK_MAX);
-    const heavy = ttk(withOnly(['ACT_HEAVY_AR7', 'ACT_MIND_AR3']), enemy, inputs);
-    expect(heavy).toBeLessThan(TTK_MAX);
-    expect(ttk(hero, enemy, inputs)).toBe(heavy);
+  // 主人公がPPを得た直後（ステップ157）に武技（重撃）AR7（発生154、ステップ311に着弾）を撃つ局面。敵は思考中で、
+  // 必要思考0の手（体勢・武技（重撃）AR3）では間に合わない。武技（重撃）AR3（発生236）は着弾が遅れて無防備な溜めを
+  // 突かれる。敵は武技AR6 が実行可能となるステップ199まで待ち、発生中の溜めを中断する（着弾213）。
+  it('T-19: 主人公がステップ157に撃つ武技（重撃）AR7 を、敵は武技AR6 で中断する', { timeout: 600_000 }, () => {
+    const { started, foeHp, state } = play(320, 157);
+    expect(started).toEqual(['147:FOE:ACT_MIND_AR3', '157:MINE:ACT_HEAVY_AR7', '199:FOE:ACT_SLASH_AR6']);
+    expect(findUnit(state, 'MINE').hp).toBe(55);
+    expect(foeHp[311]).toBe(8); // 中断された武技（重撃）は着弾しない
   });
 });

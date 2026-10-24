@@ -13,6 +13,8 @@ export const PURIFY_ITER_MAX = 8;
 export const BONUS_DEFAULT_PASS = -400; // [A-PROFILE-BONUS]
 // [V-TEST-REFAI]「体勢への減点」参照プレイヤーAIのアクション種別ボーナス。
 export const BONUS_REFAI_STANCE = -1000;
+// [V-TEST-REFAI]「パスへの減点」参照プレイヤーAIのパス・待機手の減点（既定 −400 の上書き）。
+export const BONUS_REFAI_PASS = -1200;
 
 // [A-EVAL-REFIMPL]「系統フラグのビット割当」。[M-STATE-FLAGS] のフラグ名で直接扱うため
 // 本実装ではビット値そのものは使用しないが、参照用に残す。
