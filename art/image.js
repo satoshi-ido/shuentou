@@ -86,9 +86,9 @@ export function fitInto(width, height, boxWidth, boxHeight) {
 
 // [S-LOOK-PRINCIPLE]【盤面の構え】構えの画は、元の立ち絵と同じ倍率で縮める（構えで人物の大きさを変えない）。
 // 倍率は元の画の不透明な範囲を枠（boxWidth×boxHeight）に収める倍率とし、構えの画がはみ出す場合に限り
-// 枠（maxWidth×boxHeight）に収まるまで縮める。
-export function fitLike(width, height, baseWidth, baseHeight, boxWidth, boxHeight, maxWidth) {
-  const scale = Math.min(boxWidth / baseWidth, boxHeight / baseHeight, maxWidth / width, boxHeight / height);
+// 上限の枠（maxWidth×maxHeight）に収まるまで縮める。
+export function fitLike(width, height, baseWidth, baseHeight, boxWidth, boxHeight, maxWidth, maxHeight) {
+  const scale = Math.min(boxWidth / baseWidth, boxHeight / baseHeight, maxWidth / width, maxHeight / height);
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 

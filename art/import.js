@@ -3,7 +3,7 @@
 // 取り込み元の <asset_id>.png を読み、共通のドットの格子（論理解像度 1280×720 の2画素を1ドットとする、640×360 ドット）へ
 // 縮める。立ち絵は背景を除いて余白を詰め、64×96 ドットの透明な枠の下端に置いた PNG に、背景は 16:9 に切り出して
 // 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL・_STAGGER 等）は元の立ち絵と
-// 同じ倍率で縮め、幅だけを 96 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
+// 同じ倍率で縮め、幅を 96 ドット、高さを 104 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
@@ -19,9 +19,10 @@ const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..',
 // 1ドット = 論理解像度の2画素。立ち絵は戦闘の表示の高さ 192px（96ドット）、背景は 1280×720（640×360 ドット）。
 const STANDING_BOX = { width: 64, height: 96 };
 const BACKGROUND_SIZE = { width: 640, height: 360 };
-// 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構えのために、枠の幅をここまで広げてよい。
+// 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構え・振りかぶった構えのために、枠をここまで広げてよい。
+// 高さの上限は、盤面のマスの立ち絵の上の余白（style.css の --cell-height）に収まる大きさとする。
 const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_FOLLOW)?|STAGGER)$/;
-const POSE_MAX_WIDTH = 96;
+const POSE_MAX = { width: 96, height: 104 };
 
 // 背景を除いた画素と、不透明な範囲。
 function cutOut(source) {
@@ -36,15 +37,15 @@ function cutOut(source) {
 }
 
 // base は構えの画の元の立ち絵（[S-LOOK-PRINCIPLE]【盤面の構え】）。与えられたときは元の画と同じ倍率で縮め、
-// 得物を伸ばした構えが枠の幅を越える分は、枠を POSE_MAX_WIDTH まで広げて収める。
+// 得物を伸ばした構えが枠を越える分は、枠を POSE_MAX まで広げて収める（足元は枠の下端に揃える）。
 function importStanding(source, base) {
   const { pixels, width, height, bounds } = cutOut(source);
   const cropped = nativeImage.createFromBitmap(pixels, { width, height }).crop(bounds);
   const size =
     base === null
       ? fitInto(bounds.width, bounds.height, STANDING_BOX.width, STANDING_BOX.height)
-      : fitLike(bounds.width, bounds.height, base.bounds.width, base.bounds.height, STANDING_BOX.width, STANDING_BOX.height, POSE_MAX_WIDTH);
-  const box = { width: Math.max(STANDING_BOX.width, size.width + (size.width % 2)), height: STANDING_BOX.height };
+      : fitLike(bounds.width, bounds.height, base.bounds.width, base.bounds.height, STANDING_BOX.width, STANDING_BOX.height, POSE_MAX.width, POSE_MAX.height);
+  const box = { width: Math.max(STANDING_BOX.width, size.width + (size.width % 2)), height: Math.max(STANDING_BOX.height, size.height) };
   const scaled = cropped.resize({ ...size, quality: 'best' });
   const placed = placeBottomCenter(snapAlpha(scaled.toBitmap()), size.width, size.height, box.width, box.height);
   return nativeImage.createFromBitmap(placed, box).toPNG();
