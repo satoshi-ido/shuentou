@@ -1851,11 +1851,22 @@ button:disabled { opacity: 0.4; cursor: default; }
 
 /* ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
    背景は入口が画面の根に --screen-image（脚本は --script-image）を与える。実体の無い間は none となり、
-   下に重ねたプレースホルダの層がそのまま見える。立ち絵は .figure-img（読み込めなければ人形に戻る）。 */
+   下に重ねたプレースホルダの層がそのまま見える。立ち絵は .figure-img（読み込めなければ人形に戻る）。
+   実体は共通のドットの格子（論理解像度の2画素を1ドット）で書き出してあり、拡大は最近傍で行う（ドットを滲ませない）。
+   戦闘の立ち絵は 96 ドットの高さを 192px で描く。 */
+.figure-img,
+.field-bg,
+.screen-title,
+.screen-pre-battle,
+.imfield,
+.screen-refill,
+.script-bg {
+  image-rendering: pixelated;
+}
 .figure-img {
   display: block;
   width: auto;
-  height: 190px;
+  height: 192px;
   max-width: 100%;
   object-fit: contain;
   object-position: bottom center;

@@ -44,7 +44,7 @@ describe('[I-PLAN-ASSETS] 画像の取り込み', () => {
   });
 
   it('asset_id から取り込み先を決める', () => {
-    expect(targetOf('ASSET_BG_2_04_AFTER_UNKNOWN')).toEqual({ kind: 'BACKGROUND', file: 'bg/2-04-after-unknown.jpg' });
+    expect(targetOf('ASSET_BG_2_04_AFTER_UNKNOWN')).toEqual({ kind: 'BACKGROUND', file: 'bg/2-04-after-unknown.png' });
     expect(targetOf('ASSET_HERO_STANDING_COAT_ACT2')).toEqual({ kind: 'STANDING', file: 'standing/hero-coat-act2.png' });
     expect(targetOf('ASSET_SE_UI_CONFIRM')).toEqual({ kind: 'AUDIO', file: 'audio/se-ui-confirm.mp3' });
     expect(targetOf('ASSET_BGM_2_04')).toEqual({ kind: 'AUDIO', file: 'audio/bgm-2-04.mp3' });

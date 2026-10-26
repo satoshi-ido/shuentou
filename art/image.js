@@ -84,6 +84,15 @@ export function fitInto(width, height, boxWidth, boxHeight) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+// 縮小で生じた半透明の縁を、アルファの閾値で不透明か透明かに分ける。ドット絵の輪郭を半透明にしない。
+export function snapAlpha(pixels, threshold = 128) {
+  const out = Buffer.from(pixels);
+  for (let i = 3; i < out.length; i += 4) {
+    out[i] = out[i] >= threshold ? 255 : 0;
+  }
+  return out;
+}
+
 // 透明な枠（boxWidth×boxHeight）の下端・左右中央へ画素を置く。立ち絵の足元を枠の下端に揃える。
 export function placeBottomCenter(pixels, width, height, boxWidth, boxHeight) {
   const out = Buffer.alloc(boxWidth * boxHeight * 4);
@@ -110,7 +119,7 @@ export function crop16x9(width, height, offsetY = 0) {
 export function targetOf(assetId) {
   const name = assetId.replace(/^ASSET_/, '').toLowerCase().replace(/_/g, '-');
   if (/^ASSET_BG_/.test(assetId)) {
-    return { kind: 'BACKGROUND', file: `bg/${name.replace(/^bg-/, '')}.jpg` };
+    return { kind: 'BACKGROUND', file: `bg/${name.replace(/^bg-/, '')}.png` };
   }
   if (/^ASSET_(BGM|SE)_/.test(assetId)) {
     return { kind: 'AUDIO', file: `audio/${name}.mp3` };

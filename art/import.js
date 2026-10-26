@@ -1,7 +1,8 @@
 // [I-PLAN-ASSETS]【実体の投入】生成した画像と音声を取り込む。Electron の主プロセスとして動かす。
 //   pnpm art <取り込み元のフォルダ> [asset_id …]
-// 取り込み元の <asset_id>.png を読み、立ち絵は背景を除いて余白を詰め、512×768 の透明な枠の下端に置いた PNG に、
-// 背景は 16:9 に切り出して 1280×720 の JPEG にして、src/ui/public/art/ へ書き出す。
+// 取り込み元の <asset_id>.png を読み、共通のドットの格子（論理解像度 1280×720 の2画素を1ドットとする、640×360 ドット）へ
+// 縮める。立ち絵は背景を除いて余白を詰め、64×96 ドットの透明な枠の下端に置いた PNG に、背景は 16:9 に切り出して
+// 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
 
@@ -10,12 +11,12 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeManifest } from './manifest.js';
-import { crop16x9, fitInto, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, targetOf } from './image.js';
+import { crop16x9, fitInto, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, snapAlpha, targetOf } from './image.js';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'ui', 'public', 'art');
-const STANDING_BOX = { width: 512, height: 768 };
-const BACKGROUND_SIZE = { width: 1280, height: 720 };
-const JPEG_QUALITY = 85;
+// 1ドット = 論理解像度の2画素。立ち絵は戦闘の表示の高さ 192px（96ドット）、背景は 1280×720（640×360 ドット）。
+const STANDING_BOX = { width: 64, height: 96 };
+const BACKGROUND_SIZE = { width: 640, height: 360 };
 
 function importStanding(source) {
   const { width, height } = source.getSize();
@@ -28,7 +29,7 @@ function importStanding(source) {
   const cropped = nativeImage.createFromBitmap(pixels, { width, height }).crop(bounds);
   const size = fitInto(bounds.width, bounds.height, STANDING_BOX.width, STANDING_BOX.height);
   const scaled = cropped.resize({ ...size, quality: 'best' });
-  const placed = placeBottomCenter(scaled.toBitmap(), size.width, size.height, STANDING_BOX.width, STANDING_BOX.height);
+  const placed = placeBottomCenter(snapAlpha(scaled.toBitmap()), size.width, size.height, STANDING_BOX.width, STANDING_BOX.height);
   return nativeImage.createFromBitmap(placed, STANDING_BOX).toPNG();
 }
 
@@ -37,7 +38,7 @@ function importBackground(source, offsetY) {
   return source
     .crop(crop16x9(width, height, offsetY))
     .resize({ ...BACKGROUND_SIZE, quality: 'best' })
-    .toJPEG(JPEG_QUALITY);
+    .toPNG();
 }
 
 function main() {

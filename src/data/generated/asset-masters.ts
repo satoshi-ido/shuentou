@@ -112,7 +112,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_1_01",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/1-01.jpg"
+    "path": "art/bg/1-01.png"
   },
   "ASSET_BG_1_01_IGNITE": {
     "asset_id": "ASSET_BG_1_01_IGNITE",
@@ -121,7 +121,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "IGNITE",
-    "path": "art/bg/1-01-ignite.jpg"
+    "path": "art/bg/1-01-ignite.png"
   },
   "ASSET_BG_1_01_OPENING": {
     "asset_id": "ASSET_BG_1_01_OPENING",
@@ -130,7 +130,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "OPENING",
-    "path": "art/bg/1-01-opening.jpg"
+    "path": "art/bg/1-01-opening.png"
   },
   "ASSET_BG_1_02": {
     "asset_id": "ASSET_BG_1_02",
@@ -138,7 +138,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_1_02",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/1-02.jpg"
+    "path": "art/bg/1-02.png"
   },
   "ASSET_BG_1_02_AFTER": {
     "asset_id": "ASSET_BG_1_02_AFTER",
@@ -147,7 +147,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "AFTER",
-    "path": "art/bg/1-02-after.jpg"
+    "path": "art/bg/1-02-after.png"
   },
   "ASSET_BG_1_02_GATE": {
     "asset_id": "ASSET_BG_1_02_GATE",
@@ -156,7 +156,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "GATE",
-    "path": "art/bg/1-02-gate.jpg"
+    "path": "art/bg/1-02-gate.png"
   },
   "ASSET_BG_1_02_HEARTH": {
     "asset_id": "ASSET_BG_1_02_HEARTH",
@@ -165,7 +165,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "HEARTH",
-    "path": "art/bg/1-02-hearth.jpg"
+    "path": "art/bg/1-02-hearth.png"
   },
   "ASSET_BG_2_01": {
     "asset_id": "ASSET_BG_2_01",
@@ -173,7 +173,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_2_01",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/2-01.jpg"
+    "path": "art/bg/2-01.png"
   },
   "ASSET_BG_2_01_INN": {
     "asset_id": "ASSET_BG_2_01_INN",
@@ -182,7 +182,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "INN",
-    "path": "art/bg/2-01-inn.jpg"
+    "path": "art/bg/2-01-inn.png"
   },
   "ASSET_BG_2_02": {
     "asset_id": "ASSET_BG_2_02",
@@ -190,7 +190,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_2_02",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/2-02.jpg"
+    "path": "art/bg/2-02.png"
   },
   "ASSET_BG_2_03": {
     "asset_id": "ASSET_BG_2_03",
@@ -198,7 +198,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_2_03",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/2-03.jpg"
+    "path": "art/bg/2-03.png"
   },
   "ASSET_BG_2_04": {
     "asset_id": "ASSET_BG_2_04",
@@ -206,7 +206,7 @@ export const ASSET_MASTERS = {
     "owner_id": "SCENE_2_04",
     "slot": "BACKGROUND",
     "cue": null,
-    "path": "art/bg/2-04.jpg"
+    "path": "art/bg/2-04.png"
   },
   "ASSET_BG_2_04_AFTER": {
     "asset_id": "ASSET_BG_2_04_AFTER",
@@ -215,7 +215,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "AFTER",
-    "path": "art/bg/2-04-after.jpg"
+    "path": "art/bg/2-04-after.png"
   },
   "ASSET_BG_2_04_AFTER_UNKNOWN": {
     "asset_id": "ASSET_BG_2_04_AFTER_UNKNOWN",
@@ -224,7 +224,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "AFTER_UNKNOWN",
-    "path": "art/bg/2-04-after-unknown.jpg"
+    "path": "art/bg/2-04-after-unknown.png"
   },
   "ASSET_BG_2_04_ARCHIVE": {
     "asset_id": "ASSET_BG_2_04_ARCHIVE",
@@ -233,7 +233,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "ARCHIVE",
-    "path": "art/bg/2-04-archive.jpg"
+    "path": "art/bg/2-04-archive.png"
   },
   "ASSET_BG_2_04_SKETCH": {
     "asset_id": "ASSET_BG_2_04_SKETCH",
@@ -242,7 +242,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "SKETCH",
-    "path": "art/bg/2-04-sketch.jpg"
+    "path": "art/bg/2-04-sketch.png"
   },
   "ASSET_BG_TITLE": {
     "asset_id": "ASSET_BG_TITLE",
@@ -251,7 +251,7 @@ export const ASSET_MASTERS = {
     "slot": "BACKGROUND",
     "cue": null,
     "variant": "TITLE",
-    "path": "art/bg/title.jpg"
+    "path": "art/bg/title.png"
   },
   "ASSET_CALVA_STANDING": {
     "asset_id": "ASSET_CALVA_STANDING",
