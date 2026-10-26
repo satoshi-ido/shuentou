@@ -24,6 +24,8 @@ import { WATCH_KINDS } from '../../engine/types.js';
 import { evaluateActionWatch, type WatchStatus } from '../../engine/watch.js';
 import { correctionSign, formatCenti, formatHp, formatSteps, formatUses, PARAM_LABEL, WATCH_SYMBOL } from '../format.js';
 import type { SystemIcon } from '../assets/placeholder.js';
+import type { StancePose } from '../assets/resolve.js';
+import { poseOfFlags } from './figure-motion.js';
 import { previewOf, type ActionPreview } from './preview.js';
 import { activationRank, sortedActions } from './sort.js';
 
@@ -186,6 +188,8 @@ export interface UnitNaming {
   readonly actionDescription?: (action: ActionInstance) => string | null;
   // [I-PLAN-ASSETS] 盤面の立ち絵の実体（表示アセットマスタの STANDING）。Null はプレースホルダの人形。
   readonly figure?: (unit: Unit) => string | null;
+  // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」で示す構えの画の実体。構えの画が無ければ Null。
+  readonly stanceFigure?: (unit: Unit, pose: StancePose) => string | null;
 }
 
 function plateOf(unit: Unit, naming: UnitNaming): PlateView {
@@ -539,6 +543,9 @@ export interface FocusPreview {
   readonly timeline: Timeline | null;
   // 自軍の実行できないアクションに注目した場合の理由。実行可能・敵軍の手札では Null。
   readonly lock: LockView | null;
+  // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」思考中の自軍ユニットの立ち絵を替える構えの画。
+  // 替えない場合（敵軍・発生中や硬直中・系統なし・構えの画が無い）は Null。
+  readonly figure: string | null;
 }
 
 // 注目中のアクション1件に対する提示（判定プレビューと戦域の着弾予測）。ホバーのたびに
@@ -546,18 +553,23 @@ export interface FocusPreview {
 export function focusPreview(state: BattleState, instanceId: string, deps: StepDeps, naming: UnitNaming): FocusPreview {
   const owner = ownerOf(state, instanceId);
   if (owner === null) {
-    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock: null };
+    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock: null, figure: null };
   }
   if (!isPreviewTarget(state, owner.unit, owner.action)) {
     // 見込みは提示しない。自軍のアクションに限り、実行できない理由を示す（[M-UI-HUD]［判定語彙］）。
     const lock = owner.unit.side === 'MINE' ? { reasons: lockReasonsOf(state, owner.unit, owner.action) } : null;
-    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock };
+    return { preview: null, fireStep: null, stamps: [], deltas: [], timeline: null, lock, figure: null };
   }
   const preview = previewOf(state, owner.unit, owner.action, deps);
   const stamps = forecastOf(state, owner.unit, owner.action, preview, naming);
   // 実行中アクションは既に展開へ現れているため、仮定展開を重ねない。
   const running = owner.unit.state !== 'THOUGHT' && owner.unit.last_act?.instance_id === owner.action.instance_id;
   const plan = running ? null : { unitId: owner.unit.unit_id, instanceId: owner.action.instance_id };
+  const pose = poseOfFlags(owner.action.sys_flags);
+  const figure =
+    owner.unit.side === 'MINE' && owner.unit.state === 'THOUGHT' && pose !== null
+      ? (naming.stanceFigure?.(owner.unit, { pose, phase: 'STARTUP' }) ?? null)
+      : null;
   return {
     preview,
     fireStep: fireStepOf(state, owner.unit, owner.action, preview),
@@ -565,6 +577,7 @@ export function focusPreview(state: BattleState, instanceId: string, deps: StepD
     deltas: plateDeltasOf(state, owner.unit, owner.action, preview, stamps),
     timeline: plan === null ? null : simulateTimeline(state, timelineSpan(state), deps, plan),
     lock: null,
+    figure,
   };
 }
 

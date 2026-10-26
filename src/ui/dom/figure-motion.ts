@@ -1,10 +1,13 @@
 // [M-UI-HUD]［立ち絵の動き］盤面の立ち絵を動かす。画面は歩進のたびに組み直されるため、思考中の呼吸と
 // 一回の動き（発動・被弾・消滅猶予）の進み具合をここに持ち、組み直した要素へ同じ時点から掛け直す。
+// 「画の最短の表示」発動の後に示す構え・振り抜きの画も、実時刻とともにここに持つ。
 // 一回の動きは実時間で再生し、ステップの歩進を待たせない。静止中も最後まで再生する。
 // 演出は BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である（[M-UI-HUD]［更新と決定論］）。
 
+import type { AssetPose } from '../../data/types.js';
 import type { BattleCue } from '../../engine/cue.js';
 import type { Side } from '../../engine/types.js';
+import type { StancePose } from '../assets/resolve.js';
 import type { PlateView } from '../view/battle-view.js';
 import {
   BREATH,
@@ -12,11 +15,17 @@ import {
   FADE_MS,
   FIGURE_PIXEL,
   facingOf,
+  heldPoseOf,
   HIT_MS,
+  holdEndOf,
+  isRecoveryPose,
   LUNGE,
   LUNGE_MS,
   poseOf,
+  poseOfFlags,
+  type PoseHold,
   PUSH,
+  STANCE_FLASH_MS,
 } from '../view/figure-motion.js';
 
 type ShotKind = 'LUNGE' | 'HIT';
@@ -60,12 +69,17 @@ function shotKeyframes(kind: ShotKind, side: Side, simplify: boolean): Keyframe[
 
 export class FigureMotion {
   private shots: Record<string, Shot[]> = {};
+  private holds: Record<string, PoseHold> = {};
+  private shown: Record<string, StancePose | null> = {}; // 直前に描いた構え（「構えの画が描かれなかった」の判定に用いる）
+  private states: Record<string, StancePose | null> = {}; // 直前の描画でステートから定めた構え（硬直中の被弾の判定に用いる）
   private clock = 0; // 世界が動いていた時間の累計（ms）。思考中の呼吸の位相に用いる
   private resumedAt: number | null = null; // 動き始めた実時刻。静止中は Null
 
+  // onPoseChange は最短の表示の段が替わる時刻に呼ぶ。静止中は画面が組み直されないため、入口が描き直す。
   constructor(
     private readonly ghostLayer: HTMLElement,
     private readonly simplify: () => boolean,
+    private readonly onPoseChange: () => void = () => undefined,
     private readonly now: () => number = () => performance.now(),
   ) {}
 
@@ -121,6 +135,12 @@ export class FigureMotion {
     if (cue.kind === 'MISS') {
       return;
     }
+    // 構え・やられの画への替えは系統と被弾の提示であり、簡略化でも行う
+    if (cue.kind === 'ACTION_TRIGGER') {
+      this.holdFollow(cue.unitId, poseOfFlags(cue.sysFlags));
+    } else {
+      this.holdHit(cue.unitId);
+    }
     if (cue.kind === 'ACTION_TRIGGER' && this.simplify()) {
       return; // 演出の簡略化では踏み込まない
     }
@@ -130,9 +150,44 @@ export class FigureMotion {
     this.shots[cue.unitId] = [...live, { kind, start: now }];
   }
 
+  // 「画の最短の表示」発動の時点を記録し、段が替わる時刻に描き直しを求める。系統の無い発動は先の表示を除く。
+  private holdFollow(unitId: string, pose: AssetPose | null): void {
+    if (pose === null) {
+      delete this.holds[unitId];
+      return;
+    }
+    const start = this.now();
+    const flash = this.shown[unitId]?.phase !== 'STARTUP';
+    const hold: PoseHold = { kind: 'FOLLOW', pose, start, flash };
+    this.holds[unitId] = hold;
+    if (flash) {
+      setTimeout(this.onPoseChange, STANCE_FLASH_MS);
+    }
+    setTimeout(this.onPoseChange, holdEndOf(hold) - start);
+  }
+
+  // 「被弾のやられ」被弾の時点を記録する。硬直中の被弾は、硬直の終わりまでやられを示す。
+  private holdHit(unitId: string): void {
+    const start = this.now();
+    const hold: PoseHold = { kind: 'HIT', start, untilRecoveryEnds: isRecoveryPose(this.states[unitId] ?? null) };
+    this.holds[unitId] = hold;
+    setTimeout(this.onPoseChange, holdEndOf(hold) - start);
+  }
+
+  // ステートから定めた構え（current）に契機の表示を重ねた、いま描く構え。描いた構えを覚える。
+  figurePose(unitId: string, current: StancePose | null): StancePose | null {
+    const pose = heldPoseOf(current, this.holds[unitId] ?? null, this.now());
+    this.states[unitId] = current;
+    this.shown[unitId] = pose;
+    return pose;
+  }
+
   // バトルを離れるときに、残った動きを捨てる。
   clear(): void {
     this.shots = {};
+    this.holds = {};
+    this.shown = {};
+    this.states = {};
   }
 
   // 組み直した立ち絵の器へ、姿勢と動きを掛ける。器は .pose > .shot > 立ち絵 の入れ子とする。

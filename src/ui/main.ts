@@ -157,7 +157,7 @@ const scriptRoot = document.createElement('div');
 scriptRoot.className = 'script-root';
 stageElement.append(screenRoot, effects.root, scriptRoot);
 // [M-UI-HUD]［立ち絵の動き］消滅猶予の残像は演出層に置く。演出の簡略化は設定を都度引く。
-const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects);
+const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects, () => render());
 
 // [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
 const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
@@ -468,13 +468,24 @@ const naming: UnitNaming = {
   actionName: (action: ActionInstance) => actionName(action.master_ref),
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
   // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公・敵マスター・仮身。セインの仮身は元の敵の仮身と同じ画を用いる。
-  // [M-DATA-ASSETMASTER]［構えの選択］発生中は系統ごとの構えの画を示す。
-  figure: (unit: Unit) =>
-    unit.unit_kind === 'CREATURE'
-      ? figureOf('CREATURE', unit.creature_id ?? null, stancePoseOf(unit))
+  // [M-DATA-ASSETMASTER]［構えの選択］発生中は系統ごとの構えの画を示す。発動の後は「画の最短の表示」を重ねる。
+  figure: (unit: Unit) => {
+    const pose = figureMotion.figurePose(unit.unit_id, stancePoseOf(unit));
+    return unit.unit_kind === 'CREATURE'
+      ? figureOf('CREATURE', unit.creature_id ?? null, pose)
       : unit.side === 'MINE'
-        ? figureOf('HERO', null, stancePoseOf(unit))
-        : figureOf('ENEMY', currentScene().enemy_id, stancePoseOf(unit)),
+        ? figureOf('HERO', null, pose)
+        : figureOf('ENEMY', currentScene().enemy_id, pose);
+  },
+  // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」構えの画が無ければ Null とし、立ち絵を替えない。
+  stanceFigure: (unit: Unit, pose: StancePose) =>
+    assetUrl(
+      unit.unit_kind === 'CREATURE'
+        ? pickAsset(ASSET_MASTERS, 'CREATURE', unit.creature_id ?? null, 'STANDING', assetTest(), pose)
+        : unit.side === 'MINE'
+          ? pickAsset(ASSET_MASTERS, 'HERO', null, 'STANDING', assetTest(), pose)
+          : pickAsset(ASSET_MASTERS, 'ENEMY', currentScene().enemy_id, 'STANDING', assetTest(), pose),
+    ),
 };
 
 // ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──

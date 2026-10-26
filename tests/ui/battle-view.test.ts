@@ -235,6 +235,16 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
     expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).preview).toEqual(previewOf(state, hero, hit, NO_SUMMON_DEPS));
   });
 
+  it('判定プレビューの構え：思考中の自軍ユニットに限り、注目中のアクションの系統の構えの画を示す', () => {
+    const { state, hero } = duel();
+    hero.pp = 5;
+    hero.elapsed_thought = 5;
+    const hit = hero.acts.find((action) => action.master_ref === 'HIT')!;
+    const posing: UnitNaming = { ...naming, stanceFigure: (_unit, pose) => `art/standing/hero-${pose.pose.toLowerCase()}.png` };
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, posing).figure).toBe('art/standing/hero-martial.png');
+    expect(focusPreview(state, hit.instance_id, NO_SUMMON_DEPS, naming).figure).toBeNull(); // 構えの画が無い
+  });
+
   it('実行できないアクションと敵軍の手札は見込みを提示しない', () => {
     const { state, hero, enemy } = duel();
     hero.elapsed_thought = 5; // PP不足のまま（HIT の実効消費PPは2）
@@ -250,6 +260,7 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
       deltas: [],
       timeline: null,
       lock: null,
+      figure: null,
     });
     expect(focusPreview(state, 'ACT_MISSING', NO_SUMMON_DEPS, naming)).toEqual({
       preview: null,
@@ -258,6 +269,7 @@ describe('[M-UI-HUD]［判定プレビュー］注目中のアクションへの
       deltas: [],
       timeline: null,
       lock: null,
+      figure: null,
     });
   });
 

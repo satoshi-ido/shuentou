@@ -6,11 +6,15 @@ import {
   BREATH_PERIOD_MAX_MS,
   BREATH_PERIOD_MIN_MS,
   breathOf,
+  FOLLOW_MIN_MS,
+  heldPoseOf,
+  HIT_MS,
   LEAN_MAX,
   NEUTRAL_POSE,
   poseOf,
   progressOf,
   RECOVERY_BRIGHTNESS,
+  STANCE_FLASH_MS,
 } from '../../src/ui/view/figure-motion.js';
 
 function running(phase: RunningCardView['phase'], elapsed: number, required: number): RunningCardView {
@@ -71,6 +75,43 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     }
     expect(new Set(breaths.map((breath) => Math.round(breath.periodMs))).size).toBe(ids.length);
     expect(breathOf('U0001')).toEqual(breaths[0]);
+  });
+
+  it('画の最短の表示：発動の後は、思考中へ戻っても振り抜きの画を実時間で最短の長さだけ示す', () => {
+    const hold = { kind: 'FOLLOW', pose: 'MARTIAL', start: 1000, flash: false } as const;
+    expect(heldPoseOf(null, hold, 1000)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
+    expect(heldPoseOf(null, hold, 1000 + FOLLOW_MIN_MS - 1)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
+    expect(heldPoseOf(null, hold, 1000 + FOLLOW_MIN_MS)).toBeNull();
+    expect(heldPoseOf(null, null, 1000)).toBeNull();
+  });
+
+  it('画の最短の表示：構えの画が描かれなかった発動は、振り抜きの前に構えの画を短く示す', () => {
+    const hold = { kind: 'FOLLOW', pose: 'MIND', start: 0, flash: true } as const;
+    expect(heldPoseOf(null, hold, 0)).toEqual({ pose: 'MIND', phase: 'STARTUP' });
+    expect(heldPoseOf({ pose: 'MIND', phase: 'FOLLOW' }, hold, STANCE_FLASH_MS - 1)).toEqual({ pose: 'MIND', phase: 'STARTUP' });
+    expect(heldPoseOf(null, hold, STANCE_FLASH_MS)).toEqual({ pose: 'MIND', phase: 'FOLLOW' });
+    expect(heldPoseOf(null, hold, STANCE_FLASH_MS + FOLLOW_MIN_MS)).toBeNull();
+  });
+
+  it('画の最短の表示：発生中・やられへ移ったときは、移った先の画に直ちに替える', () => {
+    const hold = { kind: 'FOLLOW', pose: 'MARTIAL', start: 0, flash: true } as const;
+    expect(heldPoseOf({ pose: 'STANCE', phase: 'STARTUP' }, hold, 50)).toEqual({ pose: 'STANCE', phase: 'STARTUP' });
+    expect(heldPoseOf({ pose: 'STAGGER', phase: null }, hold, 200)).toEqual({ pose: 'STAGGER', phase: null });
+  });
+
+  it('被弾のやられ：思考中・発生中の被弾は、被弾の動きの間だけやられを示して戻る', () => {
+    const hold = { kind: 'HIT', start: 0, untilRecoveryEnds: false } as const;
+    const stance = { pose: 'STANCE', phase: 'STARTUP' } as const;
+    expect(heldPoseOf(null, hold, 0)).toEqual({ pose: 'STAGGER', phase: null });
+    expect(heldPoseOf(stance, hold, HIT_MS - 1)).toEqual({ pose: 'STAGGER', phase: null });
+    expect(heldPoseOf(stance, hold, HIT_MS)).toEqual(stance);
+    expect(heldPoseOf(null, hold, HIT_MS)).toBeNull();
+  });
+
+  it('被弾のやられ：硬直中の被弾は、硬直の終わりまでやられを示す', () => {
+    const hold = { kind: 'HIT', start: 0, untilRecoveryEnds: true } as const;
+    expect(heldPoseOf({ pose: 'MARTIAL', phase: 'FOLLOW' }, hold, 10_000)).toEqual({ pose: 'STAGGER', phase: null });
+    expect(heldPoseOf(null, hold, 10_000)).toBeNull(); // 硬直が明けて思考中
   });
 
   it('演出の簡略化では位置を変えず、光と明るさだけで進捗を示す', () => {

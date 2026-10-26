@@ -24,8 +24,10 @@
   --ap: #a9b6c6;
   --cut-red: #ff334b;
 
-  --lane-height: 30px;
-  --cell-height: 208px;
+  /* 予兆線のレーンを詰め、空いた高さを戦域へ回す。戦域は立ち絵（高さ 192px）の上に、構えの画が 96 ドットを
+     越えて伸びる余白を持つ（art/import.js の POSE_MAX）。 */
+  --lane-height: 22px;
+  --cell-height: 240px;
 }
 
 html,
@@ -183,7 +185,7 @@ button:focus-visible {
 }
 
 .lane-labels .hd {
-  height: 18px;
+  height: 16px;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.1em;
@@ -207,7 +209,7 @@ button:focus-visible {
 }
 
 .ruler {
-  height: 18px;
+  height: 16px;
   display: grid;
   border-bottom: 1px solid rgba(43, 39, 51, 0.55);
 }
@@ -239,8 +241,8 @@ button:focus-visible {
 
 .seg {
   position: absolute;
-  top: 6px;
-  height: 17px;
+  top: 2px;
+  height: 15px;
   display: flex;
   align-items: center;
   padding: 0 4px;
@@ -575,6 +577,9 @@ button:focus-visible {
   top: 0;
   clip-path: inset(0 0 calc(100% - var(--breath-cut)) 0);
 }
+/* 「判定プレビューの構え」構えの画に替えている間は呼吸を止め、上の側の写しを隠して下の側を切らずに描く。 */
+.shot.previewing > .breath-upper { display: none; }
+.shot.previewing > .breath-lower { clip-path: none; }
 /* 消滅猶予の残像。演出層に、撤去前の立ち絵の位置と大きさで置く。 */
 .figure-ghost { position: absolute; pointer-events: none; }
 .plate > .pname,
@@ -1904,6 +1909,10 @@ button:disabled { opacity: 0.4; cursor: default; }
   user-select: none;
 }
 .bcol.master .figure-img { height: 198px; transform: none; }
+/* 盤面の立ち絵は、画の高さ（ドット、--figure-dots）に比例して描く。96 ドットを越える構えの画も元の立ち絵と
+   同じ倍率で上へ伸び、足元は揃う（art.ts が目録の高さを与える）。 */
+.cell .figure-img { height: calc(var(--figure-dots, 96) * 2px); max-width: none; }
+.bcol.master .cell .figure-img { height: calc(var(--figure-dots, 96) * 198px / 96); }
 .bcol-mine .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .bcol-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 .pm .figure-img { height: 132px; margin-bottom: 6px; }
@@ -1929,11 +1938,12 @@ button:disabled { opacity: 0.4; cursor: default; }
   filter: grayscale(calc(var(--time-stop) * 0.6)) brightness(calc(1 - var(--time-stop) * 0.2));
 }
 
-/* 戦闘背景は 1280×720 の画を、地面の帯（[S-BG-PRINCIPLE]、y 336〜456）が立ち絵の足元に来る位置に置く。 */
+/* 戦闘背景は 1280×720 の画を、地面の帯（[S-BG-PRINCIPLE]、y 336〜456）が立ち絵の足元に来る位置に置く。
+   足元は戦域の下端から測って定まるため、戦域の高さを変えたら縦の位置も同じだけ動かす。 */
 .field-bg {
   background:
     linear-gradient(180deg, rgba(8, 7, 11, 0.25) 0%, rgba(8, 7, 11, 0.15) 60%, rgba(8, 7, 11, 0.55) 100%),
-    var(--screen-image, none) center -205px / 1280px 720px no-repeat,
+    var(--screen-image, none) center -173px / 1280px 720px no-repeat,
     radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.14), transparent 70%),
     radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.16), transparent 70%),
     linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);

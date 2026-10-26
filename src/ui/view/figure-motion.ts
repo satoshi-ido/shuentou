@@ -36,7 +36,7 @@ export function facingOf(side: Side): 1 | -1 {
 }
 
 // 系統フラグを武技・体勢・心気（召喚を含む）の順に当てはめる。隊列交代のみ・系統なしは構えを持たない（Null）。
-function poseOfFlags(flags: SysFlags): AssetPose | null {
+export function poseOfFlags(flags: SysFlags): AssetPose | null {
   if (hasFlag(flags, 'FLAG_MARTIAL')) return 'MARTIAL';
   if (hasFlag(flags, 'FLAG_STANCE')) return 'STANCE';
   if (hasFlag(flags, 'FLAG_MIND') || hasFlag(flags, 'FLAG_SUMMON')) return 'MIND';
@@ -59,6 +59,47 @@ export function stancePoseOf(unit: Unit): StancePose | null {
     return null;
   }
   return { pose, phase: unit.state === 'STARTUP' ? 'STARTUP' : 'FOLLOW' };
+}
+
+// 「画の最短の表示」発動の後、振り抜きの画を実時間で示す最短の長さと、構えの画が描かれなかったときに先に示す構えの長さ（暫定値）。
+export const FOLLOW_MIN_MS = 300;
+export const STANCE_FLASH_MS = 100;
+
+// 契機の時点で記録する画の表示。後に起きた契機が先の表示を置き換える。
+// FOLLOW は発動の「画の最短の表示」で、flash は発動の前に構えの画が描かれなかったこと。
+// HIT は「被弾のやられ」で、untilRecoveryEnds は硬直中に被弾したこと（硬直の終わりまでやられを示す）。
+export type PoseHold =
+  | { readonly kind: 'FOLLOW'; readonly pose: AssetPose; readonly start: number; readonly flash: boolean }
+  | { readonly kind: 'HIT'; readonly start: number; readonly untilRecoveryEnds: boolean };
+
+// 実時刻で定まる表示の終わり（硬直の終わりまでの分は含まない）。
+export function holdEndOf(hold: PoseHold): number {
+  return hold.kind === 'HIT' ? hold.start + HIT_MS : hold.start + (hold.flash ? STANCE_FLASH_MS : 0) + FOLLOW_MIN_MS;
+}
+
+// ステートから定めた構えが硬直中のものか（振り抜き、またはスタン中断のやられ）。
+export function isRecoveryPose(pose: StancePose | null): boolean {
+  return pose?.phase === 'FOLLOW' || pose?.pose === 'STAGGER';
+}
+
+const STAGGER_POSE: StancePose = { pose: 'STAGGER', phase: null };
+
+// ステートから定めた画（current）に、契機の表示を重ねる。
+// 「画の最短の表示」発生中・やられへ移ったときは直ちに移った先の画とする（ステートより古い姿を示し続けない）。
+// 表示の間は、思考中や硬直中でも、構え（flash のとき）・振り抜きの順に示す。
+// 「被弾のやられ」被弾の動きの間はステートによらずやられを示し、硬直中の被弾は硬直の終わりまで示す。
+export function heldPoseOf(current: StancePose | null, hold: PoseHold | null, now: number): StancePose | null {
+  if (hold === null) {
+    return current;
+  }
+  if (hold.kind === 'HIT') {
+    return now < holdEndOf(hold) || (hold.untilRecoveryEnds && isRecoveryPose(current)) ? STAGGER_POSE : current;
+  }
+  if (current?.phase === 'STARTUP' || current?.pose === 'STAGGER' || now >= holdEndOf(hold)) {
+    return current;
+  }
+  const flashing = hold.flash && now < hold.start + STANCE_FLASH_MS;
+  return { pose: hold.pose, phase: flashing ? 'STARTUP' : 'FOLLOW' };
 }
 
 export interface Breath {

@@ -3,7 +3,7 @@
 // 配置は 予兆線（上段）／戦域・行動統合盤（中段）／判定プレビューと再生操作（下段）の3段構成とする。
 
 import type { SystemIcon } from '../assets/placeholder.js';
-import { figureNode } from './art.js';
+import { figureNode, setFigureSource } from './art.js';
 import type { FigureMotion } from './figure-motion.js';
 import { systemIconNode } from './icons.js';
 import { countBack, rewoundSteps, slide, vanishedSegments, type UndoMotion } from './undo-motion.js';
@@ -515,6 +515,7 @@ interface ColumnNodes {
   readonly dock: HTMLElement;
   readonly stamps: HTMLElement; // 戦域のマスへ重ねる着弾予測の器
   readonly plate: HTMLElement | null; // 見込み値の反映で差し替えるユニットプレート
+  readonly shot: HTMLElement | null; // 判定プレビューの構えを重ねる立ち絵の器
 }
 
 function renderColumn(
@@ -538,6 +539,7 @@ function renderColumn(
     body = element('div', 'figure-wrap mine-creature');
     body.append(figure, element('span', 'chest-flame'));
   }
+  let shotNode: HTMLElement | null = null;
   if (plate === null) {
     cell.append(body);
   } else {
@@ -546,6 +548,7 @@ function renderColumn(
     const shot = element('div', 'shot');
     shot.append(body);
     pose.append(shot);
+    shotNode = shot;
     figureMotion?.attach(pose, plate);
     cell.append(pose);
   }
@@ -566,7 +569,7 @@ function renderColumn(
     list.append(renderCard(card, card.instanceId === selectedInstanceId, pausedInstanceId, handlers));
   }
   box.append(list);
-  return { root: box, dock, stamps, plate: plate === null ? null : plateNode };
+  return { root: box, dock, stamps, plate: plate === null ? null : plateNode, shot: shotNode };
 }
 
 // ── 下段：判定プレビューと再生操作 ──
@@ -890,6 +893,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
   const plateNodes: (HTMLElement | null)[] = [null, null, null, null];
+  const shotNodes: (HTMLElement | null)[] = [null, null, null, null];
   const pausedInstanceId = view.pauseReason?.instance_id ?? null;
   const selectedCard = view.columns.flatMap((column) => column.cards).find((card) => card.instanceId === screen.selectedInstanceId);
   const selectedFocus = selectedCard === undefined ? null : screen.focusFor(selectedCard.instanceId);
@@ -924,6 +928,29 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     }
   };
 
+  // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」思考中の自軍ユニットの立ち絵を、注目中のアクションの構えの画に
+  // 替える。注目を解いたら元の画へ戻す。呼吸の上下の写しも同じ画に替え、替えている間は呼吸を止めて1枚に見せる。
+  const paintFigurePreview = (focused: { readonly unitId: string; readonly figure: string | null } | null): void => {
+    for (const column of view.columns) {
+      const shot = shotNodes[column.posIdx];
+      if (shot === undefined || shot === null) {
+        continue;
+      }
+      const images = [...shot.querySelectorAll<HTMLImageElement>('img.figure-img')];
+      const plate = column.plate;
+      const figure = focused !== null && plate !== null && plate.unitId === focused.unitId ? focused.figure : null;
+      for (const image of images) {
+        const base = image.dataset.baseSrc ?? image.getAttribute('src') ?? '';
+        image.dataset.baseSrc = base;
+        const next = figure ?? base;
+        if (image.getAttribute('src') !== next) {
+          setFigureSource(image, next);
+        }
+      }
+      shot.classList.toggle('previewing', figure !== null && images.length > 0);
+    }
+  };
+
   // 盤面側（実行中カード・着弾予測・プレート・予兆線）を、注目していないときの姿へ戻す。
   const restoreBoard = (): void => {
     for (const column of view.columns) {
@@ -938,6 +965,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       );
     }
     paintStamps(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, stamps: selectedFocus.stamps });
+    paintFigurePreview(selectedCard === undefined || selectedFocus === null ? null : { unitId: selectedCard.unitId, figure: selectedFocus.figure });
     paintPlates(view.previewDeltas);
     timelineHost.replaceChildren(renderTimeline(view.timeline, view.columns));
   };
@@ -977,6 +1005,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
       dock.replaceChildren(target && plate !== null ? dockPreviewContent(plate, card, focus.preview) : dockContent(plate, pausedInstanceId));
     }
     paintStamps({ unitId: card.unitId, stamps: focus.stamps });
+    paintFigurePreview({ unitId: card.unitId, figure: focus.figure });
     paintPlates(focus.deltas);
     // [M-UI-TIMELINE]「注目中のアクションの仮定展開」素の展開との差分を際立たせて描く。
     timelineHost.replaceChildren(
@@ -1017,6 +1046,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     docks[column.posIdx] = nodes.dock;
     stampBoxes[column.posIdx] = nodes.stamps;
     plateNodes[column.posIdx] = nodes.plate;
+    shotNodes[column.posIdx] = nodes.shot;
     board.append(nodes.root);
   }
   boardWrap.append(board);
