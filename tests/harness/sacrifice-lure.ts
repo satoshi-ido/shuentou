@@ -2,10 +2,10 @@
 // 2通りから 1-02 を戦う。
 
 import type { DecisionProvider } from '../../src/engine/decision.js';
-import { confirmInherit, settleIntermission } from '../../src/engine/game/intermission.js';
+import { confirmInherit, confirmSacrifice, settleIntermission } from '../../src/engine/game/intermission.js';
 import { inheritPool, type InheritTarget } from '../../src/engine/progress/inherit.js';
 import type { BattleState, Unit } from '../../src/engine/types.js';
-import { createRun, MASTERS, playerDecisionOverride, playIntermission, playScene } from './runner.js';
+import { createRun, MASTERS, playerDecisionOverride, playScene } from './runner.js';
 
 // 1-01 後の供犠の対象（アクト1の同行従者はリナのみ：[M-TMPL-ENEMY-1-02]【供犠の誘い】）。
 export const LURE_VICTIM = 'ATTENDANT_01';
@@ -18,13 +18,15 @@ export interface LureBattle {
   readonly startHp: number;
   readonly maxHp: number;
   readonly rootLoss: boolean; // 敗北が敵マスターの根源武技の着弾による
+  readonly foeHp: number; // 決着時（または打ち切り時）の敵マスターのHP
 }
 
 export interface LureOutcome {
   readonly scene101: LureBattle;
   // 1-01 後に供犠しない。継承プールの各項目を継承した試行（キーは class_id または MAX_HP）。1-01 で敗北した場合は空。
   readonly kept: Readonly<Record<string, LureBattle>>;
-  readonly sacrificed: LureBattle | null; // 1-01 後にリナを供犠する
+  // 1-01 後に、リナの継承枠で継承プールの各項目を継承してからリナを供犠する（キーは kept と同じ）。
+  readonly sacrificed: Readonly<Record<string, LureBattle>>;
 }
 
 function labelOf(target: InheritTarget): string {
@@ -68,6 +70,7 @@ function battle(session: ReturnType<typeof createRun>['session'], ctx: ReturnTyp
     minHp,
     startHp,
     maxHp,
+    foeHp: outcome.result === 'WIN' ? 0 : (foe?.hp ?? 0),
     rootLoss: outcome.result === 'LOSS' && foe?.last_act?.class_id === 'ACT_ROOT_MARTIAL' && (hero?.hp ?? 0) <= 0,
   };
 }
@@ -78,7 +81,7 @@ export function lureTrial(standIn: DecisionProvider, withSacrifice: boolean): Lu
     const { session, ctx } = createRun();
     const scene101 = battle(session, ctx);
     if (scene101.result !== 'WIN') {
-      return { scene101, kept: {}, sacrificed: null };
+      return { scene101, kept: {}, sacrificed: {} };
     }
     const afterClear = structuredClone(session.data);
     // 供犠しない条件は、リナの継承枠で継承プールの各項目を継承した試行とする。
@@ -89,11 +92,16 @@ export function lureTrial(standIn: DecisionProvider, withSacrifice: boolean): Lu
       settleIntermission(branch.session, branch.ctx);
       kept[labelOf(target)] = battle(branch.session, branch.ctx);
     }
-    let sacrificed: LureBattle | null = null;
+    // 供犠する条件も、継承の後に供犠する（供犠を先にすると継承枠を失う）。継承プールの各項目について行う。
+    const sacrificed: Record<string, LureBattle> = {};
     if (withSacrifice) {
-      const branch = createRun(structuredClone(afterClear));
-      playIntermission(branch.session, branch.ctx, 'BALANCE', 0, LURE_VICTIM);
-      sacrificed = battle(branch.session, branch.ctx);
+      for (const target of inheritPool(session.data.run, MASTERS)) {
+        const branch = createRun(structuredClone(afterClear));
+        confirmInherit(branch.session, branch.ctx, LURE_VICTIM, target);
+        confirmSacrifice(branch.session, branch.ctx, LURE_VICTIM);
+        settleIntermission(branch.session, branch.ctx);
+        sacrificed[labelOf(target)] = battle(branch.session, branch.ctx);
+      }
     }
     return { scene101, kept, sacrificed };
   } finally {

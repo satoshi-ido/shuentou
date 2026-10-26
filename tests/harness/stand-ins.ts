@@ -7,8 +7,11 @@ import { executableActions, type DecisionProvider } from '../../src/engine/decis
 import { currentDefense } from '../../src/engine/defense.js';
 import {
   effectiveAtk,
+  effectiveChargePpCenti,
   effectiveCostPp,
+  effectiveDeployAp,
   effectiveDmgHpCenti,
+  effectiveGainVp,
   effectiveRange,
   effectiveStepRecovery,
   effectiveStepStartup,
@@ -46,24 +49,64 @@ function counterToFire(state: BattleState, unit: Unit): ActionInstance | null {
   return only !== undefined && only.kind === 'ACT' && only.action.master_ref === ROOT_COUNTER_ID ? only.action : null;
 }
 
-function mindOf(actions: readonly ActionInstance[]): ActionInstance | undefined {
-  return actions.find((action) => hasFlag(action.sys_flags, 'FLAG_MIND'));
-}
-
-// 代理1（直情型）：拍止めの発射 → 実効HPダメージ最大の武技 → 心気 → パス。
+// 代理1（直情型）：拍止めの発射 → 相手の攻撃の発生中なら体勢 → 実効HPダメージ最大の武技（体勢の分の PP を残す）→ 心気 → パス。
 export const impulsiveStandIn: DecisionProvider = (state, unit) => {
   const counter = counterToFire(state, unit);
   if (counter !== null) {
     return act(counter);
   }
   const executable = executableActions(state, unit);
-  const attack = byDamage(unit, executable.filter((action) => isAttack(unit, action)))[0];
+  // 2. 体勢：相手陣営のマスターが実効HPダメージを持つ武技の発生中で、着弾の時に壁が立っている体勢（必要発生実効値 <
+  // 残り発生 ≦ 必要発生実効値 + 必要硬直実効値）があれば、展開APの最大のものを撃つ（壁で防げるかは考えない）。
+  const rival = opposingMaster(state, unit);
+  const charging = rival === null ? null : chargingAttack(rival);
+  if (rival !== null && charging !== null) {
+    const remaining = effectiveStepStartup(rival, charging) - rival.elapsed_startup;
+    const stance = executable
+      .filter(
+        (action) =>
+          hasFlag(action.sys_flags, 'FLAG_STANCE') &&
+          effectiveStepStartup(unit, action) < remaining &&
+          remaining <= effectiveStepStartup(unit, action) + effectiveStepRecovery(unit, action),
+      )
+      .sort((a, b) => effectiveDeployAp(unit, b) - effectiveDeployAp(unit, a) || unit.acts.indexOf(a) - unit.acts.indexOf(b))[0];
+    if (stance !== undefined) {
+      return act(stance);
+    }
+  }
+  // 2'. 体勢の張り置き：壁が無い（AP が0）とき、実行可能な体勢があれば展開APの最大のものを張る。新たに得た守りの手を、
+  // 相手の攻撃を待たずに張っておく（素早い急襲・武技は着弾を見てからでは防げないため）。
+  if (unit.ap === 0) {
+    const stance = executable
+      .filter((action) => hasFlag(action.sys_flags, 'FLAG_STANCE'))
+      .sort((a, b) => effectiveDeployAp(unit, b) - effectiveDeployAp(unit, a) || unit.acts.indexOf(a) - unit.acts.indexOf(b))[0];
+    if (stance !== undefined) {
+      return act(stance);
+    }
+  }
+  // 3. 攻撃：体勢を所持するときは、撃った後の PP が所持する体勢の最小のPPコスト以上残るものに限る（新たに得た守りの手を
+  // 撃てるように PP を残す）。
+  const stanceCosts = unit.acts
+    .filter((action) => hasFlag(action.sys_flags, 'FLAG_STANCE') && usable(action))
+    .map((action) => effectiveCostPp(unit, action));
+  const keep = stanceCosts.length === 0 ? 0 : Math.min(...stanceCosts);
+  const attack = byDamage(
+    unit,
+    executable.filter((action) => isAttack(unit, action) && unit.pp - effectiveCostPp(unit, action) >= keep),
+  )[0];
   if (attack !== undefined) {
     return act(attack);
   }
-  const mind = mindOf(executable);
+  // 4. 心気：PP を引き上げるもの（[M-RESOLVE-MIND]：VP に加算VPを足し、PP を round(VP × PP充填効率) まで引き上げる）。
+  // VP が無いときの心気（無想）のように PP の増えない心気は撃たない。
+  const mind = executable.find((action) => hasFlag(action.sys_flags, 'FLAG_MIND') && raisesPp(unit, action));
   return mind === undefined ? PASS : act(mind);
 };
+
+function raisesPp(unit: Unit, action: ActionInstance): boolean {
+  const vp = unit.vp + effectiveGainVp(unit, action);
+  return Math.floor((vp * effectiveChargePpCenti(unit, action) + 50) / 100) > unit.pp;
+}
 
 // 相手陣営のマスターが実行中の、実効HPダメージを持つ武技（発生中に限る）。
 function chargingAttack(rival: Unit): ActionInstance | null {
@@ -219,8 +262,10 @@ export const responsiveStandIn: DecisionProvider = (state, unit) => {
       !pokeAfterWait() &&
       answer !== null &&
       cheapestAnswer !== null &&
-      // 主人公の直前の行動が拍止めであれば、根源武技の待ち合いに入っているため、応手の回数の条件を問わない。
-      (Math.floor(rival.pp / cheapestAnswer) <= 2 || unit.last_act?.class_id === ROOT_COUNTER_ID) &&
+      // 主人公または相手の直前の行動が拍止めであれば、根源武技の待ち合いに入っているため、応手の回数の条件を問わない。
+      (Math.floor(rival.pp / cheapestAnswer) <= 2 ||
+        unit.last_act?.class_id === ROOT_COUNTER_ID ||
+        rival.last_act?.class_id === ROOT_COUNTER_ID) &&
       unit.hp > answer.damage * 3
     ) {
       return act(bait);
