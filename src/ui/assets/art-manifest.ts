@@ -49,6 +49,7 @@ export const ART_FILES: readonly string[] = [
   "art/standing/hero-martial-follow.png",
   "art/standing/hero-martial.png",
   "art/standing/hero-mind.png",
+  "art/standing/hero-stagger.png",
   "art/standing/hero-stance.png",
   "art/standing/hero.png",
   "art/standing/ish.png",
