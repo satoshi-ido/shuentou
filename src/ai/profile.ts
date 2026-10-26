@@ -55,6 +55,7 @@ export const ACTION_TAGS = [
   'COPY',
   'SELF_HARM',
   'PASS',
+  'WAIT',
 ] as const;
 export type ActionTag = (typeof ACTION_TAGS)[number];
 
@@ -70,13 +71,13 @@ export interface EffectiveProfile {
   readonly evalMask: readonly FeatureKey[]; // 昇順ソート済み（[I-STATE-JSON]）
   readonly expectedLength: number;
   readonly bookId: string | null;
-  // [A-SEARCH-MOVEGEN] 待機手を候補に含めるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  // [A-SEARCH-MOVEGEN] 待機手を候補に含めるか。敵軍AI・参照プレイヤーAIの双方で真とする。
   readonly waitMoves: boolean;
-  // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン付き武技を数えるか。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン付き武技を数えるか。敵軍AI・参照プレイヤーAIの双方で真とする。
   readonly thoughtDeny: boolean;
-  // [A-EVAL-TTK]［射撃アクション］着弾の待機。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  // [A-EVAL-TTK]［射撃アクション］着弾の待機。敵軍AI・参照プレイヤーAIの双方で真とする。
   readonly landingWait: boolean;
-  // [A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害。参照プレイヤーAI（[V-TEST-REFAI]）に限り真とする。
+  // [A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害。敵軍AI・参照プレイヤーAIの双方で真とする。
   readonly traceDeny: boolean;
 }
 
@@ -93,10 +94,10 @@ export function defaultProfile(): EffectiveProfile {
     evalMask: ['board', 'survival', 'tempo'],
     expectedLength: 600,
     bookId: null,
-    waitMoves: false,
-    thoughtDeny: false,
-    landingWait: false,
-    traceDeny: false,
+    waitMoves: true,
+    thoughtDeny: true,
+    landingWait: true,
+    traceDeny: true,
   };
 }
 
@@ -109,7 +110,8 @@ export function referenceProfile(): EffectiveProfile {
     weightMult: {},
     // [V-TEST-REFAI]「体勢への減点」必要思考0の体勢の反復で決め手へ PP が回らなくなるのを防ぐ。
     // [V-TEST-REFAI]「パスへの減点」PPを温存して応手を構える相手に、パスを続けて膠着するのを防ぐ。
-    actionBonus: { STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS },
+    // 待機手は減点しない（同「待機手を減点しない理由」）。
+    actionBonus: { STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS, WAIT: 0 },
     maxDepth: 3,
     nodeLimit: 10000,
     jointAction: false,
@@ -132,6 +134,10 @@ export function actionBonusOf(prof: EffectiveProfile, tag: ActionTag): number {
   const override = prof.actionBonus[tag];
   if (override !== undefined) {
     return override;
+  }
+  // [A-PROFILE-BONUS] WAIT は上書きがなければ PASS の値（上書きを含む）に従う。
+  if (tag === 'WAIT') {
+    return actionBonusOf(prof, 'PASS');
   }
   return tag === 'PASS' ? BONUS_DEFAULT_PASS : 0;
 }
@@ -231,9 +237,10 @@ export function buildEffectiveProfile({ scene, enemy, profile, mirrorStats }: Pr
     evalMask: evalMask as readonly FeatureKey[],
     expectedLength: requireValue(scene.expected_length, '想定戦闘長', scene.scene_id),
     bookId: enemy.book_id ?? null, // 手順5
-    waitMoves: false, // [A-SEARCH-MOVEGEN] 敵軍AIの探索では待機手を生成しない
-    thoughtDeny: false, // [A-EVAL-TTK]［妨害補正］敵軍AIの探索では思考待ちのスタンを数えない
-    landingWait: false, // [A-EVAL-TTK]［射撃アクション］敵軍AIの探索では着弾を待機しない
-    traceDeny: false, // [A-EVAL-TTK]［延長中の決定点からの計画］敵軍AIの探索では延長中の妨害を数えない
+    // [V-TEST-REFAI]「参照プレイヤーAIと敵軍AIの差異」敵軍AIも参照プレイヤーAIと同じ探索・評価の規則を用いる。
+    waitMoves: true, // [A-SEARCH-MOVEGEN] 待機手
+    thoughtDeny: true, // [A-EVAL-TTK]［妨害補正］思考の待機のみを要するスタン
+    landingWait: true, // [A-EVAL-TTK]［射撃アクション］着弾の待機
+    traceDeny: true, // [A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害
   };
 }

@@ -117,7 +117,7 @@ function computeQMaxSteps(state: BattleState): number {
 // [A-SEARCH-QUIESCE]［決着の確認］延長の各時点で決定点（[A-SEARCH-NODE]：思考中かつ実行可能な
 // 候補アクションを持つ生存ユニット）を持つ陣営を記録する。
 // 記録は真へ変わるのみであるため、記録済みの陣営は判定しない。
-function markDecisionPoints(state: BattleState, decided: { MINE: boolean; FOE: boolean }): void {
+export function markDecisionPoints(state: BattleState, decided: { MINE: boolean; FOE: boolean }): void {
   for (const unit of state.units) {
     if (unit === null || unit.state !== 'THOUGHT' || decided[unit.side]) {
       continue;

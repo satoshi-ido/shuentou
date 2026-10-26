@@ -84,7 +84,8 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
   // 敵は B-01①の心気（基本）AR3 の後、1-01 の実効プロファイル（狂乱、PASS 0）で探索する。主人公は開幕の心気で
   // PP2 を得て、以降は参照プレイヤーAI（[V-TEST-REFAI]、PASS −1200）が操作する。heavyAt を与えると、主人公は
   // 参照プレイヤーAIに代えて、そのステップに武技（重撃）AR7 を撃ち、以後はパスする。
-  function play(limit: number, heavyAt: number | null = null) {
+  // forcedHeavyAt を与えると、主人公はそのステップに限り参照プレイヤーAIに代えて武技（重撃）AR7 を撃つ。
+  function play(limit: number, heavyAt: number | null = null, forcedHeavyAt: number | null = null) {
     const { state } = lefOpening();
     const foe = createAiDecisionProvider(
       buildEffectiveProfile({ scene: SCENE_MASTERS.SCENE_1_01, enemy: ENEMY_MASTERS.ENEMY_LEF, profile: AI_PROFILE_MASTERS.PROFILE_FRENZY }),
@@ -107,7 +108,8 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
         return mind === undefined ? { kind: 'PASS' } : { kind: 'ACT', instanceId: mind.instance_id };
       }
       if (heavyAt === null) {
-        return record(s, u, refai(s, u));
+        const forced = s.step === forcedHeavyAt ? executableActions(s, u).find((a) => a.master_ref === 'ACT_HEAVY_AR7') : undefined;
+        return record(s, u, forced !== undefined ? { kind: 'ACT', instanceId: forced.instance_id } : refai(s, u));
       }
       const heavy = executableActions(s, u).find((a) => a.master_ref === 'ACT_HEAVY_AR7');
       return record(s, u, s.step === heavyAt && heavy !== undefined ? { kind: 'ACT', instanceId: heavy.instance_id } : { kind: 'PASS' });
@@ -122,10 +124,11 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
   }
 
   it('T-19: 敵は心気の後に PP2 を温存し、主人公の武技（重撃）AR7 の着弾に体勢AR6 の壁を合わせて防ぐ', { timeout: 600_000 }, () => {
-    const { started, foeHp } = play(600);
+    const { started, foeHp } = play(600, null, 439);
     // 敵は定跡の心気の後に手を出さず、主人公が武技AR6（発生14）で先に打つ（HP8→5）。敵は返し刃（武技（特殊）、実効HPダメージ9）で応じる。
-    // 主人公が心気で PP を補って武技（重撃）AR7（発生154、ステップ593に着弾）を撃つと、敵は心気で PP を補い、
-    // 体勢AR6（発生28・硬直83、防御力46）を着弾に重なる 526 に発生させる。攻撃力37は壁を割れず、HP は3のまま。
+    // 主人公が心気で PP を補い、ステップ439に武技（重撃）AR7（発生154、ステップ593に着弾）を撃つと（参照プレイヤーAIは
+    // 武技AR6 を待つため、このステップに限り撃たせる）、PP0 の敵は心気で PP を補い、体勢AR6（発生28、防御力46）を
+    // 495 に発生させる。攻撃力37は壁を割れず、HP は3のまま。
     expect(started).toEqual([
       '147:FOE:ACT_MIND_AR3',
       '199:MINE:ACT_SLASH_AR6',
@@ -133,7 +136,7 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
       '429:MINE:ACT_MIND_AR3',
       '439:MINE:ACT_HEAVY_AR7',
       '485:FOE:ACT_MIND_AR3',
-      '526:FOE:ACT_GUARD_AR6',
+      '495:FOE:ACT_GUARD_AR6',
     ]);
     expect(foeHp[212]).toBe(8);
     expect(foeHp[213]).toBe(5);
@@ -144,11 +147,13 @@ describe('[V-TEST-POSITIONS] T-19 定跡 B-01 の消化後に PP を温存し、
 
   // 主人公がPPを得た直後（ステップ157）に武技（重撃）AR7（発生154、ステップ311に着弾）を撃つ局面。敵は思考中で、
   // 必要思考0の手（体勢・武技（重撃）AR3）では間に合わない。武技（重撃）AR3（発生236）は着弾が遅れて無防備な溜めを
-  // 突かれる。敵は返し刃（必要思考42・発生14）が実行可能となるステップ199まで待ち、発生中の溜めを中断する（着弾213、主人公HP58→49）。
-  it('T-19: 主人公がステップ157に撃つ武技（重撃）AR7 を、敵は返し刃で中断する', { timeout: 600_000 }, () => {
+  // 突かれる。敵は必要思考42・発生14の武技が実行可能となるステップ199まで待ち、発生中の溜めを中断する（着弾213）。
+  // 武技AR6 と返し刃は着弾と中断が同じであり、評価は同点となって、所持アクション配列インデックスの小さい武技AR6 を
+  // 選ぶ（[A-TIE-BREAK]。主人公HP58→55）。
+  it('T-19: 主人公がステップ157に撃つ武技（重撃）AR7 を、敵は武技AR6 で中断する', { timeout: 600_000 }, () => {
     const { started, foeHp, state } = play(320, 157);
-    expect(started).toEqual(['147:FOE:ACT_MIND_AR3', '157:MINE:ACT_HEAVY_AR7', '199:FOE:ACT_SPEC_RIPOSTE_LEF']);
-    expect(findUnit(state, 'MINE').hp).toBe(49);
+    expect(started).toEqual(['147:FOE:ACT_MIND_AR3', '157:MINE:ACT_HEAVY_AR7', '199:FOE:ACT_SLASH_AR6']);
+    expect(findUnit(state, 'MINE').hp).toBe(55);
     expect(foeHp[311]).toBe(8); // 中断された武技（重撃）は着弾しない
   });
 });

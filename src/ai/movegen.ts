@@ -8,6 +8,7 @@ import { executableActions, isInstant } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
 import {
   effectiveAtk,
+  effectiveCostPp,
   effectiveRange,
   effectiveStepRecovery,
   effectiveStepStartup,
@@ -50,15 +51,20 @@ function waitableActions(state: BattleState, unit: Unit, executable: readonly Ac
   const whenMatured = executableActions(state, matured).map((action) => action.instance_id);
   // 発射の条件は [A-SEARCH-NODE]［待機手の約定］による。
   const master = opposingMaster(state, unit);
+  // 心気（FLAG_MIND）は命中の条件を持たず、PPの不足でPPを要するアクションをいずれも実行できない間に限り、
+  // 必要思考のみが未充足であれば待機手を生成する。
+  const ppCosts = unit.acts.filter((action) => !isRootAction(action) && action.base_params.cost_pp > 0).map((action) => effectiveCostPp(unit, action));
+  const ppStarved = ppCosts.length > 0 && unit.pp < Math.min(...ppCosts);
   return unit.acts.filter(
     (action) =>
-      hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
       !isRootAction(action) &&
       !executable.includes(action) &&
       whenMatured.includes(action.instance_id) &&
-      master !== null &&
-      effectiveAtk(unit, action) >= currentDefense(master) &&
-      Math.abs(master.pos_idx - unit.pos_idx) <= effectiveRange(unit, action),
+      ((hasFlag(action.sys_flags, 'FLAG_MIND') && ppStarved) ||
+        (hasFlag(action.sys_flags, 'FLAG_MARTIAL') &&
+          master !== null &&
+          effectiveAtk(unit, action) >= currentDefense(master) &&
+          Math.abs(master.pos_idx - unit.pos_idx) <= effectiveRange(unit, action))),
   );
 }
 
@@ -140,7 +146,7 @@ function applyCounterRules(state: BattleState, unit: Unit, actions: readonly Act
 
 // [A-SEARCH-MOVEGEN] 常に「パス」を1候補として含める（拍止めの発射を除く）。実行可能アクションの列は
 // executableActions（[M-PIPE-SUICIDE] を含む実行可否判定）をそのまま用いる。
-// waitMoves は実効プロファイルの waitMoves（参照プレイヤーAIに限り真）。
+// waitMoves は実効プロファイルの waitMoves（敵軍AI・参照プレイヤーAIの双方で真）。
 export function generateMoves(state: BattleState, unit: Unit, waitMoves = false): readonly AiMove[] {
   const actions = applyCounterRules(state, unit, executableActions(state, unit));
   // 拍止めが残るのは発射の時機に限られ、そのとき候補手は拍止めのみとする。
@@ -162,9 +168,15 @@ export function generateMoves(state: BattleState, unit: Unit, waitMoves = false)
 
 // [A-PROFILE-BONUS] 手のタグ判定。
 export function tagsOf(move: AiMove): readonly ActionTag[] {
-  // [A-PROFILE-BONUS] WAIT は PASS と同じ既定値を用い、PASS の上書きに従う。
-  if (move.kind === 'PASS' || move.kind === 'WAIT') {
+  // [A-PROFILE-BONUS] WAIT はHPダメージを与える武技（拍止めを除く）を待つ待機手であり、上書きがなければ PASS の値に
+  // 従う（actionBonusOf）。心気・拍止めを待つ待機手は、発射まで局面を変えないパスと同じく PASS とする。
+  if (move.kind === 'PASS') {
     return ['PASS'];
+  }
+  if (move.kind === 'WAIT') {
+    const strikes =
+      hasFlag(move.action.sys_flags, 'FLAG_MARTIAL') && move.action.base_params.dmg_hp > 0 && move.action.master_ref !== ROOT_COUNTER_ID;
+    return [strikes ? 'WAIT' : 'PASS'];
   }
   const params = move.action.base_params;
   const flags = move.action.sys_flags;

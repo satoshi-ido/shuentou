@@ -10,8 +10,8 @@ function master(state: BattleState, side: 'MINE' | 'FOE'): Unit {
   return state.units.find((unit): unit is Unit => unit !== null && unit.side === side && unit.unit_kind === 'MASTER')!;
 }
 
-describe('[A-SEARCH-REUSE] 1-01 の惰性と返し刃', () => {
-  it('主人公が心気の後に撃つ武技（基本）AR3 の着弾より前に、レフは返し刃で中断する', { timeout: 600_000 }, () => {
+describe('[A-SEARCH-REUSE] 1-01 の再探索と中断', () => {
+  it('主人公が心気の後に撃つ武技（基本）AR3 の着弾より前に、レフは武技AR6 で中断する', { timeout: 600_000 }, () => {
     const started: string[] = [];
     let slashed = false;
     playerDecisionOverride.provider = (state, unit) => {
@@ -47,12 +47,13 @@ describe('[A-SEARCH-REUSE] 1-01 の惰性と返し刃', () => {
         undefined,
         300,
       );
-      // 武技（基本）AR3（発生20）は 216 に発生し 236 に着弾する。レフは 221 に返し刃（発生14）を撃ち 235 に着弾させる。
+      // 武技（基本）AR3（発生20）は 216 に発生し 236 に着弾する。レフは 221 に武技AR6（発生14）を撃ち 235 に着弾させる
+      // （返し刃と評価が同点となり、[A-TIE-BREAK] により所持アクション配列インデックスの小さい武技AR6 を選ぶ）。
       expect(started.filter((entry) => Number(entry.split(':')[0]) <= 240)).toEqual([
         '147:FOE:ACT_MIND_AR3',
         '147:MINE:ACT_MIND_AR3',
         '216:MINE:ACT_SLASH_AR3',
-        '221:FOE:ACT_SPEC_RIPOSTE_LEF',
+        '221:FOE:ACT_SLASH_AR6',
       ]);
       expect(foeHp[240]).toBe(8); // 中断された武技（基本）は着弾しない
     } finally {

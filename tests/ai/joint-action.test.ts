@@ -51,7 +51,9 @@ describe('[A-SEARCH-ROOT]［joint action の規則］', () => {
     const creature = findUnit(state, 'FOE', 'CREATURE');
     const joint = decideActionDetailed(state, creature, profileOf({ maxDepth: 1, jointAction: true }), NO_SUMMON_DEPS);
     const single = decideActionDetailed(state, creature, profileOf({ maxDepth: 1, jointAction: false }), NO_SUMMON_DEPS);
-    expect(joint.nodesConsumed).toBe(4);
+    // 組の各葉では、手を指していない主人公の決定点が先に現れるため、［応手の確認］（[A-SEARCH-QUIESCE]）で主人公の
+    // 2手（心気・パス）を読む（根の1エッジあたり 1 + 2 ノード）。単独の手の葉では敵マスターの決定点が先に現れるため読まない。
+    expect(joint.nodesConsumed).toBe(4 * 3);
     expect(single.nodesConsumed).toBe(2);
   });
 
@@ -60,7 +62,7 @@ describe('[A-SEARCH-ROOT]［joint action の規則］', () => {
     setStartup(findUnit(state, 'FOE'), 'MIND_M', 0);
     const creature = findUnit(state, 'FOE', 'CREATURE');
     const result = decideActionDetailed(state, creature, profileOf({ maxDepth: 1, jointAction: true }), NO_SUMMON_DEPS);
-    expect(result.nodesConsumed).toBe(2);
+    expect(result.nodesConsumed).toBe(2 * 3); // 根の2エッジ、各葉で主人公の応手2手
   });
 
   it('ループ順で後のユニットへの問い合わせでは、先のユニットを相方としない', () => {

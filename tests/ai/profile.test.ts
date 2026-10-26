@@ -24,10 +24,10 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
       evalMask: ['board', 'survival', 'tempo'],
       expectedLength: 800,
       bookId: 'B-01',
-      waitMoves: false,
-      thoughtDeny: false,
-      landingWait: false,
-      traceDeny: false,
+      waitMoves: true,
+      thoughtDeny: true,
+      landingWait: true,
+      traceDeny: true,
     });
   });
 
@@ -66,53 +66,53 @@ describe('[A-PROFILE-RESOLVE] 構築の手順', () => {
 });
 
 describe('[A-SEARCH-MOVEGEN] 待機手を含めるプロファイル', () => {
-  it('参照プレイヤーAIに限り待機手を含め、敵軍AIの実効プロファイルと既定プロファイルは含めない', () => {
+  it('参照プレイヤーAI・敵軍AIの実効プロファイル・既定プロファイルのいずれも待機手を含める', () => {
     expect(referenceProfile().waitMoves).toBe(true);
-    expect(defaultProfile().waitMoves).toBe(false);
+    expect(defaultProfile().waitMoves).toBe(true);
     const built = buildEffectiveProfile({
       scene: SCENE_MASTERS.SCENE_1_01,
       enemy: ENEMY_MASTERS.ENEMY_LEF,
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
-    expect(built.waitMoves).toBe(false);
+    expect(built.waitMoves).toBe(true);
   });
 });
 
 describe('[A-EVAL-TTK]［妨害補正］思考待ちのスタンを数えるプロファイル', () => {
-  it('参照プレイヤーAIに限り数え、敵軍AIの実効プロファイルと既定プロファイルは数えない', () => {
+  it('参照プレイヤーAI・敵軍AIの実効プロファイル・既定プロファイルのいずれも数える', () => {
     expect(referenceProfile().thoughtDeny).toBe(true);
-    expect(defaultProfile().thoughtDeny).toBe(false);
+    expect(defaultProfile().thoughtDeny).toBe(true);
     const built = buildEffectiveProfile({
       scene: SCENE_MASTERS.SCENE_1_01,
       enemy: ENEMY_MASTERS.ENEMY_LEF,
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
-    expect(built.thoughtDeny).toBe(false);
+    expect(built.thoughtDeny).toBe(true);
   });
 });
 
 describe('[A-EVAL-TTK]［射撃アクション］着弾を待機するプロファイル', () => {
-  it('参照プレイヤーAIに限り待機し、敵軍AIの実効プロファイルと既定プロファイルは待機しない', () => {
+  it('参照プレイヤーAI・敵軍AIの実効プロファイル・既定プロファイルのいずれも待機する', () => {
     expect(referenceProfile().landingWait).toBe(true);
-    expect(defaultProfile().landingWait).toBe(false);
+    expect(defaultProfile().landingWait).toBe(true);
     const built = buildEffectiveProfile({
       scene: SCENE_MASTERS.SCENE_1_01,
       enemy: ENEMY_MASTERS.ENEMY_LEF,
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
-    expect(built.landingWait).toBe(false);
+    expect(built.landingWait).toBe(true);
   });
 });
 
 describe('[A-EVAL-TTK]［延長中の決定点からの計画］延長中の妨害を数えるプロファイル', () => {
-  it('参照プレイヤーAIに限り数え、敵軍AIの実効プロファイルと既定プロファイルは数えない', () => {
+  it('参照プレイヤーAI・敵軍AIの実効プロファイル・既定プロファイルのいずれも数える', () => {
     expect(referenceProfile().traceDeny).toBe(true);
-    expect(defaultProfile().traceDeny).toBe(false);
+    expect(defaultProfile().traceDeny).toBe(true);
     const built = buildEffectiveProfile({
       scene: SCENE_MASTERS.SCENE_1_01,
       enemy: ENEMY_MASTERS.ENEMY_LEF,
       profile: AI_PROFILE_MASTERS.PROFILE_FRENZY,
     });
-    expect(built.traceDeny).toBe(false);
+    expect(built.traceDeny).toBe(true);
   });
 });

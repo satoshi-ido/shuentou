@@ -6,7 +6,7 @@ import type { Unit } from '../../src/engine/types.js';
 import { runStepEnd } from '../../src/engine/pipeline/stepend.js';
 import { applyMove } from '../../src/ai/apply.js';
 import { BONUS_DEFAULT_PASS } from '../../src/ai/constants.js';
-import { defaultProfile } from '../../src/ai/profile.js';
+import { actionBonusOf, defaultProfile } from '../../src/ai/profile.js';
 import { generateMoves, isReswap, reswapPenaltyOf, tagsOf, type AiMove } from '../../src/ai/movegen.js';
 import { createDuel, makeAction, martialAction, moveUnit, NO_SUMMON_DEPS, placeUnit } from './fixtures.js';
 
@@ -102,6 +102,7 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
   const WAITABLE = martialAction('ACT_WAITABLE', { atk: 40, step_thought: 20, step_startup: 5 });
   const COSTLY = martialAction('ACT_COSTLY', { atk: 40, cost_pp: 9, step_thought: 20, step_startup: 5 });
   const MIND_SLOW = makeAction('ACT_MIND_SLOW', { gain_vp: 1, step_thought: 20, step_startup: 5 });
+  const STANCE_SLOW = makeAction('ACT_STANCE_SLOW', { deploy_ap: 10, step_thought: 20, step_startup: 5 });
 
   function hero(acts: Parameters<typeof createDuel>[0]['heroActs']) {
     const state = createDuel({ heroMaxHp: 10, heroActs: acts, enemyMaxHp: 10, enemyActs: [MIND_SLOW] });
@@ -120,8 +121,8 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
     expect(labels(generateMoves(state, unit))).toEqual(['ACT:ACT_READY', 'PASS']);
   });
 
-  it('コストが未充足の武技、武技以外、マスター根源武技は待機手としない', () => {
-    const { state, unit } = hero([COSTLY, MIND_SLOW]);
+  it('コストが未充足の武技、武技・心気以外、マスター根源武技は待機手としない', () => {
+    const { state, unit } = hero([COSTLY, STANCE_SLOW]);
     unit.pp = 0;
     expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
     const root = createDuel({ heroMaxHp: 10, heroActs: [], enemyMaxHp: 10, enemyActs: [MIND_SLOW] });
@@ -152,10 +153,22 @@ describe('[A-SEARCH-MOVEGEN] 待機手の生成', () => {
     expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
   });
 
-  it('待機手のボーナスはパスと同じ既定値・上書きに従う', () => {
+  it('PPの不足でPPを要する手をいずれも実行できない間に限り、必要思考のみが未充足の心気を待機手とする', () => {
+    const { state, unit } = hero([MIND_SLOW, COSTLY]);
+    findUnit(state, 'FOE').ap = 100; // 心気の待機手は命中の条件を問わない
+    unit.pp = 0;
+    expect(labels(generateMoves(state, unit, true))).toEqual(['WAIT:ACT_MIND_SLOW', 'PASS']);
+    unit.pp = 9;
+    expect(labels(generateMoves(state, unit, true))).toEqual(['PASS']);
+  });
+
+  it('待機手のボーナスは、WAIT の上書きがなければパスの既定値・上書きに従う', () => {
     const { state, unit } = hero([WAITABLE]);
     const wait = generateMoves(state, unit, true).find((m) => m.kind === 'WAIT')!;
-    expect(tagsOf(wait)).toEqual(['PASS']);
+    expect(tagsOf(wait)).toEqual(['WAIT']);
+    expect(actionBonusOf(defaultProfile(), 'WAIT')).toBe(BONUS_DEFAULT_PASS);
+    expect(actionBonusOf({ ...defaultProfile(), actionBonus: { PASS: -1200 } }, 'WAIT')).toBe(-1200);
+    expect(actionBonusOf({ ...defaultProfile(), actionBonus: { PASS: -1200, WAIT: 0 } }, 'WAIT')).toBe(0);
   });
 });
 

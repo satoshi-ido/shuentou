@@ -14,11 +14,13 @@ import type { BattleState, Side, Unit } from '../engine/types.js';
 import { hasExecutableAction, isActionExecutable } from '../engine/decision.js';
 import { currentDefense } from '../engine/defense.js';
 import { effectiveAtk, effectiveRange, effectiveStepThought } from '../engine/effective.js';
+import { hasFlag } from '../engine/flags.js';
 import { applyMove } from './apply.js';
 import { lookupBook } from './book.js';
 import { cloneBattleState } from './clone.js';
 import { INF, MATE_TH, TTK_MAX } from './constants.js';
 import { evaluateLeafPosition, mateScore, quiescenceMateScore } from './evaluate.js';
+import { markDecisionPoints } from './quiesce.js';
 import { generateMoves, moveBonusOf, opposingMaster, reswapPenaltyOf, type AiMove } from './movegen.js';
 import type { EffectiveProfile } from './profile.js';
 import { firstPendingUnit, isStalled, runPreP8, runStepEnd } from './step-driver.js';
@@ -39,7 +41,19 @@ interface SearchCtx {
   readonly verified?: boolean;
   // [A-SEARCH-QUIESCE]［決着の確認］確認の延長で決定点を与える陣営（敗れる側）。他陣営の決定点はパスとして進める。
   readonly confirmSide?: Side;
+  // [A-SEARCH-QUIESCE]［応手の確認］根から現在の局面までの手を指した陣営と、直前の手を指した陣営。
+  readonly movedSides?: readonly Side[];
+  readonly lastMover?: Side;
+  // [A-SEARCH-QUIESCE]［応手の確認］応手の確認の延長の内側であるか。入れ子の応手の確認を行わないために持つ
+  // （延長の内側でも［決着の確認］は1回行う）。
+  readonly replied?: boolean;
+  // [A-SEARCH-QUIESCE]［応手の確認］相手陣営（confirmSide）より先に手を指した陣営の決定点が現れたら、確認を
+  // 取りやめる（REPLY_SKIPPED を返す）。最初の決定点に達した後の探索には持ち越さない。
+  readonly replyProbe?: boolean;
 }
+
+// ［応手の確認］を取りやめたことを表す値（評価値には現れない）。
+const REPLY_SKIPPED = Number.NaN;
 
 function consumeNode(budget: NodeBudget): void {
   budget.remaining -= 1;
@@ -70,6 +84,10 @@ export function readyToFire(state: BattleState, unit: Unit, instanceId: string):
   const action = unit.acts.find((candidate) => candidate.instance_id === instanceId);
   if (action === undefined) {
     return 'DROP';
+  }
+  // 心気の待機手は、実行可能となった時点で発射する（[A-SEARCH-MOVEGEN]「待機手」）。
+  if (hasFlag(action.sys_flags, 'FLAG_MIND')) {
+    return isActionExecutable(state, unit, action) ? 'FIRE' : 'WAIT';
   }
   const master = opposingMaster(state, unit);
   const fires =
@@ -138,14 +156,43 @@ function evaluateLeaf(
   passed: readonly string[] = [],
   extendable = false,
 ): number {
+  const confirmable = extendable && ctx.verified !== true;
+  // [A-SEARCH-QUIESCE]［応手の確認］根から葉までの手をすべて一方の陣営が指した葉は、相手陣営の最初の決定点まで
+  // 進め、その決定点1つ分だけ探索を延長した結果で評価する。相手陣営の決定点より先に手を指した陣営の決定点が
+  // 現れる場合は確認しない。応手の確認と［決着の確認］は1本の読み筋につきそれぞれ1回に限り、互いの延長の内側でも行う。
+  const zzRef = ctx.prof.actionBonus.STANCE === -1000;
+  const zzOff = (zzRef && process.env.ZZ_OFF_REF) || (!zzRef && process.env.ZZ_OFF_FOE);
+  if (!zzOff && extendable && ctx.replied !== true && ctx.lastMover !== undefined) {
+    const replier: Side = ctx.lastMover === 'FOE' ? 'MINE' : 'FOE';
+    if (!(ctx.movedSides ?? []).includes(replier)) {
+      const replied = searchStep(cloneBattleState(state), { ...ctx, replied: true, confirmSide: replier, replyProbe: true }, 1, ply, passed, waits);
+      if (!Number.isNaN(replied)) {
+        return replied;
+      }
+    }
+  }
+  // ［葉での扱い］の延長中の決着も［決着の確認］の対象とするため、延長前の局面を保持する。
+  const entry = confirmable && Object.keys(waits).length > 0 ? cloneBattleState(state) : null;
+  const decided = { MINE: false, FOE: false };
+  // 延長中に決着したとき、敗れる側に決定点が現れていれば、延長前の局面から敗れる側の最初の決定点まで進めて
+  // 決定点1つ分だけ延長した結果で評価する（[A-SEARCH-QUIESCE]［決着の確認］）。
+  const settle = (outcome: BattleOutcome, steps: number): number => {
+    const loser: Side = outcome === 'WIN' ? 'FOE' : 'MINE';
+    if (entry !== null && decided[loser]) {
+      return searchStep(entry, { ...ctx, verified: true, confirmSide: loser }, 1, ply, passed, waits);
+    }
+    return quiescenceMateScore(outcome, ply, steps);
+  };
   let pending = waits;
   const limit = leafExtensionLimit(state, waits);
   for (let steps = 0; Object.keys(pending).length > 0; steps += 1) {
     const fired = fireWaits(state, pending, ctx.deps);
     if (fired.outcome !== 'NONE') {
-      return quiescenceMateScore(fired.outcome, ply, steps);
+      return settle(fired.outcome, steps);
     }
     pending = fired.waits;
+    // 発射の判定は決定点の探索に先立つため、同じステップの決定点は発射の後に記録する。
+    markDecisionPoints(state, decided);
     // 上限に達したら、発射されなかった約定を解消して評価する。
     if (Object.keys(pending).length === 0 || steps >= limit) {
       break;
@@ -153,13 +200,13 @@ function evaluateLeaf(
     runStepEnd(state);
     const outcome = runPreP8(state, ctx.deps);
     if (outcome !== 'NONE') {
-      return quiescenceMateScore(outcome, ply, steps + 1);
+      return settle(outcome, steps + 1);
     }
   }
   const leaf = evaluateLeafPosition(state, ctx.prof, ply, ctx.deps);
   // [A-SEARCH-QUIESCE]［決着の確認］敗れる側に決定点が現れた決着は確定とせず、敗れる側の最初の決定点まで
   // 進めて決定点1つ分だけ延長した結果で評価する。延長の内側では確認を行わない（入れ子にしない）。
-  if (extendable && leaf.refutableLoser !== null && ctx.verified !== true) {
+  if (confirmable && leaf.refutableLoser !== null) {
     return searchStep(cloneBattleState(state), { ...ctx, verified: true, confirmSide: leaf.refutableLoser }, 1, ply, passed, waits);
   }
   return leaf.value;
@@ -204,26 +251,31 @@ function searchStep(
     // [A-SEARCH-NODE]［待機手の約定］決定点の探索に先立ち発射を判定し、約定のあるユニットは決定点から除く。
     const fired = fireWaits(state, waits, ctx.deps);
     if (fired.outcome !== 'NONE') {
-      return mateScore(fired.outcome, ply);
+      // ［応手の確認］相手陣営の決定点の前に決着する葉は、確認せずに評価する（［決着の確認］の対象）。
+      return ctx.replyProbe === true ? REPLY_SKIPPED : mateScore(fired.outcome, ply);
     }
     waits = fired.waits;
     const pending = firstPendingUnit(state, [...passed, ...Object.keys(waits)], ctx.prof.deferredDecision);
     // [A-SEARCH-QUIESCE]［決着の確認］確認の延長では、敗れる側より先に現れる勝つ側の決定点をパスとして進める。
     if (pending !== undefined && ctx.confirmSide !== undefined && pending.side !== ctx.confirmSide) {
+      if (ctx.replyProbe === true) {
+        return REPLY_SKIPPED;
+      }
       passed = [...passed, pending.unit_id];
       continue;
     }
     if (pending !== undefined) {
-      return searchDecision(state, pending, ctx, depthRemaining, ply, passed, waits, alpha, beta);
+      const decisionCtx = ctx.replyProbe === true ? { ...ctx, replyProbe: false } : ctx;
+      return searchDecision(state, pending, decisionCtx, depthRemaining, ply, passed, waits, alpha, beta);
     }
     if (isStalled(state)) {
-      return evaluateLeaf(state, waits, ctx, ply);
+      return ctx.replyProbe === true ? REPLY_SKIPPED : evaluateLeaf(state, waits, ctx, ply);
     }
     passed = [];
     runStepEnd(state);
     const outcome = runPreP8(state, ctx.deps);
     if (outcome !== 'NONE') {
-      return mateScore(outcome, ply);
+      return ctx.replyProbe === true ? REPLY_SKIPPED : mateScore(outcome, ply);
     }
   }
 }
@@ -325,14 +377,21 @@ function rankMoves(
   let beta = betaIn;
   const partnerId = ctx.prof.jointAction ? jointPartnerIdOf(state, unit, passedUnitIds, waits) : null;
 
+  // [A-SEARCH-QUIESCE]［応手の確認］子の局面へ、手を指した陣営を記録して渡す（組の両手は同じ陣営）。
+  const movedSides = ctx.movedSides ?? [];
+  const childCtx: SearchCtx = {
+    ...ctx,
+    movedSides: movedSides.includes(unit.side) ? movedSides : [...movedSides, unit.side],
+    lastMover: unit.side,
+  };
   // 1エッジ（単独の手または組）の子を評価する。
   const childValue = (clone: BattleState, applied: Applied): number => {
     if (depthRemaining <= 1) {
       return applied.outcome !== 'NONE'
         ? mateScore(applied.outcome, ply + 1)
-        : evaluateLeaf(clone, applied.waits, ctx, ply + 1, applied.passed, true);
+        : evaluateLeaf(clone, applied.waits, childCtx, ply + 1, applied.passed, true);
     }
-    return continueAfterMove(clone, applied.outcome, ctx, depthRemaining - 1, ply + 1, applied.passed, applied.waits, alpha, beta);
+    return continueAfterMove(clone, applied.outcome, childCtx, depthRemaining - 1, ply + 1, applied.passed, applied.waits, alpha, beta);
   };
   // [A-TIE-BREAK]「根ノードは action_bonus を加算した確定スコアで並べ替える」。ボーナスは根の手の選好であり、
   // 子孫ノードの確定スコアには加算しない（[V-NUM-STEP157]・[V-NUM-OPENING] の比較も根の手に対する加算である）。

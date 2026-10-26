@@ -59,8 +59,8 @@ describe('[V-TEST-REFAI]「体勢への減点」', () => {
 });
 
 describe('[V-TEST-REFAI]「パスへの減点」', () => {
-  it('参照プレイヤーAIのアクション種別ボーナスで PASS を −1200 へ上書きする', () => {
+  it('参照プレイヤーAIのアクション種別ボーナスで PASS を −1200 へ、WAIT を 0 へ上書きする', () => {
     expect(BONUS_REFAI_PASS).toBe(-1200);
-    expect(referenceProfile().actionBonus).toEqual({ STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS });
+    expect(referenceProfile().actionBonus).toEqual({ STANCE: BONUS_REFAI_STANCE, PASS: BONUS_REFAI_PASS, WAIT: 0 });
   });
 });
