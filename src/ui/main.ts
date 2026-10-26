@@ -58,6 +58,7 @@ import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-scre
 import type { UndoMotion } from './dom/undo-motion.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
+import { FigureMotion } from './dom/figure-motion.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver, type BgmHush } from './audio/driver.js';
 import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
@@ -154,6 +155,8 @@ const effects = new EffectLayer(document.createElement('div'));
 const scriptRoot = document.createElement('div');
 scriptRoot.className = 'script-root';
 stageElement.append(screenRoot, effects.root, scriptRoot);
+// [M-UI-HUD]［立ち絵の動き］消滅猶予の残像は演出層に置く。演出の簡略化は設定を都度引く。
+const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects);
 
 // [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
 const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
@@ -236,6 +239,7 @@ const battleDeps = {
   ...stepDeps,
   onCue: (cue: BattleCue): void => {
     effects.play(cue);
+    figureMotion.cue(cue); // [M-UI-HUD]［立ち絵の動き］
     const assetId = seAssetOf(cue, ASSET_MASTERS);
     if (assetId !== null) {
       audio.playSe(cue.kind, assetId);
@@ -1043,6 +1047,7 @@ function leaveBattle(): void {
   selectedInstanceId = null;
   focusedInstanceId = null;
   effects.clear();
+  figureMotion.clear();
 }
 
 
@@ -1148,6 +1153,7 @@ function renderBattle(): HTMLElement | null {
       resultText,
       selectedInstanceId,
       undoFrom: takeUndoMotion(),
+      figureMotion,
       focusedInstanceId,
       speed: loop.speed,
       stopped: battleResult === 'PAUSED',
@@ -1333,6 +1339,8 @@ function isTimeStopped(): boolean {
 function syncTimeStop(): void {
   const stopped = isTimeStopped();
   screenRoot.classList.toggle('time-stopped', stopped);
+  // 思考中の上下動は世界が動く間（敵軍の応答待ちを含む）だけ進める。決着後は止める。
+  figureMotion.setStopped(stopped || (battleResult !== 'RUNNING' && battleResult !== 'AWAIT_FOE'));
   if (stopped !== timeStopped) {
     timeStopped = stopped;
     audio.muffleLayers(stopped);

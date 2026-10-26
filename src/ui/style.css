@@ -545,8 +545,27 @@ button:focus-visible {
 /* 立ち絵の足元はプレートの中央（表示名の右・リソースの左の空き）まで下ろす。
    重なりは プレートの地 → 立ち絵と足元の光 → プレートの文字 の順とする（.plate は重なりの文脈を作らない）。 */
 .cell > .figure,
-.cell > .figure-wrap,
+.cell > .pose,
 .cell > .ground { position: relative; z-index: 1; }
+
+/* [M-UI-HUD]［立ち絵の動き］発生中・硬直中の進捗を写した姿勢（位置・明るさ・輪郭の光）。値は入口が画素に揃えて与える。
+   思考中の上下動（.bob）と一回の動き（.shot）は Web Animations で掛け、ここでは器の並びだけを定める。 */
+.pose,
+.bob,
+.shot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.pose {
+  --glow-rgb: 255, 176, 96;
+  transform: translate(var(--pose-x, 0px), var(--pose-y, 0px));
+  filter: brightness(var(--pose-bright, 1))
+    drop-shadow(0 0 calc(var(--pose-glow, 0) * 10px) rgba(var(--glow-rgb), calc(var(--pose-glow, 0) * 0.9)));
+}
+.bcol-foe .pose { --glow-rgb: 196, 160, 255; }
+/* 消滅猶予の残像。演出層に、撤去前の立ち絵の位置と大きさで置く。 */
+.figure-ghost { position: absolute; pointer-events: none; }
 .plate > .pname,
 .plate > .pinfo { position: relative; z-index: 2; text-shadow: 0 0 3px var(--bg-deep), 0 0 6px var(--bg-deep); }
 
@@ -1894,8 +1913,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .screen-root { transition: --time-stop 0.3s ease-out; }
 .screen-root.time-stopped { --time-stop: 1; }
 .battle .field-bg,
-.battle .bcol:not(.bcol-empty) .cell > .figure,
-.battle .cell > .figure-wrap {
+.battle .bcol:not(.bcol-empty) .shot > .figure,
+.battle .shot > .figure-wrap {
   filter: grayscale(calc(var(--time-stop) * 0.6)) brightness(calc(1 - var(--time-stop) * 0.2));
 }
 

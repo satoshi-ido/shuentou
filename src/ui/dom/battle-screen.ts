@@ -4,6 +4,7 @@
 
 import type { SystemIcon } from '../assets/placeholder.js';
 import { figureNode } from './art.js';
+import type { FigureMotion } from './figure-motion.js';
 import { systemIconNode } from './icons.js';
 import { countBack, rewoundSteps, slide, vanishedSegments, type UndoMotion } from './undo-motion.js';
 import type { PlaybackSpeed } from '../config.js';
@@ -521,6 +522,7 @@ function renderColumn(
   selectedInstanceId: string | null,
   pausedInstanceId: string | null,
   handlers: BattleScreenHandlers,
+  figureMotion: FigureMotion | undefined,
 ): ColumnNodes {
   const plate = column.plate;
   const side = plate === null ? 'empty' : plate.side.toLowerCase();
@@ -530,13 +532,24 @@ function renderColumn(
   const stamps = element('div', 'stamps');
   cell.append(stamps);
   const figure = figureNode(`figure${plate?.isCreature === true ? ' creature' : ''}`, plate?.figure ?? null);
+  let body: HTMLElement = figure;
   if (plate?.isCreature === true && plate.side === 'MINE' && plate.figure !== null) {
     // [S-LOOK-SUMMON-COMMON]「セインの仮身」元の敵の仮身の画を反転し、燈火の色の縁と胸元の小さな火を重ねる。
-    const wrap = element('div', 'figure-wrap mine-creature');
-    wrap.append(figure, element('span', 'chest-flame'));
-    cell.append(wrap);
+    body = element('div', 'figure-wrap mine-creature');
+    body.append(figure, element('span', 'chest-flame'));
+  }
+  if (plate === null) {
+    cell.append(body);
   } else {
-    cell.append(figure);
+    // [M-UI-HUD]［立ち絵の動き］姿勢（.pose）・思考中の上下動（.bob）・一回の動き（.shot）を入れ子で分ける。
+    const pose = element('div', 'pose');
+    const bob = element('div', 'bob');
+    const shot = element('div', 'shot');
+    shot.append(body);
+    bob.append(shot);
+    pose.append(bob);
+    figureMotion?.attach(pose, plate);
+    cell.append(pose);
   }
   cell.append(element('div', 'ground'));
   const plateNode = plate === null ? element('div', 'plate plate-empty', '（空きマス）') : renderPlate(plate, null);
@@ -846,6 +859,8 @@ export interface BattleScreenState {
   readonly lockText: (stringId: string, unitId: string | null) => string;
   // [M-REWIND-UNDO]【提示】アンドゥを適用した直後の描画に限り、適用前の姿を与える。
   readonly undoFrom?: UndoMotion | null;
+  // [M-UI-HUD]［立ち絵の動き］再描画をまたいで立ち絵の動きを保つ器。無ければ立ち絵を動かさない。
+  readonly figureMotion?: FigureMotion;
 }
 
 // 【値の巻き戻し】ユニットプレートの HP・VP・PP・AP のうち変わった値を、適用前の値から数え戻す。
@@ -1000,7 +1015,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   boardWrap.append(background);
   const board = element('div', 'board');
   for (const column of view.columns) {
-    const nodes = renderColumn(column, screen.selectedInstanceId, pausedInstanceId, handlers);
+    const nodes = renderColumn(column, screen.selectedInstanceId, pausedInstanceId, handlers, screen.figureMotion);
     docks[column.posIdx] = nodes.dock;
     stampBoxes[column.posIdx] = nodes.stamps;
     plateNodes[column.posIdx] = nodes.plate;
