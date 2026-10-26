@@ -19,6 +19,7 @@ import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import type {
   ActionMasterRecord,
   AssetMasterRecord,
+  AssetPose,
   EnemyMasterRecord,
   HelpMasterRecord,
   SceneMasterRecord,
@@ -59,6 +60,7 @@ import type { UndoMotion } from './dom/undo-motion.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { FigureMotion } from './dom/figure-motion.js';
+import { stancePoseOf } from './view/figure-motion.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver, type BgmHush } from './audio/driver.js';
 import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
 import { bgmAssetOf, globalAssetOf, seAssetOf } from './audio/cues.js';
@@ -467,12 +469,13 @@ const naming: UnitNaming = {
   actionName: (action: ActionInstance) => actionName(action.master_ref),
   actionDescription: (action: ActionInstance) => actions[action.master_ref]?.description ?? null,
   // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公・敵マスター・仮身。セインの仮身は元の敵の仮身と同じ画を用いる。
+  // [M-DATA-ASSETMASTER]［構えの選択］発生中は系統ごとの構えの画を示す。
   figure: (unit: Unit) =>
     unit.unit_kind === 'CREATURE'
-      ? figureOf('CREATURE', unit.creature_id ?? null)
+      ? figureOf('CREATURE', unit.creature_id ?? null, stancePoseOf(unit))
       : unit.side === 'MINE'
-        ? figureOf('HERO', null)
-        : figureOf('ENEMY', currentScene().enemy_id),
+        ? figureOf('HERO', null, stancePoseOf(unit))
+        : figureOf('ENEMY', currentScene().enemy_id, stancePoseOf(unit)),
 };
 
 // ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
@@ -482,8 +485,10 @@ function assetTest(): AssetCondition | null {
   return session === null ? null : (condition) => evaluateCondition(condition, conditionReader(session as GameSession, masters));
 }
 
-function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null): string | null {
-  return assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
+// 構えの画が無い、または実体が無いときは、構えを示さずに基準の側の画へ戻す（［構えの選択］「選び方」）。
+function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null, pose: AssetPose | null = null): string | null {
+  const posed = pose === null ? null : assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), pose));
+  return posed ?? assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
 }
 setFigureLookup(figureOf);
 

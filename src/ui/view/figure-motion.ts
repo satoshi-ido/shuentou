@@ -2,7 +2,9 @@
 // 立ち絵は1件の画のまま動かし、位置の変化は立ち絵の実体の1画素（論理解像度の2px）を単位とする。
 // 表示に限る値であり、BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である（同項［更新と決定論］）。
 
-import type { Side } from '../../engine/types.js';
+import type { AssetPose } from '../../data/types.js';
+import { hasFlag } from '../../engine/flags.js';
+import type { Side, Unit } from '../../engine/types.js';
 import type { RunningCardView } from './battle-view.js';
 
 export const FIGURE_PIXEL = 2; // 立ち絵の実体の1画素（論理解像度の px）
@@ -29,6 +31,19 @@ export const NEUTRAL_POSE: FigurePose = { dx: 0, dy: 0, glow: 0, brightness: 1 }
 // 「向き」自軍は右、敵軍は左を向く。前へ踏み込む向きの符号。
 export function facingOf(side: Side): 1 | -1 {
   return side === 'MINE' ? 1 : -1;
+}
+
+// [M-DATA-ASSETMASTER]［構えの選択］発生中のユニットが示す構え。系統フラグを武技・体勢・心気（召喚を含む）の順に
+// 当てはめ、隊列交代のみ・系統なしのアクションと、発生中でないユニットは構えを示さない（Null）。
+export function stancePoseOf(unit: Unit): AssetPose | null {
+  if (unit.state !== 'STARTUP' || unit.last_act === null) {
+    return null;
+  }
+  const flags = unit.last_act.sys_flags;
+  if (hasFlag(flags, 'FLAG_MARTIAL')) return 'MARTIAL';
+  if (hasFlag(flags, 'FLAG_STANCE')) return 'STANCE';
+  if (hasFlag(flags, 'FLAG_MIND') || hasFlag(flags, 'FLAG_SUMMON')) return 'MIND';
+  return null;
 }
 
 // 「進捗」経過 ÷ 基準を 0〜1 に収める。基準が0の区間は姿勢を作らない（Null）。

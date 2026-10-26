@@ -1,7 +1,7 @@
 // [I-PLAN-ASSETS]【実体の投入】生成した画像の取り込みの画素処理（art/image.js）。
 
 import { describe, expect, it } from 'vitest';
-import { crop16x9, fitInto, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, targetOf } from '../../art/image.js';
+import { crop16x9, fitInto, fitLike, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, targetOf } from '../../art/image.js';
 
 // 幅 w・高さ h の画像を、内側の矩形だけ色を変えて作る（4バイト1画素）。
 function picture(w: number, h: number, inner: { x: number; y: number; w: number; h: number }): Buffer {
@@ -35,6 +35,21 @@ describe('[I-PLAN-ASSETS] 画像の取り込み', () => {
     expect(fitInto(400, 1200, 512, 768)).toEqual({ width: 256, height: 768 });
     const placed = placeBottomCenter(Buffer.alloc(2 * 3 * 4, 255), 2, 3, 6, 5);
     expect(opaqueBounds(placed, 6, 5)).toEqual({ x: 2, y: 2, width: 2, height: 3 });
+  });
+
+  // [S-LOOK-PRINCIPLE]【盤面の構え】構えで人物の大きさを変えない。
+  it('構えの画は元の立ち絵と同じ倍率で縮め、幅は上限の枠まで広げてよい', () => {
+    // 元の画 400×1200 は 64×96 の枠へ 0.08 倍。身を低くした構え（高さ 900）も同じ倍率で縮める。
+    expect(fitLike(500, 900, 400, 1200, 64, 96, 96)).toEqual({ width: 40, height: 72 });
+    // 得物を伸ばした構え（幅 1000）は 80 ドットとなり、上限 96 の内に収まる。
+    expect(fitLike(1000, 1200, 400, 1200, 64, 96, 96)).toEqual({ width: 80, height: 96 });
+    // 上限を越える構え（幅 1500 → 120）は、上限に収まるまで縮める。
+    expect(fitLike(1500, 1200, 400, 1200, 64, 96, 96)).toEqual({ width: 96, height: 77 });
+  });
+
+  it('構えの画の asset_id も立ち絵の取り込み先へ写す', () => {
+    expect(targetOf('ASSET_DORN_STANDING_MARTIAL')).toEqual({ kind: 'STANDING', file: 'standing/dorn-martial.png' });
+    expect(targetOf('ASSET_HERO_STANDING_COAT_ACT2_MIND')).toEqual({ kind: 'STANDING', file: 'standing/hero-coat-act2-mind.png' });
   });
 
   it('背景は 16:9 に切り出し、縦の位置を選べる', () => {

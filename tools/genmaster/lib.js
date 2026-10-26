@@ -616,6 +616,9 @@ export function buildAssetRecords(assets) {
     if (audio !== (entry.cue !== null)) {
       throw new Error(`cue の条件付必須に反する: ${entry.asset_id}`);
     }
+    if ((entry.pose ?? null) !== null && entry.slot !== 'STANDING') {
+      throw new Error(`pose は STANDING に限る: ${entry.asset_id}`);
+    }
     result[entry.asset_id] = { ...entry };
   }
   return result;

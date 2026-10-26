@@ -84,6 +84,14 @@ export function fitInto(width, height, boxWidth, boxHeight) {
   return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
 }
 
+// [S-LOOK-PRINCIPLE]【盤面の構え】構えの画は、元の立ち絵と同じ倍率で縮める（構えで人物の大きさを変えない）。
+// 倍率は元の画の不透明な範囲を枠（boxWidth×boxHeight）に収める倍率とし、構えの画がはみ出す場合に限り
+// 枠（maxWidth×boxHeight）に収まるまで縮める。
+export function fitLike(width, height, baseWidth, baseHeight, boxWidth, boxHeight, maxWidth) {
+  const scale = Math.min(boxWidth / baseWidth, boxHeight / baseHeight, maxWidth / width, boxHeight / height);
+  return { width: Math.max(1, Math.round(width * scale)), height: Math.max(1, Math.round(height * scale)) };
+}
+
 // 縮小で生じた半透明の縁を、アルファの閾値で不透明か透明かに分ける。ドット絵の輪郭を半透明にしない。
 export function snapAlpha(pixels, threshold = 128) {
   const out = Buffer.from(pixels);

@@ -4,7 +4,7 @@
 // 立ち絵（STANDING）と背景（BACKGROUND）は、審査範囲（[I-PLAN-SUBMISSION]【審査範囲】）の実体を
 // 生成AIで制作する（[I-PLAN-ASSETS]【実体の投入】、docs/asset-brief.md）。path は src/ui/public からの相対で実体を指す。
 
-export const ASSETS = [
+const BASE_ASSETS = [
   // 主人公（owner_kind が HERO のとき owner_id は Null）
   { asset_id: 'ASSET_HERO_PORTRAIT', owner_kind: 'HERO', owner_id: null, slot: 'PORTRAIT', cue: null, path: 'placeholder/portrait/hero' },
   { asset_id: 'ASSET_HERO_PLATE', owner_kind: 'HERO', owner_id: null, slot: 'PLATE', cue: null, path: 'placeholder/plate/hero' },
@@ -86,4 +86,25 @@ export const ASSETS = [
   { asset_id: 'ASSET_SE_ACTION_STANCE', owner_kind: 'ACTION', owner_id: 'ACT_GUARD_AR3', slot: 'SE', cue: 'ACTION_TRIGGER', path: 'art/audio/se-action-stance.mp3' },
   { asset_id: 'ASSET_SE_ACTION_SUMMON', owner_kind: 'ACTION', owner_id: 'ACT_SUMMON_AR4', slot: 'SE', cue: 'ACTION_TRIGGER', path: 'art/audio/se-action-summon.mp3' },
   { asset_id: 'ASSET_SE_ACTION_SWAP', owner_kind: 'ACTION', owner_id: 'ACT_SWAP_SINGLE', slot: 'SE', cue: 'ACTION_TRIGGER', path: 'art/audio/se-action-swap.mp3' },
+];
+
+// 盤面の構え（[S-LOOK-PRINCIPLE]【盤面の構え】・[M-DATA-ASSETMASTER]［構えの選択］）。審査範囲の盤面に立つ姿
+// （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構えの画を3件置く。asset_id・variant・path は元の画に
+// 構えの名を添え、condition は元の画のものを引き継ぐ（外套の版ごとに構えを持つ）。
+const POSES = ['MARTIAL', 'STANCE', 'MIND'];
+const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
+
+function poseRecords(base) {
+  return POSES.map((pose) => ({
+    ...base,
+    asset_id: `${base.asset_id}_${pose}`,
+    variant: base.variant === undefined ? pose : `${base.variant}_${pose}`,
+    pose,
+    path: base.path.replace(/\.png$/, `-${pose.toLowerCase()}.png`),
+  }));
+}
+
+export const ASSETS = [
+  ...BASE_ASSETS,
+  ...BASE_ASSETS.filter((record) => record.slot === 'STANDING' && POSED_OWNER_KINDS.includes(record.owner_kind)).flatMap(poseRecords),
 ];
