@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from 'vitest';
 import type { RunningCardView } from '../../src/ui/view/battle-view.js';
-import { LEAN_MAX, NEUTRAL_POSE, poseOf, progressOf, SINK_BRIGHTNESS, SINK_MAX } from '../../src/ui/view/figure-motion.js';
+import { LEAN_MAX, NEUTRAL_POSE, poseOf, progressOf, RECOVERY_BRIGHTNESS } from '../../src/ui/view/figure-motion.js';
 
 function running(phase: RunningCardView['phase'], elapsed: number, required: number): RunningCardView {
   return {
@@ -27,12 +27,12 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     expect(poseOf(running('STARTUP', 0, 0), 'MINE', false)).toEqual(NEUTRAL_POSE);
   });
 
-  it('思考中は姿勢を作らない', () => {
+  it('思考中は動かさない', () => {
     expect(poseOf(null, 'MINE', false)).toEqual(NEUTRAL_POSE);
   });
 
   it('発生中は進捗に従い、向きと反対の側へ画素単位で身を引き、輪郭の光を強める', () => {
-    expect(poseOf(running('STARTUP', 0, 170), 'MINE', false)).toEqual({ dx: 0, dy: 0, glow: 0, brightness: 1 });
+    expect(poseOf(running('STARTUP', 0, 170), 'MINE', false)).toEqual({ dx: 0, glow: 0, brightness: 1 });
     const half = poseOf(running('STARTUP', 85, 170), 'MINE', false);
     expect(half.dx).toBe(-2); // 自軍は右を向くため左へ引く（3 × 0.5 を画素に揃える）
     expect(half.glow).toBe(0.5);
@@ -43,19 +43,16 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     }
   });
 
-  it('硬直中は始めに沈んだ暗い姿勢から、進捗に従って元の高さと明るさへ戻る', () => {
-    expect(poseOf(running('RECOVERY', 0, 40), 'FOE', false)).toEqual({ dx: 0, dy: SINK_MAX, glow: 0, brightness: SINK_BRIGHTNESS });
-    expect(poseOf(running('RECOVERY', 40, 40), 'FOE', false)).toEqual({ dx: 0, dy: 0, glow: 0, brightness: 1 });
-    const early = poseOf(running('RECOVERY', 10, 40), 'MINE', false);
-    const late = poseOf(running('RECOVERY', 30, 40), 'MINE', false);
-    expect(early.dy).toBeGreaterThan(late.dy);
-    expect(early.brightness).toBeLessThan(late.brightness);
+  it('硬直中は位置を変えず、始めに暗く、進捗に従って元の明るさへ戻る', () => {
+    expect(poseOf(running('RECOVERY', 0, 40), 'FOE', false)).toEqual({ dx: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
+    expect(poseOf(running('RECOVERY', 40, 40), 'FOE', false)).toEqual({ dx: 0, glow: 0, brightness: 1 });
+    expect(poseOf(running('RECOVERY', 10, 40), 'MINE', false).brightness).toBeLessThan(
+      poseOf(running('RECOVERY', 30, 40), 'MINE', false).brightness,
+    );
   });
 
   it('演出の簡略化では位置を変えず、光と明るさだけで進捗を示す', () => {
-    const startup = poseOf(running('STARTUP', 170, 170), 'MINE', true);
-    expect(startup).toEqual({ dx: 0, dy: 0, glow: 1, brightness: 1 });
-    const recovery = poseOf(running('RECOVERY', 0, 40), 'MINE', true);
-    expect(recovery).toEqual({ dx: 0, dy: 0, glow: 0, brightness: SINK_BRIGHTNESS });
+    expect(poseOf(running('STARTUP', 170, 170), 'MINE', true)).toEqual({ dx: 0, glow: 1, brightness: 1 });
+    expect(poseOf(running('RECOVERY', 0, 40), 'MINE', true)).toEqual({ dx: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
   });
 });

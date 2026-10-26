@@ -541,13 +541,11 @@ function renderColumn(
   if (plate === null) {
     cell.append(body);
   } else {
-    // [M-UI-HUD]［立ち絵の動き］姿勢（.pose）・思考中の上下動（.bob）・一回の動き（.shot）を入れ子で分ける。
+    // [M-UI-HUD]［立ち絵の動き］姿勢（.pose）と一回の動き（.shot）を入れ子で分ける。
     const pose = element('div', 'pose');
-    const bob = element('div', 'bob');
     const shot = element('div', 'shot');
     shot.append(body);
-    bob.append(shot);
-    pose.append(bob);
+    pose.append(shot);
     figureMotion?.attach(pose, plate);
     cell.append(pose);
   }

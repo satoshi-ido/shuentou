@@ -50,6 +50,7 @@ describe('[I-PLAN-ASSETS] 画像の取り込み', () => {
   it('構えの画の asset_id も立ち絵の取り込み先へ写す', () => {
     expect(targetOf('ASSET_DORN_STANDING_MARTIAL')).toEqual({ kind: 'STANDING', file: 'standing/dorn-martial.png' });
     expect(targetOf('ASSET_HERO_STANDING_COAT_ACT2_MIND')).toEqual({ kind: 'STANDING', file: 'standing/hero-coat-act2-mind.png' });
+    expect(targetOf('ASSET_DORN_STANDING_MARTIAL_FOLLOW')).toEqual({ kind: 'STANDING', file: 'standing/dorn-martial-follow.png' });
   });
 
   it('背景は 16:9 に切り出し、縦の位置を選べる', () => {

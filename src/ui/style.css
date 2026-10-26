@@ -548,10 +548,9 @@ button:focus-visible {
 .cell > .pose,
 .cell > .ground { position: relative; z-index: 1; }
 
-/* [M-UI-HUD]［立ち絵の動き］発生中・硬直中の進捗を写した姿勢（位置・明るさ・輪郭の光）。値は入口が画素に揃えて与える。
-   思考中の上下動（.bob）と一回の動き（.shot）は Web Animations で掛け、ここでは器の並びだけを定める。 */
+/* [M-UI-HUD]［立ち絵の動き］発生中・硬直中の進捗を写した姿勢（左右の位置・明るさ・輪郭の光）。値は入口が画素に揃えて与える。
+   足元を地面から離さないため、上下には動かさない。一回の動き（.shot）は Web Animations で掛け、ここでは器の並びだけを定める。 */
 .pose,
-.bob,
 .shot {
   display: flex;
   flex-direction: column;
@@ -559,11 +558,23 @@ button:focus-visible {
 }
 .pose {
   --glow-rgb: 255, 176, 96;
-  transform: translate(var(--pose-x, 0px), var(--pose-y, 0px));
+  transform: translateX(var(--pose-x, 0px));
   filter: brightness(var(--pose-bright, 1))
     drop-shadow(0 0 calc(var(--pose-glow, 0) * 10px) rgba(var(--glow-rgb), calc(var(--pose-glow, 0) * 0.9)));
 }
 .bcol-foe .pose { --glow-rgb: 196, 160, 255; }
+/* 思考中の呼吸。腰の高さ（下から55%、立ち絵の高さ 192px の上から 86px）で分け、上の側の写し（.breath-upper）だけを
+   持ち上げる。下の側は境の1画素（2px）上まで描き、持ち上げで空く行を埋める。 */
+.shot { --breath-cut: 86px; }
+.bcol.master .shot { --breath-cut: 88px; }
+.shot.breathing { position: relative; }
+.breath-lower { clip-path: inset(calc(var(--breath-cut) - 2px) 0 0 0); }
+.breath-upper {
+  position: absolute;
+  left: 0;
+  top: 0;
+  clip-path: inset(0 0 calc(100% - var(--breath-cut)) 0);
+}
 /* 消滅猶予の残像。演出層に、撤去前の立ち絵の位置と大きさで置く。 */
 .figure-ghost { position: absolute; pointer-events: none; }
 .plate > .pname,

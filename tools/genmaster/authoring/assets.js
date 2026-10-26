@@ -89,19 +89,30 @@ const BASE_ASSETS = [
 ];
 
 // 盤面の構え（[S-LOOK-PRINCIPLE]【盤面の構え】・[M-DATA-ASSETMASTER]［構えの選択］）。審査範囲の盤面に立つ姿
-// （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構えの画を3件置く。asset_id・variant・path は元の画に
-// 構えの名を添え、condition は元の画のものを引き継ぐ（外套の版ごとに構えを持つ）。
+// （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構え（STARTUP）と振り抜き（FOLLOW）の画を計6件置く。
+// asset_id・variant・path は元の画に構えの名（振り抜きは _FOLLOW も）を添え、condition は元の画のものを引き継ぐ
+// （外套の版ごとに構えを持つ）。
 const POSES = ['MARTIAL', 'STANCE', 'MIND'];
+const POSE_PHASES = [
+  { phase: 'STARTUP', suffix: '' },
+  { phase: 'FOLLOW', suffix: '_FOLLOW' },
+];
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
 
 function poseRecords(base) {
-  return POSES.map((pose) => ({
-    ...base,
-    asset_id: `${base.asset_id}_${pose}`,
-    variant: base.variant === undefined ? pose : `${base.variant}_${pose}`,
-    pose,
-    path: base.path.replace(/\.png$/, `-${pose.toLowerCase()}.png`),
-  }));
+  return POSES.flatMap((pose) =>
+    POSE_PHASES.map(({ phase, suffix }) => {
+      const name = `${pose}${suffix}`;
+      return {
+        ...base,
+        asset_id: `${base.asset_id}_${name}`,
+        variant: base.variant === undefined ? name : `${base.variant}_${name}`,
+        pose,
+        pose_phase: phase,
+        path: base.path.replace(/\.png$/, `-${name.toLowerCase().replace(/_/g, '-')}.png`),
+      };
+    }),
+  );
 }
 
 export const ASSETS = [

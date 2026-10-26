@@ -1,4 +1,4 @@
-// [M-UI-HUD]［立ち絵の動き］盤面の立ち絵を動かす。画面は歩進のたびに組み直されるため、思考中の上下動と
+// [M-UI-HUD]［立ち絵の動き］盤面の立ち絵を動かす。画面は歩進のたびに組み直されるため、思考中の呼吸と
 // 一回の動き（発動・被弾・消滅猶予）の進み具合をここに持ち、組み直した要素へ同じ時点から掛け直す。
 // 一回の動きは実時間で再生し、ステップの歩進を待たせない。静止中も最後まで再生する。
 // 演出は BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である（[M-UI-HUD]［更新と決定論］）。
@@ -7,8 +7,8 @@ import type { BattleCue } from '../../engine/cue.js';
 import type { Side } from '../../engine/types.js';
 import type { PlateView } from '../view/battle-view.js';
 import {
-  BOB,
-  BOB_PERIOD_MS,
+  BREATH,
+  BREATH_PERIOD_MS,
   FADE_MS,
   FIGURE_PIXEL,
   facingOf,
@@ -60,7 +60,7 @@ function shotKeyframes(kind: ShotKind, side: Side, simplify: boolean): Keyframe[
 
 export class FigureMotion {
   private shots: Record<string, Shot[]> = {};
-  private clock = 0; // 世界が動いていた時間の累計（ms）。思考中の上下動の位相に用いる
+  private clock = 0; // 世界が動いていた時間の累計（ms）。思考中の呼吸の位相に用いる
   private resumedAt: number | null = null; // 動き始めた実時刻。静止中は Null
 
   constructor(
@@ -69,7 +69,7 @@ export class FigureMotion {
     private readonly now: () => number = () => performance.now(),
   ) {}
 
-  // [M-UI-PLAYBACK]「静止中の演出」思考中の上下動を止め、動き始めたら同じ位相から続ける。
+  // 「静止中」思考中の呼吸を止め、動き始めたら同じ位相から続ける。
   setStopped(stopped: boolean): void {
     const now = this.now();
     if (stopped && this.resumedAt !== null) {
@@ -82,6 +82,32 @@ export class FigureMotion {
 
   private phase(): number {
     return this.clock + (this.resumedAt === null ? 0 : this.now() - this.resumedAt);
+  }
+
+  // 「思考中」の呼吸。立ち絵を腰の高さで上下に分け、上の側の写しだけを持ち上げる。下の側は境の1行上まで
+  // 描いておき、持ち上げで空く行を境の行の続きで埋める（分ける高さは style.css の --breath-cut）。
+  private breathe(shot: HTMLElement): void {
+    const body = shot.firstElementChild;
+    if (!(body instanceof HTMLElement) || !canAnimate(body)) {
+      return;
+    }
+    const upper = body.cloneNode(true) as HTMLElement;
+    body.classList.add('breath-lower');
+    upper.classList.add('breath-upper');
+    shot.classList.add('breathing');
+    shot.append(upper);
+    const animation = upper.animate(
+      [
+        { transform: 'translateY(0px)', easing: STEP_EASING(1) },
+        { transform: `translateY(${px(-BREATH)})`, offset: 0.5, easing: STEP_EASING(1) },
+        { transform: 'translateY(0px)' },
+      ],
+      { duration: BREATH_PERIOD_MS, iterations: Infinity },
+    );
+    animation.currentTime = this.phase();
+    if (this.resumedAt === null) {
+      animation.pause();
+    }
   }
 
   // [M-DATA-AUDIO-CUE] 発火契機。発動は踏み込み、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
@@ -108,35 +134,21 @@ export class FigureMotion {
     this.shots = {};
   }
 
-  // 組み直した立ち絵の器へ、姿勢と動きを掛ける。器は .pose > .bob > .shot > 立ち絵 の入れ子とする。
+  // 組み直した立ち絵の器へ、姿勢と動きを掛ける。器は .pose > .shot > 立ち絵 の入れ子とする。
   attach(pose: HTMLElement, plate: PlateView): void {
     const simplify = this.simplify();
     const target = poseOf(plate.running, plate.side, simplify);
     pose.dataset.unitId = plate.unitId;
     pose.style.setProperty('--pose-x', px(target.dx));
-    pose.style.setProperty('--pose-y', px(target.dy));
     pose.style.setProperty('--pose-glow', String(target.glow));
     pose.style.setProperty('--pose-bright', String(target.brightness));
-
-    const bob = pose.querySelector<HTMLElement>('.bob');
-    if (bob !== null && plate.running === null && !simplify && canAnimate(bob)) {
-      const animation = bob.animate(
-        [
-          { transform: 'translateY(0px)', easing: STEP_EASING(1) },
-          { transform: `translateY(${px(-BOB)})`, offset: 0.5, easing: STEP_EASING(1) },
-          { transform: 'translateY(0px)' },
-        ],
-        { duration: BOB_PERIOD_MS, iterations: Infinity },
-      );
-      animation.currentTime = this.phase();
-      if (this.resumedAt === null) {
-        animation.pause();
-      }
-    }
 
     const shot = pose.querySelector<HTMLElement>('.shot');
     if (shot === null || !canAnimate(shot)) {
       return;
+    }
+    if (plate.running === null && !simplify) {
+      this.breathe(shot);
     }
     const now = this.now();
     for (const entry of this.shots[plate.unitId] ?? []) {

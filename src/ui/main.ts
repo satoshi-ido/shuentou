@@ -19,7 +19,6 @@ import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import type {
   ActionMasterRecord,
   AssetMasterRecord,
-  AssetPose,
   EnemyMasterRecord,
   HelpMasterRecord,
   SceneMasterRecord,
@@ -48,7 +47,7 @@ import { conditionReader, evaluateCondition } from '../engine/script/condition.j
 import { scriptById, scriptsAt } from '../engine/script/select.js';
 import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/types.js';
 import { placeholderHue } from './assets/placeholder.js';
-import { assetUrl, assetUrlById, pickAsset, type AssetCondition } from './assets/resolve.js';
+import { assetUrl, assetUrlById, pickAsset, type AssetCondition, type StancePose } from './assets/resolve.js';
 import { setFigureLookup } from './dom/art.js';
 import { sceneEntries, sceneJumpData, sceneSelectEnabled } from './dev/scene-select.js';
 import { lanternView } from './view/lantern-view.js';
@@ -486,7 +485,7 @@ function assetTest(): AssetCondition | null {
 }
 
 // 構えの画が無い、または実体が無いときは、構えを示さずに基準の側の画へ戻す（［構えの選択］「選び方」）。
-function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null, pose: AssetPose | null = null): string | null {
+function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null, pose: StancePose | null = null): string | null {
   const posed = pose === null ? null : assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), pose));
   return posed ?? assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
 }
@@ -1344,7 +1343,7 @@ function isTimeStopped(): boolean {
 function syncTimeStop(): void {
   const stopped = isTimeStopped();
   screenRoot.classList.toggle('time-stopped', stopped);
-  // 思考中の上下動は世界が動く間（敵軍の応答待ちを含む）だけ進める。決着後は止める。
+  // 思考中の呼吸は世界が動く間（敵軍の応答待ちを含む）だけ進める。決着後は止める。
   figureMotion.setStopped(stopped || (battleResult !== 'RUNNING' && battleResult !== 'AWAIT_FOE'));
   if (stopped !== timeStopped) {
     timeStopped = stopped;

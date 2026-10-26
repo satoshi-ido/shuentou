@@ -3,7 +3,8 @@
 // 取り込み元の <asset_id>.png を読み、共通のドットの格子（論理解像度 1280×720 の2画素を1ドットとする、640×360 ドット）へ
 // 縮める。立ち絵は背景を除いて余白を詰め、64×96 ドットの透明な枠の下端に置いた PNG に、背景は 16:9 に切り出して
 // 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL 等）は元の立ち絵と
-// 同じ倍率で縮め、幅だけを 96 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。画面は image-rendering: pixelated で拡大して描く。
+// 同じ倍率で縮め、幅だけを 96 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
+// 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
 
@@ -19,7 +20,7 @@ const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..',
 const STANDING_BOX = { width: 64, height: 96 };
 const BACKGROUND_SIZE = { width: 640, height: 360 };
 // 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構えのために、枠の幅をここまで広げてよい。
-const POSE_SUFFIX = /_(MARTIAL|STANCE|MIND)$/;
+const POSE_SUFFIX = /_(MARTIAL|STANCE|MIND)(_FOLLOW)?$/;
 const POSE_MAX_WIDTH = 96;
 
 // 背景を除いた画素と、不透明な範囲。
@@ -63,7 +64,9 @@ function importBackground(source, offsetY) {
 }
 
 // 構えの画の倍率を決める元の立ち絵。構えの画を取り込むには、取り込み元に元の立ち絵も置く。
-function poseBase(sourceDir, id) {
+// scale は構えの画の人物が元の画と異なる大きさで描かれたときの補正（取り込み元の scales.json、既定 1）。
+// 元の画の範囲を scale で割って与え、縮める倍率を scale 倍にする。
+function poseBase(sourceDir, id, scale) {
   const baseId = poseBaseOf(id);
   if (baseId === null) {
     return null;
@@ -72,7 +75,8 @@ function poseBase(sourceDir, id) {
   if (base.isEmpty()) {
     throw new Error(`構えの画の元の立ち絵が取り込み元に無い：${baseId}`);
   }
-  return cutOut(base);
+  const { bounds } = cutOut(base);
+  return { bounds: { width: bounds.width / scale, height: bounds.height / scale } };
 }
 
 function main() {
@@ -82,6 +86,8 @@ function main() {
   }
   const cropsFile = path.join(sourceDir, 'crops.json');
   const crops = existsSync(cropsFile) ? JSON.parse(readFileSync(cropsFile, 'utf8')) : {};
+  const scalesFile = path.join(sourceDir, 'scales.json');
+  const scales = existsSync(scalesFile) ? JSON.parse(readFileSync(scalesFile, 'utf8')) : {};
   const ids = readdirSync(sourceDir)
     .filter((name) => /^ASSET_[A-Z0-9_]+\.(png|mp3)$/.test(name))
     .map((name) => name.replace(/\.(png|mp3)$/, ''))
@@ -104,7 +110,10 @@ function main() {
     if (source.isEmpty()) {
       throw new Error(`読めない：${id}`);
     }
-    const data = target.kind === 'STANDING' ? importStanding(source, poseBase(sourceDir, id)) : importBackground(source, crops[id] ?? 0);
+    const data =
+      target.kind === 'STANDING'
+        ? importStanding(source, poseBase(sourceDir, id, scales[id] ?? 1))
+        : importBackground(source, crops[id] ?? 0);
     writeFileSync(out, data);
     console.log(`${id} → art/${target.file}（${Math.round(data.length / 1024)}KB）`);
   }

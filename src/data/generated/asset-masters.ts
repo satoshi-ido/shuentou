@@ -19,7 +19,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ashal-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ASHAL_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_ASHAL_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ASHAL_STANDING_MIND": {
     "asset_id": "ASSET_ASHAL_STANDING_MIND",
@@ -29,7 +41,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ashal-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ASHAL_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_ASHAL_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ASHAL_STANDING_STANCE": {
     "asset_id": "ASSET_ASHAL_STANDING_STANCE",
@@ -39,7 +63,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ashal-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ASHAL_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_ASHAL_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_BGM_CALM": {
     "asset_id": "ASSET_BGM_CALM",
@@ -299,7 +335,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/calva-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_CALVA_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_CALVA_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_CALVA_STANDING_MIND": {
     "asset_id": "ASSET_CALVA_STANDING_MIND",
@@ -309,7 +357,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/calva-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_CALVA_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_CALVA_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_CALVA_STANDING_STANCE": {
     "asset_id": "ASSET_CALVA_STANDING_STANCE",
@@ -319,7 +379,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/calva-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_CALVA_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_CALVA_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_DORN_PLATE": {
     "asset_id": "ASSET_DORN_PLATE",
@@ -353,7 +425,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/dorn-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_DORN_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_DORN_STANDING_MIND": {
     "asset_id": "ASSET_DORN_STANDING_MIND",
@@ -363,7 +447,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/dorn-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_DORN_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_DORN_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_DORN_STANDING_STANCE": {
     "asset_id": "ASSET_DORN_STANDING_STANCE",
@@ -373,7 +469,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/dorn-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_DORN_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_DORN_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_GARUD_STANDING": {
     "asset_id": "ASSET_GARUD_STANDING",
@@ -426,7 +534,20 @@ export const ASSET_MASTERS = {
     "variant": "COAT_ACT2_MARTIAL",
     "condition": "ActNumber == 2",
     "path": "art/standing/hero-coat-act2-martial.png",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_MARTIAL_FOLLOW",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-martial-follow.png",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_HERO_STANDING_COAT_ACT2_MIND": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MIND",
@@ -437,7 +558,20 @@ export const ASSET_MASTERS = {
     "variant": "COAT_ACT2_MIND",
     "condition": "ActNumber == 2",
     "path": "art/standing/hero-coat-act2-mind.png",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_COAT_ACT2_MIND_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MIND_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_MIND_FOLLOW",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-mind-follow.png",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_HERO_STANDING_COAT_ACT2_STANCE": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STANCE",
@@ -448,7 +582,20 @@ export const ASSET_MASTERS = {
     "variant": "COAT_ACT2_STANCE",
     "condition": "ActNumber == 2",
     "path": "art/standing/hero-coat-act2-stance.png",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_COAT_ACT2_STANCE_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STANCE_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_STANCE_FOLLOW",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-stance-follow.png",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_HERO_STANDING_MARTIAL": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL",
@@ -458,7 +605,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/hero-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_HERO_STANDING_MIND": {
     "asset_id": "ASSET_HERO_STANDING_MIND",
@@ -468,7 +627,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/hero-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_MIND_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_HERO_STANDING_STANCE": {
     "asset_id": "ASSET_HERO_STANDING_STANCE",
@@ -478,7 +649,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/hero-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_HERO_STANDING_STANCE_FOLLOW",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ICON_MARTIAL": {
     "asset_id": "ASSET_ICON_MARTIAL",
@@ -541,7 +724,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ish-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ISH_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_ISH_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ISH_STANDING_MIND": {
     "asset_id": "ASSET_ISH_STANDING_MIND",
@@ -551,7 +746,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ish-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ISH_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_ISH_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ISH_STANDING_STANCE": {
     "asset_id": "ASSET_ISH_STANDING_STANCE",
@@ -561,7 +768,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ish-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ISH_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_ISH_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_KAI_STANDING": {
     "asset_id": "ASSET_KAI_STANDING",
@@ -603,7 +822,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/lef-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LEF_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_LEF_STANDING_MIND": {
     "asset_id": "ASSET_LEF_STANDING_MIND",
@@ -613,7 +844,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/lef-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LEF_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_LEF_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_LEF_STANDING_STANCE": {
     "asset_id": "ASSET_LEF_STANDING_STANCE",
@@ -623,7 +866,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/lef-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LEF_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_LEF_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_LISTENER_STANDING": {
     "asset_id": "ASSET_LISTENER_STANDING",
@@ -641,7 +896,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/listener-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LISTENER_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_LISTENER_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_LISTENER_STANDING_MIND": {
     "asset_id": "ASSET_LISTENER_STANDING_MIND",
@@ -651,7 +918,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/listener-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LISTENER_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_LISTENER_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_LISTENER_STANDING_STANCE": {
     "asset_id": "ASSET_LISTENER_STANDING_STANCE",
@@ -661,7 +940,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/listener-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_LISTENER_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_LISTENER_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_MIREILLE_STANDING": {
     "asset_id": "ASSET_MIREILLE_STANDING",
@@ -695,7 +986,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/rotted-familiar-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ROTTED_FAMILIAR_STANDING_MIND": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MIND",
@@ -705,7 +1008,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/rotted-familiar-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_ROTTED_FAMILIAR_STANDING_STANCE": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STANCE",
@@ -715,7 +1030,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/rotted-familiar-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SERVIS_STANDING": {
     "asset_id": "ASSET_SERVIS_STANDING",
@@ -829,7 +1156,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_2_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_2_STANDING_MIND": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_MIND",
@@ -839,7 +1178,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_2_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_2_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_STANCE",
@@ -849,7 +1200,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_2_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_3_STANDING": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING",
@@ -867,7 +1230,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_3_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_3_STANDING_MIND": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_MIND",
@@ -877,7 +1252,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_3_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_3_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_STANCE",
@@ -887,7 +1274,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_3_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_STANDING": {
     "asset_id": "ASSET_SHARD_ARM_STANDING",
@@ -905,7 +1304,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_STANDING_MIND": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_MIND",
@@ -915,7 +1326,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_SHARD_ARM_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_STANCE",
@@ -925,7 +1348,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/shard-arm-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_STITCHED_STANDING": {
     "asset_id": "ASSET_STITCHED_STANDING",
@@ -943,7 +1378,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/stitched-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_STITCHED_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_STITCHED_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_STITCHED_STANDING_MIND": {
     "asset_id": "ASSET_STITCHED_STANDING_MIND",
@@ -953,7 +1400,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/stitched-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_STITCHED_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_STITCHED_STANDING_MIND_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_STITCHED_STANDING_STANCE": {
     "asset_id": "ASSET_STITCHED_STANDING_STANCE",
@@ -963,7 +1422,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/stitched-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_STITCHED_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_STITCHED_STANDING_STANCE_FOLLOW",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_TOTO_STANDING": {
     "asset_id": "ASSET_TOTO_STANDING",
@@ -989,7 +1460,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/volg-martial.png",
     "variant": "MARTIAL",
-    "pose": "MARTIAL"
+    "pose": "MARTIAL",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_VOLG_STANDING_MARTIAL_FOLLOW": {
+    "asset_id": "ASSET_VOLG_STANDING_MARTIAL_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-martial-follow.png",
+    "variant": "MARTIAL_FOLLOW",
+    "pose": "MARTIAL",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_VOLG_STANDING_MIND": {
     "asset_id": "ASSET_VOLG_STANDING_MIND",
@@ -999,7 +1482,19 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/volg-mind.png",
     "variant": "MIND",
-    "pose": "MIND"
+    "pose": "MIND",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_VOLG_STANDING_MIND_FOLLOW": {
+    "asset_id": "ASSET_VOLG_STANDING_MIND_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-mind-follow.png",
+    "variant": "MIND_FOLLOW",
+    "pose": "MIND",
+    "pose_phase": "FOLLOW"
   },
   "ASSET_VOLG_STANDING_STANCE": {
     "asset_id": "ASSET_VOLG_STANDING_STANCE",
@@ -1009,6 +1504,18 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/volg-stance.png",
     "variant": "STANCE",
-    "pose": "STANCE"
+    "pose": "STANCE",
+    "pose_phase": "STARTUP"
+  },
+  "ASSET_VOLG_STANDING_STANCE_FOLLOW": {
+    "asset_id": "ASSET_VOLG_STANDING_STANCE_FOLLOW",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-stance-follow.png",
+    "variant": "STANCE_FOLLOW",
+    "pose": "STANCE",
+    "pose_phase": "FOLLOW"
   },
 } as const satisfies Record<string, AssetMasterRecord>;
