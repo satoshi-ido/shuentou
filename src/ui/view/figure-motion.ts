@@ -14,7 +14,8 @@ export const FIGURE_PIXEL = 2; // 立ち絵の実体の1画素（論理解像度
 export const LEAN_MAX = 3; // 発生中に身を引く最大の画素数（暫定値）
 export const RECOVERY_BRIGHTNESS = 0.8; // 硬直の始めの明るさ（暫定値）
 export const BREATH = 1; // 思考中の呼吸で上の側を持ち上げる画素数
-export const BREATH_PERIOD_MS = 2800; // 思考中の呼吸の周期（暫定値）。分ける高さは style.css の --breath-cut
+export const BREATH_PERIOD_MIN_MS = 2400; // 思考中の呼吸の周期の幅（暫定値）。分ける高さは style.css の --breath-cut
+export const BREATH_PERIOD_MAX_MS = 3200;
 export const LUNGE = 4; // 発動の踏み込みの画素数（暫定値）
 export const LUNGE_MS = 200;
 export const PUSH = 2; // 被弾で押される画素数（暫定値）
@@ -58,6 +59,25 @@ export function stancePoseOf(unit: Unit): StancePose | null {
     return null;
   }
   return { pose, phase: unit.state === 'STARTUP' ? 'STARTUP' : 'FOLLOW' };
+}
+
+export interface Breath {
+  readonly periodMs: number;
+  readonly offsetMs: number; // 位相（0〜周期）
+}
+
+// 「呼吸のずれ」周期と位相をユニットIDから定める（FNV-1a に、連番のIDも散るよう murmur3 の仕上げを重ねる）。
+// 乱数を用いず、同じユニットは同じ拍子を保つ。
+export function breathOf(unitId: string): Breath {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < unitId.length; i += 1) {
+    hash = Math.imul(hash ^ unitId.charCodeAt(i), 0x01000193);
+  }
+  hash = Math.imul(hash ^ (hash >>> 16), 0x85ebca6b);
+  hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35);
+  hash = (hash ^ (hash >>> 16)) >>> 0;
+  const periodMs = BREATH_PERIOD_MIN_MS + ((hash & 0xffff) / 0xffff) * (BREATH_PERIOD_MAX_MS - BREATH_PERIOD_MIN_MS);
+  return { periodMs, offsetMs: ((hash >>> 16) / 0xffff) * periodMs };
 }
 
 // 「進捗」経過 ÷ 基準を 0〜1 に収める。基準が0の区間は姿勢を作らない（Null）。

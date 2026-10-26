@@ -2,7 +2,16 @@
 
 import { describe, expect, it } from 'vitest';
 import type { RunningCardView } from '../../src/ui/view/battle-view.js';
-import { LEAN_MAX, NEUTRAL_POSE, poseOf, progressOf, RECOVERY_BRIGHTNESS } from '../../src/ui/view/figure-motion.js';
+import {
+  BREATH_PERIOD_MAX_MS,
+  BREATH_PERIOD_MIN_MS,
+  breathOf,
+  LEAN_MAX,
+  NEUTRAL_POSE,
+  poseOf,
+  progressOf,
+  RECOVERY_BRIGHTNESS,
+} from '../../src/ui/view/figure-motion.js';
 
 function running(phase: RunningCardView['phase'], elapsed: number, required: number): RunningCardView {
   return {
@@ -49,6 +58,19 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     expect(poseOf(running('RECOVERY', 10, 40), 'MINE', false).brightness).toBeLessThan(
       poseOf(running('RECOVERY', 30, 40), 'MINE', false).brightness,
     );
+  });
+
+  it('呼吸の周期と位相はユニットごとにずれ、同じユニットは同じ拍子を保つ', () => {
+    const ids = ['U0001', 'U0002', 'U0003', 'U0004', 'U0005', 'U0006'];
+    const breaths = ids.map(breathOf);
+    for (const breath of breaths) {
+      expect(breath.periodMs).toBeGreaterThanOrEqual(BREATH_PERIOD_MIN_MS);
+      expect(breath.periodMs).toBeLessThanOrEqual(BREATH_PERIOD_MAX_MS);
+      expect(breath.offsetMs).toBeGreaterThanOrEqual(0);
+      expect(breath.offsetMs).toBeLessThanOrEqual(breath.periodMs);
+    }
+    expect(new Set(breaths.map((breath) => Math.round(breath.periodMs))).size).toBe(ids.length);
+    expect(breathOf('U0001')).toEqual(breaths[0]);
   });
 
   it('演出の簡略化では位置を変えず、光と明るさだけで進捗を示す', () => {

@@ -8,7 +8,7 @@ import type { Side } from '../../engine/types.js';
 import type { PlateView } from '../view/battle-view.js';
 import {
   BREATH,
-  BREATH_PERIOD_MS,
+  breathOf,
   FADE_MS,
   FIGURE_PIXEL,
   facingOf,
@@ -86,11 +86,12 @@ export class FigureMotion {
 
   // 「思考中」の呼吸。立ち絵を腰の高さで上下に分け、上の側の写しだけを持ち上げる。下の側は境の1行上まで
   // 描いておき、持ち上げで空く行を境の行の続きで埋める（分ける高さは style.css の --breath-cut）。
-  private breathe(shot: HTMLElement): void {
+  private breathe(shot: HTMLElement, unitId: string): void {
     const body = shot.firstElementChild;
     if (!(body instanceof HTMLElement) || !canAnimate(body)) {
       return;
     }
+    const breath = breathOf(unitId); // 「呼吸のずれ」
     const upper = body.cloneNode(true) as HTMLElement;
     body.classList.add('breath-lower');
     upper.classList.add('breath-upper');
@@ -102,9 +103,9 @@ export class FigureMotion {
         { transform: `translateY(${px(-BREATH)})`, offset: 0.5, easing: STEP_EASING(1) },
         { transform: 'translateY(0px)' },
       ],
-      { duration: BREATH_PERIOD_MS, iterations: Infinity },
+      { duration: breath.periodMs, iterations: Infinity },
     );
-    animation.currentTime = this.phase();
+    animation.currentTime = this.phase() + breath.offsetMs;
     if (this.resumedAt === null) {
       animation.pause();
     }
@@ -148,7 +149,7 @@ export class FigureMotion {
       return;
     }
     if (plate.running === null && !simplify) {
-      this.breathe(shot);
+      this.breathe(shot, plate.unitId);
     }
     const now = this.now();
     for (const entry of this.shots[plate.unitId] ?? []) {
