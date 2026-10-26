@@ -41,23 +41,25 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(startup([])).toBeNull();
   });
 
-  it('発動した後の硬直は、前半だけ振り抜きを示し、後半は構えを示さない', () => {
+  it('発動した後の硬直は、終わりまで振り抜きを示す', () => {
     const recovery = (elapsedRecovery: number) => stancePoseOf(unitIn('RECOVERY', ['FLAG_MARTIAL'], { elapsedRecovery }));
     expect(recovery(0)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
-    expect(recovery(19)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
-    expect(recovery(20)).toBeNull();
-    expect(recovery(39)).toBeNull();
+    expect(recovery(20)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
+    expect(recovery(39)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
   });
 
-  it('スタン中断による硬直（経過発生が必要発生に満たない）は振り抜きを示さない', () => {
-    expect(stancePoseOf(unitIn('RECOVERY', ['FLAG_MARTIAL'], { elapsedStartup: 12, appliedRecovery: 48 }))).toBeNull();
+  it('スタン中断による硬直（経過発生が必要発生に満たない）は、系統によらずやられを示す', () => {
+    const stunned = (flags: SysFlag[]) => stancePoseOf(unitIn('RECOVERY', flags, { elapsedStartup: 12, appliedRecovery: 48 }));
+    expect(stunned(['FLAG_MARTIAL'])).toEqual({ pose: 'STAGGER', phase: null });
+    expect(stunned(['FLAG_MIND'])).toEqual({ pose: 'STAGGER', phase: null });
+    expect(stunned(['FLAG_SWAP'])).toEqual({ pose: 'STAGGER', phase: null });
   });
 
   it('思考中は構えを示さない', () => {
     expect(stancePoseOf(unitIn('THOUGHT', ['FLAG_MARTIAL']))).toBeNull();
   });
 
-  it('盤面に立つ姿の立ち絵は、どれも3つの構えと3つの振り抜きの画を持ち、condition を引き継ぐ', () => {
+  it('盤面に立つ姿の立ち絵は、どれも3つの構えと3つの振り抜きとやられの画を持ち、condition を引き継ぐ', () => {
     const bases = Object.values(assets).filter(
       (record) =>
         record.slot === 'STANDING' && (record.pose ?? null) === null && ['HERO', 'ENEMY', 'CREATURE'].includes(record.owner_kind),
@@ -75,10 +77,14 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
           expect(posed?.condition ?? null, base.asset_id).toBe(base.condition ?? null);
         }
       }
+      const stagger = assets[`${base.asset_id}_STAGGER`];
+      expect(stagger?.pose, base.asset_id).toBe('STAGGER');
+      expect(stagger?.pose_phase ?? null, base.asset_id).toBeNull();
+      expect(stagger?.condition ?? null, base.asset_id).toBe(base.condition ?? null);
     }
   });
 
-  it('構えは STANDING に限り、構えの段を必ず持ち、同じ所有者・構え・段・条件の画は高々1件である', () => {
+  it('構えは STANDING に限り、系統の構えは構えの段を必ず持ち、やられは持たず、同じ所有者・構え・段・条件の画は高々1件である', () => {
     const keys: Record<string, number> = {};
     for (const record of Object.values(assets)) {
       if ((record.pose ?? null) === null) {
@@ -86,7 +92,11 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
         continue;
       }
       expect(record.slot, record.asset_id).toBe('STANDING');
-      expect(record.pose_phase ?? null, record.asset_id).not.toBeNull();
+      if (record.pose === 'STAGGER') {
+        expect(record.pose_phase ?? null, record.asset_id).toBeNull();
+      } else {
+        expect(record.pose_phase ?? null, record.asset_id).not.toBeNull();
+      }
       const key = `${record.owner_kind}/${record.owner_id}/${record.pose}/${record.pose_phase}/${record.condition ?? ''}`;
       keys[key] = (keys[key] ?? 0) + 1;
     }
@@ -104,6 +114,9 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     );
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act2, { pose: 'MIND', phase: 'FOLLOW' })?.asset_id).toBe(
       'ASSET_HERO_STANDING_COAT_ACT2_MIND_FOLLOW',
+    );
+    expect(pickAsset(assets, 'HERO', null, 'STANDING', act2, { pose: 'STAGGER', phase: null })?.asset_id).toBe(
+      'ASSET_HERO_STANDING_COAT_ACT2_STAGGER',
     );
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act2)?.asset_id).toBe('ASSET_HERO_STANDING_COAT_ACT2');
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act1)?.asset_id).toBe('ASSET_HERO_STANDING');

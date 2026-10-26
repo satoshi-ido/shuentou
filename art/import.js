@@ -2,7 +2,7 @@
 //   pnpm art <取り込み元のフォルダ> [asset_id …]
 // 取り込み元の <asset_id>.png を読み、共通のドットの格子（論理解像度 1280×720 の2画素を1ドットとする、640×360 ドット）へ
 // 縮める。立ち絵は背景を除いて余白を詰め、64×96 ドットの透明な枠の下端に置いた PNG に、背景は 16:9 に切り出して
-// 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL 等）は元の立ち絵と
+// 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL・_STAGGER 等）は元の立ち絵と
 // 同じ倍率で縮め、幅だけを 96 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
@@ -20,7 +20,7 @@ const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..',
 const STANDING_BOX = { width: 64, height: 96 };
 const BACKGROUND_SIZE = { width: 640, height: 360 };
 // 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構えのために、枠の幅をここまで広げてよい。
-const POSE_SUFFIX = /_(MARTIAL|STANCE|MIND)(_FOLLOW)?$/;
+const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_FOLLOW)?|STAGGER)$/;
 const POSE_MAX_WIDTH = 96;
 
 // 背景を除いた画素と、不透明な範囲。

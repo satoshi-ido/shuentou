@@ -55,6 +55,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_ASHAL_STANDING_STAGGER": {
+    "asset_id": "ASSET_ASHAL_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_ASHAL_STANDING_STANCE": {
     "asset_id": "ASSET_ASHAL_STANDING_STANCE",
     "owner_kind": "ENEMY",
@@ -371,6 +382,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_CALVA_STANDING_STAGGER": {
+    "asset_id": "ASSET_CALVA_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_CALVA_STANDING_STANCE": {
     "asset_id": "ASSET_CALVA_STANDING_STANCE",
     "owner_kind": "ENEMY",
@@ -460,6 +482,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_DORN_STANDING_STAGGER": {
+    "asset_id": "ASSET_DORN_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_DORN_STANDING_STANCE": {
     "asset_id": "ASSET_DORN_STANDING_STANCE",
@@ -573,6 +606,18 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_HERO_STANDING_COAT_ACT2_STAGGER": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STAGGER",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_STAGGER",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-stagger.png",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_HERO_STANDING_COAT_ACT2_STANCE": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STANCE",
     "owner_kind": "HERO",
@@ -640,6 +685,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_STAGGER": {
+    "asset_id": "ASSET_HERO_STANDING_STAGGER",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_HERO_STANDING_STANCE": {
     "asset_id": "ASSET_HERO_STANDING_STANCE",
@@ -760,6 +816,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_ISH_STANDING_STAGGER": {
+    "asset_id": "ASSET_ISH_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_ISH_STANDING_STANCE": {
     "asset_id": "ASSET_ISH_STANDING_STANCE",
     "owner_kind": "ENEMY",
@@ -858,6 +925,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_LEF_STANDING_STAGGER": {
+    "asset_id": "ASSET_LEF_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_LEF_STANDING_STANCE": {
     "asset_id": "ASSET_LEF_STANDING_STANCE",
     "owner_kind": "ENEMY",
@@ -931,6 +1009,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_LISTENER_STANDING_STAGGER": {
+    "asset_id": "ASSET_LISTENER_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_LISTENER_STANDING_STANCE": {
     "asset_id": "ASSET_LISTENER_STANDING_STANCE",
@@ -1021,6 +1110,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_STAGGER": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_ROTTED_FAMILIAR_STANDING_STANCE": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STANCE",
@@ -1192,6 +1292,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_SHARD_ARM_2_STANDING_STAGGER": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_SHARD_ARM_2_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_STANCE",
     "owner_kind": "CREATURE",
@@ -1265,6 +1376,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_SHARD_ARM_3_STANDING_STAGGER": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_SHARD_ARM_3_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_STANCE",
@@ -1340,6 +1462,17 @@ export const ASSET_MASTERS = {
     "pose": "MIND",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_SHARD_ARM_STANDING_STAGGER": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
+  },
   "ASSET_SHARD_ARM_STANDING_STANCE": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_STANCE",
     "owner_kind": "CREATURE",
@@ -1413,6 +1546,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_STITCHED_STANDING_STAGGER": {
+    "asset_id": "ASSET_STITCHED_STANDING_STAGGER",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_STITCHED_STANDING_STANCE": {
     "asset_id": "ASSET_STITCHED_STANDING_STANCE",
@@ -1495,6 +1639,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_VOLG_STANDING_STAGGER": {
+    "asset_id": "ASSET_VOLG_STANDING_STAGGER",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-stagger.png",
+    "variant": "STAGGER",
+    "pose": "STAGGER",
+    "pose_phase": null
   },
   "ASSET_VOLG_STANDING_STANCE": {
     "asset_id": "ASSET_VOLG_STANDING_STANCE",

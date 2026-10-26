@@ -34,8 +34,6 @@ export function facingOf(side: Side): 1 | -1 {
   return side === 'MINE' ? 1 : -1;
 }
 
-export const FOLLOW_UNTIL = 0.5; // 振り抜きの画を示す硬直の進捗の上限（暫定値）
-
 // 系統フラグを武技・体勢・心気（召喚を含む）の順に当てはめる。隊列交代のみ・系統なしは構えを持たない（Null）。
 function poseOfFlags(flags: SysFlags): AssetPose | null {
   if (hasFlag(flags, 'FLAG_MARTIAL')) return 'MARTIAL';
@@ -44,29 +42,22 @@ function poseOfFlags(flags: SysFlags): AssetPose | null {
   return null;
 }
 
-// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、発動した後の硬直の
-// 前半は振り抜き（FOLLOW）とし、硬直の後半・スタン中断による硬直・思考中は構えを示さない（Null）。
+// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、発動した後の硬直は
+// 終わりまで振り抜き（FOLLOW）、スタン中断による硬直は系統によらずやられ（STAGGER）とし、思考中は構えを示さない（Null）。
 // 「スタン中断による硬直の見分け」経過発生ステップ数が必要発生ステップ数の実効値に満たない硬直を中断とみなす。
 export function stancePoseOf(unit: Unit): StancePose | null {
-  if (unit.last_act === null) {
+  if (unit.last_act === null || (unit.state !== 'STARTUP' && unit.state !== 'RECOVERY')) {
     return null;
+  }
+  const action = unit.acts.find((candidate) => candidate.instance_id === unit.last_act?.instance_id);
+  if (unit.state === 'RECOVERY' && action !== undefined && unit.elapsed_startup < effectiveStepStartup(unit, action)) {
+    return { pose: 'STAGGER', phase: null };
   }
   const pose = poseOfFlags(unit.last_act.sys_flags);
   if (pose === null) {
     return null;
   }
-  if (unit.state === 'STARTUP') {
-    return { pose, phase: 'STARTUP' };
-  }
-  if (unit.state !== 'RECOVERY') {
-    return null;
-  }
-  const action = unit.acts.find((candidate) => candidate.instance_id === unit.last_act?.instance_id);
-  if (action === undefined || unit.elapsed_startup < effectiveStepStartup(unit, action)) {
-    return null;
-  }
-  const progress = progressOf(unit.elapsed_recovery, unit.applied_recovery);
-  return progress !== null && progress < FOLLOW_UNTIL ? { pose, phase: 'FOLLOW' } : null;
+  return { pose, phase: unit.state === 'STARTUP' ? 'STARTUP' : 'FOLLOW' };
 }
 
 // 「進捗」経過 ÷ 基準を 0〜1 に収める。基準が0の区間は姿勢を作らない（Null）。

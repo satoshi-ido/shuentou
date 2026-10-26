@@ -6,10 +6,10 @@ import { ART_FILES } from './art-manifest.js';
 
 export type AssetCondition = (condition: string) => boolean;
 
-// [M-DATA-ASSETMASTER]［構えの選択］示す構えと構えの段。
+// [M-DATA-ASSETMASTER]［構えの選択］示す構えと構えの段（やられ STAGGER は段を持たない）。
 export interface StancePose {
   readonly pose: AssetPose;
-  readonly phase: AssetPosePhase;
+  readonly phase: AssetPosePhase | null;
 }
 
 // 同じ所有者・スロット・構えのレコードのうち、condition が成立するものを選ぶ。無ければ condition が Null の画
