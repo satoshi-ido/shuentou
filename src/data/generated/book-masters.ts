@@ -27,14 +27,14 @@ export const BOOK_MASTERS = {
       },
       {
         "kind": "FIXED",
-        "class_id": "ACT_GUARD_AR4",
+        "class_id": "ACT_GUARD_AR4_DORN",
         "resolver": null,
         "resolved_by_system": null,
         "can_wait": true
       },
       {
         "kind": "FIXED",
-        "class_id": "ACT_RUSH_AR4",
+        "class_id": "ACT_RUSH_AR4_DORN",
         "resolver": null,
         "resolved_by_system": null,
         "can_wait": true

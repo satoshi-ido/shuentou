@@ -54,10 +54,16 @@ export const ENEMIES = [
     display_name: 'ドルン',
     role_name: '辺境伯',
     scene_id: 'SCENE_1_02',
-    max_hp: 27,
+    max_hp: 34,
     template: 'E1_02',
     ai_profile_id: 'PROFILE_ASSAULT',
     book_id: 'B-02',
+    // [M-TMPL-ENEMY-1-02]【崩れる壁】体勢（基本）の AP減衰率を 0.70 とし、硬直明けの残りAPを主人公初期キットの
+    // 武技（基本）AR6 の攻撃力8以下とする（硬直中の防御力は変えない）。
+    stance_override: { decay_ap: 70 },
+    // [M-TMPL-ENEMY-1-02]【急襲の圧力】武技（急襲）の APコストを1・PPコストを0とし、崩れる壁の残りAPで体勢1回につき
+    // 急襲を2回撃てるようにする。APコストを0にしないことで、APを持たないバトル開始時には撃てない。
+    rush_override: { cost_ap: 1, cost_pp: 0, base_uses: 1000 },
     root_counter: true, // [M-GUARD-ROOTWAIT] 審査範囲の敵マスター
     specials: [
       {
@@ -69,7 +75,8 @@ export const ENEMIES = [
         display_name: '断ち割り',
         base_uses: 300,
         // 攻撃力は継承しうる体勢（レフの体勢 AR3・AR6）の硬直中の防御力 32・46 を上回る。
-        override: { dmg_hp: 450, atk: 48 },
+        // 溜めは主人公の武技（重撃）AR7 の発生154に応じて着弾が先立つ長さとし（応手は1歩遅れる）、打点を抑える。
+        override: { dmg_hp: 300, atk: 48, step_startup: 170 },
       },
     ],
   },

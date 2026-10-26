@@ -280,8 +280,35 @@ export function expandEnemyTemplate(entry, level, summonIdOf) {
     throw new Error(`未知のテンプレート種別: ${entry.template}`);
   }
   const ownerKey = entry.enemy_id.replace(/^ENEMY_/, '');
+  // stance_override・rush_override：当該敵マスターの体勢（基本）・武技（急襲）の全行（共通基底・追加枠）に重ねる
+  // 個別定義（[M-TMPL-ENEMY-1-02]）。base_uses は基礎使用回数を、その他のキーはパラメータを上書きする。
+  // 値が変わる行のクラスIDには所持者のキーが付く（[M-DATA-CLASSID]）。
+  const variantOverrides = [
+    ['STANCE', 'BASIC', entry.stance_override],
+    ['MARTIAL', 'RUSH', entry.rush_override],
+  ];
+  const withVariantOverride = (row) => {
+    const hit = variantOverrides.find(([c, v, o]) => o !== undefined && row[0] === c && row[1] === v);
+    if (hit === undefined) {
+      return row;
+    }
+    const [component, variant, arMultCenti, options = {}] = row;
+    const { base_uses: baseUses, ...override } = hit[2];
+    return [
+      component,
+      variant,
+      arMultCenti,
+      {
+        ...options,
+        ...(baseUses === undefined ? {} : { base_uses: baseUses }),
+        override: { ...(options.override ?? {}), ...override },
+      },
+    ];
+  };
   const basic = sortBasicRows(
-    [...BASE_KIT, ...slots, ...(entry.overrides ?? [])].map((row) => expandBasicRow(row, level, ownerKey, summonIdOf)),
+    [...BASE_KIT, ...slots, ...(entry.overrides ?? [])]
+      .map(withVariantOverride)
+      .map((row) => expandBasicRow(row, level, ownerKey, summonIdOf)),
   );
   const specials = (entry.specials ?? []).map((row) => expandSpecialRow(row, level, summonIdOf));
   const rows = [...basic, ...specials];

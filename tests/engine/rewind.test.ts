@@ -254,7 +254,7 @@ function playStraight(session: GameSession, ctx: GameContext): void {
   confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'MAX_HP' });
   settleIntermission(session, ctx);
   playBattle(session, ctx);
-  confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_RUSH_AR4' });
+  confirmInherit(session, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_RUSH_AR4_DORN' });
   confirmSacrifice(session, ctx, 'ATTENDANT_01');
   enterTransition(session, ctx);
   confirmRefill(session, ctx, 'ATTENDANT_02');
@@ -304,7 +304,7 @@ function playWithRewinds(ctx: GameContext, recorder: { saves: string[] }): GameS
     throw new Error('ロードに失敗した');
   }
   const resumed = loaded.session;
-  confirmInherit(resumed, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_RUSH_AR4' });
+  confirmInherit(resumed, ctx, 'ATTENDANT_01', { kind: 'ACTION', class_id: 'ACT_RUSH_AR4_DORN' });
   confirmSacrifice(resumed, ctx, 'ATTENDANT_01');
   enterTransition(resumed, ctx);
   confirmRefill(resumed, ctx, 'ATTENDANT_02');
