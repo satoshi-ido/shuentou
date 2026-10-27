@@ -565,10 +565,14 @@ button:focus-visible {
     drop-shadow(0 0 calc(var(--pose-glow, 0) * 10px) rgba(var(--glow-rgb), calc(var(--pose-glow, 0) * 0.9)));
 }
 .bcol-foe .pose { --glow-rgb: 196, 160, 255; }
-/* 思考中の呼吸。腰の高さ（下から55%、立ち絵の高さ 192px の上から 86px）で分け、上の側の写し（.breath-upper）だけを
-   持ち上げる。下の側は境の1画素（2px）上まで描き、持ち上げで空く行を埋める。 */
-.shot { --breath-cut: 86px; }
-.bcol.master .shot { --breath-cut: 88px; }
+/* 思考中の呼吸。腰の高さ（人物の背丈 --figure-body の下から55%）で分け、上の側の写し（.breath-upper）だけを
+   持ち上げる。下の側は境の1画素（2px）上まで描き、持ち上げで空く行を埋める。境は立ち絵の画素に揃える。 */
+.shot > * {
+  --breath-cut: round(down, calc((var(--figure-dots, 96) - var(--figure-body, var(--figure-dots, 96)) * 0.55) * 2px), 2px);
+}
+.bcol.master .shot > * {
+  --breath-cut: calc(round(down, var(--figure-dots, 96) - var(--figure-body, var(--figure-dots, 96)) * 0.55, 1) * 198px / 96);
+}
 .shot.breathing { position: relative; }
 .breath-lower { clip-path: inset(calc(var(--breath-cut) - 2px) 0 0 0); }
 .breath-upper {
@@ -1888,7 +1892,8 @@ button:disabled { opacity: 0.4; cursor: default; }
    背景は入口が画面の根に --screen-image（脚本は --script-image）を与える。実体の無い間は none となり、
    下に重ねたプレースホルダの層がそのまま見える。立ち絵は .figure-img（読み込めなければ人形に戻る）。
    実体は共通のドットの格子（論理解像度の2画素を1ドット）で書き出してあり、拡大は最近傍で行う（ドットを滲ませない）。
-   戦闘の立ち絵は 96 ドットの高さを 192px で描く。 */
+   戦闘の立ち絵は 96 ドットの高さを 192px で描く。立ち絵は画の高さ（ドット、--figure-dots）に比例して描き、
+   人物ごとの表示の大きさ（[S-LOOK-PRINCIPLE]【盤面の大きさ】）と、96 ドットを越える画を、どの画面でも同じ比で示す。 */
 .figure-img,
 .field-bg,
 .screen-title,
@@ -1901,24 +1906,22 @@ button:disabled { opacity: 0.4; cursor: default; }
 .figure-img {
   display: block;
   width: auto;
-  height: 192px;
+  height: calc(var(--figure-dots, 96) * 2px);
   max-width: 100%;
   object-fit: contain;
   object-position: bottom center;
   pointer-events: none;
   user-select: none;
 }
-.bcol.master .figure-img { height: 198px; transform: none; }
-/* 盤面の立ち絵は、画の高さ（ドット、--figure-dots）に比例して描く。96 ドットを越える構えの画も元の立ち絵と
-   同じ倍率で上へ伸び、足元は揃う（art.ts が目録の高さを与える）。 */
-.cell .figure-img { height: calc(var(--figure-dots, 96) * 2px); max-width: none; }
-.bcol.master .cell .figure-img { height: calc(var(--figure-dots, 96) * 198px / 96); }
+.bcol.master .figure-img { height: calc(var(--figure-dots, 96) * 198px / 96); transform: none; }
+/* 盤面の立ち絵は、96 ドットを越える構えの画も元の立ち絵と同じ倍率で上へ伸び、足元は揃う（art.ts が目録の高さを与える）。 */
+.cell .figure-img { max-width: none; }
 .bcol-mine .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .bcol-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
-.pm .figure-img { height: 132px; margin-bottom: 6px; }
+.pm .figure-img { height: calc(var(--figure-dots, 96) * 132px / 96); margin-bottom: 6px; }
 .pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }
 .pm.fallen .figure-img { filter: grayscale(1); opacity: 0.4; }
-.rfig .figure-img { height: 118px; margin-bottom: 5px; }
+.rfig .figure-img { height: calc(var(--figure-dots, 96) * 118px / 96); margin-bottom: 5px; }
 .rfig.dead .figure-img { filter: grayscale(1); opacity: 0.34; }
 .rfig.dead.hl .figure-img { filter: grayscale(0.35); opacity: 0.78; }
 

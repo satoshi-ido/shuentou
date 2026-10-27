@@ -1,7 +1,8 @@
 // [I-PLAN-ASSETS]【実体の投入】生成した画像と音声を取り込む。Electron の主プロセスとして動かす。
 //   pnpm art <取り込み元のフォルダ> [asset_id …]
 // 取り込み元の <asset_id>.png を読み、共通のドットの格子（論理解像度 1280×720 の2画素を1ドットとする、640×360 ドット）へ
-// 縮める。立ち絵は背景を除いて余白を詰め、64×96 ドットの透明な枠の下端に置いた PNG に、背景は 16:9 に切り出して
+// 縮める。立ち絵は背景を除いて余白を詰め、人物ごとの表示の高さ（heights.js。無ければ 64×96 ドットの枠に収める）に縮めて
+// 透明な枠（64×96 ドット以上）の下端に置いた PNG に、背景は 16:9 に切り出して
 // 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL・_STAGGER 等）は元の立ち絵と
 // 同じ倍率で縮め、幅を 96 ドット、高さを 104 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
@@ -13,7 +14,8 @@ import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFi
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { writeManifest } from './manifest.js';
-import { crop16x9, fitInto, fitLike, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, snapAlpha, targetOf } from './image.js';
+import { FIGURE_HEIGHTS } from './heights.js';
+import { crop16x9, fitLike, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, snapAlpha, targetOf } from './image.js';
 
 const OUT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'src', 'ui', 'public', 'art');
 // 1ドット = 論理解像度の2画素。立ち絵は戦闘の表示の高さ 192px（96ドット）、背景は 1280×720（640×360 ドット）。
@@ -36,15 +38,29 @@ function cutOut(source) {
   return { pixels, width, height, bounds };
 }
 
-// base は構えの画の元の立ち絵（[S-LOOK-PRINCIPLE]【盤面の構え】）。与えられたときは元の画と同じ倍率で縮め、
+// [S-LOOK-PRINCIPLE]【盤面の大きさ】元の立ち絵を縮める枠。表（heights.js）にある立ち絵は範囲の高さをその値に揃え、
+// 無い立ち絵は 64×96 の枠に収める。
+function standingBoxOf(id) {
+  const entry = FIGURE_HEIGHTS[id];
+  return entry === undefined ? STANDING_BOX : { width: Infinity, height: entry.height };
+}
+
+// base は倍率を決める元の立ち絵の範囲（元の立ち絵そのものでは Null）と枠。構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）は元の画と同じ倍率で縮め、
 // 得物を伸ばした構えが枠を越える分は、枠を POSE_MAX まで広げて収める（足元は枠の下端に揃える）。
 function importStanding(source, base) {
   const { pixels, width, height, bounds } = cutOut(source);
   const cropped = nativeImage.createFromBitmap(pixels, { width, height }).crop(bounds);
-  const size =
-    base === null
-      ? fitInto(bounds.width, bounds.height, STANDING_BOX.width, STANDING_BOX.height)
-      : fitLike(bounds.width, bounds.height, base.bounds.width, base.bounds.height, STANDING_BOX.width, STANDING_BOX.height, POSE_MAX.width, POSE_MAX.height);
+  const reference = base.bounds ?? bounds;
+  const size = fitLike(
+    bounds.width,
+    bounds.height,
+    reference.width,
+    reference.height,
+    base.box.width,
+    base.box.height,
+    POSE_MAX.width,
+    POSE_MAX.height,
+  );
   const box = { width: Math.max(STANDING_BOX.width, size.width + (size.width % 2)), height: Math.max(STANDING_BOX.height, size.height) };
   const scaled = cropped.resize({ ...size, quality: 'best' });
   const placed = placeBottomCenter(snapAlpha(scaled.toBitmap()), size.width, size.height, box.width, box.height);
@@ -64,20 +80,20 @@ function importBackground(source, offsetY) {
     .toPNG();
 }
 
-// 構えの画の倍率を決める元の立ち絵。構えの画を取り込むには、取り込み元に元の立ち絵も置く。
-// scale は構えの画の人物が元の画と異なる大きさで描かれたときの補正（取り込み元の scales.json、既定 1）。
-// 元の画の範囲を scale で割って与え、縮める倍率を scale 倍にする。
-function poseBase(sourceDir, id, scale) {
+// 倍率を決める元の立ち絵の範囲と枠。元の立ち絵そのものは自身の範囲を用いる（Null）。構えの画を取り込むには、
+// 取り込み元に元の立ち絵も置く。scale は構えの画の人物が元の画と異なる大きさで描かれたときの補正
+// （取り込み元の scales.json、既定 1）。元の画の範囲を scale で割って与え、縮める倍率を scale 倍にする。
+function standingBase(sourceDir, id, scale) {
   const baseId = poseBaseOf(id);
   if (baseId === null) {
-    return null;
+    return { bounds: null, box: standingBoxOf(id) };
   }
   const base = nativeImage.createFromPath(path.join(sourceDir, `${baseId}.png`));
   if (base.isEmpty()) {
     throw new Error(`構えの画の元の立ち絵が取り込み元に無い：${baseId}`);
   }
   const { bounds } = cutOut(base);
-  return { bounds: { width: bounds.width / scale, height: bounds.height / scale } };
+  return { bounds: { width: bounds.width / scale, height: bounds.height / scale }, box: standingBoxOf(baseId) };
 }
 
 function main() {
@@ -113,7 +129,7 @@ function main() {
     }
     const data =
       target.kind === 'STANDING'
-        ? importStanding(source, poseBase(sourceDir, id, scales[id] ?? 1))
+        ? importStanding(source, standingBase(sourceDir, id, scales[id] ?? 1))
         : importBackground(source, crops[id] ?? 0);
     writeFileSync(out, data);
     console.log(`${id} → art/${target.file}（${Math.round(data.length / 1024)}KB）`);

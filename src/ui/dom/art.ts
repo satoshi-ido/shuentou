@@ -2,7 +2,7 @@
 // 実体の参照先は表示アセットマスタから引く（[M-DATA-ASSETMASTER]【差分の選択】）。引き方は入口（src/ui/main.ts）が与える。
 
 import type { AssetOwnerKind } from '../../data/types.js';
-import { STANDING_HEIGHTS } from '../assets/art-manifest.js';
+import { STANDING_BODIES, STANDING_HEIGHTS } from '../assets/art-manifest.js';
 
 export type FigureLookup = (ownerKind: AssetOwnerKind, ownerId: string | null) => string | null;
 
@@ -28,14 +28,19 @@ function placeholderFigure(className: string): HTMLElement {
   return node;
 }
 
-// 立ち絵の画像の参照先と高さ（ドット）を与える。
+// 立ち絵の画像の参照先と、画の高さ（--figure-dots）・人物の背丈（--figure-body。思考中の呼吸で分ける腰の高さ）を与える。
 export function setFigureSource(image: HTMLImageElement, url: string): void {
   image.src = url;
-  const dots = STANDING_HEIGHTS[url.split('#')[0] ?? ''];
-  if (dots === undefined) {
-    image.style.removeProperty('--figure-dots');
-  } else {
-    image.style.setProperty('--figure-dots', String(dots));
+  const file = url.split('#')[0] ?? '';
+  for (const [name, dots] of [
+    ['--figure-dots', STANDING_HEIGHTS[file]],
+    ['--figure-body', STANDING_BODIES[file]],
+  ] as const) {
+    if (dots === undefined) {
+      image.style.removeProperty(name);
+    } else {
+      image.style.setProperty(name, String(dots));
+    }
   }
 }
 

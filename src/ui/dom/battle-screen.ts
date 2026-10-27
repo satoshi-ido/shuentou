@@ -538,6 +538,7 @@ function renderColumn(
     // [S-LOOK-SUMMON-COMMON]「セインの仮身」元の敵の仮身の画を反転し、燈火の色の縁と胸元の小さな火を重ねる。
     body = element('div', 'figure-wrap mine-creature');
     body.append(figure, element('span', 'chest-flame'));
+    body.style.cssText = figure.style.cssText; // 画の高さと背丈を、呼吸で分ける器にも与える
   }
   let shotNode: HTMLElement | null = null;
   if (plate === null) {
