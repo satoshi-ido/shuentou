@@ -23,7 +23,7 @@ const STANDING_BOX = { width: 64, height: 96 };
 const BACKGROUND_SIZE = { width: 640, height: 360 };
 // 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構え・振りかぶった構えのために、枠をここまで広げてよい。
 // 高さの上限は、盤面のマスの立ち絵の上の余白（style.css の --cell-height）に収まる大きさとする。
-const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_FOLLOW)?|STAGGER)$/;
+const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_CHARGE|_FOLLOW)?|STAGGER)$/;
 const POSE_MAX = { width: 96, height: 104 };
 
 // 背景を除いた画素と、不透明な範囲。

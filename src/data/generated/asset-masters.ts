@@ -22,6 +22,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_ASHAL_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_ASHAL_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_ASHAL_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_ASHAL_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -43,6 +54,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ASHAL_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_ASHAL_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ASHAL_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_ASHAL_STANDING_MIND_FOLLOW",
@@ -76,6 +98,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ASHAL_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_ASHAL_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ASHAL_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_ASHAL_STANDING_STANCE_FOLLOW",
@@ -349,6 +382,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_CALVA_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_CALVA_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_CALVA_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_CALVA_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -370,6 +414,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_CALVA_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_CALVA_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_CALVA_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_CALVA_STANDING_MIND_FOLLOW",
@@ -403,6 +458,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_CALVA_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_CALVA_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_CALVA_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_CALVA_STANDING_STANCE_FOLLOW",
@@ -450,6 +516,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_DORN_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_DORN_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_DORN_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -471,6 +548,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_DORN_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_DORN_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_DORN_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_DORN_STANDING_MIND_FOLLOW",
@@ -504,6 +592,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_DORN_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_DORN_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_DORN_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_DORN_STANDING_STANCE_FOLLOW",
@@ -570,6 +669,18 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_MARTIAL_CHARGE",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-martial-charge.png",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL_FOLLOW",
     "owner_kind": "HERO",
@@ -593,6 +704,18 @@ export const ASSET_MASTERS = {
     "path": "art/standing/hero-coat-act2-mind.png",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_COAT_ACT2_MIND_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MIND_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_MIND_CHARGE",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-mind-charge.png",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_HERO_STANDING_COAT_ACT2_MIND_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MIND_FOLLOW",
@@ -630,6 +753,18 @@ export const ASSET_MASTERS = {
     "pose": "STANCE",
     "pose_phase": "STARTUP"
   },
+  "ASSET_HERO_STANDING_COAT_ACT2_STANCE_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STANCE_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_STANCE_CHARGE",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-stance-charge.png",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_HERO_STANDING_COAT_ACT2_STANCE_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_STANCE_FOLLOW",
     "owner_kind": "HERO",
@@ -653,6 +788,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_HERO_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_HERO_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "HERO",
@@ -674,6 +820,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_MIND_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_HERO_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MIND_FOLLOW",
@@ -707,6 +864,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_HERO_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_STANCE_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_HERO_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_STANCE_FOLLOW",
@@ -783,6 +951,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_ISH_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_ISH_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_ISH_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_ISH_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -804,6 +983,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ISH_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_ISH_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ISH_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_ISH_STANDING_MIND_FOLLOW",
@@ -837,6 +1027,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ISH_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_ISH_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ISH_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_ISH_STANDING_STANCE_FOLLOW",
@@ -892,6 +1093,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_LEF_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_LEF_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -913,6 +1125,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_LEF_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_LEF_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_LEF_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_MIND_FOLLOW",
@@ -947,6 +1170,17 @@ export const ASSET_MASTERS = {
     "pose": "STANCE",
     "pose_phase": "STARTUP"
   },
+  "ASSET_LEF_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_LEF_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_LEF_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_STANCE_FOLLOW",
     "owner_kind": "ENEMY",
@@ -977,6 +1211,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_LISTENER_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_LISTENER_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_LISTENER_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_LISTENER_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -998,6 +1243,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_LISTENER_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_LISTENER_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_LISTENER_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_LISTENER_STANDING_MIND_FOLLOW",
@@ -1031,6 +1287,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_LISTENER_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_LISTENER_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_LISTENER",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/listener-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_LISTENER_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_LISTENER_STANDING_STANCE_FOLLOW",
@@ -1078,6 +1345,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1099,6 +1377,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ROTTED_FAMILIAR_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_MIND_FOLLOW",
@@ -1132,6 +1421,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_ROTTED_FAMILIAR",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/rotted-familiar-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_ROTTED_FAMILIAR_STANDING_STANCE_FOLLOW",
@@ -1259,6 +1559,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_2_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_2_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1280,6 +1591,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_2_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_SHARD_ARM_2_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_MIND_FOLLOW",
@@ -1314,6 +1636,17 @@ export const ASSET_MASTERS = {
     "pose": "STANCE",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_2_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_2_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_2",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_2_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_2_STANDING_STANCE_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1344,6 +1677,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_3_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_3_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1365,6 +1709,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_3_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_SHARD_ARM_3_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_MIND_FOLLOW",
@@ -1399,6 +1754,17 @@ export const ASSET_MASTERS = {
     "pose": "STANCE",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_3_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_3_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_3",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_3_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_3_STANDING_STANCE_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1429,6 +1795,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1450,6 +1827,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_SHARD_ARM_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_SHARD_ARM_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_MIND_FOLLOW",
@@ -1484,6 +1872,17 @@ export const ASSET_MASTERS = {
     "pose": "STANCE",
     "pose_phase": "STARTUP"
   },
+  "ASSET_SHARD_ARM_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_SHARD_ARM_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_SHARD_ARM_1",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/shard-arm-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_SHARD_ARM_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_SHARD_ARM_STANDING_STANCE_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1514,6 +1913,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_STITCHED_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_STITCHED_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_STITCHED_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_STITCHED_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "CREATURE",
@@ -1535,6 +1945,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_STITCHED_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_STITCHED_STANDING_MIND_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_STITCHED_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_STITCHED_STANDING_MIND_FOLLOW",
@@ -1568,6 +1989,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_STITCHED_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_STITCHED_STANDING_STANCE_CHARGE",
+    "owner_kind": "CREATURE",
+    "owner_id": "CREATURE_STITCHED",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/stitched-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_STITCHED_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_STITCHED_STANDING_STANCE_FOLLOW",
@@ -1607,6 +2039,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_VOLG_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_VOLG_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_VOLG_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_VOLG_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -1628,6 +2071,17 @@ export const ASSET_MASTERS = {
     "variant": "MIND",
     "pose": "MIND",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_VOLG_STANDING_MIND_CHARGE": {
+    "asset_id": "ASSET_VOLG_STANDING_MIND_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-mind-charge.png",
+    "variant": "MIND_CHARGE",
+    "pose": "MIND",
+    "pose_phase": "CHARGE"
   },
   "ASSET_VOLG_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_VOLG_STANDING_MIND_FOLLOW",
@@ -1661,6 +2115,17 @@ export const ASSET_MASTERS = {
     "variant": "STANCE",
     "pose": "STANCE",
     "pose_phase": "STARTUP"
+  },
+  "ASSET_VOLG_STANDING_STANCE_CHARGE": {
+    "asset_id": "ASSET_VOLG_STANDING_STANCE_CHARGE",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-stance-charge.png",
+    "variant": "STANCE_CHARGE",
+    "pose": "STANCE",
+    "pose_phase": "CHARGE"
   },
   "ASSET_VOLG_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_VOLG_STANDING_STANCE_FOLLOW",

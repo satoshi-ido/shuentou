@@ -43,7 +43,10 @@ export function poseOfFlags(flags: SysFlags): AssetPose | null {
   return null;
 }
 
-// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、発動した後の硬直は
+// [M-DATA-ASSETMASTER]［構えの選択］溜めの画へ替える発生の進捗の境（暫定値）。
+export const CHARGE_PROGRESS = 0.6;
+
+// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、進捗が境に達したら溜め（CHARGE）、発動した後の硬直は
 // 終わりまで振り抜き（FOLLOW）、スタン中断による硬直は系統によらずやられ（STAGGER）とし、思考中は構えを示さない（Null）。
 // 「スタン中断による硬直の見分け」経過発生ステップ数が必要発生ステップ数の実効値に満たない硬直を中断とみなす。
 export function stancePoseOf(unit: Unit): StancePose | null {
@@ -58,7 +61,16 @@ export function stancePoseOf(unit: Unit): StancePose | null {
   if (pose === null) {
     return null;
   }
-  return { pose, phase: unit.state === 'STARTUP' ? 'STARTUP' : 'FOLLOW' };
+  if (unit.state === 'RECOVERY') {
+    return { pose, phase: 'FOLLOW' };
+  }
+  const progress = action === undefined ? null : progressOf(unit.elapsed_startup, effectiveStepStartup(unit, action));
+  return { pose, phase: progress !== null && progress >= CHARGE_PROGRESS ? 'CHARGE' : 'STARTUP' };
+}
+
+// ステートから定めた構えが発生中のものか（構え、または溜め）。
+export function isStartupPose(pose: StancePose | null): boolean {
+  return pose?.phase === 'STARTUP' || pose?.phase === 'CHARGE';
 }
 
 // 「画の最短の表示」発動の後、振り抜きの画を実時間で示す最短の長さと、構えの画が描かれなかったときに先に示す構えの長さ（暫定値）。
@@ -66,7 +78,7 @@ export const FOLLOW_MIN_MS = 300;
 export const STANCE_FLASH_MS = 100;
 
 // 契機の時点で記録する画の表示。後に起きた契機が先の表示を置き換える。
-// FOLLOW は発動の「画の最短の表示」で、flash は発動の前に構えの画が描かれなかったこと。
+// FOLLOW は発動の「画の最短の表示」で、flash は発動の前に構えと溜めのいずれの画も描かれなかったこと。
 // HIT は「被弾のやられ」で、untilRecoveryEnds は硬直中に被弾したこと（硬直の終わりまでやられを示す）。
 export type PoseHold =
   | { readonly kind: 'FOLLOW'; readonly pose: AssetPose; readonly start: number; readonly flash: boolean }
@@ -95,7 +107,7 @@ export function heldPoseOf(current: StancePose | null, hold: PoseHold | null, no
   if (hold.kind === 'HIT') {
     return now < holdEndOf(hold) || (hold.untilRecoveryEnds && isRecoveryPose(current)) ? STAGGER_POSE : current;
   }
-  if (current?.phase === 'STARTUP' || current?.pose === 'STAGGER' || now >= holdEndOf(hold)) {
+  if (isStartupPose(current) || current?.pose === 'STAGGER' || now >= holdEndOf(hold)) {
     return current;
   }
   const flashing = hold.flash && now < hold.start + STANCE_FLASH_MS;

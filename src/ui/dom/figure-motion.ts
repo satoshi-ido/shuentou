@@ -19,6 +19,7 @@ import {
   HIT_MS,
   holdEndOf,
   isRecoveryPose,
+  isStartupPose,
   LUNGE,
   LUNGE_MS,
   poseOf,
@@ -157,7 +158,7 @@ export class FigureMotion {
       return;
     }
     const start = this.now();
-    const flash = this.shown[unitId]?.phase !== 'STARTUP';
+    const flash = !isStartupPose(this.shown[unitId] ?? null);
     const hold: PoseHold = { kind: 'FOLLOW', pose, start, flash };
     this.holds[unitId] = hold;
     if (flash) {

@@ -89,13 +89,14 @@ const BASE_ASSETS = [
 ];
 
 // 盤面の構え（[S-LOOK-PRINCIPLE]【盤面の構え】・[M-DATA-ASSETMASTER]［構えの選択］）。審査範囲の盤面に立つ姿
-// （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構え（STARTUP）と振り抜き（FOLLOW）の画の計6件と、
+// （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構え（STARTUP）と溜め（CHARGE）と振り抜き（FOLLOW）の画の計9件と、
 // スタン中断による硬直に示すやられ（STAGGER、段を持たない）の画1件を置く。
-// asset_id・variant・path は元の画に構えの名（振り抜きは _FOLLOW も）を添え、condition は元の画のものを引き継ぐ
+// asset_id・variant・path は元の画に構えの名（溜めは _CHARGE、振り抜きは _FOLLOW も）を添え、condition は元の画のものを引き継ぐ
 // （外套の版ごとに構えを持つ）。
 const POSES = ['MARTIAL', 'STANCE', 'MIND'];
 const POSE_PHASES = [
   { phase: 'STARTUP', suffix: '' },
+  { phase: 'CHARGE', suffix: '_CHARGE' },
   { phase: 'FOLLOW', suffix: '_FOLLOW' },
 ];
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
