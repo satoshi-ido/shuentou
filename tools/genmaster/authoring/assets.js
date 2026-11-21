@@ -101,7 +101,7 @@ const POSE_PHASES = [
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
 // 溜め（CHARGE）と中割り（SWING）を持つ構えの画と、中割りのコマの数。どちらも任意であり、ここに挙げた構えだけが持つ。
 // asset_id・variant・path は構えの画に _CHARGE・_SWING_<順> を添える（art/import.js が取り込み元の GIF から作る）。
-const MOTIONS = { ASSET_HERO_STANDING_MARTIAL: { swing: 2 } };
+const MOTIONS = { ASSET_HERO_STANDING_MARTIAL: { swing: 3 } };
 
 function poseRecord(base, pose, phase, name) {
   return {

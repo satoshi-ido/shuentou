@@ -699,6 +699,18 @@ export const ASSET_MASTERS = {
     "pose_phase": "SWING",
     "swing_frame": 2
   },
+  "ASSET_HERO_STANDING_MARTIAL_SWING_3": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_3",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-swing-3.png",
+    "variant": "MARTIAL_SWING_3",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "swing_frame": 3
+  },
   "ASSET_HERO_STANDING_MIND": {
     "asset_id": "ASSET_HERO_STANDING_MIND",
     "owner_kind": "HERO",
