@@ -1,4 +1,4 @@
-// [M-DATA-ASSETMASTER]［構えの選択］実行中アクションに応じて示す系統ごとの構えと溜めと振り抜きの画。
+// [M-DATA-ASSETMASTER]［構えの選択］実行中アクションに応じて示す系統ごとの構えと振り抜きの画。
 
 import { describe, expect, it } from 'vitest';
 import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
@@ -6,7 +6,7 @@ import type { AssetMasterRecord } from '../../src/data/types.js';
 import { PARAM_IDS } from '../../src/engine/params.js';
 import type { SysFlag, Unit } from '../../src/engine/types.js';
 import { pickAsset } from '../../src/ui/assets/resolve.js';
-import { CHARGE_PROGRESS, stancePoseOf } from '../../src/ui/view/figure-motion.js';
+import { stancePoseOf } from '../../src/ui/view/figure-motion.js';
 
 const assets: Readonly<Record<string, AssetMasterRecord>> = ASSET_MASTERS;
 
@@ -41,18 +41,6 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(startup([])).toBeNull();
   });
 
-  it('発生中は進捗が境に達したら溜めを示し、補正で進捗が戻れば構えへ戻る', () => {
-    const at = (elapsedStartup: number, unit = unitIn('STARTUP', ['FLAG_STANCE'], { elapsedStartup })) => stancePoseOf(unit);
-    const border = 20 * CHARGE_PROGRESS;
-    expect(at(0)).toEqual({ pose: 'STANCE', phase: 'STARTUP' });
-    expect(at(border - 1)).toEqual({ pose: 'STANCE', phase: 'STARTUP' });
-    expect(at(border)).toEqual({ pose: 'STANCE', phase: 'CHARGE' });
-    expect(at(19)).toEqual({ pose: 'STANCE', phase: 'CHARGE' });
-    const slowed = unitIn('STARTUP', ['FLAG_STANCE'], { elapsedStartup: border });
-    (slowed.acts[0] as { base_params: { step_startup: number } }).base_params.step_startup = 40; // 必要発生ステップ数が延びて進捗が戻る
-    expect(at(border, slowed)?.phase).toBe('STARTUP');
-  });
-
   it('発動した後の硬直は、終わりまで振り抜きを示す', () => {
     const recovery = (elapsedRecovery: number) => stancePoseOf(unitIn('RECOVERY', ['FLAG_MARTIAL'], { elapsedRecovery }));
     expect(recovery(0)).toEqual({ pose: 'MARTIAL', phase: 'FOLLOW' });
@@ -71,7 +59,7 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(stancePoseOf(unitIn('THOUGHT', ['FLAG_MARTIAL']))).toBeNull();
   });
 
-  it('盤面に立つ姿の立ち絵は、どれも3つの構えと3つの溜めと3つの振り抜きとやられの画を持ち、condition を引き継ぐ', () => {
+  it('盤面に立つ姿の立ち絵は、どれも3つの構えと3つの振り抜きとやられの画を持ち、condition を引き継ぐ', () => {
     const bases = Object.values(assets).filter(
       (record) =>
         record.slot === 'STANDING' && (record.pose ?? null) === null && ['HERO', 'ENEMY', 'CREATURE'].includes(record.owner_kind),
@@ -81,7 +69,6 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       for (const pose of ['MARTIAL', 'STANCE', 'MIND'] as const) {
         for (const [suffix, phase] of [
           ['', 'STARTUP'],
-          ['_CHARGE', 'CHARGE'],
           ['_FOLLOW', 'FOLLOW'],
         ] as const) {
           const posed = assets[`${base.asset_id}_${pose}${suffix}`];

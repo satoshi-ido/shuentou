@@ -96,7 +96,6 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
   it('画の最短の表示：発生中・やられへ移ったときは、移った先の画に直ちに替える', () => {
     const hold = { kind: 'FOLLOW', pose: 'MARTIAL', start: 0, flash: true } as const;
     expect(heldPoseOf({ pose: 'STANCE', phase: 'STARTUP' }, hold, 50)).toEqual({ pose: 'STANCE', phase: 'STARTUP' });
-    expect(heldPoseOf({ pose: 'STANCE', phase: 'CHARGE' }, hold, 50)).toEqual({ pose: 'STANCE', phase: 'CHARGE' });
     expect(heldPoseOf({ pose: 'STAGGER', phase: null }, hold, 200)).toEqual({ pose: 'STAGGER', phase: null });
   });
 

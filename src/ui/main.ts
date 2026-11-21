@@ -496,10 +496,8 @@ function assetTest(): AssetCondition | null {
 }
 
 // 構えの画が無い、または実体が無いときは、構えを示さずに基準の側の画へ戻す（［構えの選択］「選び方」）。
-// 溜めの画が無いときは、同じ構えの STARTUP の画を示す（同「溜めの画」）。
 function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null, pose: StancePose | null = null): string | null {
-  const posedOf = (stance: StancePose) => assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), stance));
-  const posed = pose === null ? null : (posedOf(pose) ?? (pose.phase === 'CHARGE' ? posedOf({ pose: pose.pose, phase: 'STARTUP' }) : null));
+  const posed = pose === null ? null : assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), pose));
   return posed ?? assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
 }
 setFigureLookup(figureOf);
