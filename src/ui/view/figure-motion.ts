@@ -43,7 +43,10 @@ export function poseOfFlags(flags: SysFlags): AssetPose | null {
   return null;
 }
 
-// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、発動した後の硬直は
+// [M-DATA-ASSETMASTER]［構えの選択］溜めの画へ替える発生の進捗の境（暫定値）。
+export const CHARGE_PROGRESS = 0.6;
+
+// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、進捗が境に達したら溜め（CHARGE）、発動した後の硬直は
 // 終わりまで振り抜き（FOLLOW）、スタン中断による硬直は系統によらずやられ（STAGGER）とし、思考中は構えを示さない（Null）。
 // 「スタン中断による硬直の見分け」経過発生ステップ数が必要発生ステップ数の実効値に満たない硬直を中断とみなす。
 export function stancePoseOf(unit: Unit): StancePose | null {
@@ -58,23 +61,38 @@ export function stancePoseOf(unit: Unit): StancePose | null {
   if (pose === null) {
     return null;
   }
-  return { pose, phase: unit.state === 'STARTUP' ? 'STARTUP' : 'FOLLOW' };
+  if (unit.state === 'RECOVERY') {
+    return { pose, phase: 'FOLLOW' };
+  }
+  const progress = action === undefined ? null : progressOf(unit.elapsed_startup, effectiveStepStartup(unit, action));
+  return { pose, phase: progress !== null && progress >= CHARGE_PROGRESS ? 'CHARGE' : 'STARTUP' };
+}
+
+// ステートから定めた構えが発生中のものか（構え、または溜め）。
+export function isStartupPose(pose: StancePose | null): boolean {
+  return pose?.phase === 'STARTUP' || pose?.phase === 'CHARGE';
 }
 
 // 「画の最短の表示」発動の後、振り抜きの画を実時間で示す最短の長さと、構えの画が描かれなかったときに先に示す構えの長さ（暫定値）。
 export const FOLLOW_MIN_MS = 300;
 export const STANCE_FLASH_MS = 100;
+export const SWING_FRAME_MS = 60; // 中割りの1コマを示す長さ（暫定値）
 
 // 契機の時点で記録する画の表示。後に起きた契機が先の表示を置き換える。
-// FOLLOW は発動の「画の最短の表示」で、flash は発動の前に構えの画が描かれなかったこと。
+// FOLLOW は発動の「画の最短の表示」で、flash は発動の前に構えと溜めのいずれの画も描かれなかったこと、swing は示す中割りのコマの数。
 // HIT は「被弾のやられ」で、untilRecoveryEnds は硬直中に被弾したこと（硬直の終わりまでやられを示す）。
 export type PoseHold =
-  | { readonly kind: 'FOLLOW'; readonly pose: AssetPose; readonly start: number; readonly flash: boolean }
+  | { readonly kind: 'FOLLOW'; readonly pose: AssetPose; readonly start: number; readonly flash: boolean; readonly swing: number }
   | { readonly kind: 'HIT'; readonly start: number; readonly untilRecoveryEnds: boolean };
+
+// 中割りの始まり（構えの画を先に示すときはその後）。
+export function swingStartOf(hold: PoseHold & { kind: 'FOLLOW' }): number {
+  return hold.start + (hold.flash ? STANCE_FLASH_MS : 0);
+}
 
 // 実時刻で定まる表示の終わり（硬直の終わりまでの分は含まない）。
 export function holdEndOf(hold: PoseHold): number {
-  return hold.kind === 'HIT' ? hold.start + HIT_MS : hold.start + (hold.flash ? STANCE_FLASH_MS : 0) + FOLLOW_MIN_MS;
+  return hold.kind === 'HIT' ? hold.start + HIT_MS : swingStartOf(hold) + hold.swing * SWING_FRAME_MS + FOLLOW_MIN_MS;
 }
 
 // ステートから定めた構えが硬直中のものか（振り抜き、またはスタン中断のやられ）。
@@ -86,7 +104,7 @@ const STAGGER_POSE: StancePose = { pose: 'STAGGER', phase: null };
 
 // ステートから定めた画（current）に、契機の表示を重ねる。
 // 「画の最短の表示」発生中・やられへ移ったときは直ちに移った先の画とする（ステートより古い姿を示し続けない）。
-// 表示の間は、思考中や硬直中でも、構え（flash のとき）・振り抜きの順に示す。
+// 表示の間は、思考中や硬直中でも、構え（flash のとき）・中割り・振り抜きの順に示す。
 // 「被弾のやられ」被弾の動きの間はステートによらずやられを示し、硬直中の被弾は硬直の終わりまで示す。
 export function heldPoseOf(current: StancePose | null, hold: PoseHold | null, now: number): StancePose | null {
   if (hold === null) {
@@ -95,11 +113,15 @@ export function heldPoseOf(current: StancePose | null, hold: PoseHold | null, no
   if (hold.kind === 'HIT') {
     return now < holdEndOf(hold) || (hold.untilRecoveryEnds && isRecoveryPose(current)) ? STAGGER_POSE : current;
   }
-  if (current?.phase === 'STARTUP' || current?.pose === 'STAGGER' || now >= holdEndOf(hold)) {
+  if (isStartupPose(current) || current?.pose === 'STAGGER' || now >= holdEndOf(hold)) {
     return current;
   }
-  const flashing = hold.flash && now < hold.start + STANCE_FLASH_MS;
-  return { pose: hold.pose, phase: flashing ? 'STARTUP' : 'FOLLOW' };
+  const swingStart = swingStartOf(hold);
+  if (now < swingStart) {
+    return { pose: hold.pose, phase: 'STARTUP' };
+  }
+  const frame = Math.floor((now - swingStart) / SWING_FRAME_MS) + 1;
+  return frame <= hold.swing ? { pose: hold.pose, phase: 'SWING', frame } : { pose: hold.pose, phase: 'FOLLOW' };
 }
 
 export interface Breath {

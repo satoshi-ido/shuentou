@@ -5,8 +5,8 @@ import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import type { AssetMasterRecord } from '../../src/data/types.js';
 import { PARAM_IDS } from '../../src/engine/params.js';
 import type { SysFlag, Unit } from '../../src/engine/types.js';
-import { pickAsset } from '../../src/ui/assets/resolve.js';
-import { stancePoseOf } from '../../src/ui/view/figure-motion.js';
+import { pickAsset, swingFrameCount } from '../../src/ui/assets/resolve.js';
+import { CHARGE_PROGRESS, stancePoseOf } from '../../src/ui/view/figure-motion.js';
 
 const assets: Readonly<Record<string, AssetMasterRecord>> = ASSET_MASTERS;
 
@@ -39,6 +39,18 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(startup(['FLAG_SUMMON'])?.pose).toBe('MIND');
     expect(startup(['FLAG_SWAP'])).toBeNull();
     expect(startup([])).toBeNull();
+  });
+
+  it('発生中は進捗が境に達したら溜めを示し、補正で進捗が戻れば構えへ戻る', () => {
+    const at = (elapsedStartup: number, unit = unitIn('STARTUP', ['FLAG_MARTIAL'], { elapsedStartup })) => stancePoseOf(unit);
+    const border = 20 * CHARGE_PROGRESS;
+    expect(at(0)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
+    expect(at(border - 1)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
+    expect(at(border)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE' });
+    expect(at(19)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE' });
+    const slowed = unitIn('STARTUP', ['FLAG_MARTIAL'], { elapsedStartup: border });
+    (slowed.acts[0] as { base_params: { step_startup: number } }).base_params.step_startup = 40; // 必要発生ステップ数が延びて進捗が戻る
+    expect(at(border, slowed)?.phase).toBe('STARTUP');
   });
 
   it('発動した後の硬直は、終わりまで振り抜きを示す', () => {
@@ -97,7 +109,8 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       } else {
         expect(record.pose_phase ?? null, record.asset_id).not.toBeNull();
       }
-      const key = `${record.owner_kind}/${record.owner_id}/${record.pose}/${record.pose_phase}/${record.condition ?? ''}`;
+      expect(record.pose_phase === 'SWING', record.asset_id).toBe((record.swing_frame ?? null) !== null);
+      const key = `${record.owner_kind}/${record.owner_id}/${record.pose}/${record.pose_phase}/${record.swing_frame ?? ''}/${record.condition ?? ''}`;
       keys[key] = (keys[key] ?? 0) + 1;
     }
     expect(Object.entries(keys).filter(([, count]) => count > 1)).toEqual([]);
@@ -120,5 +133,27 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     );
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act2)?.asset_id).toBe('ASSET_HERO_STANDING_COAT_ACT2');
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act1)?.asset_id).toBe('ASSET_HERO_STANDING');
+  });
+
+  it('中割りは順の1から連なるコマを選び、いずれかに実体が無ければ示さない', () => {
+    const swing = (frame: number): AssetMasterRecord => ({
+      asset_id: `ASSET_T_STANDING_MARTIAL_SWING_${frame}`,
+      owner_kind: 'ENEMY',
+      owner_id: 'ENEMY_T',
+      slot: 'STANDING',
+      cue: null,
+      pose: 'MARTIAL',
+      pose_phase: 'SWING',
+      swing_frame: frame,
+      path: frame === 2 ? 'placeholder:t' : 'art/standing/hero-martial-swing-1.png',
+    });
+    const withGap = { a: swing(1), b: swing(2), c: swing(3) };
+    expect(swingFrameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'MARTIAL')).toBe(0);
+    expect(swingFrameCount({ a: swing(1), c: swing(3) }, 'ENEMY', 'ENEMY_T', null, 'MARTIAL')).toBe(1);
+    expect(swingFrameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'STANCE')).toBe(0);
+    expect(pickAsset(withGap, 'ENEMY', 'ENEMY_T', 'STANDING', null, { pose: 'MARTIAL', phase: 'SWING', frame: 3 })?.asset_id).toBe(
+      'ASSET_T_STANDING_MARTIAL_SWING_3',
+    );
+    expect(pickAsset(withGap, 'ENEMY', 'ENEMY_T', 'STANDING', null, { pose: 'MARTIAL', phase: 'FOLLOW' })).toBeNull();
   });
 });

@@ -8,11 +8,15 @@
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
+// 溜めの画（<構えの画のID>_CHARGE）と中割りの画（<構えの画のID>_SWING_<順>）は、取り込み元の <構えの画のID>_SWING.gif から、swings.json
+// （{ "<構えの画のID>": { "charge": コマの番号, "frames": [コマの番号…], "follow": コマの番号 } }）が挙げるコマを取り出す。follow を挙げたときは、
+// 振り抜きの画（<構えの画のID>_FOLLOW）も .png の代わりにそのコマから作る。コマの0番は構えの画と同じ姿として、倍率と左右の位置の基準に用いる。
 
 import { app, nativeImage } from 'electron';
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { decodeGif } from './gif.js';
 import { writeManifest } from './manifest.js';
 import { FIGURE_HEIGHTS } from './heights.js';
 import { crop16x9, fitLike, hasTransparency, opaqueBounds, placeBottomCenter, removeFlatBackground, snapAlpha, targetOf } from './image.js';
@@ -50,8 +54,13 @@ function standingBoxOf(id) {
 function importStanding(source, base) {
   const { pixels, width, height, bounds } = cutOut(source);
   const cropped = nativeImage.createFromBitmap(pixels, { width, height }).crop(bounds);
+  return placeStanding(cropped, standingSize(bounds, base));
+}
+
+// 立ち絵を縮める大きさ。範囲（bounds）を元の画と同じ倍率で縮め、POSE_MAX を越える分は収める。
+function standingSize(bounds, base) {
   const reference = base.bounds ?? bounds;
-  const size = fitLike(
+  return fitLike(
     bounds.width,
     bounds.height,
     reference.width,
@@ -61,6 +70,10 @@ function importStanding(source, base) {
     POSE_MAX.width,
     POSE_MAX.height,
   );
+}
+
+// 縮めた画を、透明な枠（64×96 ドット以上）の下端・左右中央に置いた PNG にする。
+function placeStanding(cropped, size) {
   const box = { width: Math.max(STANDING_BOX.width, size.width + (size.width % 2)), height: Math.max(STANDING_BOX.height, size.height) };
   const scaled = cropped.resize({ ...size, quality: 'best' });
   const placed = placeBottomCenter(snapAlpha(scaled.toBitmap()), size.width, size.height, box.width, box.height);
@@ -70,6 +83,111 @@ function importStanding(source, base) {
 // 構えの画の asset_id から、元の立ち絵の asset_id を引く。構えの画でなければ Null。
 function poseBaseOf(id) {
   return POSE_SUFFIX.test(id) ? id.replace(POSE_SUFFIX, '') : null;
+}
+
+// 溜めと中割りの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。GIF のコマはどれも同じ画面に描かれているため、コマごとに余白を詰めず、
+// 使うコマのすべてを含む共通の窓で切り出す。盤面は画を左右中央に置くため、窓の左右の中心を、0番のコマ（構えの画と同じ姿）を
+// 構えの画に最もよく重ねる位置に取り、構えの画とコマの間で体が左右に跳ばないようにする。倍率は、0番のコマの範囲の高さを、
+// 構えの画を取り込んだ高さに揃える。返すのは [asset_id, PNG] の並び。
+const ALIGN_RANGE = 16; // 0番のコマを構えの画に重ねる位置を探す幅（ドット）
+
+// 不透明な画素の重なりが最も多くなる、構えの画の中心から見た0番のコマの中心の位置（ドット）。どちらも下端に揃える。
+function alignOffset(stance, key) {
+  let best = { dx: 0, overlap: -1 };
+  for (let dx = -ALIGN_RANGE; dx <= ALIGN_RANGE; dx += 1) {
+    const left = Math.floor((stance.width - key.width) / 2) + dx;
+    let overlap = 0;
+    for (let y = 0; y < key.height; y += 1) {
+      const sy = stance.height - key.height + y;
+      if (sy < 0) {
+        continue;
+      }
+      for (let x = 0; x < key.width; x += 1) {
+        const sx = left + x;
+        if (sx >= 0 && sx < stance.width && key.pixels[(y * key.width + x) * 4 + 3] > 0 && stance.pixels[(sy * stance.width + sx) * 4 + 3] > 0) {
+          overlap += 1;
+        }
+      }
+    }
+    if (overlap > best.overlap || (overlap === best.overlap && Math.abs(dx) < Math.abs(best.dx))) {
+      best = { dx, overlap };
+    }
+  }
+  return best.dx;
+}
+
+function frameWindow(gif, index, window) {
+  const pixels = Buffer.alloc(window.width * window.height * 4);
+  for (let y = 0; y < window.height; y += 1) {
+    const sy = window.y + y;
+    if (sy < 0 || sy >= gif.height) {
+      continue;
+    }
+    for (let x = 0; x < window.width; x += 1) {
+      const sx = window.x + x;
+      if (sx >= 0 && sx < gif.width) {
+        gif.frames[index].pixels.copy(pixels, (y * window.width + x) * 4, (sy * gif.width + sx) * 4, (sy * gif.width + sx) * 4 + 4);
+      }
+    }
+  }
+  return nativeImage.createFromBitmap(pixels, { width: window.width, height: window.height });
+}
+
+function importSwing(sourceDir, stanceId, spec, scales) {
+  const gif = decodeGif(readFileSync(path.join(sourceDir, `${stanceId}_SWING.gif`)));
+  const boundsOf = (index) => {
+    const frame = gif.frames[index];
+    if (frame === undefined) {
+      throw new Error(`中割りの GIF にコマが無い：${stanceId} の ${index}`);
+    }
+    const bounds = opaqueBounds(frame.pixels, gif.width, gif.height);
+    if (bounds === null) {
+      throw new Error(`中割りのコマに不透明な画素が無い：${stanceId} の ${index}`);
+    }
+    return bounds;
+  };
+  const outputs = [
+    ...(spec.charge === undefined ? [] : [[`${stanceId}_CHARGE`, spec.charge]]),
+    ...spec.frames.map((index, order) => [`${stanceId}_SWING_${order + 1}`, index]),
+    ...(spec.follow === undefined ? [] : [[`${stanceId}_FOLLOW`, spec.follow]]),
+  ];
+  const source = nativeImage.createFromPath(path.join(sourceDir, `${stanceId}.png`));
+  if (source.isEmpty()) {
+    throw new Error(`中割りの構えの画が取り込み元に無い：${stanceId}`);
+  }
+  const stancePng = nativeImage.createFromBuffer(importStanding(source, standingBase(sourceDir, stanceId, scales[stanceId] ?? 1)));
+  const stance = { pixels: stancePng.toBitmap(), ...stancePng.getSize() };
+  const stanceHeight = opaqueBounds(stance.pixels, stance.width, stance.height).height;
+
+  const keyBounds = boundsOf(0);
+  const keyRatio = stanceHeight / keyBounds.height;
+  const keySize = { width: Math.max(1, Math.round(keyBounds.width * keyRatio)), height: stanceHeight };
+  const key = { pixels: snapAlpha(frameWindow(gif, 0, keyBounds).resize({ ...keySize, quality: 'best' }).toBitmap()), ...keySize };
+  const center = keyBounds.x + keyBounds.width / 2 - alignOffset(stance, key) / keyRatio;
+
+  const used = outputs.map(([, index]) => boundsOf(index));
+  const half = Math.max(...used.map((b) => Math.max(center - b.x, b.x + b.width - center)));
+  const top = Math.min(...used.map((b) => b.y));
+  const window = {
+    x: Math.round(center - half),
+    y: top,
+    width: Math.round(2 * half),
+    height: Math.max(...used.map((b) => b.y + b.height)) - top,
+  };
+  const ratio = Math.min(keyRatio, POSE_MAX.width / window.width, POSE_MAX.height / window.height);
+  if (ratio < keyRatio) {
+    console.log(`中割りの窓が枠を越えるため、構えの画より小さく縮める：${stanceId}`);
+  }
+  const size = { width: Math.max(1, Math.round(window.width * ratio)), height: Math.max(1, Math.round(window.height * ratio)) };
+  return outputs.map(([id, index]) => [id, placeStanding(frameWindow(gif, index, window), size)]);
+}
+
+function writeStanding(id, data) {
+  const target = targetOf(id);
+  const out = path.join(OUT_DIR, target.file);
+  mkdirSync(path.dirname(out), { recursive: true });
+  writeFileSync(out, data);
+  console.log(`${id} → art/${target.file}（${Math.round(data.length / 1024)}KB）`);
 }
 
 function importBackground(source, offsetY) {
@@ -105,12 +223,26 @@ function main() {
   const crops = existsSync(cropsFile) ? JSON.parse(readFileSync(cropsFile, 'utf8')) : {};
   const scalesFile = path.join(sourceDir, 'scales.json');
   const scales = existsSync(scalesFile) ? JSON.parse(readFileSync(scalesFile, 'utf8')) : {};
+  const swingsFile = path.join(sourceDir, 'swings.json');
+  const swings = existsSync(swingsFile) ? JSON.parse(readFileSync(swingsFile, 'utf8')) : {};
+  // 中割りの GIF から作る振り抜きの画は、.png から作らない
+  const fromSwing = new Set(Object.entries(swings).filter(([, spec]) => spec.follow !== undefined).map(([id]) => `${id}_FOLLOW`));
   const ids = readdirSync(sourceDir)
     .filter((name) => /^ASSET_[A-Z0-9_]+\.(png|mp3)$/.test(name))
     .map((name) => name.replace(/\.(png|mp3)$/, ''))
     .filter((id) => only.length === 0 || only.includes(id))
     .sort();
+  for (const [stanceId, spec] of Object.entries(swings)) {
+    const outputs = importSwing(sourceDir, stanceId, spec, scales);
+    if (only.length === 0 || only.includes(stanceId) || outputs.some(([id]) => only.includes(id))) {
+      outputs.forEach(([id, data]) => writeStanding(id, data));
+    }
+  }
   for (const id of ids) {
+    if (fromSwing.has(id)) {
+      console.log(`飛ばす（中割りの GIF から作る）：${id}`);
+      continue;
+    }
     const target = targetOf(id);
     if (target === null) {
       console.log(`飛ばす（種別が分からない）：${id}`);

@@ -19,6 +19,7 @@ import { STRING_MASTERS } from '../data/generated/string-masters.js';
 import type {
   ActionMasterRecord,
   AssetMasterRecord,
+  AssetPose,
   EnemyMasterRecord,
   HelpMasterRecord,
   SceneMasterRecord,
@@ -47,7 +48,7 @@ import { conditionReader, evaluateCondition } from '../engine/script/condition.j
 import { scriptById, scriptsAt } from '../engine/script/select.js';
 import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/types.js';
 import { placeholderHue } from './assets/placeholder.js';
-import { assetUrl, assetUrlById, pickAsset, type AssetCondition, type StancePose } from './assets/resolve.js';
+import { assetUrl, assetUrlById, pickAsset, swingFrameCount, type AssetCondition, type StancePose } from './assets/resolve.js';
 import { setFigureLookup } from './dom/art.js';
 import { sceneEntries, sceneJumpData, sceneSelectEnabled } from './dev/scene-select.js';
 import { lanternView } from './view/lantern-view.js';
@@ -157,7 +158,7 @@ const scriptRoot = document.createElement('div');
 scriptRoot.className = 'script-root';
 stageElement.append(screenRoot, effects.root, scriptRoot);
 // [M-UI-HUD]［立ち絵の動き］消滅猶予の残像は演出層に置く。演出の簡略化は設定を都度引く。
-const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects, () => render());
+const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects, () => render(), undefined, (unitId, pose) => swingFramesOf(unitId, pose));
 
 // [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
 const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
@@ -470,23 +471,34 @@ const naming: UnitNaming = {
   // [S-LOOK-PRINCIPLE]「盤面に置く姿」主人公・敵マスター・仮身。セインの仮身は元の敵の仮身と同じ画を用いる。
   // [M-DATA-ASSETMASTER]［構えの選択］発生中は系統ごとの構えの画を示す。発動の後は「画の最短の表示」を重ねる。
   figure: (unit: Unit) => {
-    const pose = figureMotion.figurePose(unit.unit_id, stancePoseOf(unit));
-    return unit.unit_kind === 'CREATURE'
-      ? figureOf('CREATURE', unit.creature_id ?? null, pose)
-      : unit.side === 'MINE'
-        ? figureOf('HERO', null, pose)
-        : figureOf('ENEMY', currentScene().enemy_id, pose);
+    const owner = figureOwnerOf(unit);
+    return figureOf(owner.kind, owner.id, figureMotion.figurePose(unit.unit_id, stancePoseOf(unit)));
   },
   // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」構えの画が無ければ Null とし、立ち絵を替えない。
-  stanceFigure: (unit: Unit, pose: StancePose) =>
-    assetUrl(
-      unit.unit_kind === 'CREATURE'
-        ? pickAsset(ASSET_MASTERS, 'CREATURE', unit.creature_id ?? null, 'STANDING', assetTest(), pose)
-        : unit.side === 'MINE'
-          ? pickAsset(ASSET_MASTERS, 'HERO', null, 'STANDING', assetTest(), pose)
-          : pickAsset(ASSET_MASTERS, 'ENEMY', currentScene().enemy_id, 'STANDING', assetTest(), pose),
-    ),
+  stanceFigure: (unit: Unit, pose: StancePose) => {
+    const owner = figureOwnerOf(unit);
+    return assetUrl(pickAsset(ASSET_MASTERS, owner.kind, owner.id, 'STANDING', assetTest(), pose));
+  },
 };
+
+// [S-LOOK-PRINCIPLE]「盤面に置く姿」盤面のユニットの立ち絵の所有者。セインの仮身は元の敵の仮身と同じ画を用いる。
+function figureOwnerOf(unit: Unit): { kind: AssetMasterRecord['owner_kind']; id: string | null } {
+  return unit.unit_kind === 'CREATURE'
+    ? { kind: 'CREATURE', id: unit.creature_id ?? null }
+    : unit.side === 'MINE'
+      ? { kind: 'HERO', id: null }
+      : { kind: 'ENEMY', id: currentScene().enemy_id };
+}
+
+// [M-DATA-ASSETMASTER]［構えの選択］「中割り」発動したユニットがその構えで示す中割りのコマの数。
+function swingFramesOf(unitId: string, pose: AssetPose): number {
+  const unit = session?.data.run.battle_state?.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
+  if (unit === undefined) {
+    return 0;
+  }
+  const owner = figureOwnerOf(unit);
+  return swingFrameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose);
+}
 
 // ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
 
@@ -497,7 +509,9 @@ function assetTest(): AssetCondition | null {
 
 // 構えの画が無い、または実体が無いときは、構えを示さずに基準の側の画へ戻す（［構えの選択］「選び方」）。
 function figureOf(ownerKind: AssetMasterRecord['owner_kind'], ownerId: string | null, pose: StancePose | null = null): string | null {
-  const posed = pose === null ? null : assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), pose));
+  const posedOf = (stance: StancePose) => assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest(), stance));
+  // 溜めの画が無いときは、同じ構えの STARTUP の画を示す（同「溜め」）。
+  const posed = pose === null ? null : (posedOf(pose) ?? (pose.phase === 'CHARGE' ? posedOf({ pose: pose.pose, phase: 'STARTUP' }) : null));
   return posed ?? assetUrl(pickAsset(ASSET_MASTERS, ownerKind, ownerId, 'STANDING', assetTest()));
 }
 setFigureLookup(figureOf);

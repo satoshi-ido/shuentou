@@ -19,13 +19,15 @@ import {
   HIT_MS,
   holdEndOf,
   isRecoveryPose,
+  isStartupPose,
   LUNGE,
   LUNGE_MS,
   poseOf,
   poseOfFlags,
   type PoseHold,
   PUSH,
-  STANCE_FLASH_MS,
+  swingStartOf,
+  SWING_FRAME_MS,
 } from '../view/figure-motion.js';
 
 type ShotKind = 'LUNGE' | 'HIT';
@@ -76,11 +78,13 @@ export class FigureMotion {
   private resumedAt: number | null = null; // 動き始めた実時刻。静止中は Null
 
   // onPoseChange は最短の表示の段が替わる時刻に呼ぶ。静止中は画面が組み直されないため、入口が描き直す。
+  // swingFramesOf は、ユニットがその構えで示す中割りのコマの数（[M-DATA-ASSETMASTER]［構えの選択］「中割り」）。
   constructor(
     private readonly ghostLayer: HTMLElement,
     private readonly simplify: () => boolean,
     private readonly onPoseChange: () => void = () => undefined,
     private readonly now: () => number = () => performance.now(),
+    private readonly swingFramesOf: (unitId: string, pose: AssetPose) => number = () => 0,
   ) {}
 
   // 「静止中」思考中の呼吸を止め、動き始めたら同じ位相から続ける。
@@ -151,17 +155,23 @@ export class FigureMotion {
   }
 
   // 「画の最短の表示」発動の時点を記録し、段が替わる時刻に描き直しを求める。系統の無い発動は先の表示を除く。
+  // 中割りは動きであるため、演出の簡略化では示さない。
   private holdFollow(unitId: string, pose: AssetPose | null): void {
     if (pose === null) {
       delete this.holds[unitId];
       return;
     }
     const start = this.now();
-    const flash = this.shown[unitId]?.phase !== 'STARTUP';
-    const hold: PoseHold = { kind: 'FOLLOW', pose, start, flash };
+    const flash = !isStartupPose(this.shown[unitId] ?? null);
+    const swing = this.simplify() ? 0 : this.swingFramesOf(unitId, pose);
+    const hold: PoseHold = { kind: 'FOLLOW', pose, start, flash, swing };
     this.holds[unitId] = hold;
-    if (flash) {
-      setTimeout(this.onPoseChange, STANCE_FLASH_MS);
+    const swingStart = swingStartOf(hold);
+    for (let frame = 0; frame <= swing; frame += 1) {
+      const at = swingStart + frame * SWING_FRAME_MS - start;
+      if (at > 0) {
+        setTimeout(this.onPoseChange, at);
+      }
     }
     setTimeout(this.onPoseChange, holdEndOf(hold) - start);
   }

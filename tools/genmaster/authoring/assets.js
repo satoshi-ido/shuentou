@@ -90,7 +90,7 @@ const BASE_ASSETS = [
 
 // 盤面の構え（[S-LOOK-PRINCIPLE]【盤面の構え】・[M-DATA-ASSETMASTER]［構えの選択］）。審査範囲の盤面に立つ姿
 // （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構え（STARTUP）と振り抜き（FOLLOW）の画の計6件と、
-// スタン中断による硬直に示すやられ（STAGGER、段を持たない）の画1件を置く。
+// スタン中断による硬直に示すやられ（STAGGER、段を持たない）の画1件を置く。下記 MOTIONS に挙げた構えは、溜め（CHARGE）と中割り（SWING）の画も置く。
 // asset_id・variant・path は元の画に構えの名（振り抜きは _FOLLOW も）を添え、condition は元の画のものを引き継ぐ
 // （外套の版ごとに構えを持つ）。
 const POSES = ['MARTIAL', 'STANCE', 'MIND'];
@@ -99,6 +99,9 @@ const POSE_PHASES = [
   { phase: 'FOLLOW', suffix: '_FOLLOW' },
 ];
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
+// 溜め（CHARGE）と中割り（SWING）を持つ構えの画と、中割りのコマの数。どちらも任意であり、ここに挙げた構えだけが持つ。
+// asset_id・variant・path は構えの画に _CHARGE・_SWING_<順> を添える（art/import.js が取り込み元の GIF から作る）。
+const MOTIONS = { ASSET_HERO_STANDING_MARTIAL: { swing: 2 } };
 
 function poseRecord(base, pose, phase, name) {
   return {
@@ -111,9 +114,23 @@ function poseRecord(base, pose, phase, name) {
   };
 }
 
+function motionRecords(base, pose) {
+  const motion = MOTIONS[`${base.asset_id}_${pose}`];
+  if (motion === undefined) {
+    return [];
+  }
+  return [
+    poseRecord(base, pose, 'CHARGE', `${pose}_CHARGE`),
+    ...Array.from({ length: motion.swing }, (_, i) => ({ ...poseRecord(base, pose, 'SWING', `${pose}_SWING_${i + 1}`), swing_frame: i + 1 })),
+  ];
+}
+
 function poseRecords(base) {
   return [
-    ...POSES.flatMap((pose) => POSE_PHASES.map(({ phase, suffix }) => poseRecord(base, pose, phase, `${pose}${suffix}`))),
+    ...POSES.flatMap((pose) => [
+      ...POSE_PHASES.map(({ phase, suffix }) => poseRecord(base, pose, phase, `${pose}${suffix}`)),
+      ...motionRecords(base, pose),
+    ]),
     poseRecord(base, 'STAGGER', null, 'STAGGER'),
   ];
 }

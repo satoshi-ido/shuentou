@@ -623,6 +623,10 @@ export function buildAssetRecords(assets) {
     if (phased !== ((entry.pose_phase ?? null) !== null)) {
       throw new Error(`pose_phase の条件付必須に反する: ${entry.asset_id}`);
     }
+    const frame = entry.swing_frame ?? null;
+    if ((entry.pose_phase === 'SWING') !== (frame !== null) || (frame !== null && !(Number.isInteger(frame) && frame >= 1))) {
+      throw new Error(`swing_frame の条件付必須に反する: ${entry.asset_id}`);
+    }
     result[entry.asset_id] = { ...entry };
   }
   return result;

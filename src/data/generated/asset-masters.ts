@@ -653,6 +653,17 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_HERO_STANDING_MARTIAL_CHARGE": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-charge.png",
+    "variant": "MARTIAL_CHARGE",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE"
+  },
   "ASSET_HERO_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "HERO",
@@ -663,6 +674,30 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_FOLLOW",
     "pose": "MARTIAL",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_MARTIAL_SWING_1": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_1",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-swing-1.png",
+    "variant": "MARTIAL_SWING_1",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "swing_frame": 1
+  },
+  "ASSET_HERO_STANDING_MARTIAL_SWING_2": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-swing-2.png",
+    "variant": "MARTIAL_SWING_2",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "swing_frame": 2
   },
   "ASSET_HERO_STANDING_MIND": {
     "asset_id": "ASSET_HERO_STANDING_MIND",

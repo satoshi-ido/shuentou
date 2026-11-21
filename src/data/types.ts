@@ -190,7 +190,7 @@ export interface EchoMasterRecord {
 export type AssetOwnerKind = 'HERO' | 'ATTENDANT' | 'ENEMY' | 'CREATURE' | 'ACTION' | 'SCENE' | 'SCRIPT' | 'GLOBAL';
 export type AssetSlot = 'PORTRAIT' | 'STANDING' | 'PLATE' | 'ICON' | 'BACKGROUND' | 'BGM' | 'SE';
 export type AssetPose = 'MARTIAL' | 'STANCE' | 'MIND' | 'STAGGER';
-export type AssetPosePhase = 'STARTUP' | 'FOLLOW';
+export type AssetPosePhase = 'STARTUP' | 'CHARGE' | 'SWING' | 'FOLLOW';
 // [M-DATA-AUDIO-CUE]
 export type AudioCueKey =
   | 'PULSE'
@@ -216,7 +216,8 @@ export interface AssetMasterRecord {
   readonly variant?: string | null; // 同じ所有者・スロットの差分を区別する名（UPPER_SNAKE）。基準の画は Null
   readonly condition?: string | null; // 差分を選ぶ条件式（[S-SCRIPT-CONDITION]）。基準の画は Null
   readonly pose?: AssetPose | null; // 実行中アクションに応じて示す系統ごとの構えと、スタン中断による硬直のやられ（[M-DATA-ASSETMASTER]［構えの選択］）。STANDING に限る
-  readonly pose_phase?: AssetPosePhase | null; // 構えの段。pose が系統の構えのとき非Null（STARTUP 構え／FOLLOW 振り抜き）、STAGGER のとき Null
+  readonly pose_phase?: AssetPosePhase | null; // 構えの段。pose が系統の構えのとき非Null（STARTUP 構え／CHARGE 溜め／SWING 中割り／FOLLOW 振り抜き）、STAGGER のとき Null
+  readonly swing_frame?: number | null; // 中割りの順。pose_phase が SWING のとき1以上、それ以外のとき Null
   readonly path: string;
 }
 
