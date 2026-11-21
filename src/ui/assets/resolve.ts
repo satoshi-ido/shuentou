@@ -6,7 +6,7 @@ import { ART_FILES } from './art-manifest.js';
 
 export type AssetCondition = (condition: string) => boolean;
 
-// [M-DATA-ASSETMASTER]［構えの選択］示す構えと構えの段（やられ STAGGER は段を持たない）。frame は中割り（SWING）の順。
+// [M-DATA-ASSETMASTER]［構えの選択］示す構えと構えの段（やられ STAGGER は段を持たない）。frame は溜め（CHARGE）の段・中割り（SWING）の順。
 export interface StancePose {
   readonly pose: AssetPose;
   readonly phase: AssetPosePhase | null;
@@ -31,7 +31,7 @@ export function pickAsset(
       record.slot === slot &&
       (record.pose ?? null) === (pose?.pose ?? null) &&
       (record.pose_phase ?? null) === (pose?.phase ?? null) &&
-      (record.swing_frame ?? null) === (pose?.frame ?? null),
+      (record.frame ?? null) === (pose?.frame ?? null),
   );
   const matched = test === null ? undefined : owned.find((record) => (record.condition ?? null) !== null && test(record.condition ?? ''));
   const fallback =
@@ -41,18 +41,19 @@ export function pickAsset(
   return matched ?? fallback ?? null;
 }
 
-// [M-DATA-ASSETMASTER]［構えの選択］「中割り」示す中割りのコマの数。順の1から連なるコマを選び、いずれかに実体が無ければ0とする
-// （欠けたコマを飛ばさない）。
-export function swingFrameCount(
+// [M-DATA-ASSETMASTER]［構えの選択］「溜め」「中割り」示す溜めの段・中割りのコマの数。順の1から連なるコマを選び、いずれかに
+// 実体が無ければ0とする（欠けたコマを飛ばさない）。
+export function frameCount(
   records: Readonly<Record<string, AssetMasterRecord>>,
   ownerKind: AssetOwnerKind,
   ownerId: string | null,
   test: AssetCondition | null,
   pose: AssetPose,
+  phase: 'CHARGE' | 'SWING',
 ): number {
   let count = 0;
   for (;;) {
-    const record = pickAsset(records, ownerKind, ownerId, 'STANDING', test, { pose, phase: 'SWING', frame: count + 1 });
+    const record = pickAsset(records, ownerKind, ownerId, 'STANDING', test, { pose, phase, frame: count + 1 });
     if (record === null) {
       return count;
     }

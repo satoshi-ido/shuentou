@@ -5,8 +5,8 @@ import { ASSET_MASTERS } from '../../src/data/generated/asset-masters.js';
 import type { AssetMasterRecord } from '../../src/data/types.js';
 import { PARAM_IDS } from '../../src/engine/params.js';
 import type { SysFlag, Unit } from '../../src/engine/types.js';
-import { pickAsset, swingFrameCount } from '../../src/ui/assets/resolve.js';
-import { CHARGE_PROGRESS, stancePoseOf } from '../../src/ui/view/figure-motion.js';
+import { frameCount, pickAsset } from '../../src/ui/assets/resolve.js';
+import { stancePoseOf } from '../../src/ui/view/figure-motion.js';
 
 const assets: Readonly<Record<string, AssetMasterRecord>> = ASSET_MASTERS;
 
@@ -41,16 +41,26 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(startup([])).toBeNull();
   });
 
-  it('発生中は進捗が境に達したら溜めを示し、補正で進捗が戻れば構えへ戻る', () => {
-    const at = (elapsedStartup: number, unit = unitIn('STARTUP', ['FLAG_MARTIAL'], { elapsedStartup })) => stancePoseOf(unit);
-    const border = 20 * CHARGE_PROGRESS;
-    expect(at(0)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
-    expect(at(border - 1)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
-    expect(at(border)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE' });
-    expect(at(19)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE' });
-    const slowed = unitIn('STARTUP', ['FLAG_MARTIAL'], { elapsedStartup: border });
-    (slowed.acts[0] as { base_params: { step_startup: number } }).base_params.step_startup = 40; // 必要発生ステップ数が延びて進捗が戻る
-    expect(at(border, slowed)?.phase).toBe('STARTUP');
+  it('溜めを持つ構えは、発生の区間を段の数＋1に等分して段を進め、補正で進捗が戻れば前の段へ戻る', () => {
+    const two = () => 2;
+    const startup = (elapsedStartup: number, required = 20) => {
+      const unit = unitIn('STARTUP', ['FLAG_MARTIAL'], { elapsedStartup });
+      (unit.acts[0] as { base_params: { step_startup: number } }).base_params.step_startup = required;
+      return unit;
+    };
+    // 必要発生 21：7 から1段目、14 から2段目
+    expect(stancePoseOf(startup(6, 21), two)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
+    expect(stancePoseOf(startup(7, 21), two)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 1 });
+    expect(stancePoseOf(startup(13, 21), two)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 1 });
+    expect(stancePoseOf(startup(14, 21), two)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 2 });
+    expect(stancePoseOf(startup(21, 21), two)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 2 });
+    // 1段なら進捗 1/2 から
+    expect(stancePoseOf(startup(9), () => 1)).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
+    expect(stancePoseOf(startup(10), () => 1)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 1 });
+    // 溜めを持たない構えは構えのまま
+    expect(stancePoseOf(startup(19))).toEqual({ pose: 'MARTIAL', phase: 'STARTUP' });
+    // 必要発生ステップ数が延びて進捗が戻れば、前の段へ戻る
+    expect(stancePoseOf(startup(14, 40), two)).toEqual({ pose: 'MARTIAL', phase: 'CHARGE', frame: 1 });
   });
 
   it('発動した後の硬直は、終わりまで振り抜きを示す', () => {
@@ -109,8 +119,8 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       } else {
         expect(record.pose_phase ?? null, record.asset_id).not.toBeNull();
       }
-      expect(record.pose_phase === 'SWING', record.asset_id).toBe((record.swing_frame ?? null) !== null);
-      const key = `${record.owner_kind}/${record.owner_id}/${record.pose}/${record.pose_phase}/${record.swing_frame ?? ''}/${record.condition ?? ''}`;
+      expect(record.pose_phase === 'CHARGE' || record.pose_phase === 'SWING', record.asset_id).toBe((record.frame ?? null) !== null);
+      const key = `${record.owner_kind}/${record.owner_id}/${record.pose}/${record.pose_phase}/${record.frame ?? ''}/${record.condition ?? ''}`;
       keys[key] = (keys[key] ?? 0) + 1;
     }
     expect(Object.entries(keys).filter(([, count]) => count > 1)).toEqual([]);
@@ -144,13 +154,13 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       cue: null,
       pose: 'MARTIAL',
       pose_phase: 'SWING',
-      swing_frame: frame,
+      frame,
       path: frame === 2 ? 'placeholder:t' : 'art/standing/hero-martial-swing-1.png',
     });
     const withGap = { a: swing(1), b: swing(2), c: swing(3) };
-    expect(swingFrameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'MARTIAL')).toBe(0);
-    expect(swingFrameCount({ a: swing(1), c: swing(3) }, 'ENEMY', 'ENEMY_T', null, 'MARTIAL')).toBe(1);
-    expect(swingFrameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'STANCE')).toBe(0);
+    expect(frameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'MARTIAL', 'SWING')).toBe(0);
+    expect(frameCount({ a: swing(1), c: swing(3) }, 'ENEMY', 'ENEMY_T', null, 'MARTIAL', 'SWING')).toBe(1);
+    expect(frameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'STANCE', 'SWING')).toBe(0);
     expect(pickAsset(withGap, 'ENEMY', 'ENEMY_T', 'STANDING', null, { pose: 'MARTIAL', phase: 'SWING', frame: 3 })?.asset_id).toBe(
       'ASSET_T_STANDING_MARTIAL_SWING_3',
     );

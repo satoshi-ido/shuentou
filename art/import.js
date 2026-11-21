@@ -8,8 +8,8 @@
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
-// 溜めの画（<構えの画のID>_CHARGE）と中割りの画（<構えの画のID>_SWING_<順>）は、取り込み元の <構えの画のID>_SWING.gif から、swings.json
-// （{ "<構えの画のID>": { "charge": コマの番号, "frames": [コマの番号…], "follow": コマの番号 } }）が挙げるコマを取り出す。follow を挙げたときは、
+// 溜めの画（<構えの画のID>_CHARGE_<段>）と中割りの画（<構えの画のID>_SWING_<順>）は、取り込み元の <構えの画のID>_SWING.gif から、swings.json
+// （{ "<構えの画のID>": { "charge": [コマの番号…], "frames": [コマの番号…], "follow": コマの番号 } }）が挙げるコマを取り出す。follow を挙げたときは、
 // 振り抜きの画（<構えの画のID>_FOLLOW）も .png の代わりにそのコマから作る。コマの0番は構えの画と同じ姿として、倍率と左右の位置の基準に用いる。
 
 import { app, nativeImage } from 'electron';
@@ -147,7 +147,7 @@ function importSwing(sourceDir, stanceId, spec, scales) {
     return bounds;
   };
   const outputs = [
-    ...(spec.charge === undefined ? [] : [[`${stanceId}_CHARGE`, spec.charge]]),
+    ...(spec.charge ?? []).map((index, order) => [`${stanceId}_CHARGE_${order + 1}`, index]),
     ...spec.frames.map((index, order) => [`${stanceId}_SWING_${order + 1}`, index]),
     ...(spec.follow === undefined ? [] : [[`${stanceId}_FOLLOW`, spec.follow]]),
   ];

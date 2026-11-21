@@ -99,9 +99,9 @@ const POSE_PHASES = [
   { phase: 'FOLLOW', suffix: '_FOLLOW' },
 ];
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
-// 溜め（CHARGE）と中割り（SWING）を持つ構えの画と、中割りのコマの数。どちらも任意であり、ここに挙げた構えだけが持つ。
-// asset_id・variant・path は構えの画に _CHARGE・_SWING_<順> を添える（art/import.js が取り込み元の GIF から作る）。
-const MOTIONS = { ASSET_HERO_STANDING_MARTIAL: { swing: 3 } };
+// 溜め（CHARGE）と中割り（SWING）を持つ構えの画と、溜めの段の数・中割りのコマの数。どちらも任意であり、ここに挙げた構えだけが持つ。
+// asset_id・variant・path は構えの画に _CHARGE_<段>・_SWING_<順> を添える（art/import.js が取り込み元の GIF から作る）。
+const MOTIONS = { ASSET_HERO_STANDING_MARTIAL: { charge: 2, swing: 2 } };
 
 function poseRecord(base, pose, phase, name) {
   return {
@@ -120,8 +120,8 @@ function motionRecords(base, pose) {
     return [];
   }
   return [
-    poseRecord(base, pose, 'CHARGE', `${pose}_CHARGE`),
-    ...Array.from({ length: motion.swing }, (_, i) => ({ ...poseRecord(base, pose, 'SWING', `${pose}_SWING_${i + 1}`), swing_frame: i + 1 })),
+    ...Array.from({ length: motion.charge }, (_, i) => ({ ...poseRecord(base, pose, 'CHARGE', `${pose}_CHARGE_${i + 1}`), frame: i + 1 })),
+    ...Array.from({ length: motion.swing }, (_, i) => ({ ...poseRecord(base, pose, 'SWING', `${pose}_SWING_${i + 1}`), frame: i + 1 })),
   ];
 }
 

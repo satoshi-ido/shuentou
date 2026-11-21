@@ -48,7 +48,7 @@ import { conditionReader, evaluateCondition } from '../engine/script/condition.j
 import { scriptById, scriptsAt } from '../engine/script/select.js';
 import type { ActionInstance, BattleState, Unit, WatchKind } from '../engine/types.js';
 import { placeholderHue } from './assets/placeholder.js';
-import { assetUrl, assetUrlById, pickAsset, swingFrameCount, type AssetCondition, type StancePose } from './assets/resolve.js';
+import { assetUrl, assetUrlById, frameCount, pickAsset, type AssetCondition, type StancePose } from './assets/resolve.js';
 import { setFigureLookup } from './dom/art.js';
 import { sceneEntries, sceneJumpData, sceneSelectEnabled } from './dev/scene-select.js';
 import { lanternView } from './view/lantern-view.js';
@@ -472,7 +472,8 @@ const naming: UnitNaming = {
   // [M-DATA-ASSETMASTER]［構えの選択］発生中は系統ごとの構えの画を示す。発動の後は「画の最短の表示」を重ねる。
   figure: (unit: Unit) => {
     const owner = figureOwnerOf(unit);
-    return figureOf(owner.kind, owner.id, figureMotion.figurePose(unit.unit_id, stancePoseOf(unit)));
+    const chargeStagesOf = (pose: AssetPose) => frameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose, 'CHARGE');
+    return figureOf(owner.kind, owner.id, figureMotion.figurePose(unit.unit_id, stancePoseOf(unit, chargeStagesOf)));
   },
   // [M-UI-HUD]【立ち絵の動き】「判定プレビューの構え」構えの画が無ければ Null とし、立ち絵を替えない。
   stanceFigure: (unit: Unit, pose: StancePose) => {
@@ -497,7 +498,7 @@ function swingFramesOf(unitId: string, pose: AssetPose): number {
     return 0;
   }
   const owner = figureOwnerOf(unit);
-  return swingFrameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose);
+  return frameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose, 'SWING');
 }
 
 // ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──

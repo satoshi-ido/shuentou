@@ -43,13 +43,11 @@ export function poseOfFlags(flags: SysFlags): AssetPose | null {
   return null;
 }
 
-// [M-DATA-ASSETMASTER]［構えの選択］溜めの画へ替える発生の進捗の境（暫定値）。
-export const CHARGE_PROGRESS = 0.6;
-
-// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、進捗が境に達したら溜め（CHARGE）、発動した後の硬直は
+// [M-DATA-ASSETMASTER]［構えの選択］ユニットが示す構えと構えの段。発生中は構え（STARTUP）、溜めを持つ構えは進捗に従い溜めの段（CHARGE）、発動した後の硬直は
 // 終わりまで振り抜き（FOLLOW）、スタン中断による硬直は系統によらずやられ（STAGGER）とし、思考中は構えを示さない（Null）。
 // 「スタン中断による硬直の見分け」経過発生ステップ数が必要発生ステップ数の実効値に満たない硬直を中断とみなす。
-export function stancePoseOf(unit: Unit): StancePose | null {
+// chargeStagesOf は構えが持つ溜めの段の数。n 段なら発生の区間を n＋1 に等分し、進捗 k÷(n＋1) 以上で k 段目を示す。
+export function stancePoseOf(unit: Unit, chargeStagesOf: (pose: AssetPose) => number = () => 0): StancePose | null {
   if (unit.last_act === null || (unit.state !== 'STARTUP' && unit.state !== 'RECOVERY')) {
     return null;
   }
@@ -64,8 +62,14 @@ export function stancePoseOf(unit: Unit): StancePose | null {
   if (unit.state === 'RECOVERY') {
     return { pose, phase: 'FOLLOW' };
   }
-  const progress = action === undefined ? null : progressOf(unit.elapsed_startup, effectiveStepStartup(unit, action));
-  return { pose, phase: progress !== null && progress >= CHARGE_PROGRESS ? 'CHARGE' : 'STARTUP' };
+  const stages = chargeStagesOf(pose);
+  const required = action === undefined ? 0 : effectiveStepStartup(unit, action);
+  if (stages <= 0 || required <= 0) {
+    return { pose, phase: 'STARTUP' };
+  }
+  // 割り算の端数で境を外さないよう、整数で段を求める
+  const stage = Math.min(stages, Math.floor((Math.min(unit.elapsed_startup, required) * (stages + 1)) / required));
+  return stage === 0 ? { pose, phase: 'STARTUP' } : { pose, phase: 'CHARGE', frame: stage };
 }
 
 // ステートから定めた構えが発生中のものか（構え、または溜め）。

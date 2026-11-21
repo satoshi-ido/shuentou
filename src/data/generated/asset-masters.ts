@@ -653,16 +653,29 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
-  "ASSET_HERO_STANDING_MARTIAL_CHARGE": {
-    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE",
+  "ASSET_HERO_STANDING_MARTIAL_CHARGE_1": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE_1",
     "owner_kind": "HERO",
     "owner_id": null,
     "slot": "STANDING",
     "cue": null,
-    "path": "art/standing/hero-martial-charge.png",
-    "variant": "MARTIAL_CHARGE",
+    "path": "art/standing/hero-martial-charge-1.png",
+    "variant": "MARTIAL_CHARGE_1",
     "pose": "MARTIAL",
-    "pose_phase": "CHARGE"
+    "pose_phase": "CHARGE",
+    "frame": 1
+  },
+  "ASSET_HERO_STANDING_MARTIAL_CHARGE_2": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE_2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-charge-2.png",
+    "variant": "MARTIAL_CHARGE_2",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE",
+    "frame": 2
   },
   "ASSET_HERO_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL_FOLLOW",
@@ -685,7 +698,7 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_SWING_1",
     "pose": "MARTIAL",
     "pose_phase": "SWING",
-    "swing_frame": 1
+    "frame": 1
   },
   "ASSET_HERO_STANDING_MARTIAL_SWING_2": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_2",
@@ -697,19 +710,7 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_SWING_2",
     "pose": "MARTIAL",
     "pose_phase": "SWING",
-    "swing_frame": 2
-  },
-  "ASSET_HERO_STANDING_MARTIAL_SWING_3": {
-    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_3",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-martial-swing-3.png",
-    "variant": "MARTIAL_SWING_3",
-    "pose": "MARTIAL",
-    "pose_phase": "SWING",
-    "swing_frame": 3
+    "frame": 2
   },
   "ASSET_HERO_STANDING_MIND": {
     "asset_id": "ASSET_HERO_STANDING_MIND",

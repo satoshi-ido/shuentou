@@ -217,7 +217,7 @@ export interface AssetMasterRecord {
   readonly condition?: string | null; // 差分を選ぶ条件式（[S-SCRIPT-CONDITION]）。基準の画は Null
   readonly pose?: AssetPose | null; // 実行中アクションに応じて示す系統ごとの構えと、スタン中断による硬直のやられ（[M-DATA-ASSETMASTER]［構えの選択］）。STANDING に限る
   readonly pose_phase?: AssetPosePhase | null; // 構えの段。pose が系統の構えのとき非Null（STARTUP 構え／CHARGE 溜め／SWING 中割り／FOLLOW 振り抜き）、STAGGER のとき Null
-  readonly swing_frame?: number | null; // 中割りの順。pose_phase が SWING のとき1以上、それ以外のとき Null
+  readonly frame?: number | null; // コマの順。pose_phase が CHARGE（溜めの段）・SWING（中割り）のとき1以上、それ以外のとき Null
   readonly path: string;
 }
 
