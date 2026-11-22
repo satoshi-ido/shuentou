@@ -155,7 +155,7 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       pose: 'MARTIAL',
       pose_phase: 'SWING',
       frame,
-      path: frame === 2 ? 'placeholder:t' : 'art/standing/hero-martial-swing-1.png',
+      path: frame === 2 ? 'placeholder:t' : 'art/standing/hero-martial-charge-1.png',
     });
     const withGap = { a: swing(1), b: swing(2), c: swing(3) };
     expect(frameCount(withGap, 'ENEMY', 'ENEMY_T', null, 'MARTIAL', 'SWING')).toBe(0);

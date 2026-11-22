@@ -148,7 +148,7 @@ function importSwing(sourceDir, stanceId, spec, scales) {
   };
   const outputs = [
     ...(spec.charge ?? []).map((index, order) => [`${stanceId}_CHARGE_${order + 1}`, index]),
-    ...spec.frames.map((index, order) => [`${stanceId}_SWING_${order + 1}`, index]),
+    ...(spec.frames ?? []).map((index, order) => [`${stanceId}_SWING_${order + 1}`, index]),
     ...(spec.follow === undefined ? [] : [[`${stanceId}_FOLLOW`, spec.follow]]),
   ];
   const source = nativeImage.createFromPath(path.join(sourceDir, `${stanceId}.png`));
