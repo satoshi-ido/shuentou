@@ -105,6 +105,7 @@ const MOTIONS = {
   ASSET_HERO_STANDING_MARTIAL: { charge: 2, swing: 2 },
   ASSET_HERO_STANDING_STANCE: { charge: 1, swing: 3 },
   ASSET_HERO_STANDING_MIND: { charge: 2, swing: 2 },
+  ASSET_LEF_STANDING_MARTIAL: { charge: 0, swing: 4 },
 };
 
 function poseRecord(base, pose, phase, name) {

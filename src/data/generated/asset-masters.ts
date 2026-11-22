@@ -1047,6 +1047,54 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "FOLLOW"
   },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_1": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-1.png",
+    "variant": "MARTIAL_SWING_1",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_2": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-2.png",
+    "variant": "MARTIAL_SWING_2",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 2
+  },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_3": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_3",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-3.png",
+    "variant": "MARTIAL_SWING_3",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 3
+  },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_4": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_4",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-4.png",
+    "variant": "MARTIAL_SWING_4",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 4
+  },
   "ASSET_LEF_STANDING_MIND": {
     "asset_id": "ASSET_LEF_STANDING_MIND",
     "owner_kind": "ENEMY",
