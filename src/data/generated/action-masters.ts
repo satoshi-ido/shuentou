@@ -2261,7 +2261,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR117": {
     "class_id": "ACT_HEAVY_AR117",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2302,7 +2302,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR12": {
     "class_id": "ACT_HEAVY_AR12",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2343,7 +2343,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR136": {
     "class_id": "ACT_HEAVY_AR136",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2384,7 +2384,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR15": {
     "class_id": "ACT_HEAVY_AR15",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2425,7 +2425,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR17": {
     "class_id": "ACT_HEAVY_AR17",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2466,7 +2466,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR18": {
     "class_id": "ACT_HEAVY_AR18",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2507,7 +2507,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR19": {
     "class_id": "ACT_HEAVY_AR19",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2548,7 +2548,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR20": {
     "class_id": "ACT_HEAVY_AR20",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2589,7 +2589,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR204": {
     "class_id": "ACT_HEAVY_AR204",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2630,7 +2630,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR24": {
     "class_id": "ACT_HEAVY_AR24",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2671,7 +2671,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR27": {
     "class_id": "ACT_HEAVY_AR27",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2712,7 +2712,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR28": {
     "class_id": "ACT_HEAVY_AR28",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2753,7 +2753,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR3": {
     "class_id": "ACT_HEAVY_AR3",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2794,7 +2794,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR31": {
     "class_id": "ACT_HEAVY_AR31",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2835,7 +2835,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR335": {
     "class_id": "ACT_HEAVY_AR335",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2876,7 +2876,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR34": {
     "class_id": "ACT_HEAVY_AR34",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2917,7 +2917,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR36": {
     "class_id": "ACT_HEAVY_AR36",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2958,7 +2958,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR38": {
     "class_id": "ACT_HEAVY_AR38",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -2999,7 +2999,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR39": {
     "class_id": "ACT_HEAVY_AR39",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3040,7 +3040,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR4": {
     "class_id": "ACT_HEAVY_AR4",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3081,7 +3081,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR40": {
     "class_id": "ACT_HEAVY_AR40",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3122,7 +3122,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR44": {
     "class_id": "ACT_HEAVY_AR44",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3163,7 +3163,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR49": {
     "class_id": "ACT_HEAVY_AR49",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3204,7 +3204,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR53": {
     "class_id": "ACT_HEAVY_AR53",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3245,7 +3245,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR57": {
     "class_id": "ACT_HEAVY_AR57",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3286,7 +3286,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR6": {
     "class_id": "ACT_HEAVY_AR6",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3327,7 +3327,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR60": {
     "class_id": "ACT_HEAVY_AR60",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3368,7 +3368,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR63": {
     "class_id": "ACT_HEAVY_AR63",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3409,7 +3409,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR65": {
     "class_id": "ACT_HEAVY_AR65",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3450,7 +3450,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR67": {
     "class_id": "ACT_HEAVY_AR67",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3491,7 +3491,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR68": {
     "class_id": "ACT_HEAVY_AR68",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3532,7 +3532,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR7": {
     "class_id": "ACT_HEAVY_AR7",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -3573,7 +3573,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR78": {
     "class_id": "ACT_HEAVY_AR78",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3614,7 +3614,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR8": {
     "class_id": "ACT_HEAVY_AR8",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -3655,7 +3655,7 @@ export const ACTION_MASTERS = {
   "ACT_HEAVY_AR9": {
     "class_id": "ACT_HEAVY_AR9",
     "display_name": "武技（重撃）",
-    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに構え、長い溜めの後に重い一撃を放つ武技。ひとつ離れた敵まで届き、命中すれば構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6361,7 +6361,7 @@ export const ACTION_MASTERS = {
   "ACT_ROOT_COUNTER": {
     "class_id": "ACT_ROOT_COUNTER",
     "display_name": "拍止め",
-    "description": "終焉の太刀の長い溜めを断つための武技。思考を待って放ち、APの壁に阻まれず、命中すれば拍断ちを与える。傷は与えない。",
+    "description": "終焉の太刀の長い溜めを断つための武技。思考を待って放ち、APの壁に阻まれず、命中すれば構えている相手を中断させる。傷は与えない。",
     "base_uses": -1,
     "inheritable": false,
     "is_root": false,
@@ -6443,7 +6443,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR117": {
     "class_id": "ACT_RUSH_AR117",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6484,7 +6484,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR12": {
     "class_id": "ACT_RUSH_AR12",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6525,7 +6525,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR136": {
     "class_id": "ACT_RUSH_AR136",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6566,7 +6566,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR15": {
     "class_id": "ACT_RUSH_AR15",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6607,7 +6607,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR17": {
     "class_id": "ACT_RUSH_AR17",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6648,7 +6648,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR18": {
     "class_id": "ACT_RUSH_AR18",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6689,7 +6689,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR19": {
     "class_id": "ACT_RUSH_AR19",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6730,7 +6730,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR20": {
     "class_id": "ACT_RUSH_AR20",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6771,7 +6771,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR204": {
     "class_id": "ACT_RUSH_AR204",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6812,7 +6812,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR24": {
     "class_id": "ACT_RUSH_AR24",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6853,7 +6853,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR27": {
     "class_id": "ACT_RUSH_AR27",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6894,7 +6894,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR28": {
     "class_id": "ACT_RUSH_AR28",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6935,7 +6935,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR31": {
     "class_id": "ACT_RUSH_AR31",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -6976,7 +6976,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR34": {
     "class_id": "ACT_RUSH_AR34",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7017,7 +7017,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR36": {
     "class_id": "ACT_RUSH_AR36",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7058,7 +7058,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR38": {
     "class_id": "ACT_RUSH_AR38",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7099,7 +7099,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR39": {
     "class_id": "ACT_RUSH_AR39",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7140,7 +7140,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR4": {
     "class_id": "ACT_RUSH_AR4",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7181,7 +7181,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR40": {
     "class_id": "ACT_RUSH_AR40",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7222,7 +7222,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR44": {
     "class_id": "ACT_RUSH_AR44",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7263,7 +7263,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR49": {
     "class_id": "ACT_RUSH_AR49",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7304,7 +7304,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR4_DORN": {
     "class_id": "ACT_RUSH_AR4_DORN",
     "display_name": "武技（急襲）",
-    "description": "APを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "APを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7345,7 +7345,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR53": {
     "class_id": "ACT_RUSH_AR53",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7386,7 +7386,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR57": {
     "class_id": "ACT_RUSH_AR57",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7427,7 +7427,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR6": {
     "class_id": "ACT_RUSH_AR6",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7468,7 +7468,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR60": {
     "class_id": "ACT_RUSH_AR60",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7509,7 +7509,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR63": {
     "class_id": "ACT_RUSH_AR63",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7550,7 +7550,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR65": {
     "class_id": "ACT_RUSH_AR65",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7591,7 +7591,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR67": {
     "class_id": "ACT_RUSH_AR67",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7632,7 +7632,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR68": {
     "class_id": "ACT_RUSH_AR68",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7673,7 +7673,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR78": {
     "class_id": "ACT_RUSH_AR78",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7714,7 +7714,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR8": {
     "class_id": "ACT_RUSH_AR8",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7755,7 +7755,7 @@ export const ACTION_MASTERS = {
   "ACT_RUSH_AR9": {
     "class_id": "ACT_RUSH_AR9",
     "display_name": "武技（急襲）",
-    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば拍断ちを与える。発動の後に長い硬直が残る。",
+    "description": "PPとAPを払い、思考を待たずに打ち込む武技。威力は控えめだが、構えのあいだも防御を保ち、ひとつ離れた敵まで届く。命中すれば構えている相手を中断させる。発動の後に長い硬直が残る。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -7796,7 +7796,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR106": {
     "class_id": "ACT_SLASH_AR106",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7837,7 +7837,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR114": {
     "class_id": "ACT_SLASH_AR114",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7878,7 +7878,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR117": {
     "class_id": "ACT_SLASH_AR117",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7919,7 +7919,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR12": {
     "class_id": "ACT_SLASH_AR12",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -7960,7 +7960,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR120": {
     "class_id": "ACT_SLASH_AR120",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8001,7 +8001,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR126": {
     "class_id": "ACT_SLASH_AR126",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8042,7 +8042,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR130": {
     "class_id": "ACT_SLASH_AR130",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8083,7 +8083,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR134": {
     "class_id": "ACT_SLASH_AR134",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8124,7 +8124,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR136": {
     "class_id": "ACT_SLASH_AR136",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8165,7 +8165,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR15": {
     "class_id": "ACT_SLASH_AR15",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8206,7 +8206,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR156": {
     "class_id": "ACT_SLASH_AR156",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8247,7 +8247,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR16": {
     "class_id": "ACT_SLASH_AR16",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8288,7 +8288,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR17": {
     "class_id": "ACT_SLASH_AR17",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8329,7 +8329,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR18": {
     "class_id": "ACT_SLASH_AR18",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8370,7 +8370,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR19": {
     "class_id": "ACT_SLASH_AR19",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8411,7 +8411,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR20": {
     "class_id": "ACT_SLASH_AR20",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8452,7 +8452,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR204": {
     "class_id": "ACT_SLASH_AR204",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8493,7 +8493,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR24": {
     "class_id": "ACT_SLASH_AR24",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8534,7 +8534,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR27": {
     "class_id": "ACT_SLASH_AR27",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8575,7 +8575,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR272": {
     "class_id": "ACT_SLASH_AR272",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8616,7 +8616,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR28": {
     "class_id": "ACT_SLASH_AR28",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8657,7 +8657,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR3": {
     "class_id": "ACT_SLASH_AR3",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8698,7 +8698,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR30": {
     "class_id": "ACT_SLASH_AR30",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8739,7 +8739,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR31": {
     "class_id": "ACT_SLASH_AR31",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8780,7 +8780,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR34": {
     "class_id": "ACT_SLASH_AR34",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8821,7 +8821,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR36": {
     "class_id": "ACT_SLASH_AR36",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8862,7 +8862,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR38": {
     "class_id": "ACT_SLASH_AR38",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8903,7 +8903,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR39": {
     "class_id": "ACT_SLASH_AR39",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8944,7 +8944,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR4": {
     "class_id": "ACT_SLASH_AR4",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -8985,7 +8985,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR40": {
     "class_id": "ACT_SLASH_AR40",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9026,7 +9026,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR408": {
     "class_id": "ACT_SLASH_AR408",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9067,7 +9067,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR44": {
     "class_id": "ACT_SLASH_AR44",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9108,7 +9108,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR48": {
     "class_id": "ACT_SLASH_AR48",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9149,7 +9149,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR49": {
     "class_id": "ACT_SLASH_AR49",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9190,7 +9190,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR53": {
     "class_id": "ACT_SLASH_AR53",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9231,7 +9231,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR54": {
     "class_id": "ACT_SLASH_AR54",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9272,7 +9272,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR56": {
     "class_id": "ACT_SLASH_AR56",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9313,7 +9313,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR57": {
     "class_id": "ACT_SLASH_AR57",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9354,7 +9354,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR6": {
     "class_id": "ACT_SLASH_AR6",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9395,7 +9395,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR60": {
     "class_id": "ACT_SLASH_AR60",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9436,7 +9436,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR62": {
     "class_id": "ACT_SLASH_AR62",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9477,7 +9477,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR63": {
     "class_id": "ACT_SLASH_AR63",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9518,7 +9518,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR65": {
     "class_id": "ACT_SLASH_AR65",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9559,7 +9559,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR67": {
     "class_id": "ACT_SLASH_AR67",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9600,7 +9600,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR68": {
     "class_id": "ACT_SLASH_AR68",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9641,7 +9641,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR72": {
     "class_id": "ACT_SLASH_AR72",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9682,7 +9682,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR76": {
     "class_id": "ACT_SLASH_AR76",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9723,7 +9723,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR78": {
     "class_id": "ACT_SLASH_AR78",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9764,7 +9764,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR8": {
     "class_id": "ACT_SLASH_AR8",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9805,7 +9805,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR80": {
     "class_id": "ACT_SLASH_AR80",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9846,7 +9846,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR88": {
     "class_id": "ACT_SLASH_AR88",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9887,7 +9887,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR9": {
     "class_id": "ACT_SLASH_AR9",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -9928,7 +9928,7 @@ export const ACTION_MASTERS = {
   "ACT_SLASH_AR98": {
     "class_id": "ACT_SLASH_AR98",
     "display_name": "武技（基本）",
-    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵を打つ武技。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 1000,
     "inheritable": true,
     "is_root": false,
@@ -10399,7 +10399,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR108": {
     "class_id": "ACT_SPEC_CLAW_AR108",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10440,7 +10440,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR112": {
     "class_id": "ACT_SPEC_CLAW_AR112",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10481,7 +10481,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR124": {
     "class_id": "ACT_SPEC_CLAW_AR124",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10522,7 +10522,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR136": {
     "class_id": "ACT_SPEC_CLAW_AR136",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10563,7 +10563,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR144": {
     "class_id": "ACT_SPEC_CLAW_AR144",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10604,7 +10604,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR152": {
     "class_id": "ACT_SPEC_CLAW_AR152",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10645,7 +10645,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR156": {
     "class_id": "ACT_SPEC_CLAW_AR156",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10686,7 +10686,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR16": {
     "class_id": "ACT_SPEC_CLAW_AR16",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10727,7 +10727,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR160": {
     "class_id": "ACT_SPEC_CLAW_AR160",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10768,7 +10768,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR176": {
     "class_id": "ACT_SPEC_CLAW_AR176",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10809,7 +10809,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR196": {
     "class_id": "ACT_SPEC_CLAW_AR196",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10850,7 +10850,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR212": {
     "class_id": "ACT_SPEC_CLAW_AR212",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10891,7 +10891,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR228": {
     "class_id": "ACT_SPEC_CLAW_AR228",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10932,7 +10932,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR24": {
     "class_id": "ACT_SPEC_CLAW_AR24",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -10973,7 +10973,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR240": {
     "class_id": "ACT_SPEC_CLAW_AR240",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11014,7 +11014,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR252": {
     "class_id": "ACT_SPEC_CLAW_AR252",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11055,7 +11055,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR260": {
     "class_id": "ACT_SPEC_CLAW_AR260",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11096,7 +11096,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR268": {
     "class_id": "ACT_SPEC_CLAW_AR268",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11137,7 +11137,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR272": {
     "class_id": "ACT_SPEC_CLAW_AR272",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11178,7 +11178,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR312": {
     "class_id": "ACT_SPEC_CLAW_AR312",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11219,7 +11219,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR32": {
     "class_id": "ACT_SPEC_CLAW_AR32",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11260,7 +11260,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR36": {
     "class_id": "ACT_SPEC_CLAW_AR36",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11301,7 +11301,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR48": {
     "class_id": "ACT_SPEC_CLAW_AR48",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11342,7 +11342,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR544": {
     "class_id": "ACT_SPEC_CLAW_AR544",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11383,7 +11383,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR60": {
     "class_id": "ACT_SPEC_CLAW_AR60",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11424,7 +11424,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR68": {
     "class_id": "ACT_SPEC_CLAW_AR68",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11465,7 +11465,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR72": {
     "class_id": "ACT_SPEC_CLAW_AR72",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11506,7 +11506,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR76": {
     "class_id": "ACT_SPEC_CLAW_AR76",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11547,7 +11547,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR80": {
     "class_id": "ACT_SPEC_CLAW_AR80",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11588,7 +11588,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR816": {
     "class_id": "ACT_SPEC_CLAW_AR816",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11629,7 +11629,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLAW_AR96": {
     "class_id": "ACT_SPEC_CLAW_AR96",
     "display_name": "爪牙（特殊）",
-    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、拍断ちを与える。",
+    "description": "仮身が爪と牙で、隣り合う敵を打つ。命中すれば相手のAPを大きく削り、構えていれば中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -11670,7 +11670,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_CLEAVE_DORN": {
     "class_id": "ACT_SPEC_CLEAVE_DORN",
     "display_name": "断ち割り",
-    "description": "思考を待たずに振りかぶり、長い溜めの後に叩き割る武技。ひとつ離れた敵まで届き、当たれば深い傷を負わせて拍断ちを与える。溜めのあいだは無防備になるが、放った後に硬直はない。",
+    "description": "思考を待たずに振りかぶり、長い溜めの後に叩き割る武技。ひとつ離れた敵まで届き、当たれば深い傷を負わせ、構えている相手を中断させる。溜めのあいだは無防備になるが、放った後に硬直はない。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,
@@ -12140,7 +12140,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_DRAIN_PP_CALVA": {
     "class_id": "ACT_SPEC_DRAIN_PP_CALVA",
     "display_name": "腐る術式",
-    "description": "隣り合う敵を打ち、命中すればPPを腐らせて大きく削る。PPを失った者は、PPを払う武技や体勢を放てなくなる。拍断ちを与える。",
+    "description": "隣り合う敵を打ち、命中すればPPを腐らせて大きく削る。PPを失った者は、PPを払う武技や体勢を放てなくなる。構えている相手を中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -12181,7 +12181,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_DRAIN_VP_ISH": {
     "class_id": "ACT_SPEC_DRAIN_VP_ISH",
     "display_name": "破滅の旋律",
-    "description": "隣り合う敵を打ち、命中すればVPを大きく削る。VPを失った者は、心気で引き上げられるPPが少なくなる。拍断ちを与える。",
+    "description": "隣り合う敵を打ち、命中すればVPを大きく削る。VPを失った者は、心気で引き上げられるPPが少なくなる。構えている相手を中断させる。",
     "base_uses": 100,
     "inheritable": true,
     "is_root": false,
@@ -12348,7 +12348,7 @@ export const ACTION_MASTERS = {
   "ACT_SPEC_RIPOSTE_LEF": {
     "class_id": "ACT_SPEC_RIPOSTE_LEF",
     "display_name": "返し刃",
-    "description": "PPを払い、隣り合う敵へ鋭く返す武技。思考の蓄えは短く、溜めのあいだの相手を捉えて深く斬る。命中すれば拍断ちを与え、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
+    "description": "PPを払い、隣り合う敵へ鋭く返す武技。思考の蓄えは短く、溜めのあいだの相手を捉えて深く斬る。命中すれば構えている相手を中断させ、相手の付与と写しを弱める。構えのあいだも防御を保つ。",
     "base_uses": 300,
     "inheritable": true,
     "is_root": false,

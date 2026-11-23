@@ -72,5 +72,7 @@ export function pauseReasonText(state: BattleState, reason: PauseReason, sources
       RemainingSteps: reason.remaining_steps ?? 0,
     };
   }
-  return sources.strings.resolve(PAUSE_REASON_STRING_ID[reason.code], { common: sources.common, bundles });
+  // 『スタン』の事由は、中断を受けたように読めないよう、ユニットを主語とする専用の文言で示す。
+  const stringId = reason.code === 'WATCH_MET' && reason.watch_kind === 'STUN' ? 'STR_PAUSE_WATCH_STUN' : PAUSE_REASON_STRING_ID[reason.code];
+  return sources.strings.resolve(stringId, { common: sources.common, bundles });
 }

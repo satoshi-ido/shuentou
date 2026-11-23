@@ -74,6 +74,7 @@ const REQUIRED_STRINGS: readonly (readonly [string, readonly ContextBundle[]])[]
   ['STR_PAUSE_ENEMY_START', ['UNIT', 'ACTION', 'PAUSE']],
   ['STR_PAUSE_ENEMY_IMMEDIATE', ['UNIT', 'ACTION']],
   ['STR_PAUSE_WATCH_MET', ['UNIT', 'ACTION', 'PAUSE']],
+  ['STR_PAUSE_WATCH_STUN', ['UNIT', 'ACTION']],
   ['STR_PAUSE_MANUAL', []],
   // [M-DATA-PAUSE-REASON]［監視条件ラベル］
   ['STR_WATCH_STUN', []],

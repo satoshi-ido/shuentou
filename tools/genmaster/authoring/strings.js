@@ -129,10 +129,12 @@ export const STRINGS = [
   },
   { string_id: 'STR_PAUSE_ENEMY_IMMEDIATE', context: ['UNIT', 'ACTION'], text: '{UnitName}が{ActionName}を即座に放った。' },
   { string_id: 'STR_PAUSE_WATCH_MET', context: ['UNIT', 'ACTION', 'PAUSE'], text: '{UnitName}の{ActionName}が『{WatchLabel}』になった。' },
+  // [M-DATA-PAUSE-REASON]『スタン』の事由はユニットを主語に、中断されずに放てるようになったことを示す。
+  { string_id: 'STR_PAUSE_WATCH_STUN', context: ['UNIT', 'ACTION'], text: '{UnitName}は{ActionName}を中断されずに放てる。' },
   { string_id: 'STR_PAUSE_MANUAL', context: [], text: '時を止めた。' },
   // ［監視条件ラベル］[M-DATA-PAUSE-REASON]。いずれも context は空配列である。
-  // [M-DATA-PAUSE-REASON]「STR_WATCH_STUN の本文は『拍断ち』とする」。
-  { string_id: 'STR_WATCH_STUN', context: [], text: '拍断ち' },
+  // [M-DATA-PAUSE-REASON]「STR_WATCH_STUN の本文は『中断なし』とする」。
+  { string_id: 'STR_WATCH_STUN', context: [], text: '中断なし' },
   { string_id: 'STR_WATCH_HIT_FRONT', context: [], text: '前列命中' },
   { string_id: 'STR_WATCH_HIT_BACK', context: [], text: '後列命中' },
   { string_id: 'STR_WATCH_EVADE_FRONT', context: [], text: '前列回避' },

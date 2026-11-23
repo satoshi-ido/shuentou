@@ -266,6 +266,14 @@ export const STRING_MASTERS = {
       "UNIT"
     ]
   },
+  "STR_PAUSE_WATCH_STUN": {
+    "string_id": "STR_PAUSE_WATCH_STUN",
+    "text": "{UnitName}は{ActionName}を中断されずに放てる。",
+    "context": [
+      "ACTION",
+      "UNIT"
+    ]
+  },
   "STR_REFILL_DONE": {
     "string_id": "STR_REFILL_DONE",
     "text": "新たな魂が芯に結ばれた。{HeroName}の傷が癒えた。",
@@ -356,7 +364,7 @@ export const STRING_MASTERS = {
   },
   "STR_WATCH_STUN": {
     "string_id": "STR_WATCH_STUN",
-    "text": "拍断ち",
+    "text": "中断なし",
     "context": []
   },
 } as const satisfies Record<string, StringMasterRecord>;

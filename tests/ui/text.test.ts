@@ -88,10 +88,21 @@ describe('[M-DATA-PAUSE-REASON] 事由文言の解決', () => {
     const { state, hero } = duel();
     const text = pauseReasonText(
       state,
+      { code: 'WATCH_MET', unit_id: hero.unit_id, instance_id: hero.acts[0].instance_id, watch_kind: 'HIT_FRONT', remaining_steps: 0 },
+      sources,
+    );
+    expect(text).toContain(strings.resolve(WATCH_LABEL_STRING_ID.HIT_FRONT));
+  });
+
+  it('『スタン』の事由はユニットを主語に、中断されずに放てることを示す', () => {
+    const { state, hero } = duel();
+    const text = pauseReasonText(
+      state,
       { code: 'WATCH_MET', unit_id: hero.unit_id, instance_id: hero.acts[0].instance_id, watch_kind: 'STUN', remaining_steps: 0 },
       sources,
     );
-    expect(text).toContain(strings.resolve(WATCH_LABEL_STRING_ID.STUN));
+    expect(text).toMatch(/^.+は.+を中断されずに放てる。$/);
+    expect(text).not.toContain(strings.resolve(WATCH_LABEL_STRING_ID.STUN));
   });
 
   it('STEP0_READY・MANUAL_PAUSE は束を供給しない', () => {
