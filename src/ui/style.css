@@ -299,19 +299,6 @@ button:focus-visible {
 /* [M-UI-TIMELINE]「注目中のアクションの仮定展開」差分のある区間を際立たせ、変わらないレーンは沈める。 */
 .timeline.has-plan .lane:not(.has-diff) .seg { opacity: 0.5; }
 
-/* [M-REWIND-UNDO]【提示】取り消された区間の残像と、数え戻した値。 */
-.seg-ghost {
-  border-style: dashed;
-  pointer-events: none;
-  z-index: 1;
-}
-
-@keyframes undo-changed {
-  from { color: #a9c8ea; text-shadow: 0 0 8px rgba(127, 168, 216, 0.8); }
-}
-
-.undo-changed { animation: undo-changed 0.8s ease-out; }
-
 .seg-new {
   border-color: var(--ember);
   color: #ffd9a0;

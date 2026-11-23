@@ -100,8 +100,6 @@ const MUFFLED_GAIN = 0.6; // こもらせる間の層と合奏の音量の倍率
 const FAINT_PULSE_GAIN = 0.15; // [M-META-COMMIT]【提示】巻き戻しの保留中に残す重低音の音量の倍率（ごく小さく）
 const FAINT_REVERB_GAIN = 0.35; // 巻き戻しの保留中に重低音へ加える残響の大きさ（遠くで鳴るように）
 const REVERB_SEC = 2.8; // 残響の長さ
-const DARKEN_TIME_CONSTANT = 0.02; // 途切れさせる時定数（約 0.06 秒で下がる）
-const BRIGHTEN_TIME_CONSTANT = 0.05; // 戻す時定数（約 0.15 秒で戻る）
 const OPEN_HZ = 20000; // こもらせない間の上限（可聴域の全体を通す）
 const MUFFLE_TIME_CONSTANT = 0.1; // 切り替えの時定数（約 0.3 秒で移る）
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
@@ -112,8 +110,7 @@ const PULSE_DIP_GAIN = 0.5; // 重低音の一打ごとに層と合奏を下げ�
 const PULSE_DIP_RECOVER_SEC = 0.07; // 下げた層と合奏を戻す時定数（約 0.2 秒で戻る）
 const PULSE_HARMONICS_GAIN = 0.6; // 重低音に加える倍音（100〜300Hz）の大きさ
 
-// 潜める度合い（大きいほど静か）と、度合いごとの層・合奏と重低音の音量の倍率。
-const hushRank = (hush: BgmHush): number => ({ NONE: 0, FAINT: 1 })[hush];
+// 潜める度合いごとの層・合奏と重低音の音量の倍率。
 const layersGainOf = (hush: BgmHush): number => (hush === 'NONE' ? 1 : 0);
 const pulseGainOf = (hush: BgmHush): number => ({ NONE: 1, FAINT: FAINT_PULSE_GAIN })[hush];
 const reverbGainOf = (hush: BgmHush): number => (hush === 'FAINT' ? FAINT_REVERB_GAIN : 0);
@@ -237,13 +234,18 @@ export class WebAudioDriver extends RecordingAudioDriver {
 
   override hushBgm(hush: BgmHush): void {
     super.hushBgm(hush);
-    const louder = hushRank(hush) < hushRank(this.hush);
     this.hush = hush;
     if (this.hushLayers !== null && this.hushPulse !== null && this.pulseReverb !== null && this.context !== null) {
-      const constant = louder ? BRIGHTEN_TIME_CONSTANT : DARKEN_TIME_CONSTANT;
-      this.hushLayers.gain.setTargetAtTime(layersGainOf(hush), this.context.currentTime, constant);
-      this.hushPulse.gain.setTargetAtTime(pulseGainOf(hush), this.context.currentTime, constant);
-      this.pulseReverb.gain.setTargetAtTime(reverbGainOf(hush), this.context.currentTime, constant);
+      // 潜めるときも戻すときも一瞬で替える（[M-REWIND-UNDO]【提示】）
+      const now = this.context.currentTime;
+      for (const [param, value] of [
+        [this.hushLayers.gain, layersGainOf(hush)],
+        [this.hushPulse.gain, pulseGainOf(hush)],
+        [this.pulseReverb.gain, reverbGainOf(hush)],
+      ] as const) {
+        param.cancelScheduledValues(now);
+        param.setValueAtTime(value, now);
+      }
     }
   }
 

@@ -56,7 +56,6 @@ import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
 import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
-import type { UndoMotion } from './dom/undo-motion.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
 import { FigureMotion } from './dom/figure-motion.js';
@@ -216,7 +215,6 @@ let currentBgm = ''; // 鳴らしている層の資産ID（同じ資産を鳴ら
 let silencedLayer: string | null = null; // SILENCE で止めた層。状況が変わるまで再開しない
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
 let ensembleScene: string | null = null; // 戦闘の合奏を鳴らしているシーン
-let undoMotion: UndoMotion | null = null; // [M-REWIND-UNDO]【提示】アンドゥの直前の姿（次の描画で一度だけ用いる）
 let timeStopped = false; // [M-UI-PLAYBACK]【静止中の演出】を掛けているか
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
@@ -901,16 +899,11 @@ const screenHandlers: ScreenHandlers = {
     }
     notice = '';
     playSe('UI_CANCEL'); // [M-DATA-AUDIO-CUE] UI_CANCEL：アンドゥ実行時
-    const before = requireSession().data.run.battle_state;
-    if (before !== null) {
-      const view = buildBattleView({ state: before, deps: stepDeps, naming, selectedInstanceId: null });
-      undoMotion = { timeline: view.timeline, plates: view.columns.flatMap((column) => (column.plate === null ? [] : [column.plate])) };
-    }
     undo(requireSession(), ctx);
+    // [M-REWIND-UNDO]【提示】画を徐々に変えず、復元後の姿へ一瞬で替える。立ち絵に残った動き（振り抜きの保持など）も捨てる。
+    figureMotion.clear();
     const restored = requireSession().data.run.battle_state;
-    if (restored === null) {
-      undoMotion = null; // バトルの外へ戻った場合は示さない
-    } else {
+    if (restored !== null) {
       cueTracker.rewindTo(restored.step); // 巻き戻した先より後に再生した契機は、再び通過すれば再生する
     }
     client?.invalidate();
@@ -947,13 +940,6 @@ const screenHandlers: ScreenHandlers = {
     });
   },
 };
-
-// アンドゥの直前の姿を取り出す（取り出したら消える）。
-function takeUndoMotion(): UndoMotion | null {
-  const motion = undoMotion;
-  undoMotion = null;
-  return motion;
-}
 
 // 一度だけ提示するシステム文言を取り出す（取り出したら消える）。
 function takeNotice(): string {
@@ -1121,7 +1107,6 @@ function renderBattle(): HTMLElement | null {
       noticeText: takeNotice(),
       resultText,
       selectedInstanceId,
-      undoFrom: takeUndoMotion(),
       figureMotion,
       focusedInstanceId,
       speed: loop.speed,
