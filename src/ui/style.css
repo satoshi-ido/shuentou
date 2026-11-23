@@ -416,6 +416,9 @@ button:focus-visible {
   pointer-events: none;
 }
 
+/* 停止事由の帯（.why）を示す間は、帯の下へずらす。 */
+.battle-board-wrap.has-status .stamps { top: 50px; }
+
 .stamp {
   text-align: center;
   white-space: nowrap;

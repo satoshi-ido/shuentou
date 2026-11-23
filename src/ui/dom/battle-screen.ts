@@ -1024,7 +1024,10 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     board.append(nodes.root);
   }
   boardWrap.append(board);
-  boardWrap.append(renderStatus(screen));
+  const status = renderStatus(screen);
+  boardWrap.append(status);
+  // 帯を示す間は、着弾予測の札を帯の下へずらして隠さない（[M-UI-VIEWPORT]［画面の区画］）。
+  boardWrap.classList.toggle('has-status', !status.classList.contains('why-idle'));
   root.append(boardWrap);
 
   const footer = element('div', 'footer-strip');
