@@ -30,7 +30,7 @@ export interface BattleScreenHandlers {
   readonly onCancel: () => void;
   readonly onToggleWatch: (instanceId: string, kind: WatchKind) => void;
   readonly onResume: () => void;
-  // [M-UI-PLAYBACK]「余白のクリックによる再開」自動時間停止中に、ボタンとアクションカード以外を左クリックした。
+  // [M-UI-PLAYBACK]「余白のクリックによる再開」時間が進んでいない間に、ボタンとアクションカード以外を左クリックした。
   readonly onResumeTime: () => void;
   readonly onSpeed: (speed: PlaybackSpeed) => void;
   // 注目したアクション（ホバー）。再描画をまたいで提示を保つために記録する。
@@ -832,6 +832,8 @@ export interface BattleScreenState {
   readonly speed: PlaybackSpeed;
   // 自動時間停止により静止しているか（[M-PIPE-PAUSE-TRIGGER]）。再生操作の点灯に用いる。
   readonly stopped: boolean;
+  // バトルの時間が進んでいないか（自動時間停止中、および再生速度 PAUSE で静止している間・[M-UI-PLAYBACK]）。
+  readonly worldStopped: boolean;
   readonly rewind: RewindIndicator;
   // 注目中のアクションに対する提示（判定プレビューと着弾予測）の問い合わせ。
   // ホバーのたびに画面全体を組み直さない。
@@ -1046,7 +1048,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   });
   // [M-UI-PLAYBACK]「余白のクリックによる再開」ボタンとアクションカード（実行できないものを含む）は除く。
   // ボタン・カードは各自の mousedown で応じるため、ここでは押された要素で見分ける。
-  if (screen.stopped) {
+  if (screen.worldStopped) {
     root.addEventListener('mousedown', (event) => {
       const target = event.target instanceof Element ? event.target : null;
       if (event.button !== 0 || target === null || target.closest('button, .action-card, a, input, select, textarea') !== null) {

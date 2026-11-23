@@ -54,7 +54,7 @@ import { sceneEntries, sceneJumpData, sceneSelectEnabled } from './dev/scene-sel
 import { lanternView } from './view/lantern-view.js';
 import { AiDecisionClient } from './ai-client.js';
 import { createAiWorkerPort } from './ai-worker-port.js';
-import { loadConfig, saveConfig, type DisplayConfig } from './config.js';
+import { loadConfig, saveConfig, type DisplayConfig, type PlaybackSpeed } from './config.js';
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
@@ -216,6 +216,7 @@ let silencedLayer: string | null = null; // SILENCE で止めた層。状況が�
 let pulseState = ''; // 重低音の資産と間隔（変わったときだけ伝える）
 let ensembleScene: string | null = null; // 戦闘の合奏を鳴らしているシーン
 let timeStopped = false; // [M-UI-PLAYBACK]【静止中の演出】を掛けているか
+let lastPlaySpeed: PlaybackSpeed | null = null; // [M-UI-PLAYBACK]「余白のクリックによる再開」直前に選んでいた PAUSE 以外の再生速度
 
 // SE を1件鳴らす。対応する資産がなければ何もしない。
 function playSe(cue: AudioCue): void {
@@ -1048,17 +1049,20 @@ const battleHandlers: BattleScreenHandlers = {
     stepForward(1);
     render();
   },
-  // [M-UI-PLAYBACK]「余白のクリックによる再開」設定した再生速度で進める。PAUSE のときは1ステップだけ進める。
+  // [M-UI-PLAYBACK]「余白のクリックによる再開」設定した再生速度で進める。PAUSE のときは直前に選んでいた再生速度へ戻す。
   onResumeTime: () => {
-    if (battleResult !== 'PAUSED') {
+    if (!isTimeStopped()) {
       return;
     }
-    stepForward(loop.speed === 'PAUSE' ? 1 : stepsPerFrame(loop.speed));
-    render();
+    const fallback: PlaybackSpeed = config.defaultPlaybackSpeed === 'PAUSE' ? 'X1' : config.defaultPlaybackSpeed;
+    battleHandlers.onSpeed(loop.speed === 'PAUSE' ? (lastPlaySpeed ?? fallback) : loop.speed);
   },
   // 再生速度の選択。時間停止中に再生を選んだ場合は、ステップ進行確定として停止を解く。
   onSpeed: (speed) => {
     loop.speed = speed;
+    if (speed !== 'PAUSE') {
+      lastPlaySpeed = speed;
+    }
     if (speed !== 'PAUSE' && battleResult === 'PAUSED') {
       stepForward(stepsPerFrame(speed));
     }
@@ -1119,6 +1123,7 @@ function renderBattle(): HTMLElement | null {
       focusedInstanceId,
       speed: loop.speed,
       stopped: battleResult === 'PAUSED',
+      worldStopped: isTimeStopped(),
       rewind: {
         count: meta.total_rewind_count,
         pending: pending.rewind_pending,
