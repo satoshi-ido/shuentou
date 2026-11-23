@@ -1369,7 +1369,8 @@ button:focus-visible {
   color: var(--miss);
 }
 
-/* [S-BG-INTERMISSION]「倒れた敵」背景の敵陣の側に、背景と同じだけ暗く落として置く。壇の従者と同じ倍率で描く。 */
+/* [S-BG-INTERMISSION]「倒れた敵」背景の敵陣の側に、バトル画面の倒れの画（.figure-downed.foe）と同じ明るさと縁の光で置く。
+   壇の従者と同じ倍率で描く。 */
 .im-fallen-foe {
   display: flex;
   align-items: flex-end;
@@ -1380,7 +1381,7 @@ button:focus-visible {
 .im-fallen-foe .figure-img {
   height: calc(var(--figure-dots, 96) * 132px / 96);
   margin-bottom: 64px; /* 壇の従者の足元（名札の上）に揃える */
-  filter: brightness(0.42) saturate(0.6);
+  filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4));
 }
 
 .imgrid {
@@ -1912,6 +1913,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .figure-img.figure-downed.mine { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .figure-img.figure-downed.foe { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 .pm .figure-img { height: calc(var(--figure-dots, 96) * 132px / 96); margin-bottom: 6px; }
+/* [S-BG-INTERMISSION]「同行の従者」壇の従者の立ち絵は燈に宿る魂として半透明で描く。名札は不透明のまま。 */
+.pm .figure-img { opacity: 0.6; }
 .pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }
 .rfig .figure-img { height: calc(var(--figure-dots, 96) * 118px / 96); margin-bottom: 5px; }
 .rfig.dead .figure-img { filter: grayscale(1); opacity: 0.34; }
@@ -1950,10 +1953,10 @@ button:disabled { opacity: 0.4; cursor: default; }
     var(--screen-image, none) center / cover no-repeat;
 }
 
-/* インターミッションと補充は、直前のシーンの戦闘背景を暗く落とす（[S-BG-INTERMISSION]）。 */
+/* インターミッションは、直前のシーンの戦闘背景をバトル画面（.field-bg）と同じ明るさで敷く（[S-BG-INTERMISSION]）。 */
 .imfield {
   background:
-    linear-gradient(180deg, rgba(8, 7, 11, 0.72), rgba(8, 7, 11, 0.86)),
+    linear-gradient(180deg, rgba(8, 7, 11, 0.25) 0%, rgba(8, 7, 11, 0.15) 60%, rgba(8, 7, 11, 0.55) 100%),
     var(--screen-image, none) center / cover no-repeat,
     radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.1), transparent 70%),
     radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.12), transparent 70%),
