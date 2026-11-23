@@ -1,6 +1,8 @@
 // [M-UI-SCRIPT] 脚本の提示の描画。暗くした背景の中央に本文を行ごとに積む。下部の文字窓と立ち絵を用いない。
 
 import type { ScriptView } from '../script-player.js';
+import type { LanternView } from '../view/lantern-view.js';
+import { renderLantern } from './lantern.js';
 
 export interface ScriptHandlers {
   readonly onAdvance: () => void; // 左クリック（[M-UI-VIEWPORT]【入力装置】）
@@ -21,9 +23,11 @@ function element(tag: string, className: string, text?: string): HTMLElement {
 
 // 背景（[S-SCRIPT-SCHEMA]「背景」）。実体の無い間は色相によるプレースホルダ（[I-PLAN-ASSETS]）を描き、
 // 実体があれば画像を重ねる。
+// lantern は〈目覚め〉で本文の背後に置く寄りの燈（[M-UI-SCRIPT]【燈の中の声】）。置かなければ Null。
 export interface ScriptBackdrop {
   readonly hue: number;
   readonly url: string | null;
+  readonly lantern?: LanternView | null;
 }
 
 export function renderScriptScreen(view: ScriptView, backdrop: ScriptBackdrop, handlers: ScriptHandlers): HTMLElement {
@@ -34,6 +38,11 @@ export function renderScriptScreen(view: ScriptView, backdrop: ScriptBackdrop, h
     background.style.setProperty('--script-image', `url("${backdrop.url}")`);
   }
   root.append(background);
+  if (backdrop.lantern !== undefined && backdrop.lantern !== null) {
+    const lantern = renderLantern(backdrop.lantern);
+    lantern.classList.add('script-lantern');
+    root.append(lantern);
+  }
 
   if (view.titleCard !== null) {
     root.append(element('div', 'script-title-card', view.titleCard));

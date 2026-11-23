@@ -8,6 +8,7 @@ import { WATCH_DEFAULT_MODES, type DisplayConfig, type PlaybackSpeed, type TextS
 import { PARAM_LABEL, STEP_ARROW, SYMBOL } from '../format.js';
 import { figureNode, figureUrl } from './art.js';
 import { renderLantern } from './lantern.js';
+import type { LanternView } from '../view/lantern-view.js';
 import { HERO_MAX_HP_CHANGE } from '../view/screen-view.js';
 import type {
   DictionaryEntry,
@@ -342,10 +343,8 @@ export function renderIntermission(
   objective.textContent = view.objectiveStringId === null ? '' : strings(view.objectiveStringId);
   root.append(objective);
 
+  // [S-BG-INTERMISSION]「寄りの燈」継承だけのインターミッションでは燈の数が動かないため、寄りの燈を置かない。
   const field = element('div', 'imfield');
-  if (view.lantern !== undefined && view.lantern !== null) {
-    field.append(renderLantern(view.lantern)); // [S-BG-INTERMISSION] 燈は背景に描き込まず別の層として重ねる
-  }
   const stage = element('div', 'imstage');
   const party = element('div', 'party');
   for (const slot of view.slots) {
@@ -498,7 +497,8 @@ function refillCandidate(candidate: RefillCandidateView, enabled: boolean, onPic
 }
 
 // [M-PROG-REFILL] アクト移行の段。UIプロトタイプに倣い、見出し・壇・（移行の決済／補充候補）の順に並べる。
-export function renderRefill(view: RefillView, handlers: ScreenHandlers): HTMLElement {
+// lantern は補充の画面に寄りで置く燈（[S-BG-INTERMISSION]「寄りの燈」）。迎え入れるたびにステートから描き直す。
+export function renderRefill(view: RefillView, handlers: ScreenHandlers, lantern: LanternView): HTMLElement {
   const root = element('div', 'screen screen-refill rf');
 
   const head = element('div', 'imhead');
@@ -513,6 +513,7 @@ export function renderRefill(view: RefillView, handlers: ScreenHandlers): HTMLEl
 
   // 壇：左に継続する生存従者・空きの遺芯枠・主人公、右に補充候補。操作の正はカード側にある。
   const field = element('div', 'refill-field');
+  field.append(renderLantern(lantern)); // 燈は背景に描き込まず別の層として重ねる
   const stage = element('div', 'refill-stage');
   const party = element('div', 'rstage-col');
   for (const survivor of view.survivors) {

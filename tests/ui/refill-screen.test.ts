@@ -11,6 +11,7 @@ import type { GameSession } from '../../src/engine/game/session.js';
 import type { RunState } from '../../src/engine/run/state.js';
 import { createContext, MASTERS, playBattle } from '../engine/game-fixtures.js';
 import { refillView } from '../../src/ui/view/intermission-view.js';
+import { lanternView } from '../../src/ui/view/lantern-view.js';
 import { attendantEpithet, attendantName } from '../../src/ui/view/screen-view.js';
 
 beforeAll(() => {
@@ -81,7 +82,7 @@ describe('[M-PROG-REFILL] アクト移行の提示', () => {
   it('壇は継続・空き枠・主人公・候補を並べ、迎え入れた従者は結ばれたものとして示す', async () => {
     const { renderRefill } = await import('../../src/ui/dom/screens.js');
     const { session, ctx, run } = transition();
-    const before = renderRefill(viewOf(run), handlers) as unknown as FakeElement;
+    const before = renderRefill(viewOf(run), handlers, lanternView(run, MASTERS, 0)) as unknown as FakeElement;
     expect(before.findAll('rfig').map((node) => node.className)).toEqual([
       'rfig alive',
       'rfig slot', // 残りの補充可能数1枠
@@ -94,7 +95,7 @@ describe('[M-PROG-REFILL] アクト移行の提示', () => {
     expect(before.find('refill-side')?.text()).toContain('残り 1 / 1');
 
     confirmRefill(session, ctx, 'ATTENDANT_02');
-    const after = renderRefill(viewOf(session.data.run), handlers) as unknown as FakeElement;
+    const after = renderRefill(viewOf(session.data.run), handlers, lanternView(session.data.run, MASTERS, 0)) as unknown as FakeElement;
     // 空き枠は埋まり、迎え入れた従者は壇の候補側で結ばれたものとなる。
     expect(after.findAll('rfig').map((node) => node.className)).toEqual([
       'rfig alive',

@@ -214,7 +214,13 @@ let notice = ''; // 一度だけ提示するシステム文言（履歴が空で
 let resultText = ''; // [M-PIPE-P5-DISCARD] 決着の提示。バトルを離れるまで残す。
 let firstSightHelpId: string | null = null; // [M-DATA-HELPMASTER] 初出自動提示の対象
 // [M-UI-SCRIPT] 提示中の脚本。提示の間、背後の画面は操作を受け付けない。
-let script: { readonly player: ScriptPlayer; readonly hue: number; readonly sceneId: string; readonly onDone: () => void } | null = null;
+let script: {
+  readonly player: ScriptPlayer;
+  readonly hue: number;
+  readonly sceneId: string;
+  readonly onDone: () => void;
+  readonly awakening: boolean;
+} | null = null;
 let introShown = false; // 現在の PRE_BATTLE で開幕の脚本を提示したか。PRE_BATTLE を離れると戻す。
 const cueTracker = new BattleCueTracker();
 let dueCues: string[] = []; // [S-SCRIPT-TRIGGER]【バトル中の契機】成立して再生を待つ契機の anchor
@@ -572,6 +578,8 @@ function drawScript(): void {
       {
         hue: script.hue,
         url: absoluteUrl(assetUrlById(ASSET_MASTERS, script.player.view().background) ?? sceneBackgroundUrl(script.sceneId)),
+        // [M-UI-SCRIPT]【燈の中の声】〈目覚め〉では、供犠を適用した後のステートの燈を本文の背後に淡く置く。
+        lantern: script.awakening && session !== null ? lanternView(session.data.run, masters, session.data.meta.total_rewind_count) : null,
       },
       {
       onAdvance: () => {
@@ -639,13 +647,14 @@ function ensureScriptLoop(): void {
 }
 
 // レコード列を1回の提示として再生し、終えたら onDone を呼ぶ。再生するレコードがなければ直ちに呼ぶ。
-function playScript(segments: readonly ScriptSegment[], sceneId: string, onDone: () => void): void {
+// awakening は供犠の後の〈目覚め〉の提示であること（寄りの燈を置く。[S-BG-INTERMISSION]「寄りの燈」）。
+function playScript(segments: readonly ScriptSegment[], sceneId: string, onDone: () => void, awakening = false): void {
   const player = new ScriptPlayer(segments.filter((segment) => segment.records.length > 0));
   if (player.done) {
     onDone();
     return;
   }
-  script = { player, hue: sceneHue(sceneId), sceneId, onDone };
+  script = { player, hue: sceneHue(sceneId), sceneId, onDone, awakening };
   runDirectives(player.currentDirectives);
   drawScript();
   ensureScriptLoop();
@@ -876,7 +885,7 @@ const screenHandlers: ScreenHandlers = {
         () => {
           confirmSacrifice(requireSession(), ctx, attendantId);
           notice = strings.resolve('STR_SACRIFICE_DONE', { common: commonKeys(), bundles: { ATTENDANT: attendantBundle(attendantId) } });
-          playScript([triggerSegment('SACRIFICE_EXECUTE', attendantId)], sceneId, () => render());
+          playScript([triggerSegment('SACRIFICE_EXECUTE', attendantId)], sceneId, () => render(), true);
           render();
         },
         bundles,
@@ -1268,7 +1277,6 @@ function renderScreen(): HTMLElement {
           ),
           canSettle: canSettleIntermission(run, masters) || canEnterTransition(run, masters),
           isActTransition: canEnterTransition(run, masters),
-          lantern: lanternView(run, masters, meta.total_rewind_count),
           noAttendant: run.party.length === 0,
           noticeText: takeNotice(),
         },
@@ -1290,6 +1298,7 @@ function renderScreen(): HTMLElement {
           takeNotice(),
         ),
         screenHandlers,
+        lanternView(run, masters, meta.total_rewind_count),
       );
     default:
       return renderEnding(screenHandlers);

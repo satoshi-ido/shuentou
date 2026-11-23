@@ -1838,6 +1838,17 @@ button:disabled { opacity: 0.4; cursor: default; }
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
 }
 .script-speaker { margin-right: 0.15em; color: var(--muted); }
+/* [M-UI-SCRIPT]【燈の中の声】〈目覚め〉の寄りの燈。本文の読みを妨げないよう、本文の背後に淡く置く。 */
+.script-lantern {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  height: 420px;
+  width: auto;
+  transform: translate(-50%, -50%);
+  opacity: 0.3;
+  pointer-events: none;
+}
 .script-screen.lantern .script-line { color: var(--ember); }
 .script-screen.lantern .script-speaker { color: var(--ember); }
 .script-title-card {
@@ -1980,8 +1991,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .action-header .sys b .sys-icon { width: 11px; height: 11px; }
 .fx .sys-icon { width: 34px; height: 34px; filter: drop-shadow(0 0 10px currentColor); }
 
-/* [S-BG-INTERMISSION] 燈は背景の上・壇の下の層として、場の中央に寄りで置く。 */
-.imfield .im-lantern {
+/* [S-BG-INTERMISSION]「寄りの燈」補充の画面では、燈を背景の上・壇の下の層として、場の中央に寄りで置く。 */
+.refill-field .im-lantern {
   position: absolute;
   left: 50%;
   top: 50%;
