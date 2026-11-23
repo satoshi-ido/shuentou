@@ -160,72 +160,14 @@ stageElement.append(screenRoot, effects.root, scriptRoot);
 // [M-UI-HUD]［立ち絵の動き］消滅猶予の残像は演出層に置く。演出の簡略化は設定を都度引く。
 const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects, () => render(), undefined, (unitId, pose) => swingFramesOf(unitId, pose));
 
-// [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
-const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
-const BLACKOUT_HOLD_MS = 100; // 暗いまま保つ時間
-const BLACKOUT_RISE_MS = 200; // 戻すのにかける時間
-let seenRewindCount: number | null = null; // 最後に描画した回帰回数（セッションが無い間は Null）
-let blackout: HTMLElement | null = null; // 提示中の暗転の層。提示の間は時間を進めず、操作を受け付けない
-let afterBlackout: (() => void)[] = []; // 提示の間に届いた進行（敵軍の応答など）。戻した後に行う
-
-// 回帰回数の増加を見て、暗転を始める。セッションの読み込み・終了による変化は増加とみなさない。
-function watchRewindCount(): void {
-  const count = session?.data.meta.total_rewind_count ?? null;
-  if (seenRewindCount !== null && count !== null && count > seenRewindCount) {
-    startBlackout();
-  }
-  seenRewindCount = count;
-}
-
-function startBlackout(): void {
-  if (blackout !== null) {
-    return;
-  }
-  const layer = document.createElement('div');
-  layer.className = 'blackout';
-  const total = BLACKOUT_FALL_MS + BLACKOUT_HOLD_MS + BLACKOUT_RISE_MS;
-  layer.animate(
-    [
-      { opacity: 0, easing: 'linear' },
-      { opacity: 1, offset: BLACKOUT_FALL_MS / total },
-      { opacity: 1, offset: (BLACKOUT_FALL_MS + BLACKOUT_HOLD_MS) / total, easing: 'ease-out' },
-      { opacity: 0 },
-    ],
-    { duration: total, fill: 'forwards' },
-  );
-  stageElement.append(layer);
-  blackout = layer;
-  window.setTimeout(endBlackout, total);
-}
-
-function endBlackout(): void {
-  blackout?.remove();
-  blackout = null;
-  syncBgmSilence(); // 暗転の終了とともに BGM を戻す
-  const pending = afterBlackout;
-  afterBlackout = [];
-  for (const run of pending) {
-    run();
-  }
-}
-
-// 巻き戻しの保留中（アンドゥ・ロールバックの実行から確定まで）は重低音だけをごく小さく残し、
-// 暗転の提示の間は重低音を含めて途切れさせる。変わったときだけ伝える。
+// [M-META-COMMIT]【提示】巻き戻しの保留中（アンドゥ・ロールバックの実行から確定まで）は重低音だけをごく小さく残し、
+// 確定とともに直ちに元へ戻す。変わったときだけ伝える。
 let bgmHush: BgmHush = 'NONE';
 function syncBgmSilence(): void {
-  const hush: BgmHush = blackout !== null ? 'SILENT' : (session?.data.pending.rewind_pending ?? false) ? 'FAINT' : 'NONE';
+  const hush: BgmHush = (session?.data.pending.rewind_pending ?? false) ? 'FAINT' : 'NONE';
   if (hush !== bgmHush) {
     bgmHush = hush;
     audio.hushBgm(hush);
-  }
-}
-
-// 暗転の提示の間は進行を待たせ、戻した後に行う。
-function whenLit(run: () => void): void {
-  if (blackout === null) {
-    run();
-  } else {
-    afterBlackout.push(run);
   }
 }
 
@@ -759,11 +701,8 @@ function attachClient(sceneId: string): void {
   client?.dispose();
   client = new AiDecisionClient(createAiWorkerPort(), sceneId, () => {
     // 応答後の再開も再生速度に従う（停止中は1ステップのみ進めて静止させる）。
-    // 回帰の暗転の間に届いた応答は、戻した後に進める（[M-META-COMMIT]【提示】）。
-    whenLit(() => {
-      stepForward(stepsPerFrame(loop.speed));
-      render();
-    });
+    stepForward(stepsPerFrame(loop.speed));
+    render();
   });
 }
 
@@ -1380,7 +1319,6 @@ function syncTimeStop(): void {
 function render(): void {
   syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
   syncTimeStop();
-  watchRewindCount(); // [M-META-COMMIT]【提示】
   syncBgmSilence();
   presentIntro(); // [S-SCRIPT-TRIGGER] SCENE_INTRO。初出の解説は開幕の脚本を終えてから提示する。
   presentFirstSight(); // [M-DATA-HELPMASTER] 初出の自動提示はバトル開始前演出の提示に先んじる。
@@ -1404,7 +1342,7 @@ const loop = new PlaybackLoop(
     if (session === null || session.data.run.phase !== 'BATTLE') {
       return false;
     }
-    if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING' && blackout === null) {
+    if (stepsPerFrame(speed) > 0 && battleResult === 'RUNNING') {
       runAdvance(() => resumeBattle(requireSession(), ctx, advanceOptions(stepsPerFrame(speed))));
       render();
     }

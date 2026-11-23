@@ -23,8 +23,8 @@ export interface AudioDriver {
   // 層を入れ替える（前の層を下げながら次の層を上げる）。同じ資産は鳴らし直さない。
   playBgm(cue: AudioCue, assetId: string): void;
   muffleLayers(muffled: boolean): void; // 時間が進んでいない間、層と合奏をこもらせる（重低音は変えない）
-  // [M-META-COMMIT]【提示】BGM を潜める。FAINT は層と合奏を途切れさせ重低音だけをごく小さく残し（巻き戻しの保留中）、
-  // SILENT は重低音を含めて途切れさせる（回帰の暗転）。いずれも重低音の拍は数え続ける。
+  // [M-META-COMMIT]【提示】BGM を潜める。FAINT は層と合奏を途切れさせ重低音だけをごく小さく残す（巻き戻しの保留中）。
+  // 重低音の拍は数え続ける。
   hushBgm(hush: BgmHush): void;
   // 戦闘の合奏の譜（声部の鍵 → 区切りごとの再生の速さ。休みは Null）。重低音の拍に合わせて鳴らす。Null なら止める。
   // 声部の鍵は資産ID。1つの資産を同時に複数の高さで鳴らす声部は「資産ID#番号」とする。
@@ -34,7 +34,7 @@ export interface AudioDriver {
   setVolumes(bgm: number, se: number): void;
 }
 
-export type BgmHush = 'NONE' | 'FAINT' | 'SILENT';
+export type BgmHush = 'NONE' | 'FAINT';
 
 export type AudioEvent =
   | { readonly kind: 'BGM' | 'SE'; readonly cue: AudioCue; readonly assetId: string; readonly volume: number }
@@ -113,9 +113,9 @@ const PULSE_DIP_RECOVER_SEC = 0.07; // 下げた層と合奏を戻す時定数�
 const PULSE_HARMONICS_GAIN = 0.6; // 重低音に加える倍音（100〜300Hz）の大きさ
 
 // 潜める度合い（大きいほど静か）と、度合いごとの層・合奏と重低音の音量の倍率。
-const hushRank = (hush: BgmHush): number => ({ NONE: 0, FAINT: 1, SILENT: 2 })[hush];
+const hushRank = (hush: BgmHush): number => ({ NONE: 0, FAINT: 1 })[hush];
 const layersGainOf = (hush: BgmHush): number => (hush === 'NONE' ? 1 : 0);
-const pulseGainOf = (hush: BgmHush): number => ({ NONE: 1, FAINT: FAINT_PULSE_GAIN, SILENT: 0 })[hush];
+const pulseGainOf = (hush: BgmHush): number => ({ NONE: 1, FAINT: FAINT_PULSE_GAIN })[hush];
 const reverbGainOf = (hush: BgmHush): number => (hush === 'FAINT' ? FAINT_REVERB_GAIN : 0);
 
 // 残響の応答。減衰する雑音から作る。乱数 API は全層で禁じられているため（[I-ENV-TOOLING]）、固定の種の擬似乱数を用いる。

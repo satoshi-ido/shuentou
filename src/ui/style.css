@@ -2025,12 +2025,3 @@ button:disabled { opacity: 0.4; cursor: default; }
 .scene-select-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 12px 0; }
 .scene-select-item { text-align: left; padding: 6px 10px; }
 
-/* [M-META-COMMIT]【提示】回帰回数が増えたときの暗転。画面全体を覆い、提示の間の操作を受け止める。
-   明るさの推移は入口が Web Animations で与える。 */
-.blackout {
-  position: absolute;
-  inset: 0;
-  z-index: 100;
-  background: #000;
-  opacity: 0;
-}
