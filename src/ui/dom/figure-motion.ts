@@ -8,7 +8,7 @@ import type { AssetPose } from '../../data/types.js';
 import type { BattleCue } from '../../engine/cue.js';
 import type { Side } from '../../engine/types.js';
 import type { StancePose } from '../assets/resolve.js';
-import { figureNode } from './art.js';
+import { figureNode, setFigureSource } from './art.js';
 import type { PlateView } from '../view/battle-view.js';
 import {
   BREATH,
@@ -37,6 +37,13 @@ type ShotKind = 'LUNGE' | 'HIT';
 export interface DownedFigure {
   readonly url: string;
   readonly side: Side;
+}
+
+// [M-UI-HUD]【立ち絵の動き】「決着の一打」発動の時点に定めた、最短の表示の各段の画（at は実時刻）。
+// 勝利の決着では盤面を組み直さないため、止めた盤面の立ち絵をこの画で替えていく。
+interface ReelFrame {
+  readonly at: number;
+  readonly url: string;
 }
 
 interface Shot {
@@ -82,12 +89,15 @@ export class FigureMotion {
   private shown: Record<string, StancePose | null> = {}; // 直前に描いた構え（「構えの画が描かれなかった」の判定に用いる）
   private states: Record<string, StancePose | null> = {}; // 直前の描画でステートから定めた構え（硬直中の被弾の判定に用いる）
   private downed: Record<number, DownedFigure> = {}; // 配置位置ごとの倒れの画（撤去の後も示す）
+  private reels: Record<string, ReelFrame[]> = {}; // ユニットごとの最短の表示の各段の画（「決着の一打」）
+  private frozenTimers: number[] = []; // 止めた盤面で画を替える予約
   private clock = 0; // 世界が動いていた時間の累計（ms）。思考中の呼吸の位相に用いる
   private resumedAt: number | null = null; // 動き始めた実時刻。静止中は Null
 
   // onPoseChange は最短の表示の段が替わる時刻に呼ぶ。静止中は画面が組み直されないため、入口が描き直す。
   // swingFramesOf は、ユニットがその構えで示す中割りのコマの数（[M-DATA-ASSETMASTER]［構えの選択］「中割り」）。
   // downFigureOf は、消滅猶予状態へ移ったユニットが示す倒れの画（同「倒れの画」）。マスターでない、または実体が無ければ Null。
+  // figureUrlOf は、ユニットがその構えで示す立ち絵の参照先（「決着の一打」で、止めた盤面の画を替えるのに用いる）。
   constructor(
     private readonly ghostLayer: HTMLElement,
     private readonly simplify: () => boolean,
@@ -95,6 +105,7 @@ export class FigureMotion {
     private readonly now: () => number = () => performance.now(),
     private readonly swingFramesOf: (unitId: string, pose: AssetPose) => number = () => 0,
     private readonly downFigureOf: (unitId: string) => DownedFigure | null = () => null,
+    private readonly figureUrlOf: (unitId: string, pose: StancePose) => string | null = () => null,
   ) {}
 
   // 「静止中」思考中の呼吸を止め、動き始めたら同じ位相から続ける。
@@ -175,6 +186,7 @@ export class FigureMotion {
   private holdFollow(unitId: string, pose: AssetPose | null): void {
     if (pose === null) {
       delete this.holds[unitId];
+      delete this.reels[unitId];
       return;
     }
     const start = this.now();
@@ -190,6 +202,79 @@ export class FigureMotion {
       }
     }
     setTimeout(this.onPoseChange, holdEndOf(hold) - start);
+    this.reels[unitId] = this.reelOf(unitId, hold);
+  }
+
+  // 「決着の一打」最短の表示の各段（構えの画の先の表示・中割り・振り抜き）の画を、発動の時点のステートで定める。
+  private reelOf(unitId: string, hold: PoseHold & { kind: 'FOLLOW' }): ReelFrame[] {
+    const swingStart = swingStartOf(hold);
+    const stages: [number, StancePose][] = [
+      ...(hold.flash ? [[hold.start, { pose: hold.pose, phase: 'STARTUP' }] as [number, StancePose]] : []),
+      ...Array.from({ length: hold.swing }, (_, index): [number, StancePose] => [
+        swingStart + index * SWING_FRAME_MS,
+        { pose: hold.pose, phase: 'SWING', frame: index + 1 },
+      ]),
+      [swingStart + hold.swing * SWING_FRAME_MS, { pose: hold.pose, phase: 'FOLLOW' }],
+    ];
+    return stages.flatMap(([at, stance]) => {
+      const url = this.figureUrlOf(unitId, stance);
+      return url === null ? [] : [{ at, url }];
+    });
+  }
+
+  // 「決着の一打」勝利の決着で止めた盤面（決着の直前に描いた盤面）に、決着のステップの発動の動きを決着の時点から再生する。
+  // 立ち絵は発動の時点に定めた画で替え、踏み込みを掛ける。返すのは、動きが終わるまでの残りの実時間（ms）。
+  playFrozen(): number {
+    const now = this.now();
+    let remaining = 0;
+    for (const [unitId, hold] of Object.entries(this.holds)) {
+      const reel = this.reels[unitId];
+      if (hold.kind !== 'FOLLOW' || reel === undefined || now >= holdEndOf(hold)) {
+        continue;
+      }
+      remaining = Math.max(remaining, holdEndOf(hold) - now);
+      if (typeof document === 'undefined') {
+        continue; // 描画環境を持たない場合（検査環境など）は残りの時間だけを返す
+      }
+      const pose = document.querySelector<HTMLElement>(`.pose[data-unit-id="${unitId}"]`);
+      const shot = pose?.querySelector<HTMLElement>('.shot') ?? null;
+      if (pose === null || shot === null) {
+        continue;
+      }
+      // 呼吸の写しを除き、溜めの光と明るさを解いて、一枚の立ち絵を替えていく
+      for (const node of [pose, shot, ...shot.querySelectorAll<HTMLElement>('*')]) {
+        if (typeof node.getAnimations === 'function') {
+          node.getAnimations().forEach((animation) => animation.cancel());
+        }
+      }
+      shot.querySelectorAll('.breath-upper').forEach((node) => node.remove());
+      shot.querySelectorAll('.breath-lower').forEach((node) => node.classList.remove('breath-lower'));
+      shot.classList.remove('breathing', 'previewing');
+      applyStill(pose);
+      const image = shot.querySelector<HTMLImageElement>('img.figure-img');
+      if (image !== null) {
+        const past = reel.filter((frame) => frame.at <= now).at(-1);
+        if (past !== undefined) {
+          setFigureSource(image, past.url);
+        }
+        for (const frame of reel.filter((candidate) => candidate.at > now)) {
+          this.frozenTimers.push(window.setTimeout(() => setFigureSource(image, frame.url), frame.at - now));
+        }
+      }
+      if (canAnimate(shot)) {
+        for (const entry of this.shots[unitId] ?? []) {
+          const elapsed = now - entry.start;
+          if (entry.kind === 'LUNGE' && elapsed < LUNGE_MS) {
+            const animation = shot.animate(shotKeyframes('LUNGE', pose.dataset.side === 'MINE' ? 'MINE' : 'FOE', false), {
+              duration: LUNGE_MS,
+              composite: 'add',
+            });
+            animation.currentTime = elapsed;
+          }
+        }
+      }
+    }
+    return remaining;
   }
 
   // 「被弾のやられ」被弾の時点を記録する。硬直中の被弾は、硬直の終わりまでやられを示す。
@@ -197,6 +282,7 @@ export class FigureMotion {
     const start = this.now();
     const hold: PoseHold = { kind: 'HIT', start, untilRecoveryEnds: isRecoveryPose(this.states[unitId] ?? null) };
     this.holds[unitId] = hold;
+    delete this.reels[unitId];
     setTimeout(this.onPoseChange, holdEndOf(hold) - start);
   }
 
@@ -220,6 +306,9 @@ export class FigureMotion {
 
   // バトルを離れるとき、およびアンドゥ・ロールバックで、残った動きと倒れの画を捨てる。
   clear(): void {
+    this.frozenTimers.forEach((timer) => clearTimeout(timer));
+    this.frozenTimers = [];
+    this.reels = {};
     this.downed = {};
     this.shots = {};
     this.holds = {};
@@ -232,6 +321,7 @@ export class FigureMotion {
     const simplify = this.simplify();
     const target = poseOf(plate.running, plate.side, simplify);
     pose.dataset.unitId = plate.unitId;
+    pose.dataset.side = plate.side;
     pose.style.setProperty('--pose-x', px(target.dx));
     pose.style.setProperty('--pose-glow', String(target.glow));
     pose.style.setProperty('--pose-bright', String(target.brightness));
@@ -263,6 +353,7 @@ export class FigureMotion {
     this.downed[posIdx] = down;
     delete this.holds[unitId];
     delete this.shots[unitId];
+    delete this.reels[unitId];
     if (typeof document === 'undefined') {
       return; // 描画環境を持たない場合（検査環境など）は覚えるだけとする
     }

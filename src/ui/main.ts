@@ -164,6 +164,7 @@ const figureMotion = new FigureMotion(
   undefined,
   (unitId, pose) => swingFramesOf(unitId, pose),
   (unitId) => downFigureOf(unitId),
+  (unitId, pose) => posedFigureOf(unitId, pose),
 );
 
 // [M-META-COMMIT]【提示】巻き戻しの保留中（アンドゥ・ロールバックの実行から確定まで）は重低音だけをごく小さく残し、
@@ -447,6 +448,16 @@ function swingFramesOf(unitId: string, pose: AssetPose): number {
   }
   const owner = figureOwnerOf(unit);
   return frameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose, 'SWING');
+}
+
+// [M-UI-HUD]【立ち絵の動き】「決着の一打」発動の時点のステートで、ユニットがその構えで示す立ち絵。盤面にいなければ Null。
+function posedFigureOf(unitId: string, pose: StancePose): string | null {
+  const unit = session?.data.run.battle_state?.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
+  if (unit === undefined) {
+    return null;
+  }
+  const owner = figureOwnerOf(unit);
+  return figureOf(owner.kind, owner.id, pose);
 }
 
 // [M-DATA-ASSETMASTER]［構えの選択］「倒れの画」消滅猶予状態へ移ったマスターが示す倒れの画。仮身、および実体が無いときは Null。
@@ -1015,14 +1026,16 @@ function runAdvance(advance: () => BattleResult): BattleResult {
   return result;
 }
 
-// [M-UI-HUD]【立ち絵の動き】「倒れの画」勝利の決着では、撃破後の脚本へ移る前に、盤面を止めたまま敵マスターの倒れた姿を示す。
-// 決着の後のセッションは既にインターミッションにあるため、この間は画面を組み直さず、決着の時点の盤面を残す。
-// 盤面の操作は受け付けず、クリックで待たずに移れる。倒れの画を示していなければ直ちに移る。
+// [M-UI-HUD]【立ち絵の動き】「倒れの画」勝利の決着では、撃破後の脚本へ移る前に、盤面を止めたまま敵マスターの倒れた姿を示し、
+// 決着のステップの発動の動きを再生する（「決着の一打」）。倒れた姿の間と動きの終わりの遅い方まで待つ。
+// 決着の後のセッションは既にインターミッションにあるため、この間は画面を組み直さず、決着の直前の盤面を残す。
+// 盤面の操作は受け付けず、クリックで待たずに移れる。倒れの画も発動の動きも無ければ直ちに移る。
 const FALLEN_HOLD_MS = 1200; // 暫定値
 let fallenHold: (() => void) | null = null;
 
 function holdFallenFoe(next: () => void): void {
-  if (!figureMotion.hasDowned('FOE')) {
+  const waitMs = Math.max(figureMotion.playFrozen(), figureMotion.hasDowned('FOE') ? FALLEN_HOLD_MS : 0);
+  if (waitMs <= 0) {
     next();
     return;
   }
@@ -1037,7 +1050,7 @@ function holdFallenFoe(next: () => void): void {
     catcher.remove();
     next();
   };
-  const timer = window.setTimeout(finish, FALLEN_HOLD_MS);
+  const timer = window.setTimeout(finish, waitMs);
   catcher.addEventListener('mousedown', finish);
   fallenHold = finish;
   stageElement.append(catcher);
