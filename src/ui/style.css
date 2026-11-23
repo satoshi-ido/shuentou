@@ -1275,7 +1275,7 @@ button:focus-visible {
 /* ── インターミッション（[M-INHERIT-POOL]・[M-UI-OBJECTIVE]）。UIプロトタイプの構成に倣う ── */
 .screen.screen-intermission {
   display: grid;
-  grid-template-rows: auto auto var(--cell-height) 1fr; /* 場はバトル画面の戦域と同じ高さ（[S-BG-INTERMISSION]） */
+  grid-template-rows: auto auto var(--cell-height) auto 1fr; /* 場はバトル画面の戦域と同じ高さ、その下に名札の帯（[S-BG-INTERMISSION]） */
   gap: 0;
   padding: 0;
   height: 100%;
@@ -1348,11 +1348,11 @@ button:focus-visible {
 }
 .im-hero .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 
+/* 従者の立ち絵と名札は、同じ数の等幅の枠（列の指定は描画側が与える）に置き、名札を立ち絵の真下に揃える。 */
 .party {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-around;
-  gap: 10px;
+  display: grid;
+  align-items: end;
+  justify-items: center;
   height: 100%;
 }
 
@@ -1367,28 +1367,42 @@ button:focus-visible {
 .pm.sel .figure .head,
 .pm.sel .figure .body { border-color: var(--ember); box-shadow: 0 0 26px -6px rgba(255, 138, 43, 0.75); }
 
-.pm .pmp {
+/* [S-BG-INTERMISSION]「名札」場のすぐ下の帯。盤面の4つのマスに倣い、中の2マスに名札を並べる。 */
+.implates {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-sunken);
+}
+.implates-party {
+  display: grid;
+  justify-items: center;
+  align-items: start;
+}
+.implates .pmp {
   border: 1px solid var(--line);
   background: rgba(13, 11, 17, 0.88);
   padding: 3px 8px;
   text-align: center;
   min-width: 108px;
+  cursor: pointer;
 }
 
-.pm.sel .pmp { border-color: var(--ember); background: #1b1309; }
-.pm .pmn { font-family: var(--font-serif); font-size: 12.5px; letter-spacing: 0.04em; }
-.pm .pmt { font-size: 10.5px; color: var(--muted); }
-.pm .pms { font-family: var(--font-mono); font-size: 10.5px; color: var(--ember); }
+.implates .pmp.sel { border-color: var(--ember); background: #1b1309; }
+.implates .pmn { font-family: var(--font-serif); font-size: 12.5px; letter-spacing: 0.04em; white-space: nowrap; }
+.implates .pmt { font-family: var(--font-ui); font-size: 10.5px; letter-spacing: 0; color: var(--muted); }
+.implates .pms { font-family: var(--font-mono); font-size: 10.5px; color: var(--ember); }
 
 
 .pm-empty {
+  grid-column: 1 / -1;
   align-self: center;
   font-size: 12px;
   color: var(--miss);
 }
 
-/* [S-BG-INTERMISSION]「倒れた敵」背景の敵陣の側に、バトル画面の倒れの画（.figure-downed.foe）と同じ明るさと縁の光で置く。
-   壇の従者と同じ倍率で描く。 */
+/* [S-BG-INTERMISSION]「倒れた敵」背景の敵陣の側に、バトル画面の倒れの画（.figure-downed.foe）と同じ明るさと縁の光で置く。 */
 .im-fallen-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 
 .imgrid {
@@ -1931,8 +1945,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .cell .figure-img.figure-downed { height: calc(var(--figure-dots, 96) * 198px / 96); transform: none; }
 .figure-img.figure-downed.mine { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .figure-img.figure-downed.foe { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
-/* 従者はマスターの 0.8 倍で、名札の上に足元を置き、後ろの列として並べる（[S-BG-INTERMISSION]「並び」）。 */
-.pm .figure-img { width: auto; height: calc(var(--figure-dots, 96) * 158px / 96); max-width: none; margin-bottom: 4px; }
+/* 従者はマスターと同じ倍率で、足元をマスターより 12px 奥へ上げ、後ろの列として並べる（[S-BG-INTERMISSION]「並び」）。 */
+.pm .figure-img { width: auto; height: calc(var(--figure-dots, 96) * 198px / 96); max-width: none; margin-bottom: 28px; }
 /* [S-BG-INTERMISSION]「同行の従者」壇の従者の立ち絵は燈に宿る魂として半透明で描く。名札は不透明のまま。 */
 .pm .figure-img { opacity: 0.6; }
 .pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }

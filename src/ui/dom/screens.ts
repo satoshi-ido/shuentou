@@ -306,17 +306,24 @@ function attendantFigure(attendantId: string): HTMLElement {
   return figureNode('figure', figureUrl('ATTENDANT', attendantId));
 }
 
-// 壇に並ぶ従者1名。クリックで選択し、継承先・供犠の対象とする。
+// 壇に並ぶ従者1名の立ち絵。クリックで選択し、継承先・供犠の対象とする。
 function partyMember(slot: PartySlotView, selected: boolean, handlers: ScreenHandlers): HTMLElement {
   const node = element('div', `pm${selected ? ' sel' : ''}`);
   node.append(attendantFigure(slot.attendantId));
-  const plate = element('div', 'pmp');
-  plate.append(element('div', 'pmn', slot.name));
-  plate.append(element('div', 'pmt', `〈${slot.epithet}〉`));
-  plate.append(element('div', 'pms', INHERIT_STATE_LABEL[slot.inheritState]));
-  node.append(plate);
   node.addEventListener('click', () => handlers.onSelectAttendant(slot.attendantId));
   return node;
+}
+
+// [S-BG-INTERMISSION]「名札」場の下の帯に、立ち絵の真下へ置く名札。クリックで同じ従者を選ぶ。
+function partyPlate(slot: PartySlotView, selected: boolean, handlers: ScreenHandlers): HTMLElement {
+  const plate = element('div', `pmp${selected ? ' sel' : ''}`);
+  // 帯を低く保つため、名と二つ名を1行に収める。
+  const name = element('div', 'pmn', slot.name);
+  name.append(element('span', 'pmt', `〈${slot.epithet}〉`));
+  plate.append(name);
+  plate.append(element('div', 'pms', INHERIT_STATE_LABEL[slot.inheritState]));
+  plate.addEventListener('click', () => handlers.onSelectAttendant(slot.attendantId));
+  return plate;
 }
 
 export function renderIntermission(
@@ -350,13 +357,20 @@ export function renderIntermission(
   const hero = element('div', 'im-hero');
   hero.append(figureNode('figure figure-im-hero', view.heroFigure));
   stage.append(hero);
+  // 立ち絵と名札は同じ数の等幅の枠に並べ、名札を立ち絵の真下に揃える。
+  const columns = `repeat(${Math.max(view.slots.length, 1)}, minmax(0, 1fr))`;
   const party = element('div', 'party');
+  party.style.gridTemplateColumns = columns;
+  const plates = element('div', 'implates-party');
+  plates.style.gridTemplateColumns = columns;
   for (const slot of view.slots) {
-    party.append(partyMember(slot, slot.attendantId === view.selectedAttendantId, handlers));
+    const selected = slot.attendantId === view.selectedAttendantId;
+    party.append(partyMember(slot, selected, handlers));
+    plates.append(partyPlate(slot, selected, handlers));
   }
   if (view.noAttendant) {
     // [M-PROG-NOATTENDANT] 同行従者0人では継承・供犠を行えない。
-    party.append(element('div', 'pm-empty', strings('STR_LOCK_NO_ATTENDANT')));
+    plates.append(element('div', 'pm-empty', strings('STR_LOCK_NO_ATTENDANT')));
   }
   stage.append(party);
   // [S-BG-INTERMISSION]「倒れた敵」背景の一部として敵陣の側に暗く置き、選べる対象にはしない。
@@ -367,6 +381,9 @@ export function renderIntermission(
   stage.append(foe);
   field.append(stage);
   root.append(field);
+  const plateBand = element('div', 'implates');
+  plateBand.append(element('div', ''), plates, element('div', ''));
+  root.append(plateBand);
 
   const grid = element('div', 'imgrid');
   const selected = view.slots.find((slot) => slot.attendantId === view.selectedAttendantId);
