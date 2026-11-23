@@ -1617,7 +1617,6 @@ button:focus-visible {
 button:disabled { opacity: 0.4; cursor: default; }
 .overlay-bar { margin-top: auto; display: flex; gap: 8px; }
 
-.party { display: flex; flex-direction: column; gap: 8px; width: 100%; }
 
 .party-slot {
   display: flex;
