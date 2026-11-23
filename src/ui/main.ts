@@ -1048,6 +1048,14 @@ const battleHandlers: BattleScreenHandlers = {
     stepForward(1);
     render();
   },
+  // [M-UI-PLAYBACK]「余白のクリックによる再開」設定した再生速度で進める。PAUSE のときは1ステップだけ進める。
+  onResumeTime: () => {
+    if (battleResult !== 'PAUSED') {
+      return;
+    }
+    stepForward(loop.speed === 'PAUSE' ? 1 : stepsPerFrame(loop.speed));
+    render();
+  },
   // 再生速度の選択。時間停止中に再生を選んだ場合は、ステップ進行確定として停止を解く。
   onSpeed: (speed) => {
     loop.speed = speed;

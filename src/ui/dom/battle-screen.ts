@@ -30,6 +30,8 @@ export interface BattleScreenHandlers {
   readonly onCancel: () => void;
   readonly onToggleWatch: (instanceId: string, kind: WatchKind) => void;
   readonly onResume: () => void;
+  // [M-UI-PLAYBACK]「余白のクリックによる再開」自動時間停止中に、ボタンとアクションカード以外を左クリックした。
+  readonly onResumeTime: () => void;
   readonly onSpeed: (speed: PlaybackSpeed) => void;
   // 注目したアクション（ホバー）。再描画をまたいで提示を保つために記録する。
   readonly onFocus: (instanceId: string | null) => void;
@@ -1042,6 +1044,18 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     event.preventDefault();
     handlers.onCancel(); // 右クリックは取り消し・1階層の遡行
   });
+  // [M-UI-PLAYBACK]「余白のクリックによる再開」ボタンとアクションカード（実行できないものを含む）は除く。
+  // ボタン・カードは各自の mousedown で応じるため、ここでは押された要素で見分ける。
+  if (screen.stopped) {
+    root.addEventListener('mousedown', (event) => {
+      const target = event.target instanceof Element ? event.target : null;
+      if (event.button !== 0 || target === null || target.closest('button, .action-card, a, input, select, textarea') !== null) {
+        return;
+      }
+      event.preventDefault();
+      handlers.onResumeTime();
+    });
+  }
   stage.append(root);
 
   // [M-UI-SCROLL] フォーカス時の中央自動スクロール補正。
