@@ -450,6 +450,54 @@ export const ASSET_MASTERS = {
     "pose": "MARTIAL",
     "pose_phase": "STARTUP"
   },
+  "ASSET_DORN_STANDING_MARTIAL_CHARGE_1": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-charge-1.png",
+    "variant": "MARTIAL_CHARGE_1",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE",
+    "frame": 1
+  },
+  "ASSET_DORN_STANDING_MARTIAL_CHARGE_2": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-charge-2.png",
+    "variant": "MARTIAL_CHARGE_2",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE",
+    "frame": 2
+  },
+  "ASSET_DORN_STANDING_MARTIAL_CHARGE_3": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_3",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-charge-3.png",
+    "variant": "MARTIAL_CHARGE_3",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE",
+    "frame": 3
+  },
+  "ASSET_DORN_STANDING_MARTIAL_CHARGE_4": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_4",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-charge-4.png",
+    "variant": "MARTIAL_CHARGE_4",
+    "pose": "MARTIAL",
+    "pose_phase": "CHARGE",
+    "frame": 4
+  },
   "ASSET_DORN_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_DORN_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",

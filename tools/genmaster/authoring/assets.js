@@ -108,6 +108,7 @@ const MOTIONS = {
   ASSET_LEF_STANDING_MARTIAL: { charge: 4 },
   ASSET_LEF_STANDING_STANCE: { charge: 4 },
   ASSET_LEF_STANDING_MIND: { charge: 4 },
+  ASSET_DORN_STANDING_MARTIAL: { charge: 4 },
 };
 
 function poseRecord(base, pose, phase, name) {
