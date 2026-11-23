@@ -101,7 +101,6 @@ const FAINT_PULSE_GAIN = 0.15; // [M-META-COMMIT]【提示】巻き戻しの保�
 const FAINT_REVERB_GAIN = 0.35; // 巻き戻しの保留中に重低音へ加える残響の大きさ（遠くで鳴るように）
 const REVERB_SEC = 2.8; // 残響の長さ
 const OPEN_HZ = 20000; // こもらせない間の上限（可聴域の全体を通す）
-const MUFFLE_TIME_CONSTANT = 0.1; // 切り替えの時定数（約 0.3 秒で移る）
 const SCHEDULE_AHEAD_SEC = 0.3; // 重低音の一打を先回りして予約する幅
 const SCHEDULER_TICK_MS = 100;
 const STEPS_PER_PULSE = 16; // 【戦闘の合奏】重低音の1拍の区切りの数
@@ -227,8 +226,15 @@ export class WebAudioDriver extends RecordingAudioDriver {
     super.muffleLayers(muffled);
     this.muffled = muffled;
     if (this.muffle !== null && this.muffleGain !== null && this.context !== null) {
-      this.muffle.frequency.setTargetAtTime(muffled ? MUFFLED_HZ : OPEN_HZ, this.context.currentTime, MUFFLE_TIME_CONSTANT);
-      this.muffleGain.gain.setTargetAtTime(muffled ? MUFFLED_GAIN : 1, this.context.currentTime, MUFFLE_TIME_CONSTANT);
+      // 切り替えは一瞬で行う（[M-UI-PLAYBACK]【静止中の演出】）
+      const now = this.context.currentTime;
+      for (const [param, value] of [
+        [this.muffle.frequency, muffled ? MUFFLED_HZ : OPEN_HZ],
+        [this.muffleGain.gain, muffled ? MUFFLED_GAIN : 1],
+      ] as const) {
+        param.cancelScheduledValues(now);
+        param.setValueAtTime(value, now);
+      }
     }
   }
 
