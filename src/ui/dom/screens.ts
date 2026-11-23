@@ -345,7 +345,11 @@ export function renderIntermission(
 
   // [S-BG-INTERMISSION]「寄りの燈」継承だけのインターミッションでは燈の数が動かないため、寄りの燈を置かない。
   const field = element('div', 'imfield');
+  // [S-BG-INTERMISSION]「並び」左からセイン・従者・倒れた敵。セインと倒れた敵は盤面のマスターと同じ倍率で描く。
   const stage = element('div', 'imstage');
+  const hero = element('div', 'im-hero');
+  hero.append(figureNode('figure figure-im-hero', view.heroFigure));
+  stage.append(hero);
   const party = element('div', 'party');
   for (const slot of view.slots) {
     party.append(partyMember(slot, slot.attendantId === view.selectedAttendantId, handlers));

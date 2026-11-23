@@ -55,6 +55,7 @@ function intermission(): IntermissionView {
       canSacrifice: false,
     })),
     fallenFoe: null,
+    heroFigure: null,
     selectedAttendantId: attendantId,
     hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),
     inheritDone: false,

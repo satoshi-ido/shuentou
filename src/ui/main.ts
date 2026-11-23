@@ -1267,6 +1267,7 @@ function renderScreen(): HTMLElement {
             canSacrifice: canSacrifice(run, slot.attendant_id),
           })),
           fallenFoe: fallenFoeOf(scene.order),
+          heroFigure: figureOf('HERO', null),
           // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
           selectedAttendantId: selected,
           hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),

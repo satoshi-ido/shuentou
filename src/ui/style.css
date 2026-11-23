@@ -1275,7 +1275,7 @@ button:focus-visible {
 /* ── インターミッション（[M-INHERIT-POOL]・[M-UI-OBJECTIVE]）。UIプロトタイプの構成に倣う ── */
 .screen.screen-intermission {
   display: grid;
-  grid-template-rows: auto auto 224px 1fr;
+  grid-template-rows: auto auto var(--cell-height) 1fr; /* 場はバトル画面の戦域と同じ高さ（[S-BG-INTERMISSION]） */
   gap: 0;
   padding: 0;
   height: 100%;
@@ -1322,13 +1322,31 @@ button:focus-visible {
     linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);
 }
 
+/* [S-BG-INTERMISSION]「並び」盤面の4つのマスに倣い、左の1マスにセイン、中の2マスに従者、右の1マスに倒れた敵を置く。 */
 .imstage {
   display: grid;
-  grid-template-columns: 1fr 240px;
+  grid-template-columns: 1fr 2fr 1fr;
   align-items: end;
   height: 100%;
-  padding: 12px 24px;
+  padding: 0 0 4px;
 }
+
+/* セインと倒れた敵は、盤面のマスターと同じ倍率で、盤面と同じ足元の高さ（戦域の下端から 20px）に置く。 */
+.im-hero,
+.im-fallen-foe {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: 100%;
+  pointer-events: none;
+}
+.im-hero .figure-img,
+.im-fallen-foe .figure-img {
+  height: calc(var(--figure-dots, 96) * 198px / 96);
+  max-width: none;
+  margin-bottom: 16px;
+}
+.im-hero .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 
 .party {
   display: flex;
@@ -1371,18 +1389,7 @@ button:focus-visible {
 
 /* [S-BG-INTERMISSION]「倒れた敵」背景の敵陣の側に、バトル画面の倒れの画（.figure-downed.foe）と同じ明るさと縁の光で置く。
    壇の従者と同じ倍率で描く。 */
-.im-fallen-foe {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 100%;
-  pointer-events: none;
-}
-.im-fallen-foe .figure-img {
-  height: calc(var(--figure-dots, 96) * 132px / 96);
-  margin-bottom: 64px; /* 壇の従者の足元（名札の上）に揃える */
-  filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4));
-}
+.im-fallen-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 
 .imgrid {
   display: grid;
@@ -1491,6 +1498,7 @@ button:focus-visible {
 
 /* 主人公の所持アクション一覧（継承の結果を確かめる欄）。 */
 .hero-acts { display: grid; gap: 4px; margin-bottom: 12px; }
+.hero-acts:last-child { margin-bottom: 0; } /* 欄の末尾の余白で、場の高さの分だけ欄があふれないようにする */
 
 .hero-act {
   border: 1px solid var(--line);
@@ -1923,7 +1931,8 @@ button:disabled { opacity: 0.4; cursor: default; }
 .cell .figure-img.figure-downed { height: calc(var(--figure-dots, 96) * 198px / 96); transform: none; }
 .figure-img.figure-downed.mine { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .figure-img.figure-downed.foe { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
-.pm .figure-img { height: calc(var(--figure-dots, 96) * 132px / 96); margin-bottom: 6px; }
+/* 従者はマスターの 0.8 倍で、名札の上に足元を置き、後ろの列として並べる（[S-BG-INTERMISSION]「並び」）。 */
+.pm .figure-img { width: auto; height: calc(var(--figure-dots, 96) * 158px / 96); max-width: none; margin-bottom: 4px; }
 /* [S-BG-INTERMISSION]「同行の従者」壇の従者の立ち絵は燈に宿る魂として半透明で描く。名札は不透明のまま。 */
 .pm .figure-img { opacity: 0.6; }
 .pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }
@@ -1968,7 +1977,7 @@ button:disabled { opacity: 0.4; cursor: default; }
 .imfield {
   background:
     linear-gradient(180deg, rgba(8, 7, 11, 0.25) 0%, rgba(8, 7, 11, 0.15) 60%, rgba(8, 7, 11, 0.55) 100%),
-    var(--screen-image, none) center / cover no-repeat,
+    var(--screen-image, none) center -173px / 1280px 720px no-repeat, /* 戦域（.field-bg）と同じ切り出し */
     radial-gradient(700px 200px at 22% 85%, rgba(255, 138, 43, 0.1), transparent 70%),
     radial-gradient(700px 200px at 78% 85%, rgba(144, 112, 200, 0.12), transparent 70%),
     linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-sunken) 62%, #08070b 100%);

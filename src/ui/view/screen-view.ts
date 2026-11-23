@@ -135,6 +135,8 @@ export interface IntermissionView {
   // [S-BG-INTERMISSION]「倒れた敵」直前にクリアしたシーンの敵マスターの倒れの画。実体が無ければ Null（置かない）。
   // 供犠した従者は場に描かない（同「供犠した従者」）。
   readonly fallenFoe: string | null;
+  // [S-BG-INTERMISSION]「並び」自陣の側に置くセインの立ち絵。実体が無ければ Null（プレースホルダ）。
+  readonly heroFigure: string | null;
   // 壇で選択中の従者。継承先・供犠の対象となる。
   readonly selectedAttendantId: string | null;
   readonly hero: HeroView;
