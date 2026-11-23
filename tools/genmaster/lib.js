@@ -619,7 +619,7 @@ export function buildAssetRecords(assets) {
     if ((entry.pose ?? null) !== null && entry.slot !== 'STANDING') {
       throw new Error(`pose は STANDING に限る: ${entry.asset_id}`);
     }
-    const phased = (entry.pose ?? null) !== null && entry.pose !== 'STAGGER';
+    const phased = (entry.pose ?? null) !== null && entry.pose !== 'STAGGER' && entry.pose !== 'DOWN';
     if (phased !== ((entry.pose_phase ?? null) !== null)) {
       throw new Error(`pose_phase の条件付必須に反する: ${entry.asset_id}`);
     }

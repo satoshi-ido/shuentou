@@ -11,6 +11,17 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ashal.png"
   },
+  "ASSET_ASHAL_STANDING_DOWN": {
+    "asset_id": "ASSET_ASHAL_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ASHAL",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ashal-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
+  },
   "ASSET_ASHAL_STANDING_MARTIAL": {
     "asset_id": "ASSET_ASHAL_STANDING_MARTIAL",
     "owner_kind": "ENEMY",
@@ -338,6 +349,17 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/calva.png"
   },
+  "ASSET_CALVA_STANDING_DOWN": {
+    "asset_id": "ASSET_CALVA_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_CALVA",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/calva-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
+  },
   "ASSET_CALVA_STANDING_MARTIAL": {
     "asset_id": "ASSET_CALVA_STANDING_MARTIAL",
     "owner_kind": "ENEMY",
@@ -438,6 +460,17 @@ export const ASSET_MASTERS = {
     "slot": "STANDING",
     "cue": null,
     "path": "art/standing/dorn.png"
+  },
+  "ASSET_DORN_STANDING_DOWN": {
+    "asset_id": "ASSET_DORN_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
   },
   "ASSET_DORN_STANDING_MARTIAL": {
     "asset_id": "ASSET_DORN_STANDING_MARTIAL",
@@ -606,6 +639,18 @@ export const ASSET_MASTERS = {
     "condition": "ActNumber == 2",
     "path": "art/standing/hero-coat-act2.png"
   },
+  "ASSET_HERO_STANDING_COAT_ACT2_DOWN": {
+    "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_DOWN",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "variant": "COAT_ACT2_DOWN",
+    "condition": "ActNumber == 2",
+    "path": "art/standing/hero-coat-act2-down.png",
+    "pose": "DOWN",
+    "pose_phase": null
+  },
   "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL": {
     "asset_id": "ASSET_HERO_STANDING_COAT_ACT2_MARTIAL",
     "owner_kind": "HERO",
@@ -689,6 +734,17 @@ export const ASSET_MASTERS = {
     "path": "art/standing/hero-coat-act2-stance-follow.png",
     "pose": "STANCE",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_DOWN": {
+    "asset_id": "ASSET_HERO_STANDING_DOWN",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
   },
   "ASSET_HERO_STANDING_MARTIAL": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL",
@@ -964,6 +1020,17 @@ export const ASSET_MASTERS = {
     "cue": null,
     "path": "art/standing/ish.png"
   },
+  "ASSET_ISH_STANDING_DOWN": {
+    "asset_id": "ASSET_ISH_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_ISH",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/ish-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
+  },
   "ASSET_ISH_STANDING_MARTIAL": {
     "asset_id": "ASSET_ISH_STANDING_MARTIAL",
     "owner_kind": "ENEMY",
@@ -1072,6 +1139,17 @@ export const ASSET_MASTERS = {
     "slot": "STANDING",
     "cue": null,
     "path": "art/standing/lef.png"
+  },
+  "ASSET_LEF_STANDING_DOWN": {
+    "asset_id": "ASSET_LEF_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
   },
   "ASSET_LEF_STANDING_MARTIAL": {
     "asset_id": "ASSET_LEF_STANDING_MARTIAL",
@@ -1931,6 +2009,17 @@ export const ASSET_MASTERS = {
     "slot": "STANDING",
     "cue": null,
     "path": "art/standing/volg.png"
+  },
+  "ASSET_VOLG_STANDING_DOWN": {
+    "asset_id": "ASSET_VOLG_STANDING_DOWN",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_VOLG",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/volg-down.png",
+    "variant": "DOWN",
+    "pose": "DOWN",
+    "pose_phase": null
   },
   "ASSET_VOLG_STANDING_MARTIAL": {
     "asset_id": "ASSET_VOLG_STANDING_MARTIAL",

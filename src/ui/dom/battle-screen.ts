@@ -4,7 +4,7 @@
 
 import type { SystemIcon } from '../assets/placeholder.js';
 import { figureNode, setFigureSource } from './art.js';
-import type { FigureMotion } from './figure-motion.js';
+import { downedNode, type FigureMotion } from './figure-motion.js';
 import { systemIconNode } from './icons.js';
 import type { PlaybackSpeed } from '../config.js';
 import { formatCenti, INFINITY_MARK, STEP_ARROW, SYMBOL } from '../format.js';
@@ -520,7 +520,15 @@ function renderColumn(
     body.style.cssText = figure.style.cssText; // 画の高さと背丈を、呼吸で分ける器にも与える
   }
   let shotNode: HTMLElement | null = null;
-  if (plate === null) {
+  const downed = plate === null ? (figureMotion?.downedAt(column.posIdx) ?? null) : null;
+  if (downed !== null) {
+    // [M-UI-HUD]［立ち絵の動き］「倒れの画」撤去されたマスターの倒れた姿を、空いたマスに置いたまま示す。
+    const pose = element('div', 'pose');
+    const shot = element('div', 'shot');
+    shot.append(downedNode(downed));
+    pose.append(shot);
+    cell.append(pose);
+  } else if (plate === null) {
     cell.append(body);
   } else {
     // [M-UI-HUD]［立ち絵の動き］姿勢（.pose）と一回の動き（.shot）を入れ子で分ける。

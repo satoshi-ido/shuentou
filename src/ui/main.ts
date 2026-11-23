@@ -58,7 +58,7 @@ import { loadConfig, saveConfig, type DisplayConfig, type PlaybackSpeed } from '
 import { renderBattleScreen, type BattleScreenHandlers } from './dom/battle-screen.js';
 import { renderScriptScreen } from './dom/script-screen.js';
 import { EffectLayer } from './dom/effects.js';
-import { FigureMotion } from './dom/figure-motion.js';
+import { type DownedFigure, FigureMotion } from './dom/figure-motion.js';
 import { stancePoseOf } from './view/figure-motion.js';
 import { WebAudioDriver, type AudioCue, type AudioDriver, type BgmHush } from './audio/driver.js';
 import { CHORDAL, readScore, SCENE_SCORES, VOICES, type Score } from './audio/ensemble.js';
@@ -157,7 +157,14 @@ const scriptRoot = document.createElement('div');
 scriptRoot.className = 'script-root';
 stageElement.append(screenRoot, effects.root, scriptRoot);
 // [M-UI-HUD]［立ち絵の動き］消滅猶予の残像は演出層に置く。演出の簡略化は設定を都度引く。
-const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects, () => render(), undefined, (unitId, pose) => swingFramesOf(unitId, pose));
+const figureMotion = new FigureMotion(
+  effects.root,
+  () => config.simplifyEffects,
+  () => render(),
+  undefined,
+  (unitId, pose) => swingFramesOf(unitId, pose),
+  (unitId) => downFigureOf(unitId),
+);
 
 // [M-META-COMMIT]【提示】巻き戻しの保留中（アンドゥ・ロールバックの実行から確定まで）は重低音だけをごく小さく残し、
 // 確定とともに直ちに元へ戻す。変わったときだけ伝える。
@@ -440,6 +447,17 @@ function swingFramesOf(unitId: string, pose: AssetPose): number {
   }
   const owner = figureOwnerOf(unit);
   return frameCount(ASSET_MASTERS, owner.kind, owner.id, assetTest(), pose, 'SWING');
+}
+
+// [M-DATA-ASSETMASTER]［構えの選択］「倒れの画」消滅猶予状態へ移ったマスターが示す倒れの画。仮身、および実体が無いときは Null。
+function downFigureOf(unitId: string): DownedFigure | null {
+  const unit = session?.data.run.battle_state?.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
+  if (unit === undefined || unit.unit_kind === 'CREATURE') {
+    return null;
+  }
+  const owner = figureOwnerOf(unit);
+  const url = assetUrl(pickAsset(ASSET_MASTERS, owner.kind, owner.id, 'STANDING', assetTest(), { pose: 'DOWN', phase: null }));
+  return url === null ? null : { url, side: unit.side };
 }
 
 // ── [I-PLAN-ASSETS]【実体の投入】表示アセットの実体 ──
@@ -985,12 +1003,44 @@ function runAdvance(advance: () => BattleResult): BattleResult {
     // 勝利は画面がインターミッションへ移るため一度だけの提示とし、敗北は盤面に残す。
     if (result === 'WIN') {
       notice = text;
-      playClearScripts(sceneId);
+      holdFallenFoe(() => {
+        figureMotion.clear(); // 倒れの画を次のバトルへ持ち越さない
+        playClearScripts(sceneId);
+        render();
+      });
     } else {
       resultText = text;
     }
   }
   return result;
+}
+
+// [M-UI-HUD]【立ち絵の動き】「倒れの画」勝利の決着では、撃破後の脚本へ移る前に、盤面を止めたまま敵マスターの倒れた姿を示す。
+// 決着の後のセッションは既にインターミッションにあるため、この間は画面を組み直さず、決着の時点の盤面を残す。
+// 盤面の操作は受け付けず、クリックで待たずに移れる。倒れの画を示していなければ直ちに移る。
+const FALLEN_HOLD_MS = 1200; // 暫定値
+let fallenHold: (() => void) | null = null;
+
+function holdFallenFoe(next: () => void): void {
+  if (!figureMotion.hasDowned('FOE')) {
+    next();
+    return;
+  }
+  const catcher = document.createElement('div');
+  catcher.className = 'fallen-hold';
+  const finish = (): void => {
+    if (fallenHold !== finish) {
+      return;
+    }
+    fallenHold = null;
+    window.clearTimeout(timer);
+    catcher.remove();
+    next();
+  };
+  const timer = window.setTimeout(finish, FALLEN_HOLD_MS);
+  catcher.addEventListener('mousedown', finish);
+  fallenHold = finish;
+  stageElement.append(catcher);
 }
 
 // 進行中のバトルから離れる：再生ループと探索ワーカーを止める。
@@ -1315,6 +1365,9 @@ function syncTimeStop(): void {
 }
 
 function render(): void {
+  if (fallenHold !== null) {
+    return; // 「倒れの画」勝利の決着の盤面を残す間は組み直さない
+  }
   syncBgm(); // [M-DATA-AUDIO-CUE] BGM は段に従う
   syncTimeStop();
   syncBgmSilence();

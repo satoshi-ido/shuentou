@@ -1,5 +1,5 @@
 // [M-UI-HUD]［立ち絵の動き］盤面の立ち絵を動かす。画面は歩進のたびに組み直されるため、思考中の呼吸と
-// 一回の動き（発動・被弾・消滅猶予）の進み具合をここに持ち、組み直した要素へ同じ時点から掛け直す。
+// 一回の動き（発動・被弾・消滅猶予）の進み具合と、マスターの倒れの画をここに持ち、組み直した要素へ同じ時点から掛け直す。
 // 「画の最短の表示」発動の後に示す構え・振り抜きの画も、実時刻とともにここに持つ。
 // 一回の動きは実時間で再生し、ステップの歩進を待たせない。静止中も最後まで再生する。
 // 演出は BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である（[M-UI-HUD]［更新と決定論］）。
@@ -8,6 +8,7 @@ import type { AssetPose } from '../../data/types.js';
 import type { BattleCue } from '../../engine/cue.js';
 import type { Side } from '../../engine/types.js';
 import type { StancePose } from '../assets/resolve.js';
+import { figureNode } from './art.js';
 import type { PlateView } from '../view/battle-view.js';
 import {
   BREATH,
@@ -31,6 +32,12 @@ import {
 } from '../view/figure-motion.js';
 
 type ShotKind = 'LUNGE' | 'HIT';
+
+// [M-UI-HUD]【立ち絵の動き】「倒れの画」撤去されたマスターのマスに置く倒れの画。
+export interface DownedFigure {
+  readonly url: string;
+  readonly side: Side;
+}
 
 interface Shot {
   readonly kind: ShotKind;
@@ -74,17 +81,20 @@ export class FigureMotion {
   private holds: Record<string, PoseHold> = {};
   private shown: Record<string, StancePose | null> = {}; // 直前に描いた構え（「構えの画が描かれなかった」の判定に用いる）
   private states: Record<string, StancePose | null> = {}; // 直前の描画でステートから定めた構え（硬直中の被弾の判定に用いる）
+  private downed: Record<number, DownedFigure> = {}; // 配置位置ごとの倒れの画（撤去の後も示す）
   private clock = 0; // 世界が動いていた時間の累計（ms）。思考中の呼吸の位相に用いる
   private resumedAt: number | null = null; // 動き始めた実時刻。静止中は Null
 
   // onPoseChange は最短の表示の段が替わる時刻に呼ぶ。静止中は画面が組み直されないため、入口が描き直す。
   // swingFramesOf は、ユニットがその構えで示す中割りのコマの数（[M-DATA-ASSETMASTER]［構えの選択］「中割り」）。
+  // downFigureOf は、消滅猶予状態へ移ったユニットが示す倒れの画（同「倒れの画」）。マスターでない、または実体が無ければ Null。
   constructor(
     private readonly ghostLayer: HTMLElement,
     private readonly simplify: () => boolean,
     private readonly onPoseChange: () => void = () => undefined,
     private readonly now: () => number = () => performance.now(),
     private readonly swingFramesOf: (unitId: string, pose: AssetPose) => number = () => 0,
+    private readonly downFigureOf: (unitId: string) => DownedFigure | null = () => null,
   ) {}
 
   // 「静止中」思考中の呼吸を止め、動き始めたら同じ位相から続ける。
@@ -131,9 +141,15 @@ export class FigureMotion {
 
   // [M-DATA-AUDIO-CUE] 発火契機。発動は踏み込み、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
   // スタン中断は発動の契機を伴わないため、踏み込みを行わない（「スタン中断」）。
+  // 倒れの画を持つマスターは、薄れさせずに倒れの画へ替える（「倒れの画」。演出の簡略化でも行う）。
   cue(cue: BattleCue): void {
     if (cue.kind === 'UNIT_DESTROY') {
-      this.fadeOut(cue.unitId);
+      const down = this.downFigureOf(cue.unitId);
+      if (down === null) {
+        this.fadeOut(cue.unitId);
+      } else {
+        this.fall(cue.unitId, cue.posIdx, down);
+      }
       return;
     }
     if (cue.kind === 'MISS') {
@@ -192,8 +208,19 @@ export class FigureMotion {
     return pose;
   }
 
-  // バトルを離れるときに、残った動きを捨てる。
+  // 「倒れの画」撤去されたマスターのマスに置く倒れの画。無ければ Null。
+  downedAt(posIdx: number): DownedFigure | null {
+    return this.downed[posIdx] ?? null;
+  }
+
+  // その陣営に倒れの画を示しているマスターがいるか（勝利の決着で倒れた姿を示す間を置くかに用いる）。
+  hasDowned(side: Side): boolean {
+    return Object.values(this.downed).some((down) => down.side === side);
+  }
+
+  // バトルを離れるとき、およびアンドゥ・ロールバックで、残った動きと倒れの画を捨てる。
   clear(): void {
+    this.downed = {};
     this.shots = {};
     this.holds = {};
     this.shown = {};
@@ -230,8 +257,35 @@ export class FigureMotion {
     }
   }
 
+  // 「倒れの画」倒れの画を覚え、描かれている立ち絵をその場で替える。撤去の後の描画は、空いたマスに覚えた画を置く
+  // （battle-screen.ts）。勝利の決着では画面を組み直さずに止めるため、その場の替えがそのまま残る。
+  private fall(unitId: string, posIdx: number, down: DownedFigure): void {
+    this.downed[posIdx] = down;
+    delete this.holds[unitId];
+    delete this.shots[unitId];
+    if (typeof document === 'undefined') {
+      return; // 描画環境を持たない場合（検査環境など）は覚えるだけとする
+    }
+    const pose = document.querySelector<HTMLElement>(`.pose[data-unit-id="${unitId}"]`);
+    const shot = pose?.querySelector<HTMLElement>('.shot') ?? null;
+    if (pose === null || shot === null) {
+      return;
+    }
+    for (const node of [pose, shot, ...shot.querySelectorAll<HTMLElement>('*')]) {
+      if (typeof node.getAnimations === 'function') {
+        node.getAnimations().forEach((animation) => animation.cancel());
+      }
+    }
+    applyStill(pose);
+    shot.classList.remove('breathing', 'previewing');
+    shot.replaceChildren(downedNode(down));
+  }
+
   // 「消滅猶予」盤面からの撤去は同じステップのうちに済むため、撤去前の姿を残像として写し、薄れさせる。
   private fadeOut(unitId: string): void {
+    if (typeof document === 'undefined') {
+      return;
+    }
     const source = document.querySelector<HTMLElement>(`.pose[data-unit-id="${unitId}"] .shot`);
     if (source === null || !canAnimate(source)) {
       return;
@@ -249,4 +303,16 @@ export class FigureMotion {
     const animation = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: FADE_MS, fill: 'forwards' });
     animation.addEventListener('finish', () => ghost.remove());
   }
+}
+
+// 「倒れの画」位置・明るさ・輪郭の光を進捗0の姿勢（元の位置、元の明るさ、光なし）とする。
+function applyStill(pose: HTMLElement): void {
+  pose.style.setProperty('--pose-x', '0px');
+  pose.style.setProperty('--pose-glow', '0');
+  pose.style.setProperty('--pose-bright', '1');
+}
+
+// 倒れの画の立ち絵。空いたマスにも置くため、陣営の縁の光と大きさは器によらず画に持たせる（style.css）。
+export function downedNode(down: DownedFigure): HTMLElement {
+  return figureNode(`figure figure-downed ${down.side === 'MINE' ? 'mine' : 'foe'}`, down.url);
 }

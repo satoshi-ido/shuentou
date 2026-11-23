@@ -90,7 +90,8 @@ const BASE_ASSETS = [
 
 // 盤面の構え（[S-LOOK-PRINCIPLE]【盤面の構え】・[M-DATA-ASSETMASTER]［構えの選択］）。審査範囲の盤面に立つ姿
 // （セイン・敵マスター・仮身）の立ち絵ごとに、系統ごとの構え（STARTUP）と振り抜き（FOLLOW）の画の計6件と、
-// スタン中断による硬直に示すやられ（STAGGER、段を持たない）の画1件を置く。下記 MOTIONS に挙げた構えは、溜め（CHARGE）と中割り（SWING）の画も置く。
+// スタン中断による硬直に示すやられ（STAGGER、段を持たない）の画1件を置く。セインと敵マスターは、HPが0になってから示す
+// 倒れ（DOWN、段を持たない）の画1件も置く（仮身は持たない）。下記 MOTIONS に挙げた構えは、溜め（CHARGE）と中割り（SWING）の画も置く。
 // asset_id・variant・path は元の画に構えの名（振り抜きは _FOLLOW も）を添え、condition は元の画のものを引き継ぐ
 // （外套の版ごとに構えを持つ）。
 const POSES = ['MARTIAL', 'STANCE', 'MIND'];
@@ -99,6 +100,7 @@ const POSE_PHASES = [
   { phase: 'FOLLOW', suffix: '_FOLLOW' },
 ];
 const POSED_OWNER_KINDS = ['HERO', 'ENEMY', 'CREATURE'];
+const DOWN_OWNER_KINDS = ['HERO', 'ENEMY'];
 // 溜め（CHARGE）と中割り（SWING）を持つ構えの画と、溜めの段の数・中割りのコマの数。どちらも任意であり、ここに挙げた構えだけが持つ。
 // asset_id・variant・path は構えの画に _CHARGE_<段>・_SWING_<順> を添える（art/import.js が取り込み元の GIF から作る）。
 const MOTIONS = {
@@ -140,6 +142,7 @@ function poseRecords(base) {
       ...motionRecords(base, pose),
     ]),
     poseRecord(base, 'STAGGER', null, 'STAGGER'),
+    ...(DOWN_OWNER_KINDS.includes(base.owner_kind) ? [poseRecord(base, 'DOWN', null, 'DOWN')] : []),
   ];
 }
 

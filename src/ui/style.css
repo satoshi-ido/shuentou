@@ -574,6 +574,8 @@ button:focus-visible {
 /* 「判定プレビューの構え」構えの画に替えている間は呼吸を止め、上の側の写しを隠して下の側を切らずに描く。 */
 .shot.previewing > .breath-upper { display: none; }
 .shot.previewing > .breath-lower { clip-path: none; }
+/* 「倒れの画」勝利の決着で倒れた姿を示す間、盤面の操作を受け止め、クリックで撃破後へ移る透明な層。 */
+.fallen-hold { position: absolute; inset: 0; z-index: 50; }
 /* 消滅猶予の残像。演出層に、撤去前の立ち絵の位置と大きさで置く。 */
 .figure-ghost { position: absolute; pointer-events: none; }
 .plate > .pname,
@@ -1911,6 +1913,10 @@ button:disabled { opacity: 0.4; cursor: default; }
 .cell .figure-img { max-width: none; }
 .bcol-mine .figure-img { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
 .bcol-foe .figure-img { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
+/* [M-UI-HUD]［立ち絵の動き］「倒れの画」撤去の後の空いたマスにも置くため、マスターの倍率と陣営の縁の光を画に持たせる。 */
+.cell .figure-img.figure-downed { height: calc(var(--figure-dots, 96) * 198px / 96); transform: none; }
+.figure-img.figure-downed.mine { filter: drop-shadow(0 0 10px rgba(255, 138, 43, 0.35)); }
+.figure-img.figure-downed.foe { filter: drop-shadow(0 0 10px rgba(144, 112, 200, 0.4)); }
 .pm .figure-img { height: calc(var(--figure-dots, 96) * 132px / 96); margin-bottom: 6px; }
 .pm.sel .figure-img { filter: drop-shadow(0 0 12px rgba(255, 138, 43, 0.75)); }
 .pm.fallen .figure-img { filter: grayscale(1); opacity: 0.4; }

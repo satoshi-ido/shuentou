@@ -103,6 +103,15 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
       expect(stagger?.pose, base.asset_id).toBe('STAGGER');
       expect(stagger?.pose_phase ?? null, base.asset_id).toBeNull();
       expect(stagger?.condition ?? null, base.asset_id).toBe(base.condition ?? null);
+      // 倒れの画はセインと敵マスターに限る（[M-DATA-ASSETMASTER]［構えの選択］「倒れの画」）
+      const down = assets[`${base.asset_id}_DOWN`];
+      if (base.owner_kind === 'CREATURE') {
+        expect(down, base.asset_id).toBeUndefined();
+      } else {
+        expect(down?.pose, base.asset_id).toBe('DOWN');
+        expect(down?.pose_phase ?? null, base.asset_id).toBeNull();
+        expect(down?.condition ?? null, base.asset_id).toBe(base.condition ?? null);
+      }
     }
   });
 
@@ -114,7 +123,7 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
         continue;
       }
       expect(record.slot, record.asset_id).toBe('STANDING');
-      if (record.pose === 'STAGGER') {
+      if (record.pose === 'STAGGER' || record.pose === 'DOWN') {
         expect(record.pose_phase ?? null, record.asset_id).toBeNull();
       } else {
         expect(record.pose_phase ?? null, record.asset_id).not.toBeNull();
@@ -141,6 +150,7 @@ describe('[M-DATA-ASSETMASTER]［構えの選択］', () => {
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act2, { pose: 'STAGGER', phase: null })?.asset_id).toBe(
       'ASSET_HERO_STANDING_COAT_ACT2_STAGGER',
     );
+    expect(pickAsset(assets, 'HERO', null, 'STANDING', act2, { pose: 'DOWN', phase: null })?.asset_id).toBe('ASSET_HERO_STANDING_COAT_ACT2_DOWN');
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act2)?.asset_id).toBe('ASSET_HERO_STANDING_COAT_ACT2');
     expect(pickAsset(assets, 'HERO', null, 'STANDING', act1)?.asset_id).toBe('ASSET_HERO_STANDING');
   });

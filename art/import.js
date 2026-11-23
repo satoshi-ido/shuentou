@@ -4,7 +4,7 @@
 // 縮める。立ち絵は背景を除いて余白を詰め、人物ごとの表示の高さ（heights.js。無ければ 64×96 ドットの枠に収める）に縮めて
 // 透明な枠（64×96 ドット以上）の下端に置いた PNG に、背景は 16:9 に切り出して
 // 640×360 ドットの PNG にして、src/ui/public/art/ へ書き出す。構えの画（<立ち絵のID>_MARTIAL・_STAGGER 等）は元の立ち絵と
-// 同じ倍率で縮め、幅を 96 ドット、高さを 104 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
+// 同じ倍率で縮め、幅を 96 ドット（倒れの画 _DOWN は 120 ドット）、高さを 104 ドットまで広げてよい（取り込み元に元の立ち絵も置く）。人物が元の画と異なる大きさで
 // 描かれた構えの画は、取り込み元の scales.json（{ "<asset_id>": 倍率 }）で倍率を補正する。画面は image-rendering: pixelated で拡大して描く。
 // 音声は取り込み元の <asset_id>.mp3 をそのまま写す。
 // 背景の切り出しの縦位置は、取り込み元の crops.json（{ "<asset_id>": -1〜1 }）で選べる。
@@ -27,8 +27,10 @@ const STANDING_BOX = { width: 64, height: 96 };
 const BACKGROUND_SIZE = { width: 640, height: 360 };
 // 構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）。得物を伸ばした構え・振りかぶった構えのために、枠をここまで広げてよい。
 // 高さの上限は、盤面のマスの立ち絵の上の余白（style.css の --cell-height）に収まる大きさとする。
-const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_FOLLOW)?|STAGGER)$/;
+const POSE_SUFFIX = /_((MARTIAL|STANCE|MIND)(_FOLLOW)?|STAGGER|DOWN)$/;
 const POSE_MAX = { width: 96, height: 104 };
+// 倒れの画（DOWN）は横たわる姿のため、幅をここまで広げてよい（盤面のマスは立ち絵の左右に余白を持つ）。
+const DOWN_MAX = { width: 120, height: 104 };
 
 // 背景を除いた画素と、不透明な範囲。
 function cutOut(source) {
@@ -50,7 +52,7 @@ function standingBoxOf(id) {
 }
 
 // base は倍率を決める元の立ち絵の範囲（元の立ち絵そのものでは Null）と枠。構えの画（[S-LOOK-PRINCIPLE]【盤面の構え】）は元の画と同じ倍率で縮め、
-// 得物を伸ばした構えが枠を越える分は、枠を POSE_MAX まで広げて収める（足元は枠の下端に揃える）。
+// 得物を伸ばした構えが枠を越える分は、枠を POSE_MAX（倒れの画は DOWN_MAX）まで広げて収める（足元は枠の下端に揃える）。
 function importStanding(source, base) {
   const { pixels, width, height, bounds } = cutOut(source);
   const cropped = nativeImage.createFromBitmap(pixels, { width, height }).crop(bounds);
@@ -67,8 +69,8 @@ function standingSize(bounds, base) {
     reference.height,
     base.box.width,
     base.box.height,
-    POSE_MAX.width,
-    POSE_MAX.height,
+    base.max.width,
+    base.max.height,
   );
 }
 
@@ -204,14 +206,14 @@ function importBackground(source, offsetY) {
 function standingBase(sourceDir, id, scale) {
   const baseId = poseBaseOf(id);
   if (baseId === null) {
-    return { bounds: null, box: standingBoxOf(id) };
+    return { bounds: null, box: standingBoxOf(id), max: POSE_MAX };
   }
   const base = nativeImage.createFromPath(path.join(sourceDir, `${baseId}.png`));
   if (base.isEmpty()) {
     throw new Error(`構えの画の元の立ち絵が取り込み元に無い：${baseId}`);
   }
   const { bounds } = cutOut(base);
-  return { bounds: { width: bounds.width / scale, height: bounds.height / scale }, box: standingBoxOf(baseId) };
+  return { bounds: { width: bounds.width / scale, height: bounds.height / scale }, box: standingBoxOf(baseId), max: id.endsWith('_DOWN') ? DOWN_MAX : POSE_MAX };
 }
 
 function main() {
