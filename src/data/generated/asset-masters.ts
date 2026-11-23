@@ -474,30 +474,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_DORN_STANDING_MARTIAL_CHARGE_3": {
-    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_3",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_DORN",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/dorn-martial-charge-3.png",
-    "variant": "MARTIAL_CHARGE_3",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_DORN_STANDING_MARTIAL_CHARGE_4": {
-    "asset_id": "ASSET_DORN_STANDING_MARTIAL_CHARGE_4",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_DORN",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/dorn-martial-charge-4.png",
-    "variant": "MARTIAL_CHARGE_4",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_DORN_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_DORN_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -508,6 +484,30 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_FOLLOW",
     "pose": "MARTIAL",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_DORN_STANDING_MARTIAL_SWING_1": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_SWING_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-swing-1.png",
+    "variant": "MARTIAL_SWING_1",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_DORN_STANDING_MARTIAL_SWING_2": {
+    "asset_id": "ASSET_DORN_STANDING_MARTIAL_SWING_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_DORN",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/dorn-martial-swing-2.png",
+    "variant": "MARTIAL_SWING_2",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_DORN_STANDING_MIND": {
     "asset_id": "ASSET_DORN_STANDING_MIND",
@@ -725,30 +725,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_HERO_STANDING_MARTIAL_CHARGE_3": {
-    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE_3",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-martial-charge-3.png",
-    "variant": "MARTIAL_CHARGE_3",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_HERO_STANDING_MARTIAL_CHARGE_4": {
-    "asset_id": "ASSET_HERO_STANDING_MARTIAL_CHARGE_4",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-martial-charge-4.png",
-    "variant": "MARTIAL_CHARGE_4",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_HERO_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "HERO",
@@ -759,6 +735,30 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_FOLLOW",
     "pose": "MARTIAL",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_MARTIAL_SWING_1": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_1",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-swing-1.png",
+    "variant": "MARTIAL_SWING_1",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_HERO_STANDING_MARTIAL_SWING_2": {
+    "asset_id": "ASSET_HERO_STANDING_MARTIAL_SWING_2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-martial-swing-2.png",
+    "variant": "MARTIAL_SWING_2",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_HERO_STANDING_MIND": {
     "asset_id": "ASSET_HERO_STANDING_MIND",
@@ -795,30 +795,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_HERO_STANDING_MIND_CHARGE_3": {
-    "asset_id": "ASSET_HERO_STANDING_MIND_CHARGE_3",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-mind-charge-3.png",
-    "variant": "MIND_CHARGE_3",
-    "pose": "MIND",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_HERO_STANDING_MIND_CHARGE_4": {
-    "asset_id": "ASSET_HERO_STANDING_MIND_CHARGE_4",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-mind-charge-4.png",
-    "variant": "MIND_CHARGE_4",
-    "pose": "MIND",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_HERO_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_MIND_FOLLOW",
     "owner_kind": "HERO",
@@ -829,6 +805,30 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_MIND_SWING_1": {
+    "asset_id": "ASSET_HERO_STANDING_MIND_SWING_1",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-mind-swing-1.png",
+    "variant": "MIND_SWING_1",
+    "pose": "MIND",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_HERO_STANDING_MIND_SWING_2": {
+    "asset_id": "ASSET_HERO_STANDING_MIND_SWING_2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-mind-swing-2.png",
+    "variant": "MIND_SWING_2",
+    "pose": "MIND",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_HERO_STANDING_STAGGER": {
     "asset_id": "ASSET_HERO_STANDING_STAGGER",
@@ -876,30 +876,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_HERO_STANDING_STANCE_CHARGE_3": {
-    "asset_id": "ASSET_HERO_STANDING_STANCE_CHARGE_3",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-stance-charge-3.png",
-    "variant": "STANCE_CHARGE_3",
-    "pose": "STANCE",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_HERO_STANDING_STANCE_CHARGE_4": {
-    "asset_id": "ASSET_HERO_STANDING_STANCE_CHARGE_4",
-    "owner_kind": "HERO",
-    "owner_id": null,
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/hero-stance-charge-4.png",
-    "variant": "STANCE_CHARGE_4",
-    "pose": "STANCE",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_HERO_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_HERO_STANDING_STANCE_FOLLOW",
     "owner_kind": "HERO",
@@ -910,6 +886,30 @@ export const ASSET_MASTERS = {
     "variant": "STANCE_FOLLOW",
     "pose": "STANCE",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_HERO_STANDING_STANCE_SWING_1": {
+    "asset_id": "ASSET_HERO_STANDING_STANCE_SWING_1",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-stance-swing-1.png",
+    "variant": "STANCE_SWING_1",
+    "pose": "STANCE",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_HERO_STANDING_STANCE_SWING_2": {
+    "asset_id": "ASSET_HERO_STANDING_STANCE_SWING_2",
+    "owner_kind": "HERO",
+    "owner_id": null,
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/hero-stance-swing-2.png",
+    "variant": "STANCE_SWING_2",
+    "pose": "STANCE",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_ICON_MARTIAL": {
     "asset_id": "ASSET_ICON_MARTIAL",
@@ -1108,30 +1108,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_LEF_STANDING_MARTIAL_CHARGE_3": {
-    "asset_id": "ASSET_LEF_STANDING_MARTIAL_CHARGE_3",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-martial-charge-3.png",
-    "variant": "MARTIAL_CHARGE_3",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_LEF_STANDING_MARTIAL_CHARGE_4": {
-    "asset_id": "ASSET_LEF_STANDING_MARTIAL_CHARGE_4",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-martial-charge-4.png",
-    "variant": "MARTIAL_CHARGE_4",
-    "pose": "MARTIAL",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_LEF_STANDING_MARTIAL_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_MARTIAL_FOLLOW",
     "owner_kind": "ENEMY",
@@ -1142,6 +1118,30 @@ export const ASSET_MASTERS = {
     "variant": "MARTIAL_FOLLOW",
     "pose": "MARTIAL",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_1": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-1.png",
+    "variant": "MARTIAL_SWING_1",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_LEF_STANDING_MARTIAL_SWING_2": {
+    "asset_id": "ASSET_LEF_STANDING_MARTIAL_SWING_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-martial-swing-2.png",
+    "variant": "MARTIAL_SWING_2",
+    "pose": "MARTIAL",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_LEF_STANDING_MIND": {
     "asset_id": "ASSET_LEF_STANDING_MIND",
@@ -1178,30 +1178,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_LEF_STANDING_MIND_CHARGE_3": {
-    "asset_id": "ASSET_LEF_STANDING_MIND_CHARGE_3",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-mind-charge-3.png",
-    "variant": "MIND_CHARGE_3",
-    "pose": "MIND",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_LEF_STANDING_MIND_CHARGE_4": {
-    "asset_id": "ASSET_LEF_STANDING_MIND_CHARGE_4",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-mind-charge-4.png",
-    "variant": "MIND_CHARGE_4",
-    "pose": "MIND",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_LEF_STANDING_MIND_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_MIND_FOLLOW",
     "owner_kind": "ENEMY",
@@ -1212,6 +1188,30 @@ export const ASSET_MASTERS = {
     "variant": "MIND_FOLLOW",
     "pose": "MIND",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_LEF_STANDING_MIND_SWING_1": {
+    "asset_id": "ASSET_LEF_STANDING_MIND_SWING_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-mind-swing-1.png",
+    "variant": "MIND_SWING_1",
+    "pose": "MIND",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_LEF_STANDING_MIND_SWING_2": {
+    "asset_id": "ASSET_LEF_STANDING_MIND_SWING_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-mind-swing-2.png",
+    "variant": "MIND_SWING_2",
+    "pose": "MIND",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_LEF_STANDING_STAGGER": {
     "asset_id": "ASSET_LEF_STANDING_STAGGER",
@@ -1259,30 +1259,6 @@ export const ASSET_MASTERS = {
     "pose_phase": "CHARGE",
     "frame": 2
   },
-  "ASSET_LEF_STANDING_STANCE_CHARGE_3": {
-    "asset_id": "ASSET_LEF_STANDING_STANCE_CHARGE_3",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-stance-charge-3.png",
-    "variant": "STANCE_CHARGE_3",
-    "pose": "STANCE",
-    "pose_phase": "CHARGE",
-    "frame": 3
-  },
-  "ASSET_LEF_STANDING_STANCE_CHARGE_4": {
-    "asset_id": "ASSET_LEF_STANDING_STANCE_CHARGE_4",
-    "owner_kind": "ENEMY",
-    "owner_id": "ENEMY_LEF",
-    "slot": "STANDING",
-    "cue": null,
-    "path": "art/standing/lef-stance-charge-4.png",
-    "variant": "STANCE_CHARGE_4",
-    "pose": "STANCE",
-    "pose_phase": "CHARGE",
-    "frame": 4
-  },
   "ASSET_LEF_STANDING_STANCE_FOLLOW": {
     "asset_id": "ASSET_LEF_STANDING_STANCE_FOLLOW",
     "owner_kind": "ENEMY",
@@ -1293,6 +1269,30 @@ export const ASSET_MASTERS = {
     "variant": "STANCE_FOLLOW",
     "pose": "STANCE",
     "pose_phase": "FOLLOW"
+  },
+  "ASSET_LEF_STANDING_STANCE_SWING_1": {
+    "asset_id": "ASSET_LEF_STANDING_STANCE_SWING_1",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-stance-swing-1.png",
+    "variant": "STANCE_SWING_1",
+    "pose": "STANCE",
+    "pose_phase": "SWING",
+    "frame": 1
+  },
+  "ASSET_LEF_STANDING_STANCE_SWING_2": {
+    "asset_id": "ASSET_LEF_STANDING_STANCE_SWING_2",
+    "owner_kind": "ENEMY",
+    "owner_id": "ENEMY_LEF",
+    "slot": "STANDING",
+    "cue": null,
+    "path": "art/standing/lef-stance-swing-2.png",
+    "variant": "STANCE_SWING_2",
+    "pose": "STANCE",
+    "pose_phase": "SWING",
+    "frame": 2
   },
   "ASSET_LISTENER_STANDING": {
     "asset_id": "ASSET_LISTENER_STANDING",
