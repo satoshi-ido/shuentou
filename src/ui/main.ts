@@ -460,6 +460,15 @@ function posedFigureOf(unitId: string, pose: StancePose): string | null {
   return figureOf(owner.kind, owner.id, pose);
 }
 
+// [S-BG-INTERMISSION]「倒れた敵」直前にクリアしたシーン（次のシーンの一つ前）の敵マスターの倒れの画。実体が無ければ Null。
+function fallenFoeOf(nextOrder: number): string | null {
+  const cleared = Object.values(scenes).find((candidate) => candidate.order === nextOrder - 1);
+  if (cleared === undefined) {
+    return null;
+  }
+  return assetUrl(pickAsset(ASSET_MASTERS, 'ENEMY', cleared.enemy_id, 'STANDING', assetTest(), { pose: 'DOWN', phase: null }));
+}
+
 // [M-DATA-ASSETMASTER]［構えの選択］「倒れの画」消滅猶予状態へ移ったマスターが示す倒れの画。仮身、および実体が無いときは Null。
 function downFigureOf(unitId: string): DownedFigure | null {
   const unit = session?.data.run.battle_state?.units.find((candidate): candidate is Unit => candidate !== null && candidate.unit_id === unitId);
@@ -1248,12 +1257,7 @@ function renderScreen(): HTMLElement {
             inheritState: slot.inherit_state,
             canSacrifice: canSacrifice(run, slot.attendant_id),
           })),
-          // [M-PROG-SACRIFICE] 供犠により消滅した従者。
-          fallen: run.sacrificed.map((attendantId) => ({
-            attendantId,
-            name: attendantName(ATTENDANT_MASTERS, attendantId),
-            epithet: attendantEpithet(ATTENDANT_MASTERS, attendantId),
-          })),
+          fallenFoe: fallenFoeOf(scene.order),
           // 選択が失われた場合（供犠・決済）は先頭の従者へ戻す。
           selectedAttendantId: selected,
           hero: heroView(run, HERO_INIT_UNIT.display_name, actionName),

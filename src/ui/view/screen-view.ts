@@ -84,13 +84,6 @@ export interface PartySlotView {
   readonly canSacrifice: boolean;
 }
 
-// [M-PROG-SACRIFICE] 供犠により消滅した従者（壇の脇に並べる）。
-export interface FallenView {
-  readonly attendantId: string;
-  readonly name: string;
-  readonly epithet: string;
-}
-
 // [M-INHERIT-MERGE]［UI要件］継承対象1件分のプレビュー。選択中の従者の係数を適用した後の値を持つ。
 export interface InheritOptionView {
   readonly target: InheritTarget;
@@ -140,7 +133,9 @@ export interface IntermissionView {
   readonly sceneName: string; // 次に遷移するシーン
   readonly sceneNumber: string;
   readonly slots: readonly PartySlotView[];
-  readonly fallen: readonly FallenView[];
+  // [S-BG-INTERMISSION]「倒れた敵」直前にクリアしたシーンの敵マスターの倒れの画。実体が無ければ Null（置かない）。
+  // 供犠した従者は場に描かない（同「供犠した従者」）。
+  readonly fallenFoe: string | null;
   // 壇で選択中の従者。継承先・供犠の対象となる。
   readonly selectedAttendantId: string | null;
   readonly hero: HeroView;

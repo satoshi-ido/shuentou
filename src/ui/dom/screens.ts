@@ -356,18 +356,12 @@ export function renderIntermission(
     party.append(element('div', 'pm-empty', strings('STR_LOCK_NO_ATTENDANT')));
   }
   stage.append(party);
-  stage.append(element('div', 'imdiv'));
-  const fallen = element('div', 'fallenwrap');
-  for (const lost of view.fallen) {
-    const node = element('div', 'pm fallen');
-    node.append(attendantFigure(lost.attendantId));
-    const plate = element('div', 'pmp');
-    plate.append(element('div', 'pmn', lost.name));
-    plate.append(element('div', 'pmt', `〈${lost.epithet}〉`));
-    node.append(plate);
-    fallen.append(node);
+  // [S-BG-INTERMISSION]「倒れた敵」背景の一部として敵陣の側に暗く置き、選べる対象にはしない。
+  const foe = element('div', 'im-fallen-foe');
+  if (view.fallenFoe !== null) {
+    foe.append(figureNode('figure figure-fallen-foe', view.fallenFoe));
   }
-  stage.append(fallen);
+  stage.append(foe);
   field.append(stage);
   root.append(field);
 
