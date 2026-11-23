@@ -172,6 +172,26 @@ describe('[M-UI-HUD] ビューモデル', () => {
     expect(hit).toMatchObject({ range: 1, atk: 20, seal: null });
   });
 
+  it('命中時の効果：武技の命中で対象へ及ぶ効果を実効値で並べ、武技でなければ持たない', () => {
+    const RICH = martialAction('RICH', {
+      atk: 20,
+      dmg_hp: 300,
+      dmg_vp: 100,
+      stun: true,
+      give_seal: 30,
+      give_slip: 25,
+      give_debuff: { atk: 10 },
+      strip_rate: 40,
+      interfere_pos: 'PUSH',
+    });
+    const state = createDuel({ heroMaxHp: 60, heroActs: [MIND, RICH], enemyMaxHp: 40, enemyActs: [MIND] });
+    syncWatchKeys(state);
+    const view = buildBattleView({ state, deps: NO_SUMMON_DEPS, naming });
+    const rich = view.cards.find((card) => card.name === 'RICH')!;
+    expect(rich.hitEffects).toMatch(/^HP −\d+・VP −\d+・スタン・封印 \+0\.30・スリップ 0\.25・攻撃力 −0\.10・剥奪 40%・斥け$/);
+    expect(view.cards.find((card) => card.name === 'MIND')!.hitEffects).toBeNull();
+  });
+
   it('タイムラインと停止事由を含み、指示可能かどうかを示す', () => {
     const state = createScene({
       sceneLevel: 3,

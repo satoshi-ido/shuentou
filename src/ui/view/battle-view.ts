@@ -10,11 +10,16 @@ import {
   effectiveCostHp,
   effectiveCostPp,
   effectiveCostVp,
+  effectiveDmgApCenti,
+  effectiveDmgHpCenti,
+  effectiveDmgPpCenti,
+  effectiveDmgVpCenti,
   effectiveRange,
   effectiveStepRecovery,
   effectiveStepStartup,
   effectiveStepThought,
 } from '../../engine/effective.js';
+import { levelApDamage, levelHpDamage, levelPpDamage, levelVpDamage } from '../../engine/calc.js';
 import { hasFlag } from '../../engine/flags.js';
 import { PARAM_IDS, type ParamId } from '../../engine/params.js';
 import type { StepDeps } from '../../engine/pipeline/step.js';
@@ -88,6 +93,8 @@ export interface ActionCardView {
   readonly side: Side;
   readonly name: string;
   readonly description: string | null; // [M-STATE-ACTIONMASTER] 効果説明
+  // [M-UI-HUD]「命中時の効果」武技のアクションが命中した対象それぞれへ及ぶ効果。武技でなければ Null。
+  readonly hitEffects: string | null;
   readonly icon: SystemIcon | null;
   readonly rank: 0 | 1 | 2 | 3;
   readonly executable: boolean;
@@ -228,6 +235,55 @@ function costsOf(unit: Unit, action: ActionInstance): CostView[] {
 
 const SEAL_LIMIT_CENTI = 100;
 
+const INTERFERE_LABEL = { PUSH: '斥け', PULL: '招き', BOTH: '斥け／招き' } as const;
+
+// [M-UI-HUD]「命中時の効果」[M-RESOLVE-MARTIAL] の解決順に、命中した対象それぞれへ及ぶ効果を実効値で並べる。
+// ダメージはレベル補正後の値とする。既定値のものは描画しない（［数値書式］8）。
+function hitEffectsOf(state: BattleState, unit: Unit, action: ActionInstance): string | null {
+  if (!hasFlag(action.sys_flags, 'FLAG_MARTIAL')) {
+    return null;
+  }
+  const params = action.base_params;
+  const level = state.scene_level;
+  const parts: string[] = [];
+  const damages: readonly [string, number][] = [
+    ['HP', levelHpDamage(effectiveDmgHpCenti(unit, action), level)],
+    ['VP', levelVpDamage(effectiveDmgVpCenti(unit, action))],
+    ['PP', levelPpDamage(effectiveDmgPpCenti(unit, action), level)],
+    ['AP', levelApDamage(effectiveDmgApCenti(unit, action))],
+  ];
+  for (const [label, value] of damages) {
+    if (value !== 0) {
+      parts.push(`${label} −${value}`);
+    }
+  }
+  if (params.stun) {
+    parts.push('スタン');
+  }
+  if (params.give_seal !== 0) {
+    parts.push(`封印 +${formatCenti(params.give_seal)}`);
+  }
+  if (params.give_slip !== 0) {
+    parts.push(`スリップ ${formatCenti(params.give_slip)}`);
+  }
+  for (const id of PARAM_IDS) {
+    const value = params.give_debuff[id] ?? 0;
+    if (value !== 0) {
+      parts.push(`${PARAM_LABEL[id] ?? id} ${correctionSign(id, 'DEBUFF')}${formatCenti(value)}`);
+    }
+  }
+  if (params.strip_rate !== 0) {
+    parts.push(`剥奪 ${params.strip_rate}%`);
+  }
+  if (params.initial_copy_val !== 0) {
+    parts.push(`コピー ${formatCenti(params.initial_copy_val)}`);
+  }
+  if (params.interfere_pos !== 'NONE') {
+    parts.push(INTERFERE_LABEL[params.interfere_pos]);
+  }
+  return parts.length === 0 ? null : parts.join('・');
+}
+
 function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: StepDeps, naming: UnitNaming): ActionCardView {
   const rank = activationRank(state, unit, action);
   const martial = hasFlag(action.sys_flags, 'FLAG_MARTIAL');
@@ -239,6 +295,7 @@ function cardOf(state: BattleState, unit: Unit, action: ActionInstance, deps: St
     side: unit.side,
     name: naming.actionName(action),
     description: naming.actionDescription?.(action) ?? null,
+    hitEffects: hitEffectsOf(state, unit, action),
     icon: iconOf(action),
     rank,
     executable: rank === 0 && unit.side === 'MINE',

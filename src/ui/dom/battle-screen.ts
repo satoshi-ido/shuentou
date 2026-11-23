@@ -643,6 +643,12 @@ function previewGroups(preview: ActionPreview, nameOf: (unitId: string) => strin
   }
 }
 
+// [M-UI-HUD]「命中時の効果」効果説明の後に、武技の命中時の効果を添える。
+function descriptionText(card: ActionCardView): string {
+  const hit = card.hitEffects === null ? null : `命中時：${card.hitEffects}`;
+  return [card.description, hit].filter((part) => part !== null && part !== '').join('　');
+}
+
 interface Inspector {
   readonly root: HTMLElement;
   readonly name: HTMLElement; // 注目中のアクション名
@@ -939,7 +945,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   // 注目を解いたときの姿：選択中のアクションがあればその見込み、なければ実行中カードそのもの。
   const restore = (): void => {
     inspector.name.textContent = selectedCard === undefined ? '' : selectedCard.name;
-    inspector.desc.textContent = selectedCard?.description ?? '';
+    inspector.desc.textContent = selectedCard === undefined ? '' : descriptionText(selectedCard);
     fillPreview(inspector.prev, view.preview, view.previewFireStep, view.step, nameOf);
     restoreBoard();
   };
@@ -947,7 +953,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   const focusOn = (column: BoardColumnView, card: ActionCardView): void => {
     const focus = screen.focusFor(card.instanceId);
     inspector.name.textContent = card.name;
-    inspector.desc.textContent = card.description ?? '';
+    inspector.desc.textContent = descriptionText(card);
     if (focus.preview === null) {
       // 見込みを提示しない注目（敵軍の手札・実行できない自軍アクション）。
       // 判定欄にはアクションの詳細を、自軍に限り実行できない理由を添えて示す（[M-UI-HUD]［判定語彙］）。
