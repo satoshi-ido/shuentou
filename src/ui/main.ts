@@ -162,8 +162,8 @@ const figureMotion = new FigureMotion(effects.root, () => config.simplifyEffects
 
 // [M-META-COMMIT]【提示】回帰回数が増えたとき、燈火が吹き消される瞬間として画面を暗転させてから戻す（暫定値）。
 const BLACKOUT_FALL_MS = 60; // 暗転にかける時間（吹き消すように、ほぼ一瞬で落とす）
-const BLACKOUT_HOLD_MS = 250; // 暗いまま保つ時間
-const BLACKOUT_RISE_MS = 350; // 戻すのにかける時間
+const BLACKOUT_HOLD_MS = 100; // 暗いまま保つ時間
+const BLACKOUT_RISE_MS = 200; // 戻すのにかける時間
 let seenRewindCount: number | null = null; // 最後に描画した回帰回数（セッションが無い間は Null）
 let blackout: HTMLElement | null = null; // 提示中の暗転の層。提示の間は時間を進めず、操作を受け付けない
 let afterBlackout: (() => void)[] = []; // 提示の間に届いた進行（敵軍の応答など）。戻した後に行う
