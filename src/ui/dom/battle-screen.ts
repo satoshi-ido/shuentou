@@ -702,7 +702,21 @@ function lockRow(reason: LockReason, lockText: (stringId: string, unitId: string
   }
 }
 
-function renderInspector(view: BattleView, screen: BattleScreenState): Inspector {
+// [M-DATA-PAUSE-REASON] 自動時間停止の事由。盤面の上端の中央に帯として重ね、効果説明と行を分ける（[M-UI-VIEWPORT]［画面の区画］）。
+// 決着の提示は停止事由より優先する（[M-PIPE-P5-DISCARD]）。提示が無い間は隠すが、重ねて置くため盤面の表示枠は動かない。
+function renderStatus(screen: BattleScreenState): HTMLElement {
+  const message = screen.resultText !== '' ? screen.resultText : screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
+  const why = element(
+    'div',
+    screen.resultText !== '' ? 'why why-result' : message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice',
+  );
+  why.setAttribute('role', 'status');
+  why.append(element('span', 'dot'));
+  why.append(element('span', 't', message));
+  return why;
+}
+
+function renderInspector(view: BattleView): Inspector {
   const strip = element('div', 'inspstrip');
   const box = element('div', 'ibox');
   const title = element('div', 'ttl');
@@ -714,23 +728,11 @@ function renderInspector(view: BattleView, screen: BattleScreenState): Inspector
   title.append(element('span', 'ttl-step num', `歩 ${view.step}`));
   box.append(title);
 
-  // 下段：アクションの効果説明（[M-STATE-ACTIONMASTER]）と、自動時間停止の事由を並べる。
+  // 下段：アクションの効果説明（[M-STATE-ACTIONMASTER]）。停止事由は盤面の上端に示す（renderStatus）。
   const foot = element('div', 'ibox-foot');
   const desc = element('span', 'act-desc');
   foot.append(desc);
 
-  // [M-DATA-PAUSE-REASON] 自動時間停止の事由。停止していない間も行の高さは保ち、
-  // 停止の成立で盤面の表示枠が縮まないようにする（固定レイアウト・[M-UI-VIEWPORT]）。
-  // 決着の提示は停止事由より優先する（[M-PIPE-P5-DISCARD]）。
-  const message = screen.resultText !== '' ? screen.resultText : screen.pauseText !== '' ? screen.pauseText : screen.noticeText;
-  const why = element(
-    'div',
-    screen.resultText !== '' ? 'why why-result' : message === '' ? 'why why-idle' : screen.pauseText !== '' ? 'why' : 'why why-notice',
-  );
-  why.setAttribute('role', 'status');
-  why.append(element('span', 'dot'));
-  why.append(element('span', 't', message));
-  foot.append(why);
   box.append(foot);
 
   strip.append(box);
@@ -860,7 +862,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
   timelineHost.append(renderTimeline(view.timeline, view.columns));
   root.append(timelineHost);
 
-  const inspector = renderInspector(view, screen);
+  const inspector = renderInspector(view);
   const nameOf = (unitId: string): string => view.plates.find((plate) => plate.unitId === unitId)?.name ?? '';
   const docks: (HTMLElement | null)[] = [null, null, null, null];
   const stampBoxes: (HTMLElement | null)[] = [null, null, null, null];
@@ -1022,6 +1024,7 @@ export function renderBattleScreen(stage: HTMLElement, screen: BattleScreenState
     board.append(nodes.root);
   }
   boardWrap.append(board);
+  boardWrap.append(renderStatus(screen));
   root.append(boardWrap);
 
   const footer = element('div', 'footer-strip');

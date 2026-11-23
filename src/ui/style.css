@@ -1068,7 +1068,7 @@ button:focus-visible {
   flex-shrink: 0;
 }
 
-/* 判定欄の下段：効果説明（左・可変幅）と自動時間停止の事由（右）。行の高さは内容によらず一定。 */
+/* 判定欄の下段：効果説明。行の高さは内容によらず一定。停止事由は盤面の上端に示す。 */
 .ibox-foot {
   display: flex;
   align-items: center;
@@ -1086,8 +1086,6 @@ button:focus-visible {
   font-size: 11px;
   color: var(--muted);
 }
-
-.ibox-foot .why { max-width: 46%; }
 
 .ibox .ttl .ttl-step {
   margin-left: auto;
@@ -1192,17 +1190,23 @@ button:focus-visible {
 .transport button.on { color: var(--ember); border-color: var(--ember); background: #20140a; }
 .transport button.step-once { margin-left: 6px; font-family: var(--font-ui); }
 
-/* [M-DATA-PAUSE-REASON] 自動時間停止の事由表示。 */
+/* [M-DATA-PAUSE-REASON] 自動時間停止の事由表示。盤面の上端の中央に帯として重ねる（[M-UI-VIEWPORT]［画面の区画］）。
+   クリックは受け止めず、余白のクリックによる再開（[M-UI-PLAYBACK]）へ通す。 */
 .why {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  pointer-events: none;
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 0 0 auto; /* 停止事由の有無で帯の高さを動かさない */
-  min-width: 0;
-  border: 1px solid var(--ember-dim);
-  background: rgba(255, 138, 43, 0.06);
-  padding: 1px 8px;
-  font-size: 10.5px;
+  gap: 8px;
+  max-width: 72%;
+  border: 1px solid var(--ember);
+  background: rgba(16, 12, 10, 0.88);
+  box-shadow: 0 0 14px -4px var(--ember);
+  padding: 5px 16px;
 }
 
 .why-idle { visibility: hidden; }
@@ -1218,8 +1222,8 @@ button:focus-visible {
 .why-notice .t { color: var(--muted); }
 
 .why .dot {
-  width: 5px;
-  height: 5px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--ember);
   box-shadow: 0 0 6px var(--ember);
@@ -1227,7 +1231,8 @@ button:focus-visible {
 }
 
 .why .t {
-  font-size: 11px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--ember);
   overflow: hidden;
   text-overflow: ellipsis;
