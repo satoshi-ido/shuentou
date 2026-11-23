@@ -80,6 +80,21 @@ describe('[M-PIPE-PAUSE-TRIGGER] 時間停止', () => {
     expect(resumeTime(session, ctx, { stopAtStep: step + 1 })).toBe('PAUSED');
     expect(session.data.run.battle_state?.step).toBe(step + 1);
   });
+
+  it('敵軍のアクション実行開始では、指示可能な自軍ユニットがいなくても停止する', () => {
+    const { session, ctx } = setup();
+    expect(startBattle(session, ctx)).toBe('PAUSED');
+    const state = session.data.run.battle_state;
+    const hero = state?.units.find((unit): unit is Unit => unit !== null && unit.side === 'MINE');
+    if (state === null || state === undefined || hero === undefined) {
+      throw new Error('バトル中ではない');
+    }
+    (hero as { acts: Unit['acts'] }).acts = []; // 以後、自軍に指示可能なユニットがいない
+    expect(resumeTime(session, ctx)).toBe('PAUSED');
+    expect(state.pause_reason?.code).toBe('ENEMY_START');
+    expect(state.step).toBe(157); // 敵の次の行動（指示可能な自軍ユニットがいないまま）
+    expect(executableActions(state, hero)).toEqual([]);
+  });
 });
 
 describe('[M-META-PENDING] [M-META-COMMIT] 巻き戻しの保留と確定', () => {

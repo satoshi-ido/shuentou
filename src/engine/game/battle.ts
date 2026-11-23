@@ -88,6 +88,13 @@ function hasMaster(state: BattleState, side: Unit['side']): boolean {
   return state.units.some((unit) => unit !== null && unit.side === side && unit.unit_kind === 'MASTER');
 }
 
+// ［停止の継続と解除］トリガー2（敵軍のアクション実行開始）による停止は、手動指示可能な自軍ユニットの有無に
+// かかわらず成立する。それ以外のトリガーによる停止は、手動指示可能な自軍ユニットがいる場合に限り成立する。
+// #4 の手動停止要求は、指示可能な自軍ユニットが現れるまで維持する。
+function pauseHolds(state: BattleState, reason: PauseReason): boolean {
+  return reason.code === 'ENEMY_START' || reason.code === 'ENEMY_IMMEDIATE' || instructableUnits(state).length > 0;
+}
+
 // ［停止の継続と解除］手動指示可能な思考中の自軍ユニット。
 function instructableUnits(state: BattleState): Unit[] {
   return state.units.filter(
@@ -149,7 +156,7 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
       const edges = detectWatchEdges(state, ctx.stepDeps);
       const reason = pauseReasonOf(state, sceneId, carriedToCurrentStep(pending.carried), edges, options);
       pending.carried = null;
-      if (reason !== null && instructableUnits(state).length > 0) {
+      if (reason !== null && pauseHolds(state, reason)) {
         session.pending_step = null;
         state.pause_reason = reason;
         return 'PAUSED';
@@ -174,9 +181,7 @@ function runUntilPause(session: GameSession, ctx: GameContext, options: AdvanceO
       // #3 の充足判定は停止の成否に関わらず毎ステップ行い、watch_prev_met を更新する（[M-UI-WATCH]）。
       const edges = detectWatchEdges(state, ctx.stepDeps);
       const reason = pauseReasonOf(state, sceneId, foe.firstExecuted, edges, options);
-      // ［停止の継続と解除］停止は手動指示可能な自軍ユニットがいる場合に限り成立する。
-      // #4 の手動停止要求は、指示可能な自軍ユニットが現れるまで維持する。
-      if (reason !== null && instructableUnits(state).length > 0) {
+      if (reason !== null && pauseHolds(state, reason)) {
         state.pause_reason = reason;
         return 'PAUSED';
       }
