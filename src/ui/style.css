@@ -555,8 +555,9 @@ button:focus-visible {
     drop-shadow(0 0 calc(var(--pose-glow, 0) * 10px) rgba(var(--glow-rgb), calc(var(--pose-glow, 0) * 0.9)));
 }
 .bcol-foe .pose { --glow-rgb: 196, 160, 255; }
-/* 思考中の呼吸。腰の高さ（人物の背丈 --figure-body の下から55%）で分け、上の側の写し（.breath-upper）だけを
-   持ち上げる。下の側は境の1画素（2px）上まで描き、持ち上げで空く行を埋める。境は立ち絵の画素に揃える。 */
+/* 思考中の呼吸と、体勢・心気の上下の動き（「系統の向き」）。腰の高さ（人物の背丈 --figure-body の下から55%）で分け、
+   上の側の写し（.breath-upper）だけを動かす。下の側は境から --seam（持ち上げる画素の分）上まで描き、持ち上げで空く行を埋める。
+   境は立ち絵の画素に揃える。 */
 .shot > * {
   --breath-cut: round(down, calc((var(--figure-dots, 96) - var(--figure-body, var(--figure-dots, 96)) * 0.55) * 2px), 2px);
 }
@@ -564,7 +565,7 @@ button:focus-visible {
   --breath-cut: calc(round(down, var(--figure-dots, 96) - var(--figure-body, var(--figure-dots, 96)) * 0.55, 1) * 198px / 96);
 }
 .shot.breathing { position: relative; }
-.breath-lower { clip-path: inset(calc(var(--breath-cut) - 2px) 0 0 0); }
+.breath-lower { clip-path: inset(calc(var(--breath-cut) - var(--seam, 2px)) 0 0 0); }
 .breath-upper {
   position: absolute;
   left: 0;

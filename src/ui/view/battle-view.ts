@@ -28,6 +28,7 @@ import type { ActionInstance, BattleState, PauseReason, Side, Unit, WatchKind } 
 import { WATCH_KINDS } from '../../engine/types.js';
 import { evaluateActionWatch, type WatchStatus } from '../../engine/watch.js';
 import { correctionSign, formatCenti, formatHp, formatSteps, formatUses, PARAM_LABEL, WATCH_SYMBOL } from '../format.js';
+import type { AssetPose } from '../../data/types.js';
 import type { SystemIcon } from '../assets/placeholder.js';
 import type { StancePose } from '../assets/resolve.js';
 import { poseOfFlags } from './figure-motion.js';
@@ -45,6 +46,7 @@ export interface RunningCardView {
   readonly instanceId: string | null;
   readonly name: string;
   readonly phase: 'STARTUP' | 'RECOVERY';
+  readonly system: AssetPose | null; // 実行中のアクションの系統（[M-UI-HUD]【立ち絵の動き】「系統の向き」）
   readonly stateLabel: '発生中' | '硬直中';
   readonly steps: string; // 経過 / 基準（残N）
   readonly elapsed: number;
@@ -178,6 +180,7 @@ function runningOf(unit: Unit, actionName: (action: ActionInstance) => string): 
     instanceId: unit.last_act?.instance_id ?? null,
     name: action === undefined ? (unit.last_act?.class_id ?? '─') : actionName(action),
     phase: startup ? 'STARTUP' : 'RECOVERY',
+    system: unit.last_act === null ? null : poseOfFlags(unit.last_act.sys_flags),
     stateLabel: startup ? '発生中' : '硬直中',
     steps: formatSteps(elapsed, required),
     elapsed,

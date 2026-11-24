@@ -10,19 +10,27 @@ import {
   heldPoseOf,
   HIT_MS,
   LEAN_MAX,
+  LIFT_MAX,
   NEUTRAL_POSE,
   poseOf,
   progressOf,
   RECOVERY_BRIGHTNESS,
   STANCE_FLASH_MS,
   SWING_FRAME_MS,
+  thrustOf,
 } from '../../src/ui/view/figure-motion.js';
 
-function running(phase: RunningCardView['phase'], elapsed: number, required: number): RunningCardView {
+function running(
+  phase: RunningCardView['phase'],
+  elapsed: number,
+  required: number,
+  system: RunningCardView['system'] = 'MARTIAL',
+): RunningCardView {
   return {
     instanceId: 'I0001',
     name: '試し',
     phase,
+    system,
     stateLabel: phase === 'STARTUP' ? '発生中' : '硬直中',
     steps: '',
     elapsed,
@@ -46,7 +54,7 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
   });
 
   it('発生中は進捗に従い、向きと反対の側へ画素単位で身を引き、輪郭の光を強める', () => {
-    expect(poseOf(running('STARTUP', 0, 170), 'MINE', false)).toEqual({ dx: 0, glow: 0, brightness: 1 });
+    expect(poseOf(running('STARTUP', 0, 170), 'MINE', false)).toEqual({ dx: 0, lift: 0, glow: 0, brightness: 1 });
     const half = poseOf(running('STARTUP', 85, 170), 'MINE', false);
     expect(half.dx).toBe(-2); // 自軍は右を向くため左へ引く（3 × 0.5 を画素に揃える）
     expect(half.glow).toBe(0.5);
@@ -57,9 +65,32 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     }
   });
 
+  it('系統の向き：発動は武技（と系統なし）が前、体勢が下、心気が上', () => {
+    expect(thrustOf('MARTIAL')).toBe('FORWARD');
+    expect(thrustOf(null)).toBe('FORWARD');
+    expect(thrustOf('STANCE')).toBe('DOWN');
+    expect(thrustOf('MIND')).toBe('UP');
+  });
+
+  it('発生中は系統の向きと反対へ身構える：体勢は上の側を持ち上げ、心気は沈め、左右には動かない', () => {
+    const stance = poseOf(running('STARTUP', 170, 170, 'STANCE'), 'MINE', false);
+    expect(stance).toEqual({ dx: 0, lift: LIFT_MAX, glow: 1, brightness: 1 });
+    const mind = poseOf(running('STARTUP', 170, 170, 'MIND'), 'FOE', false);
+    expect(mind).toEqual({ dx: 0, lift: -LIFT_MAX, glow: 1, brightness: 1 });
+    expect(poseOf(running('STARTUP', 0, 170, 'MIND'), 'FOE', false).lift).toBe(0);
+    expect(poseOf(running('STARTUP', 170, 170, null), 'MINE', false).dx).toBe(-LEAN_MAX); // 系統なしは武技と同じく引く
+    for (let elapsed = 0; elapsed <= 170; elapsed += 1) {
+      expect(Number.isInteger(poseOf(running('STARTUP', elapsed, 170, 'STANCE'), 'MINE', false).lift)).toBe(true);
+    }
+  });
+
+  it('演出の簡略化では、体勢・心気の身構えも位置を変えない', () => {
+    expect(poseOf(running('STARTUP', 170, 170, 'STANCE'), 'MINE', true).lift).toBe(0);
+  });
+
   it('硬直中は位置を変えず、始めに暗く、進捗に従って元の明るさへ戻る', () => {
-    expect(poseOf(running('RECOVERY', 0, 40), 'FOE', false)).toEqual({ dx: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
-    expect(poseOf(running('RECOVERY', 40, 40), 'FOE', false)).toEqual({ dx: 0, glow: 0, brightness: 1 });
+    expect(poseOf(running('RECOVERY', 0, 40), 'FOE', false)).toEqual({ dx: 0, lift: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
+    expect(poseOf(running('RECOVERY', 40, 40), 'FOE', false)).toEqual({ dx: 0, lift: 0, glow: 0, brightness: 1 });
     expect(poseOf(running('RECOVERY', 10, 40), 'MINE', false).brightness).toBeLessThan(
       poseOf(running('RECOVERY', 30, 40), 'MINE', false).brightness,
     );
@@ -131,7 +162,7 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
   });
 
   it('演出の簡略化では位置を変えず、光と明るさだけで進捗を示す', () => {
-    expect(poseOf(running('STARTUP', 170, 170), 'MINE', true)).toEqual({ dx: 0, glow: 1, brightness: 1 });
-    expect(poseOf(running('RECOVERY', 0, 40), 'MINE', true)).toEqual({ dx: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
+    expect(poseOf(running('STARTUP', 170, 170), 'MINE', true)).toEqual({ dx: 0, lift: 0, glow: 1, brightness: 1 });
+    expect(poseOf(running('RECOVERY', 0, 40), 'MINE', true)).toEqual({ dx: 0, lift: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS });
   });
 });

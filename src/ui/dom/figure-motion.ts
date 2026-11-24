@@ -29,6 +29,9 @@ import {
   PUSH,
   swingStartOf,
   SWING_FRAME_MS,
+  type Thrust,
+  THRUST_LIFT,
+  thrustOf,
 } from '../view/figure-motion.js';
 
 type ShotKind = 'LUNGE' | 'HIT';
@@ -49,6 +52,7 @@ interface ReelFrame {
 interface Shot {
   readonly kind: ShotKind;
   readonly start: number; // 実時刻（ms）
+  readonly thrust: Thrust; // 発動の動きの向き（「系統の向き」）。被弾は FORWARD とする
 }
 
 const SHOT_MS: Readonly<Record<ShotKind, number>> = { LUNGE: LUNGE_MS, HIT: HIT_MS };
@@ -62,6 +66,54 @@ function canAnimate(node: HTMLElement): boolean {
 
 function px(pixels: number): string {
   return `${pixels * FIGURE_PIXEL}px`;
+}
+
+// 「系統の向き」体勢・心気の発動の動き。腰で分けた上の側の写しだけを沈めて（持ち上げて）戻す。
+function thrustKeyframes(thrust: Thrust): Keyframe[] {
+  const moved = `translateY(${px(thrust === 'DOWN' ? THRUST_LIFT : -THRUST_LIFT)})`;
+  return [
+    { transform: 'translateY(0px)', easing: STEP_EASING(THRUST_LIFT) },
+    { transform: moved, offset: 0.4 },
+    { transform: moved, offset: 0.6, easing: STEP_EASING(THRUST_LIFT) },
+    { transform: 'translateY(0px)' },
+  ];
+}
+
+// 立ち絵を腰の高さで上下に分け、上の側の写しを返す（「足元を地面から離さない」上下の動きは上の側だけに掛ける）。
+// 下の側は境から seam 画素上まで描き、上の側を持ち上げて空く行を埋める（分ける高さは style.css の --breath-cut）。
+// 分けてあれば同じ写しを返し、埋める幅だけを広げる。
+function splitUpper(shot: HTMLElement, seam: number): HTMLElement | null {
+  const width = Math.max(seam, Number(shot.dataset.seam ?? 0));
+  if (shot.querySelector(':scope > .breath-upper') === null) {
+    const body = shot.firstElementChild;
+    if (!(body instanceof HTMLElement) || !canAnimate(body)) {
+      return null;
+    }
+    const upper = body.cloneNode(true) as HTMLElement;
+    body.classList.add('breath-lower');
+    upper.classList.add('breath-upper');
+    shot.classList.add('breathing');
+    shot.append(upper);
+  }
+  shot.dataset.seam = String(width);
+  shot.style.setProperty('--seam', px(width));
+  return shot.querySelector<HTMLElement>(':scope > .breath-upper');
+}
+
+// 一回の動きを、その経過の時点から掛ける。体勢・心気の発動は上の側の写しへ、それ以外は立ち絵の器へ掛ける。
+function playShot(shot: HTMLElement, side: Side, entry: Shot, elapsed: number, simplify: boolean): void {
+  if (entry.kind === 'LUNGE' && entry.thrust !== 'FORWARD') {
+    const upper = splitUpper(shot, entry.thrust === 'UP' ? THRUST_LIFT : 1);
+    if (upper !== null) {
+      upper.animate(thrustKeyframes(entry.thrust), { duration: LUNGE_MS, composite: 'add' }).currentTime = elapsed;
+    }
+    return;
+  }
+  const animation = shot.animate(shotKeyframes(entry.kind, side, simplify), {
+    duration: SHOT_MS[entry.kind],
+    composite: 'add',
+  });
+  animation.currentTime = elapsed;
 }
 
 function shotKeyframes(kind: ShotKind, side: Side, simplify: boolean): Keyframe[] {
@@ -123,19 +175,13 @@ export class FigureMotion {
     return this.clock + (this.resumedAt === null ? 0 : this.now() - this.resumedAt);
   }
 
-  // 「思考中」の呼吸。立ち絵を腰の高さで上下に分け、上の側の写しだけを持ち上げる。下の側は境の1行上まで
-  // 描いておき、持ち上げで空く行を境の行の続きで埋める（分ける高さは style.css の --breath-cut）。
+  // 「思考中」の呼吸。立ち絵を腰の高さで上下に分け、上の側の写しだけを持ち上げる（splitUpper）。
   private breathe(shot: HTMLElement, unitId: string): void {
-    const body = shot.firstElementChild;
-    if (!(body instanceof HTMLElement) || !canAnimate(body)) {
+    const upper = splitUpper(shot, BREATH);
+    if (upper === null) {
       return;
     }
     const breath = breathOf(unitId); // 「呼吸のずれ」
-    const upper = body.cloneNode(true) as HTMLElement;
-    body.classList.add('breath-lower');
-    upper.classList.add('breath-upper');
-    shot.classList.add('breathing');
-    shot.append(upper);
     const animation = upper.animate(
       [
         { transform: 'translateY(0px)', easing: STEP_EASING(1) },
@@ -150,7 +196,7 @@ export class FigureMotion {
     }
   }
 
-  // [M-DATA-AUDIO-CUE] 発火契機。発動は踏み込み、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
+  // [M-DATA-AUDIO-CUE] 発火契機。発動は系統の向きの動き（武技は踏み込み、体勢は上の側の沈み、心気は持ち上げ）、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
   // スタン中断は発動の契機を伴わないため、踏み込みを行わない（「スタン中断」）。
   // 倒れの画を持つマスターは、薄れさせずに倒れの画へ替える（「倒れの画」。演出の簡略化でも行う）。
   cue(cue: BattleCue): void {
@@ -178,7 +224,8 @@ export class FigureMotion {
     const kind: ShotKind = cue.kind === 'ACTION_TRIGGER' ? 'LUNGE' : 'HIT';
     const now = this.now();
     const live = (this.shots[cue.unitId] ?? []).filter((shot) => now - shot.start < SHOT_MS[shot.kind]);
-    this.shots[cue.unitId] = [...live, { kind, start: now }];
+    const thrust: Thrust = cue.kind === 'ACTION_TRIGGER' ? thrustOf(poseOfFlags(cue.sysFlags)) : 'FORWARD';
+    this.shots[cue.unitId] = [...live, { kind, start: now, thrust }];
   }
 
   // 「画の最短の表示」発動の時点を記録し、段が替わる時刻に描き直しを求める。系統の無い発動は先の表示を除く。
@@ -223,7 +270,7 @@ export class FigureMotion {
   }
 
   // 「決着の一打」勝利の決着で止めた盤面（決着の直前に描いた盤面）に、決着のステップの発動の動きを決着の時点から再生する。
-  // 立ち絵は発動の時点に定めた画で替え、踏み込みを掛ける。返すのは、動きが終わるまでの残りの実時間（ms）。
+  // 立ち絵は発動の時点に定めた画で替え、系統の向きの動きを掛ける。返すのは、動きが終わるまでの残りの実時間（ms）。
   playFrozen(): number {
     const now = this.now();
     let remaining = 0;
@@ -251,25 +298,23 @@ export class FigureMotion {
       shot.querySelectorAll('.breath-lower').forEach((node) => node.classList.remove('breath-lower'));
       shot.classList.remove('breathing', 'previewing');
       applyStill(pose);
-      const image = shot.querySelector<HTMLImageElement>('img.figure-img');
-      if (image !== null) {
-        const past = reel.filter((frame) => frame.at <= now).at(-1);
-        if (past !== undefined) {
-          setFigureSource(image, past.url);
-        }
-        for (const frame of reel.filter((candidate) => candidate.at > now)) {
-          this.frozenTimers.push(window.setTimeout(() => setFigureSource(image, frame.url), frame.at - now));
-        }
+      shot.style.removeProperty('--seam');
+      delete shot.dataset.seam;
+      // 体勢・心気の動きで上下に分けた写しも同じ画へ替えるため、替える時点の画をすべて替える
+      const swap = (url: string): void =>
+        shot.querySelectorAll<HTMLImageElement>('img.figure-img').forEach((image) => setFigureSource(image, url));
+      const past = reel.filter((frame) => frame.at <= now).at(-1);
+      if (past !== undefined) {
+        swap(past.url);
+      }
+      for (const frame of reel.filter((candidate) => candidate.at > now)) {
+        this.frozenTimers.push(window.setTimeout(() => swap(frame.url), frame.at - now));
       }
       if (canAnimate(shot)) {
         for (const entry of this.shots[unitId] ?? []) {
           const elapsed = now - entry.start;
           if (entry.kind === 'LUNGE' && elapsed < LUNGE_MS) {
-            const animation = shot.animate(shotKeyframes('LUNGE', pose.dataset.side === 'MINE' ? 'MINE' : 'FOE', false), {
-              duration: LUNGE_MS,
-              composite: 'add',
-            });
-            animation.currentTime = elapsed;
+            playShot(shot, pose.dataset.side === 'MINE' ? 'MINE' : 'FOE', entry, elapsed, false);
           }
         }
       }
@@ -333,17 +378,16 @@ export class FigureMotion {
     if (plate.running === null && !simplify) {
       this.breathe(shot, plate.unitId);
     }
+    // 「系統の向き」体勢・心気の発生中の身構えは、腰で分けた上の側だけを持ち上げる（沈める）
+    if (target.lift !== 0) {
+      splitUpper(shot, Math.max(target.lift, 1))?.style.setProperty('translate', `0 ${px(-target.lift)}`);
+    }
     const now = this.now();
     for (const entry of this.shots[plate.unitId] ?? []) {
       const elapsed = now - entry.start;
-      if (elapsed >= SHOT_MS[entry.kind]) {
-        continue;
+      if (elapsed < SHOT_MS[entry.kind]) {
+        playShot(shot, plate.side, entry, elapsed, simplify);
       }
-      const animation = shot.animate(shotKeyframes(entry.kind, plate.side, simplify), {
-        duration: SHOT_MS[entry.kind],
-        composite: 'add',
-      });
-      animation.currentTime = elapsed;
     }
   }
 

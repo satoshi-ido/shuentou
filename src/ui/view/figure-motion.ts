@@ -1,6 +1,6 @@
 // [M-UI-HUD]［立ち絵の動き］盤面の立ち絵の姿勢。発生中・硬直中の進捗を、位置と明るさと輪郭の光に写す。
 // 立ち絵は1件の画のまま動かし、位置の変化は立ち絵の実体の1画素（論理解像度の2px）を単位とする。
-// 「足元を地面から離さない」立ち絵全体の位置の変化は左右に限り、上下には動かさない（思考中の呼吸は上の側だけを動かす）。
+// 「足元を地面から離さない」立ち絵全体の位置の変化は左右に限り、上下には動かさない（思考中の呼吸と、体勢・心気の上下の動きは上の側だけを動かす）。
 // 表示に限る値であり、BattleState に含まれず、[M-CORE-DETERMINISM] の対象外である（同項［更新と決定論］）。
 
 import type { AssetPose } from '../../data/types.js';
@@ -12,6 +12,8 @@ import type { RunningCardView } from './battle-view.js';
 
 export const FIGURE_PIXEL = 2; // 立ち絵の実体の1画素（論理解像度の px）
 export const LEAN_MAX = 3; // 発生中に身を引く最大の画素数（暫定値）
+export const LIFT_MAX = 2; // 発生中に上の側を持ち上げる・沈める最大の画素数（暫定値）
+export const THRUST_LIFT = 3; // 発動で上の側を沈める・持ち上げる画素数（暫定値）
 export const RECOVERY_BRIGHTNESS = 0.8; // 硬直の始めの明るさ（暫定値）
 export const BREATH = 1; // 思考中の呼吸で上の側を持ち上げる画素数
 export const BREATH_PERIOD_MIN_MS = 2400; // 思考中の呼吸の周期の幅（暫定値）。分ける高さは style.css の --breath-cut
@@ -24,11 +26,21 @@ export const FADE_MS = 500; // 消滅猶予の薄れ（暫定値）
 
 export interface FigurePose {
   readonly dx: number; // 画素。正は右
+  readonly lift: number; // 上の側を持ち上げる画素。負は沈める
   readonly glow: number; // 輪郭の光（0〜1）
   readonly brightness: number;
 }
 
-export const NEUTRAL_POSE: FigurePose = { dx: 0, glow: 0, brightness: 1 };
+export const NEUTRAL_POSE: FigurePose = { dx: 0, lift: 0, glow: 0, brightness: 1 };
+
+// 「系統の向き」発動の動きの向き。武技は前、体勢は下、心気は上。系統を持たないアクションは武技と同じく前とする。
+export type Thrust = 'FORWARD' | 'DOWN' | 'UP';
+
+export function thrustOf(pose: AssetPose | null): Thrust {
+  if (pose === 'STANCE') return 'DOWN';
+  if (pose === 'MIND') return 'UP';
+  return 'FORWARD';
+}
 
 // 「向き」自軍は右、敵軍は左を向く。前へ踏み込む向きの符号。
 export function facingOf(side: Side): 1 | -1 {
@@ -156,6 +168,7 @@ export function progressOf(elapsed: number, required: number): number | null {
 }
 
 // 発生中・硬直中の姿勢。演出の簡略化では位置を変えず、光と明るさだけで進捗を示す。
+// 発生中は系統の向きと反対へ身構える（「系統の向き」）。武技は身を引き、体勢は上の側を持ち上げ、心気は上の側を沈める。
 export function poseOf(running: RunningCardView | null, side: Side, simplify: boolean): FigurePose {
   if (running === null) {
     return NEUTRAL_POSE;
@@ -165,8 +178,13 @@ export function poseOf(running: RunningCardView | null, side: Side, simplify: bo
     return NEUTRAL_POSE;
   }
   if (running.phase === 'STARTUP') {
+    const thrust = thrustOf(running.system);
+    if (thrust !== 'FORWARD') {
+      const lift = simplify ? 0 : Math.round(progress * LIFT_MAX); // 「画素に揃える」
+      return { dx: 0, lift: lift === 0 ? 0 : thrust === 'DOWN' ? lift : -lift, glow: progress, brightness: 1 };
+    }
     const lean = simplify ? 0 : Math.round(progress * LEAN_MAX); // 「画素に揃える」
-    return { dx: lean === 0 ? 0 : -facingOf(side) * lean, glow: progress, brightness: 1 };
+    return { dx: lean === 0 ? 0 : -facingOf(side) * lean, lift: 0, glow: progress, brightness: 1 };
   }
-  return { dx: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS + (1 - RECOVERY_BRIGHTNESS) * progress };
+  return { dx: 0, lift: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS + (1 - RECOVERY_BRIGHTNESS) * progress };
 }
