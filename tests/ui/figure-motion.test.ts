@@ -65,8 +65,8 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     }
   });
 
-  it('系統の向き：発動は武技（と系統なし）が前、体勢が下、心気が上', () => {
-    expect(thrustOf('MARTIAL')).toBe('FORWARD');
+  it('系統の向き：発動は武技が後ろ上から前下、系統なしが前、体勢が真下、心気が真上', () => {
+    expect(thrustOf('MARTIAL')).toBe('DIAGONAL');
     expect(thrustOf(null)).toBe('FORWARD');
     expect(thrustOf('STANCE')).toBe('DOWN');
     expect(thrustOf('MIND')).toBe('UP');
@@ -78,7 +78,9 @@ describe('[M-UI-HUD]［立ち絵の動き］', () => {
     const mind = poseOf(running('STARTUP', 170, 170, 'MIND'), 'FOE', false);
     expect(mind).toEqual({ dx: 0, lift: -LIFT_MAX, glow: 1, brightness: 1 });
     expect(poseOf(running('STARTUP', 0, 170, 'MIND'), 'FOE', false).lift).toBe(0);
-    expect(poseOf(running('STARTUP', 170, 170, null), 'MINE', false).dx).toBe(-LEAN_MAX); // 系統なしは武技と同じく引く
+    expect(poseOf(running('STARTUP', 170, 170, null), 'MINE', false)).toEqual({ dx: -LEAN_MAX, lift: 0, glow: 1, brightness: 1 }); // 系統なしは引くだけ
+    // 武技は身を引きつつ上の側を持ち上げ、後ろ上へ構える
+    expect(poseOf(running('STARTUP', 170, 170, 'MARTIAL'), 'FOE', false)).toEqual({ dx: LEAN_MAX, lift: LIFT_MAX, glow: 1, brightness: 1 });
     for (let elapsed = 0; elapsed <= 170; elapsed += 1) {
       expect(Number.isInteger(poseOf(running('STARTUP', elapsed, 170, 'STANCE'), 'MINE', false).lift)).toBe(true);
     }

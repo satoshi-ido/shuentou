@@ -13,7 +13,8 @@ import type { RunningCardView } from './battle-view.js';
 export const FIGURE_PIXEL = 2; // 立ち絵の実体の1画素（論理解像度の px）
 export const LEAN_MAX = 3; // 発生中に身を引く最大の画素数（暫定値）
 export const LIFT_MAX = 2; // 発生中に上の側を持ち上げる・沈める最大の画素数（暫定値）
-export const THRUST_LIFT = 3; // 発動で上の側を沈める・持ち上げる画素数（暫定値）
+export const THRUST_LIFT = 3; // 発動で上の側を沈める・持ち上げる画素数（体勢・心気。暫定値）
+export const STRIKE_DIP = 2; // 武技の発動で踏み込みつつ上の側を沈める画素数（暫定値）
 export const RECOVERY_BRIGHTNESS = 0.8; // 硬直の始めの明るさ（暫定値）
 export const BREATH = 1; // 思考中の呼吸で上の側を持ち上げる画素数
 export const BREATH_PERIOD_MIN_MS = 2400; // 思考中の呼吸の周期の幅（暫定値）。分ける高さは style.css の --breath-cut
@@ -33,13 +34,20 @@ export interface FigurePose {
 
 export const NEUTRAL_POSE: FigurePose = { dx: 0, lift: 0, glow: 0, brightness: 1 };
 
-// 「系統の向き」発動の動きの向き。武技は前、体勢は下、心気は上。系統を持たないアクションは武技と同じく前とする。
-export type Thrust = 'FORWARD' | 'DOWN' | 'UP';
+// 「系統の向き」発動の動きの向き。武技は後ろ上から前下（DIAGONAL）、体勢は真下、心気は真上。
+// 系統を持たないアクションは前への踏み込みだけとする（FORWARD）。
+export type Thrust = 'FORWARD' | 'DIAGONAL' | 'DOWN' | 'UP';
 
 export function thrustOf(pose: AssetPose | null): Thrust {
+  if (pose === 'MARTIAL') return 'DIAGONAL';
   if (pose === 'STANCE') return 'DOWN';
   if (pose === 'MIND') return 'UP';
   return 'FORWARD';
+}
+
+// 発動の動きが前への踏み込みを持つか（武技と系統なし）。
+export function thrustsForward(thrust: Thrust): boolean {
+  return thrust === 'FORWARD' || thrust === 'DIAGONAL';
 }
 
 // 「向き」自軍は右、敵軍は左を向く。前へ踏み込む向きの符号。
@@ -168,7 +176,8 @@ export function progressOf(elapsed: number, required: number): number | null {
 }
 
 // 発生中・硬直中の姿勢。演出の簡略化では位置を変えず、光と明るさだけで進捗を示す。
-// 発生中は系統の向きと反対へ身構える（「系統の向き」）。武技は身を引き、体勢は上の側を持ち上げ、心気は上の側を沈める。
+// 発生中は系統の向きと反対へ身構える（「系統の向き」）。武技は身を引きつつ上の側を持ち上げ、体勢は上の側を持ち上げ、
+// 心気は上の側を沈める。系統なしは身を引くだけとする。
 export function poseOf(running: RunningCardView | null, side: Side, simplify: boolean): FigurePose {
   if (running === null) {
     return NEUTRAL_POSE;
@@ -179,12 +188,15 @@ export function poseOf(running: RunningCardView | null, side: Side, simplify: bo
   }
   if (running.phase === 'STARTUP') {
     const thrust = thrustOf(running.system);
-    if (thrust !== 'FORWARD') {
-      const lift = simplify ? 0 : Math.round(progress * LIFT_MAX); // 「画素に揃える」
-      return { dx: 0, lift: lift === 0 ? 0 : thrust === 'DOWN' ? lift : -lift, glow: progress, brightness: 1 };
-    }
-    const lean = simplify ? 0 : Math.round(progress * LEAN_MAX); // 「画素に揃える」
-    return { dx: lean === 0 ? 0 : -facingOf(side) * lean, lift: 0, glow: progress, brightness: 1 };
+    const depth = (max: number): number => (simplify ? 0 : Math.round(progress * max)); // 「画素に揃える」
+    const lean = thrustsForward(thrust) ? depth(LEAN_MAX) : 0;
+    const lift = thrust === 'FORWARD' ? 0 : depth(LIFT_MAX);
+    return {
+      dx: lean === 0 ? 0 : -facingOf(side) * lean,
+      lift: lift === 0 ? 0 : thrust === 'UP' ? -lift : lift,
+      glow: progress,
+      brightness: 1,
+    };
   }
   return { dx: 0, lift: 0, glow: 0, brightness: RECOVERY_BRIGHTNESS + (1 - RECOVERY_BRIGHTNESS) * progress };
 }

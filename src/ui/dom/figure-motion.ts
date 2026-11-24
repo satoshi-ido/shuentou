@@ -29,9 +29,11 @@ import {
   PUSH,
   swingStartOf,
   SWING_FRAME_MS,
+  STRIKE_DIP,
   type Thrust,
   THRUST_LIFT,
   thrustOf,
+  thrustsForward,
 } from '../view/figure-motion.js';
 
 type ShotKind = 'LUNGE' | 'HIT';
@@ -68,15 +70,25 @@ function px(pixels: number): string {
   return `${pixels * FIGURE_PIXEL}px`;
 }
 
-// 「系統の向き」体勢・心気の発動の動き。腰で分けた上の側の写しだけを沈めて（持ち上げて）戻す。
-function thrustKeyframes(thrust: Thrust): Keyframe[] {
-  const moved = `translateY(${px(thrust === 'DOWN' ? THRUST_LIFT : -THRUST_LIFT)})`;
+// 「系統の向き」発動の上下の動き。腰で分けた上の側の写しだけを dy 画素（正は下）動かして戻す。
+// 武技は踏み込みと同じ拍子で沈め、体勢は沈め、心気は持ち上げる。
+function thrustKeyframes(dy: number): Keyframe[] {
+  const steps = Math.abs(dy);
+  const moved = `translateY(${px(dy)})`;
   return [
-    { transform: 'translateY(0px)', easing: STEP_EASING(THRUST_LIFT) },
+    { transform: 'translateY(0px)', easing: STEP_EASING(steps) },
     { transform: moved, offset: 0.4 },
-    { transform: moved, offset: 0.6, easing: STEP_EASING(THRUST_LIFT) },
+    { transform: moved, offset: 0.6, easing: STEP_EASING(steps) },
     { transform: 'translateY(0px)' },
   ];
+}
+
+// 発動の上の側の動き（画素。正は下）。系統なしは動かさない。
+function thrustDy(thrust: Thrust): number {
+  if (thrust === 'DIAGONAL') return STRIKE_DIP;
+  if (thrust === 'DOWN') return THRUST_LIFT;
+  if (thrust === 'UP') return -THRUST_LIFT;
+  return 0;
 }
 
 // 立ち絵を腰の高さで上下に分け、上の側の写しを返す（「足元を地面から離さない」上下の動きは上の側だけに掛ける）。
@@ -100,13 +112,17 @@ function splitUpper(shot: HTMLElement, seam: number): HTMLElement | null {
   return shot.querySelector<HTMLElement>(':scope > .breath-upper');
 }
 
-// 一回の動きを、その経過の時点から掛ける。体勢・心気の発動は上の側の写しへ、それ以外は立ち絵の器へ掛ける。
+// 一回の動きを、その経過の時点から掛ける。前への踏み込みと被弾は立ち絵の器へ、上下の動きは上の側の写しへ掛ける。
+// 武技は両方を同じ拍子で掛け、後ろ上から前下へ打ち込む動きとする。
 function playShot(shot: HTMLElement, side: Side, entry: Shot, elapsed: number, simplify: boolean): void {
-  if (entry.kind === 'LUNGE' && entry.thrust !== 'FORWARD') {
-    const upper = splitUpper(shot, entry.thrust === 'UP' ? THRUST_LIFT : 1);
+  const dy = entry.kind === 'LUNGE' ? thrustDy(entry.thrust) : 0;
+  if (dy !== 0) {
+    const upper = splitUpper(shot, Math.max(-dy, 1));
     if (upper !== null) {
-      upper.animate(thrustKeyframes(entry.thrust), { duration: LUNGE_MS, composite: 'add' }).currentTime = elapsed;
+      upper.animate(thrustKeyframes(dy), { duration: LUNGE_MS, composite: 'add' }).currentTime = elapsed;
     }
+  }
+  if (entry.kind === 'LUNGE' && !thrustsForward(entry.thrust)) {
     return;
   }
   const animation = shot.animate(shotKeyframes(entry.kind, side, simplify), {
@@ -196,7 +212,7 @@ export class FigureMotion {
     }
   }
 
-  // [M-DATA-AUDIO-CUE] 発火契機。発動は系統の向きの動き（武技は踏み込み、体勢は上の側の沈み、心気は持ち上げ）、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
+  // [M-DATA-AUDIO-CUE] 発火契機。発動は系統の向きの動き（武技は踏み込みと上の側の沈み、体勢は沈み、心気は持ち上げ）、命中は被弾、消滅猶予への遷移は薄れて消える残像とする。
   // スタン中断は発動の契機を伴わないため、踏み込みを行わない（「スタン中断」）。
   // 倒れの画を持つマスターは、薄れさせずに倒れの画へ替える（「倒れの画」。演出の簡略化でも行う）。
   cue(cue: BattleCue): void {
@@ -378,7 +394,7 @@ export class FigureMotion {
     if (plate.running === null && !simplify) {
       this.breathe(shot, plate.unitId);
     }
-    // 「系統の向き」体勢・心気の発生中の身構えは、腰で分けた上の側だけを持ち上げる（沈める）
+    // 「系統の向き」発生中の身構えの上下（武技・体勢は持ち上げ、心気は沈め）は、腰で分けた上の側だけに掛ける
     if (target.lift !== 0) {
       splitUpper(shot, Math.max(target.lift, 1))?.style.setProperty('translate', `0 ${px(-target.lift)}`);
     }
